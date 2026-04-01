@@ -1,0 +1,617 @@
+pub mod ui;
+
+use std::collections::HashSet;
+use std::io;
+
+use anyhow::Result;
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
+use tokio::sync::mpsc;
+
+// ---------------------------------------------------------------------------
+// Progress events sent from collector tasks → TUI
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone)]
+pub enum Progress {
+    Started { collector: String },
+    Done { collector: String, count: usize },
+    Error { collector: String, message: String },
+    /// Sent once all collectors finish; carries the list of written file paths.
+    Finished { files: Vec<String> },
+}
+
+// ---------------------------------------------------------------------------
+// Wizard screens
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Screen {
+    Welcome,
+    SelectProfile,
+    SelectRegion,
+    SetDates,
+    SelectCollectors,
+    SetOptions,
+    Confirm,
+    Running,
+    Results,
+}
+
+// ---------------------------------------------------------------------------
+// Text input state
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Default)]
+pub struct TextInput {
+    pub value: String,
+    pub cursor: usize,
+}
+
+impl TextInput {
+    pub fn new(default: &str) -> Self {
+        Self {
+            value: default.to_string(),
+            cursor: default.len(),
+        }
+    }
+
+    pub fn insert(&mut self, c: char) {
+        self.value.insert(self.cursor, c);
+        self.cursor += c.len_utf8();
+    }
+
+    pub fn backspace(&mut self) {
+        if self.cursor > 0 {
+            let c = self.value[..self.cursor]
+                .chars()
+                .last()
+                .unwrap();
+            self.cursor -= c.len_utf8();
+            self.value.remove(self.cursor);
+        }
+    }
+
+    pub fn move_left(&mut self) {
+        if self.cursor > 0 {
+            let c = self.value[..self.cursor].chars().last().unwrap();
+            self.cursor -= c.len_utf8();
+        }
+    }
+
+    pub fn move_right(&mut self) {
+        if self.cursor < self.value.len() {
+            let c = self.value[self.cursor..].chars().next().unwrap();
+            self.cursor += c.len_utf8();
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Collector status (shown on Running screen)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone)]
+pub struct CollectorStatus {
+    pub name: String,
+    pub state: CollectorState,
+}
+
+#[derive(Debug, Clone)]
+pub enum CollectorState {
+    Waiting,
+    Running,
+    Done(usize),
+    Failed(String),
+}
+
+// ---------------------------------------------------------------------------
+// Main App state
+// ---------------------------------------------------------------------------
+
+pub struct App {
+    pub screen: Screen,
+
+    // Profile selection
+    pub profiles: Vec<String>,
+    pub profile_cursor: usize,
+
+    // Region selection
+    pub regions: Vec<&'static str>,
+    pub region_cursor: usize,
+    pub region_custom: TextInput,
+    pub region_use_custom: bool,
+
+    // Date inputs
+    pub start_date: TextInput,
+    pub end_date: TextInput,
+    pub date_field: usize, // 0 = start, 1 = end
+
+    // Collector selection (multi-select)
+    pub collector_items: Vec<(&'static str, &'static str)>, // (key, label)
+    pub collector_cursor: usize,
+    pub collector_selected: HashSet<usize>,
+
+    // Options
+    pub output_dir: TextInput,
+    pub filter_input: TextInput,
+    pub include_raw: bool,
+    pub options_field: usize, // 0 = output_dir, 1 = filter, 2 = include_raw
+
+    // Running / results
+    pub collector_statuses: Vec<CollectorStatus>,
+    pub result_files: Vec<String>,   // paths of files written
+    pub progress_rx: Option<mpsc::UnboundedReceiver<Progress>>,
+
+    // Validation error shown at bottom of a screen
+    pub error_msg: Option<String>,
+
+    pub tick: u64,
+}
+
+impl App {
+    pub fn new(profiles: Vec<String>) -> Self {
+        let collector_items = vec![
+            // JSON evidence collectors (time-windowed)
+            ("cloudtrail",         "CloudTrail API           (last 90 days, JSON)"),
+            ("backup",             "AWS Backup API           (native backup jobs, JSON)"),
+            ("rds",                "RDS Snapshots            (last 30 days, JSON)"),
+            ("s3",                 "CloudTrail S3            (7 months, requires s3-bucket, JSON)"),
+            // CSV inventory collectors (current state)
+            ("vpc",                "VPCs                     (current state, CSV)"),
+            ("nacl",               "Network ACLs             (current state, CSV)"),
+            ("waf",                "WAF Regional Web ACLs    (current state, CSV)"),
+            ("elasticache",        "ElastiCache Clusters     (current state, CSV)"),
+            ("elasticache-global", "ElastiCache Global DS    (current state, CSV)"),
+            ("efs",                "EFS File Systems         (current state, CSV)"),
+            ("dynamodb",           "DynamoDB Tables          (current state, CSV)"),
+            ("ebs",                "EBS Volumes              (current state, CSV)"),
+            ("rds-inventory",      "RDS Inventory            (current state, CSV)"),
+            ("cloudtrail-config",  "CloudTrail Configuration (current state, CSV)"),
+            ("sns",                "SNS Topic Subscribers    (current state, CSV)"),
+            ("vpc-flow-logs",      "VPC Flow Logging         (current state, CSV)"),
+            ("metric-filters",     "Log Metric Filters/Alarms(current state, CSV)"),
+            ("s3-logging",         "S3 Bucket Access Logging (current state, CSV)"),
+            ("iam-certs",          "IAM Certificates         (current state, CSV)"),
+            ("elb",                "Load Balancers           (current state, CSV)"),
+            ("elb-listeners",      "Load Balancer Listeners  (current state, CSV)"),
+            ("acm",                "ACM Certificates         (current state, CSV)"),
+        ];
+
+        // Default: cloudtrail + rds + all inventory collectors selected
+        let n = 22; // total collector count
+        let mut collector_selected = HashSet::new();
+        for i in 0..n {
+            collector_selected.insert(i);
+        }
+        // Deselect opt-in only collectors
+        // index 3 = s3 (requires s3-bucket config)
+        collector_selected.remove(&3);
+        // index 8 = elasticache-global (only relevant for global setups)
+        collector_selected.remove(&8);
+
+        let profile_cursor = profiles
+            .iter()
+            .position(|p| p.contains("Prod"))
+            .unwrap_or(0);
+
+        Self {
+            screen: Screen::Welcome,
+            profiles,
+            profile_cursor,
+            regions: vec![
+                "us-east-1",
+                "us-east-2",
+                "us-west-1",
+                "us-west-2",
+                "eu-west-1",
+                "eu-central-1",
+                "ap-southeast-1",
+                "ap-northeast-1",
+            ],
+            region_cursor: 0,
+            region_custom: TextInput::default(),
+            region_use_custom: false,
+            start_date: TextInput::new("2025-09-01"),
+            end_date: TextInput::new(
+                &chrono::Utc::now().format("%Y-%m-%d").to_string(),
+            ),
+            date_field: 0,
+            collector_items,
+            collector_cursor: 0,
+            collector_selected,
+            output_dir: TextInput::new("."),
+            filter_input: TextInput::default(),
+            include_raw: false,
+            options_field: 0,
+            collector_statuses: vec![],
+            result_files: vec![],
+            progress_rx: None,
+            error_msg: None,
+            tick: 0,
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Derived values used by main.rs to kick off collection
+    // ------------------------------------------------------------------
+
+    pub fn selected_profile(&self) -> &str {
+        self.profiles
+            .get(self.profile_cursor)
+            .map(|s| s.as_str())
+            .unwrap_or("")
+    }
+
+    pub fn selected_region(&self) -> String {
+        if self.region_use_custom {
+            self.region_custom.value.clone()
+        } else {
+            self.regions
+                .get(self.region_cursor)
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "us-east-1".to_string())
+        }
+    }
+
+    pub fn selected_collectors(&self) -> Vec<String> {
+        self.collector_selected
+            .iter()
+            .filter_map(|&i| self.collector_items.get(i).map(|(k, _)| k.to_string()))
+            .collect()
+    }
+
+    // ------------------------------------------------------------------
+    // Navigation helpers
+    // ------------------------------------------------------------------
+
+    pub fn next_screen(&mut self) {
+        self.error_msg = None;
+        self.screen = match self.screen {
+            Screen::Welcome         => Screen::SelectProfile,
+            Screen::SelectProfile   => Screen::SelectRegion,
+            Screen::SelectRegion    => Screen::SetDates,
+            Screen::SetDates        => Screen::SelectCollectors,
+            Screen::SelectCollectors => Screen::SetOptions,
+            Screen::SetOptions      => Screen::Confirm,
+            Screen::Confirm         => Screen::Running,
+            Screen::Running         => Screen::Results,
+            Screen::Results         => Screen::Results,
+        };
+    }
+
+    pub fn prev_screen(&mut self) {
+        self.error_msg = None;
+        self.screen = match self.screen {
+            Screen::SelectProfile   => Screen::Welcome,
+            Screen::SelectRegion    => Screen::SelectProfile,
+            Screen::SetDates        => Screen::SelectRegion,
+            Screen::SelectCollectors => Screen::SetDates,
+            Screen::SetOptions      => Screen::SelectCollectors,
+            Screen::Confirm         => Screen::SetOptions,
+            _ => return,
+        };
+    }
+
+    pub fn validate_current(&mut self) -> bool {
+        match self.screen {
+            Screen::SelectProfile => {
+                if self.profiles.is_empty() {
+                    self.error_msg = Some("No AWS profiles found in ~/.aws/config".into());
+                    return false;
+                }
+                true
+            }
+            Screen::SetDates => {
+                let ok_start = chrono::NaiveDate::parse_from_str(
+                    &self.start_date.value, "%Y-%m-%d",
+                ).is_ok();
+                let ok_end = chrono::NaiveDate::parse_from_str(
+                    &self.end_date.value, "%Y-%m-%d",
+                ).is_ok();
+                if !ok_start || !ok_end {
+                    self.error_msg = Some("Dates must be YYYY-MM-DD format".into());
+                    return false;
+                }
+                true
+            }
+            Screen::SelectCollectors => {
+                if self.collector_selected.is_empty() {
+                    self.error_msg = Some("Select at least one collector (Space to toggle)".into());
+                    return false;
+                }
+                true
+            }
+            _ => true,
+        }
+    }
+
+    /// Drain any pending progress messages from the background task.
+    pub fn poll_progress(&mut self) {
+        if let Some(rx) = &mut self.progress_rx {
+            while let Ok(msg) = rx.try_recv() {
+                match msg {
+                    Progress::Started { collector } => {
+                        if let Some(s) = self
+                            .collector_statuses
+                            .iter_mut()
+                            .find(|s| s.name == collector)
+                        {
+                            s.state = CollectorState::Running;
+                        }
+                    }
+                    Progress::Done { collector, count } => {
+                        if let Some(s) = self
+                            .collector_statuses
+                            .iter_mut()
+                            .find(|s| s.name == collector)
+                        {
+                            s.state = CollectorState::Done(count);
+                        }
+                    }
+                    Progress::Error { collector, message } => {
+                        if let Some(s) = self
+                            .collector_statuses
+                            .iter_mut()
+                            .find(|s| s.name == collector)
+                        {
+                            s.state = CollectorState::Failed(message);
+                        }
+                    }
+                    Progress::Finished { files } => {
+                        self.result_files = files;
+                        self.screen = Screen::Results;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Read ~/.aws/config for available profiles
+// ---------------------------------------------------------------------------
+
+pub fn read_aws_profiles() -> Vec<String> {
+    let path = dirs_next::home_dir()
+        .map(|h| h.join(".aws").join("config"))
+        .unwrap_or_default();
+
+    let content = match std::fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(_) => return vec![],
+    };
+
+    content
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if line.starts_with("[profile ") && line.ends_with(']') {
+                Some(line[9..line.len() - 1].to_string())
+            } else if line == "[default]" {
+                Some("default".to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+// ---------------------------------------------------------------------------
+// Terminal setup / teardown
+// ---------------------------------------------------------------------------
+
+pub fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    Ok(Terminal::new(backend)?)
+}
+
+pub fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Event loop
+// ---------------------------------------------------------------------------
+
+/// Returns the configured App when the user reaches the Confirm screen and
+/// presses Enter, or None if they quit early.
+pub fn run(mut app: App) -> Result<Option<App>> {
+    let mut terminal = setup_terminal()?;
+
+    let result = event_loop(&mut terminal, &mut app);
+
+    restore_terminal(&mut terminal)?;
+    result?;
+
+    if app.screen == Screen::Running || app.screen == Screen::Results {
+        Ok(Some(app))
+    } else {
+        Ok(None)
+    }
+}
+
+fn event_loop(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    app: &mut App,
+) -> Result<()> {
+    loop {
+        app.tick = app.tick.wrapping_add(1);
+
+        // Drain progress channel if we're on the Running screen.
+        if app.screen == Screen::Running {
+            app.poll_progress();
+        }
+
+        terminal.draw(|f| ui::draw(f, app))?;
+
+        // Non-blocking poll — 100 ms tick keeps the spinner animated.
+        if event::poll(std::time::Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind != KeyEventKind::Press {
+                    continue;
+                }
+                match handle_key(app, key.code) {
+                    Action::Quit => return Ok(()),
+                    Action::StartCollection => return Ok(()),
+                    Action::Continue => {}
+                }
+            }
+        }
+
+        if app.screen == Screen::Results {
+            // Stay on results until user presses q / Esc
+        }
+    }
+}
+
+enum Action {
+    Continue,
+    Quit,
+    StartCollection,
+}
+
+fn handle_key(app: &mut App, key: KeyCode) -> Action {
+    // Global quit
+    if key == KeyCode::Char('q') && app.screen == Screen::Results {
+        return Action::Quit;
+    }
+
+    match app.screen.clone() {
+        Screen::Welcome => match key {
+            KeyCode::Enter | KeyCode::Char(' ') => app.next_screen(),
+            KeyCode::Char('q') | KeyCode::Esc => return Action::Quit,
+            _ => {}
+        },
+
+        Screen::SelectProfile => match key {
+            KeyCode::Up    => { if app.profile_cursor > 0 { app.profile_cursor -= 1; } }
+            KeyCode::Down  => { if app.profile_cursor + 1 < app.profiles.len() { app.profile_cursor += 1; } }
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc   => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::SelectRegion => match key {
+            KeyCode::Up => {
+                if app.region_use_custom {
+                    app.region_use_custom = false;
+                } else if app.region_cursor > 0 {
+                    app.region_cursor -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if !app.region_use_custom && app.region_cursor + 1 < app.regions.len() {
+                    app.region_cursor += 1;
+                } else {
+                    app.region_use_custom = true;
+                }
+            }
+            KeyCode::Char(c) if app.region_use_custom => app.region_custom.insert(c),
+            KeyCode::Backspace if app.region_use_custom => app.region_custom.backspace(),
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc   => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::SetDates => match key {
+            KeyCode::Tab => { app.date_field = (app.date_field + 1) % 2; }
+            KeyCode::Char(c) => {
+                if app.date_field == 0 { app.start_date.insert(c); }
+                else { app.end_date.insert(c); }
+            }
+            KeyCode::Backspace => {
+                if app.date_field == 0 { app.start_date.backspace(); }
+                else { app.end_date.backspace(); }
+            }
+            KeyCode::Left => {
+                if app.date_field == 0 { app.start_date.move_left(); }
+                else { app.end_date.move_left(); }
+            }
+            KeyCode::Right => {
+                if app.date_field == 0 { app.start_date.move_right(); }
+                else { app.end_date.move_right(); }
+            }
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc   => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::SelectCollectors => match key {
+            KeyCode::Up   => { if app.collector_cursor > 0 { app.collector_cursor -= 1; } }
+            KeyCode::Down => { if app.collector_cursor + 1 < app.collector_items.len() { app.collector_cursor += 1; } }
+            KeyCode::Char(' ') => {
+                let i = app.collector_cursor;
+                if app.collector_selected.contains(&i) {
+                    app.collector_selected.remove(&i);
+                } else {
+                    app.collector_selected.insert(i);
+                }
+            }
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc   => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::SetOptions => match key {
+            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 3; }
+            KeyCode::Char(c) => match app.options_field {
+                0 => app.output_dir.insert(c),
+                1 => app.filter_input.insert(c),
+                _ => {}
+            },
+            KeyCode::Backspace => match app.options_field {
+                0 => app.output_dir.backspace(),
+                1 => app.filter_input.backspace(),
+                _ => {}
+            },
+            KeyCode::Left => match app.options_field {
+                0 => app.output_dir.move_left(),
+                1 => app.filter_input.move_left(),
+                _ => {}
+            },
+            KeyCode::Right => match app.options_field {
+                0 => app.output_dir.move_right(),
+                1 => app.filter_input.move_right(),
+                _ => {}
+            },
+            KeyCode::Char(' ') if app.options_field == 2 => {
+                app.include_raw = !app.include_raw;
+            }
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc   => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::Confirm => match key {
+            KeyCode::Enter => {
+                app.next_screen(); // → Running
+                return Action::StartCollection;
+            }
+            KeyCode::Esc => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::Running => {
+            // No navigation while running; collection drives screen transition.
+        }
+
+        Screen::Results => match key {
+            KeyCode::Char('q') | KeyCode::Esc => return Action::Quit,
+            _ => {}
+        },
+    }
+
+    Action::Continue
+}

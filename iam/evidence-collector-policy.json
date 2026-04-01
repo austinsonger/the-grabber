@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudTrailLookup",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:LookupEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "BackupJobsList",
+      "Effect": "Allow",
+      "Action": [
+        "backup:ListBackupJobs",
+        "backup:DescribeBackupJob"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
