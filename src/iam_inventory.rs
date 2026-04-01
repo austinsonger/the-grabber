@@ -352,7 +352,7 @@ impl CsvCollector for IamAccessKeyCollector {
             };
 
             for key_meta in key_resp.access_key_metadata() {
-                let key_id  = key_meta.access_key_id().to_string();
+                let key_id  = key_meta.access_key_id().unwrap_or("").to_string();
                 let status  = key_meta.status().map(|s| s.as_str()).unwrap_or("").to_string();
                 let created = key_meta.create_date().map(|d| fmt_iam_dt(d)).unwrap_or_default();
 

@@ -1,19 +1,33 @@
 mod acm;
+mod apigateway;
+mod autoscaling;
 mod backup;
+mod cloudfront;
 mod cloudtrail;
 mod cloudtrail_inventory;
 mod cloudtrail_s3;
 mod cloudwatch;
+mod cloudwatch_resources;
+mod config_rules;
 mod dynamodb;
 mod ebs;
+mod ec2_inventory;
+mod ecs;
+mod eks;
 mod elasticache;
 mod efs;
 mod elb;
 mod evidence;
+mod guardduty;
 mod iam_certs;
+mod iam_inventory;
+mod kms;
 mod rds;
 mod rds_inventory;
+mod s3_config;
 mod s3_inventory;
+mod secretsmanager;
+mod securityhub;
 mod sns;
 mod tui;
 mod vpc;
@@ -33,8 +47,22 @@ use crate::backup::BackupCollector;
 use crate::cloudtrail::CloudTrailCollector;
 use crate::cloudtrail_s3::{CloudTrailS3Collector, CloudTrailS3Config};
 use crate::acm::AcmCertCollector;
+use crate::apigateway::ApiGatewayCollector;
+use crate::autoscaling::AutoScalingCollector;
+use crate::cloudfront::CloudFrontCollector;
 use crate::cloudtrail_inventory::CloudTrailInventoryCollector;
 use crate::cloudwatch::MetricFilterAlarmCollector;
+use crate::cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector};
+use crate::config_rules::ConfigRulesCollector;
+use crate::ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector};
+use crate::ecs::EcsClusterCollector;
+use crate::eks::EksClusterCollector;
+use crate::guardduty::GuardDutyCollector;
+use crate::iam_inventory::{IamAccessKeyCollector, IamPolicyCollector, IamRoleCollector, IamUserCollector};
+use crate::kms::KmsKeyCollector;
+use crate::s3_config::S3BucketConfigCollector;
+use crate::secretsmanager::SecretsManagerCollector;
+use crate::securityhub::SecurityHubCollector;
 use crate::dynamodb::DynamoDbCollector;
 use crate::ebs::EbsCollector;
 use crate::elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector};
@@ -289,6 +317,26 @@ async fn main() -> Result<()> {
     if wants("elb")               { csv_collectors.push(Box::new(LoadBalancerCollector::new(&config))); }
     if wants("elb-listeners")     { csv_collectors.push(Box::new(LoadBalancerListenerCollector::new(&config))); }
     if wants("acm")               { csv_collectors.push(Box::new(AcmCertCollector::new(&config))); }
+    if wants("iam-users")         { csv_collectors.push(Box::new(IamUserCollector::new(&config))); }
+    if wants("iam-roles")         { csv_collectors.push(Box::new(IamRoleCollector::new(&config))); }
+    if wants("iam-policies")      { csv_collectors.push(Box::new(IamPolicyCollector::new(&config))); }
+    if wants("iam-access-keys")   { csv_collectors.push(Box::new(IamAccessKeyCollector::new(&config))); }
+    if wants("guardduty")         { csv_collectors.push(Box::new(GuardDutyCollector::new(&config))); }
+    if wants("securityhub")       { csv_collectors.push(Box::new(SecurityHubCollector::new(&config))); }
+    if wants("config-rules")      { csv_collectors.push(Box::new(ConfigRulesCollector::new(&config))); }
+    if wants("security-groups")   { csv_collectors.push(Box::new(SecurityGroupCollector::new(&config))); }
+    if wants("route-tables")      { csv_collectors.push(Box::new(RouteTableCollector::new(&config))); }
+    if wants("ec2-instances")     { csv_collectors.push(Box::new(Ec2InstanceCollector::new(&config))); }
+    if wants("asg")               { csv_collectors.push(Box::new(AutoScalingCollector::new(&config))); }
+    if wants("kms")               { csv_collectors.push(Box::new(KmsKeyCollector::new(&config))); }
+    if wants("secrets")           { csv_collectors.push(Box::new(SecretsManagerCollector::new(&config))); }
+    if wants("s3-config")         { csv_collectors.push(Box::new(S3BucketConfigCollector::new(&config))); }
+    if wants("cw-alarms")         { csv_collectors.push(Box::new(CloudWatchAlarmCollector::new(&config))); }
+    if wants("cw-log-groups")     { csv_collectors.push(Box::new(CloudWatchLogGroupCollector::new(&config))); }
+    if wants("api-gateway")       { csv_collectors.push(Box::new(ApiGatewayCollector::new(&config))); }
+    if wants("cloudfront")        { csv_collectors.push(Box::new(CloudFrontCollector::new(&config))); }
+    if wants("ecs")               { csv_collectors.push(Box::new(EcsClusterCollector::new(&config))); }
+    if wants("eks")               { csv_collectors.push(Box::new(EksClusterCollector::new(&config))); }
 
     if json_collectors.is_empty() && csv_collectors.is_empty() {
         anyhow::bail!("No collectors selected.");
@@ -341,6 +389,26 @@ async fn run_tui_running(
             "elb"              => csv_collectors.push(Box::new(LoadBalancerCollector::new(config))),
             "elb-listeners"    => csv_collectors.push(Box::new(LoadBalancerListenerCollector::new(config))),
             "acm"              => csv_collectors.push(Box::new(AcmCertCollector::new(config))),
+            "iam-users"        => csv_collectors.push(Box::new(IamUserCollector::new(config))),
+            "iam-roles"        => csv_collectors.push(Box::new(IamRoleCollector::new(config))),
+            "iam-policies"     => csv_collectors.push(Box::new(IamPolicyCollector::new(config))),
+            "iam-access-keys"  => csv_collectors.push(Box::new(IamAccessKeyCollector::new(config))),
+            "guardduty"        => csv_collectors.push(Box::new(GuardDutyCollector::new(config))),
+            "securityhub"      => csv_collectors.push(Box::new(SecurityHubCollector::new(config))),
+            "config-rules"     => csv_collectors.push(Box::new(ConfigRulesCollector::new(config))),
+            "security-groups"  => csv_collectors.push(Box::new(SecurityGroupCollector::new(config))),
+            "route-tables"     => csv_collectors.push(Box::new(RouteTableCollector::new(config))),
+            "ec2-instances"    => csv_collectors.push(Box::new(Ec2InstanceCollector::new(config))),
+            "asg"              => csv_collectors.push(Box::new(AutoScalingCollector::new(config))),
+            "kms"              => csv_collectors.push(Box::new(KmsKeyCollector::new(config))),
+            "secrets"          => csv_collectors.push(Box::new(SecretsManagerCollector::new(config))),
+            "s3-config"        => csv_collectors.push(Box::new(S3BucketConfigCollector::new(config))),
+            "cw-alarms"        => csv_collectors.push(Box::new(CloudWatchAlarmCollector::new(config))),
+            "cw-log-groups"    => csv_collectors.push(Box::new(CloudWatchLogGroupCollector::new(config))),
+            "api-gateway"      => csv_collectors.push(Box::new(ApiGatewayCollector::new(config))),
+            "cloudfront"       => csv_collectors.push(Box::new(CloudFrontCollector::new(config))),
+            "ecs"              => csv_collectors.push(Box::new(EcsClusterCollector::new(config))),
+            "eks"              => csv_collectors.push(Box::new(EksClusterCollector::new(config))),
             _ => {}
         }
     }

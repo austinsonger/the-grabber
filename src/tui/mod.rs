@@ -181,18 +181,46 @@ impl App {
             ("elb",                "Load Balancers           (current state, CSV)"),
             ("elb-listeners",      "Load Balancer Listeners  (current state, CSV)"),
             ("acm",                "ACM Certificates         (current state, CSV)"),
+            // IAM
+            ("iam-users",          "IAM Users                (current state, CSV)"),
+            ("iam-roles",          "IAM Roles                (current state, CSV)"),
+            ("iam-policies",       "IAM Policies             (current state, CSV)"),
+            ("iam-access-keys",    "IAM Access Keys          (current state, CSV)"),
+            // Security
+            ("guardduty",          "GuardDuty Findings       (current state, CSV)"),
+            ("securityhub",        "Security Hub Findings    (current state, CSV)"),
+            ("config-rules",       "AWS Config Rules         (current state, CSV)"),
+            // Network (EC2)
+            ("security-groups",    "Security Groups          (current state, CSV)"),
+            ("route-tables",       "Route Tables             (current state, CSV)"),
+            ("ec2-instances",      "EC2 Instances            (current state, CSV)"),
+            ("asg",                "Auto Scaling Groups      (current state, CSV)"),
+            // Encryption / secrets
+            ("kms",                "KMS Keys                 (current state, CSV)"),
+            ("secrets",            "Secrets Manager          (current state, CSV)"),
+            // Storage
+            ("s3-config",          "S3 Buckets Config        (current state, CSV)"),
+            // Monitoring
+            ("cw-alarms",          "CloudWatch Alarms        (current state, CSV)"),
+            ("cw-log-groups",      "CloudWatch Log Groups    (current state, CSV)"),
+            // App layer
+            ("api-gateway",        "API Gateway              (current state, CSV)"),
+            ("cloudfront",         "CloudFront Distributions (current state, CSV)"),
+            // Containers
+            ("ecs",                "ECS Clusters             (current state, CSV)"),
+            ("eks",                "EKS Clusters             (current state, CSV)"),
         ];
 
-        // Default: cloudtrail + rds + all inventory collectors selected
-        let n = 22; // total collector count
+        // Default: all collectors selected except opt-in ones.
+        let total = 42usize;
         let mut collector_selected = HashSet::new();
-        for i in 0..n {
+        for i in 0..total {
             collector_selected.insert(i);
         }
-        // Deselect opt-in only collectors
-        // index 3 = s3 (requires s3-bucket config)
+        // Deselect opt-in / expensive collectors by key:
+        // index 3  = s3 (requires separate s3-bucket config)
         collector_selected.remove(&3);
-        // index 8 = elasticache-global (only relevant for global setups)
+        // index 8  = elasticache-global (most accounts don't use global datastores)
         collector_selected.remove(&8);
 
         let profile_cursor = profiles

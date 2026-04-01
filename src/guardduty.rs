@@ -46,7 +46,7 @@ impl CsvCollector for GuardDutyCollector {
                             .criterion(
                                 "service.archived",
                                 aws_sdk_guardduty::types::Condition::builder()
-                                    .eq("false")
+                                    .equals("false")
                                     .build(),
                             )
                             .build(),
@@ -77,13 +77,16 @@ impl CsvCollector for GuardDutyCollector {
                 };
 
                 for finding in resp.findings() {
-                    let id       = finding.id().to_string();
-                    let f_type   = finding.r#type().to_string();
-                    let severity = finding.severity().to_string();
-                    let resource = finding.resource()
-                        .map(|r| r.resource_type().unwrap_or("").to_string())
+                    let id       = finding.id().unwrap_or("").to_string();
+                    let f_type   = finding.r#type().unwrap_or("").to_string();
+                    let severity = finding.severity()
+                        .map(|s| s.to_string())
                         .unwrap_or_default();
-                    let created  = finding.created_at().to_string();
+                    let resource = finding.resource()
+                        .and_then(|r| r.resource_type())
+                        .unwrap_or("")
+                        .to_string();
+                    let created  = finding.created_at().unwrap_or("").to_string();
                     let status   = if finding.service()
                         .and_then(|s| s.archived())
                         .unwrap_or(false)

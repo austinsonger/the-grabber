@@ -222,14 +222,9 @@ impl CsvCollector for Ec2InstanceCollector {
                         .unwrap_or("")
                         .to_string();
 
-                    // Check root volume encryption.
-                    let root_device = inst.root_device_name().unwrap_or("");
-                    let encrypted = inst.block_device_mappings()
-                        .iter()
-                        .find(|b| b.device_name().unwrap_or("") == root_device)
-                        .and_then(|b| b.ebs())
-                        .map(|e| if e.encrypted().unwrap_or(false) { "Encrypted" } else { "Not Encrypted" })
-                        .unwrap_or("");
+                    // EbsInstanceBlockDevice doesn't expose encryption directly.
+                    // Full encryption status is available via the EBS Volumes collector.
+                    let encrypted = "See EBS Report";
 
                     rows.push(vec![
                         id, inst_type, ami, state,

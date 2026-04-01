@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use aws_sdk_securityhub::Client as ShClient;
 use aws_sdk_securityhub::types::{AwsSecurityFindingFilters, StringFilter, StringFilterComparison};
@@ -26,20 +26,19 @@ impl CsvCollector for SecurityHubCollector {
     async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
-        // Filter to FAILED compliance findings only.
+        let compliance_filter = StringFilter::builder()
+            .value("FAILED")
+            .comparison(StringFilterComparison::Equals)
+            .build();
+
+        let record_filter = StringFilter::builder()
+            .value("ACTIVE")
+            .comparison(StringFilterComparison::Equals)
+            .build();
+
         let filters = AwsSecurityFindingFilters::builder()
-            .compliance_status(
-                StringFilter::builder()
-                    .value("FAILED")
-                    .comparison(StringFilterComparison::Equals)
-                    .build()?,
-            )
-            .record_state(
-                StringFilter::builder()
-                    .value("ACTIVE")
-                    .comparison(StringFilterComparison::Equals)
-                    .build()?,
-            )
+            .compliance_status(compliance_filter)
+            .record_state(record_filter)
             .build();
 
         let mut next_token: Option<String> = None;
@@ -63,28 +62,27 @@ impl CsvCollector for SecurityHubCollector {
             for finding in resp.findings() {
                 let control_id = finding.compliance()
                     .and_then(|c| c.security_control_id())
+                    .map(|s| s.to_string())
                     .or_else(|| {
-                        // Fall back to extracting from generator_id.
-                        finding.generator_id().rsplit('/').next()
+                        finding.generator_id()
+                            .and_then(|gid| gid.rsplit('/').next())
+                            .map(|s| s.to_string())
                     })
-                    .unwrap_or("")
-                    .to_string();
+                    .unwrap_or_default();
 
                 let severity = finding.severity()
                     .and_then(|s| s.label())
-                    .map(|l| l.as_str())
-                    .unwrap_or("")
-                    .to_string();
+                    .map(|l| l.as_str().to_string())
+                    .unwrap_or_default();
 
                 let compliance_status = finding.compliance()
                     .and_then(|c| c.status())
-                    .map(|s| s.as_str())
-                    .unwrap_or("")
-                    .to_string();
+                    .map(|s| s.as_str().to_string())
+                    .unwrap_or_default();
 
                 let resource_arn = finding.resources()
                     .first()
-                    .map(|r| r.id())
+                    .and_then(|r| r.id())
                     .unwrap_or("")
                     .to_string();
 
