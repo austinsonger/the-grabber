@@ -13,7 +13,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use tokio::sync::mpsc;
 
-use crate::app_config;
+use crate::app_config::{self, Account};
 
 // ---------------------------------------------------------------------------
 // Progress events sent from collector tasks → TUI
@@ -35,8 +35,9 @@ pub enum Progress {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Screen {
     Welcome,
-    SelectProfile,
-    SelectRegion,
+    SelectAccount,   // shown when TOML accounts are configured
+    SelectProfile,   // legacy: pick from ~/.aws/config profiles
+    SelectRegion,    // legacy: pick region
     SetDates,
     SelectCollectors,
     SetOptions,
@@ -119,7 +120,12 @@ pub enum CollectorState {
 pub struct App {
     pub screen: Screen,
 
-    // Profile selection
+    // TOML-configured accounts (empty = legacy flow)
+    pub accounts: Vec<Account>,
+    pub account_cursor: usize,
+    pub selected_account: Option<usize>,
+
+    // Profile selection (legacy flow or fallback)
     pub profiles: Vec<String>,
     pub profile_cursor: usize,
 
@@ -154,6 +160,9 @@ pub struct App {
     pub error_msg: Option<String>,
 
     pub tick: u64,
+
+    // Scrollable results
+    pub result_scroll: usize,
 }
 
 impl App {
@@ -329,30 +338,54 @@ impl App {
             ("change-event-rules", "EventBridge Change Rules (event-pattern, CSV)"),
         ];
 
-        // Default: all collectors selected except opt-in ones.
+        // --- Collector selection defaults ---
         let total = collector_items.len();
         let mut collector_selected = HashSet::new();
-        for i in 0..total {
-            collector_selected.insert(i);
-        }
-        // Deselect opt-in / requires-special-setup collectors by key name:
-        for (i, (key, _)) in collector_items.iter().enumerate() {
-            match *key {
-                "s3"               => { collector_selected.remove(&i); } // requires s3-bucket config
-                "elasticache-global" => { collector_selected.remove(&i); } // most accounts don't use
-                "scp"              => { collector_selected.remove(&i); } // requires org admin
-                "macie"            => { collector_selected.remove(&i); } // optional service
-                "inspector"        => { collector_selected.remove(&i); } // optional service
-                "inspector-config" => { collector_selected.remove(&i); } // optional service
-                "org-config"       => { collector_selected.remove(&i); } // requires org master account
-                _ => {}
+
+        let hardcoded_optins = ["s3", "elasticache-global", "scp", "macie",
+                                "inspector", "inspector-config", "org-config"];
+
+        if let Some(ref enable_list) = config.defaults.collectors.enable {
+            // Exclusive: ONLY enable listed collectors
+            for (i, (key, _)) in collector_items.iter().enumerate() {
+                if enable_list.iter().any(|k| k == key) {
+                    collector_selected.insert(i);
+                }
+            }
+        } else {
+            // Start with all enabled
+            for i in 0..total {
+                collector_selected.insert(i);
+            }
+            // Remove hardcoded opt-ins
+            for (i, (key, _)) in collector_items.iter().enumerate() {
+                if hardcoded_optins.contains(key) {
+                    collector_selected.remove(&i);
+                }
+            }
+            // Apply config disable list
+            if let Some(ref disable_list) = config.defaults.collectors.disable {
+                for (i, (key, _)) in collector_items.iter().enumerate() {
+                    if disable_list.iter().any(|k| k == key) {
+                        collector_selected.remove(&i);
+                    }
+                }
+            }
+            // Apply config enable_extra list
+            if let Some(ref extra) = config.defaults.collectors.enable_extra {
+                for (i, (key, _)) in collector_items.iter().enumerate() {
+                    if extra.iter().any(|k| k == key) {
+                        collector_selected.insert(i);
+                    }
+                }
             }
         }
 
-        let profile_cursor = if let Some(ref needle) = config.default_profile_contains {
+        // --- Profile cursor ---
+        let profile_cursor = if let Some(ref needle) = config.defaults.profile_contains {
             profiles
                 .iter()
-                .position(|p| p.contains(needle))
+                .position(|p| p.contains(needle.as_str()))
                 .unwrap_or(0)
         } else {
             profiles
@@ -361,6 +394,7 @@ impl App {
                 .unwrap_or(0)
         };
 
+        // --- Regions ---
         let regions = vec![
             "us-east-1",
             "us-east-2",
@@ -372,24 +406,38 @@ impl App {
             "ap-northeast-1",
         ];
 
-        let region_cursor = if let Some(ref default_region) = config.default_region {
+        let region_cursor = if let Some(ref default_region) = config.defaults.region {
             regions
                 .iter()
-                .position(|r| r == default_region)
+                .position(|r| *r == default_region.as_str())
                 .unwrap_or(0)
         } else {
             0
         };
 
+        // --- Start date ---
+        let start_date = if let Some(days) = config.defaults.start_date_offset_days {
+            let d = chrono::Utc::now().date_naive()
+                - chrono::Duration::days(days as i64);
+            d.format("%Y-%m-%d").to_string()
+        } else {
+            "2025-09-01".to_string()
+        };
+
+        let include_raw = config.defaults.include_raw.unwrap_or(false);
+
         Self {
             screen: Screen::Welcome,
+            accounts: config.account.clone(),
+            account_cursor: 0,
+            selected_account: None,
             profiles,
             profile_cursor,
             regions,
             region_cursor,
             region_custom: TextInput::default(),
             region_use_custom: false,
-            start_date: TextInput::new("2025-09-01"),
+            start_date: TextInput::new(&start_date),
             end_date: TextInput::new(
                 &chrono::Utc::now().format("%Y-%m-%d").to_string(),
             ),
@@ -399,18 +447,20 @@ impl App {
             collector_selected,
             output_dir: TextInput::new(
                 config
-                    .default_output_dir
+                    .defaults
+                    .output_dir
                     .as_deref()
                     .unwrap_or("."),
             ),
             filter_input: TextInput::default(),
-            include_raw: false,
+            include_raw,
             options_field: 0,
             collector_statuses: vec![],
             result_files: vec![],
             progress_rx: None,
             error_msg: None,
             tick: 0,
+            result_scroll: 0,
         }
     }
 
@@ -443,6 +493,64 @@ impl App {
             .collect()
     }
 
+    /// True if TOML accounts are configured (multi-account flow).
+    pub fn has_accounts(&self) -> bool {
+        !self.accounts.is_empty()
+    }
+
+    /// Apply the selected account's settings to the wizard fields.
+    pub fn apply_account(&mut self, index: usize) {
+        self.selected_account = Some(index);
+        let acct = self.accounts[index].clone();
+
+        // Set profile cursor to matching profile name
+        if let Some(pos) = self.profiles.iter().position(|p| p == &acct.profile) {
+            self.profile_cursor = pos;
+        }
+
+        // Set region
+        if let Some(ref region) = acct.region {
+            if let Some(pos) = self.regions.iter().position(|r| *r == region.as_str()) {
+                self.region_cursor = pos;
+                self.region_use_custom = false;
+            } else {
+                self.region_custom = TextInput::new(region);
+                self.region_use_custom = true;
+            }
+        }
+
+        // Set output dir
+        if let Some(ref dir) = acct.output_dir {
+            self.output_dir = TextInput::new(dir);
+        }
+
+        // Apply per-account collector overrides
+        if let Some(ref enable_list) = acct.collectors.enable {
+            // Exclusive: ONLY these collectors
+            self.collector_selected.clear();
+            for (i, (key, _)) in self.collector_items.iter().enumerate() {
+                if enable_list.iter().any(|k| k == key) {
+                    self.collector_selected.insert(i);
+                }
+            }
+        } else {
+            if let Some(ref disable_list) = acct.collectors.disable {
+                for (i, (key, _)) in self.collector_items.iter().enumerate() {
+                    if disable_list.iter().any(|k| k == key) {
+                        self.collector_selected.remove(&i);
+                    }
+                }
+            }
+            if let Some(ref extra) = acct.collectors.enable_extra {
+                for (i, (key, _)) in self.collector_items.iter().enumerate() {
+                    if extra.iter().any(|k| k == key) {
+                        self.collector_selected.insert(i);
+                    }
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------------
     // Navigation helpers
     // ------------------------------------------------------------------
@@ -450,7 +558,14 @@ impl App {
     pub fn next_screen(&mut self) {
         self.error_msg = None;
         self.screen = match self.screen {
-            Screen::Welcome         => Screen::SelectProfile,
+            Screen::Welcome => {
+                if self.has_accounts() {
+                    Screen::SelectAccount
+                } else {
+                    Screen::SelectProfile
+                }
+            }
+            Screen::SelectAccount   => Screen::SetDates,
             Screen::SelectProfile   => Screen::SelectRegion,
             Screen::SelectRegion    => Screen::SetDates,
             Screen::SetDates        => Screen::SelectCollectors,
@@ -465,9 +580,22 @@ impl App {
     pub fn prev_screen(&mut self) {
         self.error_msg = None;
         self.screen = match self.screen {
-            Screen::SelectProfile   => Screen::Welcome,
+            Screen::SelectAccount   => Screen::Welcome,
+            Screen::SelectProfile => {
+                if self.has_accounts() {
+                    Screen::SelectAccount
+                } else {
+                    Screen::Welcome
+                }
+            }
             Screen::SelectRegion    => Screen::SelectProfile,
-            Screen::SetDates        => Screen::SelectRegion,
+            Screen::SetDates => {
+                if self.has_accounts() {
+                    Screen::SelectAccount
+                } else {
+                    Screen::SelectRegion
+                }
+            }
             Screen::SelectCollectors => Screen::SetDates,
             Screen::SetOptions      => Screen::SelectCollectors,
             Screen::Confirm         => Screen::SetOptions,
@@ -669,6 +797,28 @@ fn handle_key(app: &mut App, key: KeyCode) -> Action {
         Screen::Welcome => match key {
             KeyCode::Enter | KeyCode::Char(' ') => app.next_screen(),
             KeyCode::Char('q') | KeyCode::Esc => return Action::Quit,
+            _ => {}
+        },
+
+        Screen::SelectAccount => match key {
+            KeyCode::Up   => { if app.account_cursor > 0 { app.account_cursor -= 1; } }
+            KeyCode::Down => {
+                // accounts.len() entries + 1 "Other" option
+                let max = app.accounts.len(); // "Other" is at index == len
+                if app.account_cursor < max { app.account_cursor += 1; }
+            }
+            KeyCode::Enter => {
+                if app.account_cursor < app.accounts.len() {
+                    // Selected a configured account
+                    app.apply_account(app.account_cursor);
+                    app.next_screen(); // → SetDates
+                } else {
+                    // "Other" → fall to legacy SelectProfile flow
+                    app.selected_account = None;
+                    app.screen = Screen::SelectProfile;
+                }
+            }
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
