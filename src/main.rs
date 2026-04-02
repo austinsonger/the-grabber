@@ -83,6 +83,8 @@ mod ssm_patch_detail;
 mod app_config;
 
 use std::path::PathBuf;
+#[cfg(unix)]
+use std::os::unix::io::IntoRawFd;
 
 use anyhow::{Context, Result};
 use aws_config::BehaviorVersion;
@@ -336,6 +338,14 @@ async fn async_main() -> Result<()> {
                     })
                     .collect();
 
+                // Redirect stderr to a log file so collector WARNs don't corrupt the TUI.
+                let log_path = {
+                    let dir = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
+                    let _ = std::fs::create_dir_all(&dir);
+                    dir.join("evidence-collection.log")
+                };
+                let stderr_backup = redirect_stderr_to_file(&log_path);
+
                 // Restart the TUI to show the Running screen.
                 let mut terminal = setup_terminal()?;
                 let run_result = run_tui_running(
@@ -350,6 +360,9 @@ async fn async_main() -> Result<()> {
                 )
                 .await;
                 restore_terminal(&mut terminal)?;
+
+                // Restore stderr after TUI exits.
+                restore_stderr(stderr_backup);
                 return run_result;
             }
         }
@@ -810,14 +823,17 @@ async fn run_tui_running(
             return;
         }
 
+        let collector_timeout = std::time::Duration::from_secs(180); // 3 min per collector
+
         // --- JSON collectors ------------------------------------------------
         for collector in &json_collectors {
-            let _ = tx_clone.send(Progress::Started { collector: collector.name().to_string() });
+            let name = collector.name().to_string();
+            let _ = tx_clone.send(Progress::Started { collector: name.clone() });
 
-            match collector.collect(&params_clone).await {
-                Ok(records) => {
+            match tokio::time::timeout(collector_timeout, collector.collect(&params_clone)).await {
+                Ok(Ok(records)) => {
                     let count = records.len();
-                    let _ = tx_clone.send(Progress::Done { collector: collector.name().to_string(), count });
+                    let _ = tx_clone.send(Progress::Done { collector: name.clone(), count });
 
                     let report = EvidenceReport {
                         metadata: ReportMetadata {
@@ -827,7 +843,7 @@ async fn run_tui_running(
                             end_date:   params_clone.end_time.format("%Y-%m-%d").to_string(),
                             filter: params_clone.filter.clone(),
                         },
-                        collector: collector.name().to_string(),
+                        collector: name.clone(),
                         record_count: count,
                         records,
                     };
@@ -841,10 +857,13 @@ async fn run_tui_running(
                         }
                     }
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
+                    let _ = tx_clone.send(Progress::Error { collector: name, message: e.to_string() });
+                }
+                Err(_) => {
                     let _ = tx_clone.send(Progress::Error {
-                        collector: collector.name().to_string(),
-                        message: e.to_string(),
+                        collector: name,
+                        message: "timed out after 3 minutes".to_string(),
                     });
                 }
             }
@@ -852,18 +871,22 @@ async fn run_tui_running(
 
         // --- JSON inventory collectors --------------------------------------
         for collector in &json_inv_collectors {
-            let _ = tx_clone.send(Progress::Started { collector: collector.name().to_string() });
+            let name = collector.name().to_string();
+            let _ = tx_clone.send(Progress::Started { collector: name.clone() });
 
-            match collector.collect_records(&account_id_clone, &region_clone).await {
-                Ok(records) => {
+            match tokio::time::timeout(
+                collector_timeout,
+                collector.collect_records(&account_id_clone, &region_clone),
+            ).await {
+                Ok(Ok(records)) => {
                     let count = records.len();
-                    let _ = tx_clone.send(Progress::Done { collector: collector.name().to_string(), count });
+                    let _ = tx_clone.send(Progress::Done { collector: name.clone(), count });
 
                     let report = JsonInventoryReport {
                         collected_at: Utc::now().to_rfc3339(),
                         account_id: account_id_clone.clone(),
                         region: region_clone.clone(),
-                        collector: collector.name().to_string(),
+                        collector: name.clone(),
                         record_count: count,
                         records,
                     };
@@ -880,10 +903,13 @@ async fn run_tui_running(
                         }
                     }
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
+                    let _ = tx_clone.send(Progress::Error { collector: name, message: e.to_string() });
+                }
+                Err(_) => {
                     let _ = tx_clone.send(Progress::Error {
-                        collector: collector.name().to_string(),
-                        message: e.to_string(),
+                        collector: name,
+                        message: "timed out after 3 minutes".to_string(),
                     });
                 }
             }
@@ -891,12 +917,16 @@ async fn run_tui_running(
 
         // --- CSV collectors -------------------------------------------------
         for collector in &csv_collectors {
-            let _ = tx_clone.send(Progress::Started { collector: collector.name().to_string() });
+            let name = collector.name().to_string();
+            let _ = tx_clone.send(Progress::Started { collector: name.clone() });
 
-            match collector.collect_rows(&account_id_clone, &region_clone).await {
-                Ok(rows) => {
+            match tokio::time::timeout(
+                collector_timeout,
+                collector.collect_rows(&account_id_clone, &region_clone),
+            ).await {
+                Ok(Ok(rows)) => {
                     let count = rows.len();
-                    let _ = tx_clone.send(Progress::Done { collector: collector.name().to_string(), count });
+                    let _ = tx_clone.send(Progress::Done { collector: name.clone(), count });
 
                     let filename = format!(
                         "{}_{}-{}.csv",
@@ -915,10 +945,13 @@ async fn run_tui_running(
                         Err(e) => eprintln!("  WARN: CSV write failed for {}: {e:#}", collector.name()),
                     }
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
+                    let _ = tx_clone.send(Progress::Error { collector: name, message: e.to_string() });
+                }
+                Err(_) => {
                     let _ = tx_clone.send(Progress::Error {
-                        collector: collector.name().to_string(),
-                        message: e.to_string(),
+                        collector: name,
+                        message: "timed out after 3 minutes".to_string(),
                     });
                 }
             }
@@ -1143,6 +1176,40 @@ fn build_s3_collector_from_cli(
         regions,
     })))
 }
+
+/// Redirect stderr (fd 2) to `path`, returning a saved copy of the old fd.
+/// Returns -1 if anything fails (stderr is left unchanged).
+#[cfg(unix)]
+fn redirect_stderr_to_file(path: &std::path::Path) -> i32 {
+    use std::os::unix::io::IntoRawFd;
+    let backup = unsafe { libc::dup(2) };
+    if backup < 0 { return -1; }
+    match std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        Ok(f) => {
+            let fd = f.into_raw_fd();
+            unsafe { libc::dup2(fd, 2); libc::close(fd); }
+            backup
+        }
+        Err(_) => {
+            unsafe { libc::close(backup); }
+            -1
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn redirect_stderr_to_file(_path: &std::path::Path) -> i32 { -1 }
+
+/// Restore stderr from a previously saved fd. No-op if `saved` is -1.
+#[cfg(unix)]
+fn restore_stderr(saved: i32) {
+    if saved >= 0 {
+        unsafe { libc::dup2(saved, 2); libc::close(saved); }
+    }
+}
+
+#[cfg(not(unix))]
+fn restore_stderr(_saved: i32) {}
 
 async fn print_identity(config: &aws_config::SdkConfig) -> String {
     let sts = aws_sdk_sts::Client::new(config);
