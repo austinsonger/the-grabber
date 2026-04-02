@@ -95,15 +95,25 @@ pub struct Account {
     pub collectors: CollectorConfig,
 }
 
-/// Best-effort load of `~/.config/evidence/config.toml`.
+/// Best-effort load of config, checking in order:
+///   1. `./config.toml`  (project-local, committed to repo)
+///   2. `~/.config/evidence/config.toml`  (user-global)
 /// Returns `None` on any error (no file, parse error, etc.).
 pub fn load_config() -> Option<AppConfig> {
-    let path = config_path()?;
+    let local = PathBuf::from("config.toml");
+    if local.exists() {
+        if let Ok(contents) = fs::read_to_string(&local) {
+            if let Ok(cfg) = toml::from_str(&contents) {
+                return Some(cfg);
+            }
+        }
+    }
+    let path = global_config_path()?;
     let contents = fs::read_to_string(path).ok()?;
     toml::from_str(&contents).ok()
 }
 
-fn config_path() -> Option<PathBuf> {
+fn global_config_path() -> Option<PathBuf> {
     let base = dirs_next::home_dir()?;
     Some(base.join(".config").join("evidence").join("config.toml"))
 }

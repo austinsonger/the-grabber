@@ -1,0 +1,89 @@
+# Evidence Collector — Example Configuration
+# Copy to ~/.config/evidence/config.toml and edit for your environment.
+#
+# The TUI reads this file at startup. If it is missing the app falls back
+# to the legacy profile/region picker flow.
+
+# ── Global defaults ──────────────────────────────────────────────────────────
+
+[defaults]
+region                = "us-east-1"
+output_dir            = "./evidence"
+start_date_offset_days = 90      # start date = today minus N days
+include_raw           = false
+
+# Collectors that are off by default (opt-in / require special permissions).
+[defaults.collectors]
+disable = [
+    "s3",                # requires --s3-bucket flag
+    "macie",             # optional service — enable if Macie is active
+    "inspector",         # optional service — enable if Inspector is active
+    "inspector-config",
+    "inspector-history",
+    "scp",               # requires organization admin role
+    "org-config",        # requires organization master account
+    "elasticache-global",
+]
+
+# ── Accounts ─────────────────────────────────────────────────────────────────
+# One [[account]] block per AWS account you want to collect from.
+# `profile` must match a [profile NAME] entry in ~/.aws/config.
+# Run `aws configure sso` or `aws sso login` to activate SSO profiles.
+
+[[account]]
+name        = "Production"
+account_id  = "111111111111"
+description = "Production workloads"
+profile     = "ProdAdmin"            # SSO role name
+region      = "us-east-1"
+output_dir  = "./evidence/production"
+
+[[account]]
+name        = "Development"
+account_id  = "222222222222"
+description = "Development environment"
+profile     = "DevAdmin"
+region      = "us-east-1"
+output_dir  = "./evidence/development"
+
+[[account]]
+name        = "Master / Management"
+account_id  = "333333333333"
+description = "Organization management account"
+profile     = "MasterAdmin"
+region      = "us-east-1"
+output_dir  = "./evidence/master"
+
+# Master account: add org-level collectors on top of global defaults.
+[account.collectors]
+enable_extra = ["scp", "org-config"]
+
+# ── Per-account collector override examples ───────────────────────────────────
+
+# Exclusive list — ONLY run these collectors for this account:
+#
+# [[account]]
+# name    = "Sandbox"
+# profile = "SandboxAdmin"
+# region  = "us-west-2"
+#
+# [account.collectors]
+# enable = ["iam-users", "iam-roles", "s3-config", "kms", "vpc"]
+
+# Subtractive list — run defaults minus these:
+#
+# [[account]]
+# name    = "Legacy"
+# profile = "LegacyAdmin"
+#
+# [account.collectors]
+# disable = ["eks", "ecs", "lambda-config", "ecr-config"]
+
+# Additive list — run defaults plus these extras:
+#
+# [[account]]
+# name    = "Security Hub Account"
+# profile = "SecurityAdmin"
+#
+# [account.collectors]
+# enable_extra = ["sh-standards", "sh-config", "access-analyzer"]

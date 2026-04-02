@@ -293,7 +293,17 @@ async fn async_main() -> Result<()> {
                 }
                 let config = loader.load().await;
 
-                let account_id = print_identity(&config).await;
+                // Use the TOML account name as the file prefix when available.
+                // Fall back to the real AWS account ID from STS otherwise.
+                let account_id = if let Some(idx) = app.selected_account {
+                    let raw = app.accounts[idx].name.clone();
+                    // Sanitize: replace spaces and slashes with underscores, keep alphanumeric/hyphens.
+                    raw.chars()
+                        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
+                        .collect::<String>()
+                } else {
+                    print_identity(&config).await
+                };
 
                 let params = CollectParams {
                     start_time: start,
@@ -792,6 +802,14 @@ async fn run_tui_running(
         let mut written_files: Vec<String> = Vec::new();
         let out_dir = output_dir_clone.unwrap_or_else(|| PathBuf::from("."));
 
+        // Ensure output directory exists before writing any files.
+        if let Err(e) = std::fs::create_dir_all(&out_dir) {
+            let _ = tx_clone.send(Progress::Finished { files: vec![
+                format!("ERROR: could not create output directory {}: {e}", out_dir.display())
+            ]});
+            return;
+        }
+
         // --- JSON collectors ------------------------------------------------
         for collector in &json_collectors {
             let _ = tx_clone.send(Progress::Started { collector: collector.name().to_string() });
@@ -949,6 +967,8 @@ async fn run_json_collectors(
     region: &str,
     output_dir: &PathBuf,
 ) -> Result<()> {
+    std::fs::create_dir_all(output_dir)
+        .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
@@ -990,6 +1010,8 @@ async fn run_csv_collectors(
     region: &str,
     output_dir: &PathBuf,
 ) -> Result<()> {
+    std::fs::create_dir_all(output_dir)
+        .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
@@ -1020,6 +1042,8 @@ async fn run_json_inv_collectors(
     region: &str,
     output_dir: &PathBuf,
 ) -> Result<()> {
+    std::fs::create_dir_all(output_dir)
+        .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
