@@ -914,6 +914,14 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                     app.collector_selected.insert(i);
                 }
             }
+            KeyCode::Char('a') => {
+                for i in 0..app.collector_items.len() {
+                    app.collector_selected.insert(i);
+                }
+            }
+            KeyCode::Char('d') => {
+                app.collector_selected.clear();
+            }
             KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
             KeyCode::Esc   => app.prev_screen(),
             _ => {}

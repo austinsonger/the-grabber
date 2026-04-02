@@ -311,7 +311,7 @@ fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::SelectRegion => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SetDates => vec![("⇥", "Switch"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SetOptions => vec![("⇥", "Switch"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
         Screen::Running => vec![],

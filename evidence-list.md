@@ -202,7 +202,8 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV103 | Security Hub Findings | `SecurityHub_Findings` | Control ID, Severity, Compliance Status, Resource ARN, Region |
 | EV104 | Security Hub Enabled Standards | `SecurityHub_Standards` | Standard Name, Standards ARN, Status, Subscribed At |
 | EV105 | Security Hub Configuration | `SecurityHub_Config` | Hub ARN, Auto Enable Controls, Subscribed Standards, Subscribed At |
-| EV106 | Inspector2 Findings | `Inspector2_Findings` | Finding ARN, Type, Severity, CVE ID, Resource ID, Status, Fix Available |
+| EV106 | Inspector2 Findings | `Inspector2_Findings` | Finding ARN, Account ID, Type, Title, Description, Severity, Inspector Score, EPSS Score, CVE ID, CVE Source, CVE Source URL, Vendor Severity, Vendor Created At, Vendor Updated At, CVSS Base Score, CVSS Scoring Vector, Related Vulnerabilities, Reference URLs, Package Name, Package Version, Package Arch, Package Manager, Package File Path, Fixed In Version, Package Remediation, Source Layer Hash, Resource ID, Resource Type, Resource Region, Remediation Text, Remediation URL, Exploit Available, Last Known Exploit At, Status, Fix Available, First Observed At, Last Observed At, Updated At |
+| EV106a | Inspector2 ECR Findings | `Inspector2_ECR_Findings` | Finding ARN, Severity, Type, CVE ID, Repository, Image Tag, Image Digest, Package Name, Package Version, Fixed Version, Status, Fix Available, Title |
 | EV107 | Inspector2 Configuration | `Inspector_Config` | Resource Type, Scan Status, Scan Type, EC2 Status, ECR Status, Lambda Status |
 | EV108 | Inspector2 Findings History | `Inspector_Findings_History` | Finding ID, First Observed At, Last Observed At, Status, Severity, Resource ID, Title |
 | EV109 | Macie Findings | `Macie_Findings` | Finding ID, Finding Type, Resource ARN, Severity, Count, Created At |

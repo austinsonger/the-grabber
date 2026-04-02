@@ -78,6 +78,7 @@ mod cloudformation_drift;
 mod cloudtrail_iam;
 mod cloudwatch_alarms;
 mod config_timeline;
+mod inspector_ecr;
 mod inspector_history;
 mod ssm_patch_detail;
 mod app_config;
@@ -172,6 +173,7 @@ use crate::cloudformation_drift::CloudFormationDriftCollector;
 use crate::cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector};
 use crate::cloudwatch_alarms::CloudWatchConfigAlarmsCollector;
 use crate::config_timeline::{ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector};
+use crate::inspector_ecr::InspectorEcrCollector;
 use crate::inspector_history::InspectorFindingsHistoryCollector;
 use crate::sns_eventbridge::ChangeEventRulesCollector;
 use crate::ssm_patch_detail::{SsmMaintenanceWindowCollector, SsmPatchDetailCollector, SsmPatchExecutionCollector, SsmPatchSummaryCollector};
@@ -543,6 +545,8 @@ async fn async_main() -> Result<()> {
     if wants("ssm-baselines")      { csv_collectors.push(Box::new(SsmPatchBaselineCollector::new(&config))); }
     if wants("ssm-params")         { csv_collectors.push(Box::new(SsmParameterConfigCollector::new(&config))); }
     if wants("time-sync")          { csv_collectors.push(Box::new(TimeSyncConfigCollector::new(&config))); }
+    // Inspector ECR
+    if wants("inspector-ecr")      { csv_collectors.push(Box::new(InspectorEcrCollector::new(&config))); }
     // Inspector config
     if wants("inspector-config")   { csv_collectors.push(Box::new(InspectorConfigCollector::new(&config))); }
     // WAF full config
@@ -778,6 +782,8 @@ async fn run_tui_running(
             "ssm-patch-summary"  => csv_collectors.push(Box::new(SsmPatchSummaryCollector::new(config))),
             "ssm-patch-exec"     => csv_collectors.push(Box::new(SsmPatchExecutionCollector::new(config))),
             "ssm-maint-windows"  => csv_collectors.push(Box::new(SsmMaintenanceWindowCollector::new(config))),
+            // Inspector ECR findings
+            "inspector-ecr"      => csv_collectors.push(Box::new(InspectorEcrCollector::new(config))),
             // Inspector findings history
             "inspector-history"  => csv_collectors.push(Box::new(InspectorFindingsHistoryCollector::new(config))),
             // CloudWatch alarms
