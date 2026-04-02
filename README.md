@@ -28,11 +28,11 @@ An AWS compliance evidence collector with an interactive TUI and CLI mode. Colle
 
 ```bash
 git clone <repo-url>
-cd evidence
+cd grabber
 cargo build --release
 ```
 
-Binary is at `target/release/evidence`. Optionally install globally:
+Binary is at `target/release/grabber`. Optionally install globally:
 
 ```bash
 cargo install --path .
@@ -130,7 +130,7 @@ The binary must be built before running. From the repo root:
 cargo build --release
 
 # Run directly
-./target/release/evidence
+./target/release/grabber
 
 # Or install to PATH so `evidence` works from anywhere
 cargo install --path .

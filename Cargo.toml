@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 description = "The Grabber — Extensible AWS compliance evidence collector"
 
+[[bin]]
+name = "grabber"
+path = "src/main.rs"
+
 [dependencies]
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-cloudtrail = "1"
