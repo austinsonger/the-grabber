@@ -770,10 +770,10 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_options(f: &mut Frame, area: Rect, app: &App) {
+    // Output directory is always sourced from TOML config — not editable here.
+    // Two fields: 0 = filter, 1 = include_raw toggle.
     let chunks = Layout::vertical([
         Constraint::Length(2),
-        Constraint::Length(3),
-        Constraint::Length(1),
         Constraint::Length(3),
         Constraint::Length(1),
         Constraint::Length(3),
@@ -789,11 +789,10 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         chunks[0],
     );
 
-    draw_text_field(f, chunks[1], "Output Directory", &app.output_dir.value, app.options_field == 0);
-    draw_text_field(f, chunks[3], "Filter (optional)", &app.filter_input.value, app.options_field == 1);
+    draw_text_field(f, chunks[1], "Filter (optional)", &app.filter_input.value, app.options_field == 0);
 
     // Include Raw JSON toggle
-    let toggle_focused = app.options_field == 2;
+    let toggle_focused = app.options_field == 1;
     let border_style = if toggle_focused {
         Style::default().fg(CYAN)
     } else {
@@ -827,7 +826,7 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
             Span::styled("Enabled", on_style),
         ]))
         .block(toggle_block),
-        chunks[5],
+        chunks[3],
     );
 }
 

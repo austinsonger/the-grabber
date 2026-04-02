@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::io;
 
 use anyhow::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -92,6 +92,11 @@ impl TextInput {
             let c = self.value[self.cursor..].chars().next().unwrap();
             self.cursor += c.len_utf8();
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.value.clear();
+        self.cursor = 0;
     }
 }
 
@@ -575,6 +580,11 @@ impl App {
             Screen::Running         => Screen::Results,
             Screen::Results         => Screen::Results,
         };
+        // When entering the Dates screen, clear start_date so the user types fresh.
+        if self.screen == Screen::SetDates {
+            self.date_field = 0;
+            self.start_date.clear();
+        }
     }
 
     pub fn prev_screen(&mut self) {
@@ -767,7 +777,7 @@ fn event_loop(
                 if key.kind != KeyEventKind::Press {
                     continue;
                 }
-                match handle_key(app, key.code) {
+                match handle_key(app, key.code, key.modifiers) {
                     Action::Quit => return Ok(()),
                     Action::StartCollection => return Ok(()),
                     Action::Continue => {}
@@ -787,7 +797,7 @@ enum Action {
     StartCollection,
 }
 
-fn handle_key(app: &mut App, key: KeyCode) -> Action {
+fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
     // Global quit
     if key == KeyCode::Char('q') && app.screen == Screen::Results {
         return Action::Quit;
@@ -853,7 +863,16 @@ fn handle_key(app: &mut App, key: KeyCode) -> Action {
         },
 
         Screen::SetDates => match key {
-            KeyCode::Tab => { app.date_field = (app.date_field + 1) % 2; }
+            KeyCode::Tab => {
+                app.date_field = (app.date_field + 1) % 2;
+                // Clear the newly focused field so the user types fresh.
+                if app.date_field == 0 { app.start_date.clear(); }
+                else { app.end_date.clear(); }
+            }
+            KeyCode::Char('u') if modifiers.contains(KeyModifiers::CONTROL) => {
+                if app.date_field == 0 { app.start_date.clear(); }
+                else { app.end_date.clear(); }
+            }
             KeyCode::Char(c) => {
                 if app.date_field == 0 { app.start_date.insert(c); }
                 else { app.end_date.insert(c); }
@@ -892,30 +911,15 @@ fn handle_key(app: &mut App, key: KeyCode) -> Action {
         },
 
         Screen::SetOptions => match key {
-            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 3; }
-            KeyCode::Char(' ') if app.options_field == 2 => {
+            // 2 fields: 0 = filter, 1 = include_raw toggle
+            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 2; }
+            KeyCode::Char(' ') if app.options_field == 1 => {
                 app.include_raw = !app.include_raw;
             }
-            KeyCode::Char(c) => match app.options_field {
-                0 => app.output_dir.insert(c),
-                1 => app.filter_input.insert(c),
-                _ => {}
-            },
-            KeyCode::Backspace => match app.options_field {
-                0 => app.output_dir.backspace(),
-                1 => app.filter_input.backspace(),
-                _ => {}
-            },
-            KeyCode::Left => match app.options_field {
-                0 => app.output_dir.move_left(),
-                1 => app.filter_input.move_left(),
-                _ => {}
-            },
-            KeyCode::Right => match app.options_field {
-                0 => app.output_dir.move_right(),
-                1 => app.filter_input.move_right(),
-                _ => {}
-            },
+            KeyCode::Char(c) if app.options_field == 0 => app.filter_input.insert(c),
+            KeyCode::Backspace if app.options_field == 0 => app.filter_input.backspace(),
+            KeyCode::Left  if app.options_field == 0 => app.filter_input.move_left(),
+            KeyCode::Right if app.options_field == 0 => app.filter_input.move_right(),
             KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
             KeyCode::Esc   => app.prev_screen(),
             _ => {}
