@@ -893,6 +893,9 @@ fn handle_key(app: &mut App, key: KeyCode) -> Action {
 
         Screen::SetOptions => match key {
             KeyCode::Tab => { app.options_field = (app.options_field + 1) % 3; }
+            KeyCode::Char(' ') if app.options_field == 2 => {
+                app.include_raw = !app.include_raw;
+            }
             KeyCode::Char(c) => match app.options_field {
                 0 => app.output_dir.insert(c),
                 1 => app.filter_input.insert(c),
@@ -913,9 +916,6 @@ fn handle_key(app: &mut App, key: KeyCode) -> Action {
                 1 => app.filter_input.move_right(),
                 _ => {}
             },
-            KeyCode::Char(' ') if app.options_field == 2 => {
-                app.include_raw = !app.include_raw;
-            }
             KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
             KeyCode::Esc   => app.prev_screen(),
             _ => {}
