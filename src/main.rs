@@ -80,6 +80,7 @@ mod cloudwatch_alarms;
 mod config_timeline;
 mod inspector_history;
 mod ssm_patch_detail;
+mod app_config;
 
 use std::path::PathBuf;
 
@@ -924,7 +925,7 @@ async fn run_json_collectors(
                     .context("JSON serialization failed")?;
                 std::fs::write(&path, json)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
-                eprintln!("  Written: {}", path.display());
+                eprintln!("  Written: {}", format_path_with_osc8(&path));
             }
             Err(e) => eprintln!("  ERROR from {}: {e:#}", collector.name()),
         }
@@ -954,7 +955,7 @@ async fn run_csv_collectors(
                 let bytes = write_csv_bytes(collector.headers(), &rows)?;
                 std::fs::write(&path, bytes)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
-                eprintln!("  Written: {}", path.display());
+                eprintln!("  Written: {}", format_path_with_osc8(&path));
             }
             Err(e) => eprintln!("  ERROR from {}: {e:#}", collector.name()),
         }
@@ -970,6 +971,30 @@ fn write_csv_bytes(headers: &[&str], rows: &[Vec<String>]) -> Result<Vec<u8>> {
     }
     writer.flush().context("CSV flush")?;
     writer.into_inner().map_err(|e| anyhow::anyhow!("CSV into_inner: {e}"))
+}
+
+/// Format a path as an OSC 8 hyperlink when stderr is a TTY.
+///
+/// Terminals that don't support OSC 8 will simply display the
+/// visible text portion, so this is safe to enable by default.
+fn format_path_with_osc8(path: &std::path::Path) -> String {
+    use std::io::IsTerminal;
+
+    let text = path.display().to_string();
+
+    // Avoid emitting escape sequences when stderr is not a terminal
+    // (e.g. when logs are redirected to a file or CI).
+    if !std::io::stderr().is_terminal() {
+        return text;
+    }
+
+    let abs = path
+        .canonicalize()
+        .unwrap_or_else(|_| path.to_path_buf());
+    let url = format!("file://{}", abs.display());
+
+    // OSC 8: ESC ] 8 ;; <url> BEL <text> ESC ] 8 ;; BEL
+    format!("\x1b]8;;{url}\x07{text}\x1b]8;;\x07")
 }
 
 // ---------------------------------------------------------------------------
