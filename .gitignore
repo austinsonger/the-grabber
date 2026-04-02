@@ -36,3 +36,8 @@ node_modules/
 .env.*
 
 config.toml
+evidence-output/security/evidence-collection.log
+evidence-output/production/evidence-collection.log
+evidence-output/operations/evidence-collection.log
+evidence-output/master/evidence-collection.log
+evidence-output/development/evidence-collection.log
