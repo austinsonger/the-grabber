@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aws_sdk_iam::Client as IamClient;
 
-use crate::evidence::CsvCollector;
+use crate::evidence::{CsvCollector, JsonCollector};
 
 fn url_decode(s: &str) -> String {
     s.replace("%22", "\"").replace("%7B", "{").replace("%7D", "}")
@@ -26,15 +26,12 @@ impl IamRolePoliciesCollector {
 }
 
 #[async_trait]
-impl CsvCollector for IamRolePoliciesCollector {
+impl JsonCollector for IamRolePoliciesCollector {
     fn name(&self) -> &str { "IAM Role Policies" }
     fn filename_prefix(&self) -> &str { "IAM_Role_Policies" }
-    fn headers(&self) -> &'static [&'static str] {
-        &["Role Name", "Assume Role Policy (Trust)", "Inline Policies", "Attached Managed Policies"]
-    }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
-        let mut rows = Vec::new();
+    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+        let mut records = Vec::new();
         let mut marker: Option<String> = None;
 
         loop {
@@ -47,43 +44,40 @@ impl CsvCollector for IamRolePoliciesCollector {
             for role in resp.roles() {
                 let role_name = role.role_name().to_string();
 
-                let trust_policy = url_decode(
-                    role.assume_role_policy_document().unwrap_or("")
-                );
+                let trust_policy: serde_json::Value = serde_json::from_str(
+                    &url_decode(role.assume_role_policy_document().unwrap_or("{}"))
+                ).unwrap_or(serde_json::Value::Null);
 
-                // Inline policies
-                let inline = match self.client
+                // Inline policies → array of {name, document}
+                let inline_policies: Vec<serde_json::Value> = match self.client
                     .list_role_policies()
                     .role_name(&role_name)
                     .send()
                     .await
                 {
                     Ok(r) => {
-                        let mut docs: Vec<String> = Vec::new();
+                        let mut out = Vec::new();
                         for policy_name in r.policy_names() {
-                            let doc = match self.client
+                            let doc: serde_json::Value = match self.client
                                 .get_role_policy()
                                 .role_name(&role_name)
                                 .policy_name(policy_name)
                                 .send()
                                 .await
                             {
-                                Ok(p) => format!(
-                                    "{}:{}",
-                                    policy_name,
-                                    url_decode(p.policy_document())
-                                ),
-                                Err(_) => policy_name.to_string(),
+                                Ok(p) => serde_json::from_str(&url_decode(p.policy_document()))
+                                    .unwrap_or(serde_json::Value::Null),
+                                Err(_) => serde_json::Value::Null,
                             };
-                            docs.push(doc);
+                            out.push(serde_json::json!({ "name": policy_name, "document": doc }));
                         }
-                        docs.join(" | ")
+                        out
                     }
-                    Err(_) => String::new(),
+                    Err(_) => vec![],
                 };
 
-                // Attached managed policies
-                let attached = match self.client
+                // Attached managed policies → array of names
+                let attached: Vec<String> = match self.client
                     .list_attached_role_policies()
                     .role_name(&role_name)
                     .send()
@@ -91,20 +85,24 @@ impl CsvCollector for IamRolePoliciesCollector {
                 {
                     Ok(r) => r.attached_policies()
                         .iter()
-                        .filter_map(|p| p.policy_name())
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                    Err(_) => String::new(),
+                        .filter_map(|p| p.policy_name().map(|s| s.to_string()))
+                        .collect(),
+                    Err(_) => vec![],
                 };
 
-                rows.push(vec![role_name, trust_policy, inline, attached]);
+                records.push(serde_json::json!({
+                    "role_name":          role_name,
+                    "trust_policy":       trust_policy,
+                    "inline_policies":    inline_policies,
+                    "attached_policies":  attached,
+                }));
             }
 
             marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
             if marker.is_none() { break; }
         }
 
-        Ok(rows)
+        Ok(records)
     }
 }
 
@@ -123,15 +121,12 @@ impl IamUserPoliciesCollector {
 }
 
 #[async_trait]
-impl CsvCollector for IamUserPoliciesCollector {
+impl JsonCollector for IamUserPoliciesCollector {
     fn name(&self) -> &str { "IAM User Policies" }
     fn filename_prefix(&self) -> &str { "IAM_User_Policies" }
-    fn headers(&self) -> &'static [&'static str] {
-        &["User Name", "Inline Policies", "Attached Policies", "Permissions Boundary"]
-    }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
-        let mut rows = Vec::new();
+    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+        let mut records = Vec::new();
         let mut marker: Option<String> = None;
 
         loop {
@@ -144,39 +139,36 @@ impl CsvCollector for IamUserPoliciesCollector {
             for user in resp.users() {
                 let user_name = user.user_name().to_string();
 
-                // Inline policies
-                let inline = match self.client
+                // Inline policies → array of {name, document}
+                let inline_policies: Vec<serde_json::Value> = match self.client
                     .list_user_policies()
                     .user_name(&user_name)
                     .send()
                     .await
                 {
                     Ok(r) => {
-                        let mut docs: Vec<String> = Vec::new();
+                        let mut out = Vec::new();
                         for policy_name in r.policy_names() {
-                            let doc = match self.client
+                            let doc: serde_json::Value = match self.client
                                 .get_user_policy()
                                 .user_name(&user_name)
                                 .policy_name(policy_name)
                                 .send()
                                 .await
                             {
-                                Ok(p) => format!(
-                                    "{}:{}",
-                                    policy_name,
-                                    url_decode(p.policy_document())
-                                ),
-                                Err(_) => policy_name.to_string(),
+                                Ok(p) => serde_json::from_str(&url_decode(p.policy_document()))
+                                    .unwrap_or(serde_json::Value::Null),
+                                Err(_) => serde_json::Value::Null,
                             };
-                            docs.push(doc);
+                            out.push(serde_json::json!({ "name": policy_name, "document": doc }));
                         }
-                        docs.join(" | ")
+                        out
                     }
-                    Err(_) => String::new(),
+                    Err(_) => vec![],
                 };
 
-                // Attached managed policies
-                let attached = match self.client
+                // Attached managed policies → array of names
+                let attached: Vec<String> = match self.client
                     .list_attached_user_policies()
                     .user_name(&user_name)
                     .send()
@@ -184,26 +176,29 @@ impl CsvCollector for IamUserPoliciesCollector {
                 {
                     Ok(r) => r.attached_policies()
                         .iter()
-                        .filter_map(|p| p.policy_name())
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                    Err(_) => String::new(),
+                        .filter_map(|p| p.policy_name().map(|s| s.to_string()))
+                        .collect(),
+                    Err(_) => vec![],
                 };
 
-                // Permissions boundary
                 let boundary = user.permissions_boundary()
                     .and_then(|b| b.permissions_boundary_arn())
-                    .unwrap_or("")
-                    .to_string();
+                    .map(|s| serde_json::Value::String(s.to_string()))
+                    .unwrap_or(serde_json::Value::Null);
 
-                rows.push(vec![user_name, inline, attached, boundary]);
+                records.push(serde_json::json!({
+                    "user_name":           user_name,
+                    "inline_policies":     inline_policies,
+                    "attached_policies":   attached,
+                    "permissions_boundary": boundary,
+                }));
             }
 
             marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
             if marker.is_none() { break; }
         }
 
-        Ok(rows)
+        Ok(records)
     }
 }
 

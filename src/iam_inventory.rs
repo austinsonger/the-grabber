@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aws_sdk_iam::Client as IamClient;
 
-use crate::evidence::CsvCollector;
+use crate::evidence::{CsvCollector, JsonCollector};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -133,15 +133,12 @@ impl IamRoleCollector {
 }
 
 #[async_trait]
-impl CsvCollector for IamRoleCollector {
+impl JsonCollector for IamRoleCollector {
     fn name(&self) -> &str { "IAM Roles" }
     fn filename_prefix(&self) -> &str { "IAM_Roles" }
-    fn headers(&self) -> &'static [&'static str] {
-        &["Role Name", "ARN", "Trust Policy", "Attached Policies", "Last Used", "Region"]
-    }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
-        let mut rows = Vec::new();
+    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+        let mut records = Vec::new();
         let mut marker: Option<String> = None;
 
         loop {
@@ -152,11 +149,13 @@ impl CsvCollector for IamRoleCollector {
             let resp = req.send().await.context("IAM list_roles")?;
 
             for role in resp.roles() {
-                let name  = role.role_name().to_string();
-                let arn   = role.arn().to_string();
-                let trust = trust_policy_principals(
-                    role.assume_role_policy_document().unwrap_or("")
-                );
+                let name = role.role_name().to_string();
+                let arn  = role.arn().to_string();
+
+                let trust_policy: serde_json::Value = serde_json::from_str(
+                    &url_decode(role.assume_role_policy_document().unwrap_or("{}"))
+                ).unwrap_or(serde_json::Value::Null);
+
                 let last_used = role.role_last_used()
                     .and_then(|l| l.last_used_date())
                     .map(|d| fmt_iam_dt(d))
@@ -166,7 +165,7 @@ impl CsvCollector for IamRoleCollector {
                     .unwrap_or("")
                     .to_string();
 
-                let policies = match self.client
+                let attached_policies: Vec<String> = match self.client
                     .list_attached_role_policies()
                     .role_name(&name)
                     .send()
@@ -174,20 +173,26 @@ impl CsvCollector for IamRoleCollector {
                 {
                     Ok(r) => r.attached_policies()
                         .iter()
-                        .filter_map(|p| p.policy_name())
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                    Err(_) => "".to_string(),
+                        .filter_map(|p| p.policy_name().map(|s| s.to_string()))
+                        .collect(),
+                    Err(_) => vec![],
                 };
 
-                rows.push(vec![name, arn, trust, policies, last_used, last_used_region]);
+                records.push(serde_json::json!({
+                    "role_name":          name,
+                    "arn":                arn,
+                    "trust_policy":       trust_policy,
+                    "attached_policies":  attached_policies,
+                    "last_used":          last_used,
+                    "last_used_region":   last_used_region,
+                }));
             }
 
             marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
             if marker.is_none() { break; }
         }
 
-        Ok(rows)
+        Ok(records)
     }
 }
 

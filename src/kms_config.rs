@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use aws_sdk_kms::Client as KmsClient;
 use aws_sdk_ec2::Client as Ec2Client;
 
-use crate::evidence::CsvCollector;
+use crate::evidence::{CsvCollector, JsonCollector};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. KMS Key Configuration (full policy)

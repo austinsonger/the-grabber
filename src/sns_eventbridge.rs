@@ -4,7 +4,7 @@ use aws_sdk_sns::Client as SnsClient;
 use aws_sdk_eventbridge::Client as EbClient;
 use serde_json::Value;
 
-use crate::evidence::CsvCollector;
+use crate::evidence::{CsvCollector, JsonCollector};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. SNS Topic Policies
@@ -92,17 +92,13 @@ impl EventBridgeRulesCollector {
 }
 
 #[async_trait]
-impl CsvCollector for EventBridgeRulesCollector {
+impl JsonCollector for EventBridgeRulesCollector {
     fn name(&self) -> &str { "EventBridge Rules" }
     fn filename_prefix(&self) -> &str { "EventBridge_Rules_Config" }
-    fn headers(&self) -> &'static [&'static str] {
-        &["Rule Name", "Event Bus", "State", "Schedule / Event Pattern", "Targets"]
-    }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
-        let mut rows = Vec::new();
+    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+        let mut records = Vec::new();
 
-        // List event buses first (default + custom)
         let buses = match self.client.list_event_buses().send().await {
             Ok(r) => r.event_buses()
                 .iter()
@@ -129,16 +125,13 @@ impl CsvCollector for EventBridgeRulesCollector {
 
                 for rule in resp.rules() {
                     let rule_name = rule.name().unwrap_or("").to_string();
-                    let state     = rule.state()
-                        .map(|s| s.as_str().to_string())
-                        .unwrap_or_default();
-                    let pattern   = rule.schedule_expression()
-                        .map(|s| format!("schedule:{s}"))
-                        .or_else(|| rule.event_pattern().map(|p| p.to_string()))
-                        .unwrap_or_default();
+                    let state     = rule.state().map(|s| s.as_str()).unwrap_or("");
+                    let schedule  = rule.schedule_expression();
+                    let event_pattern: serde_json::Value = rule.event_pattern()
+                        .and_then(|p| serde_json::from_str(p).ok())
+                        .unwrap_or(serde_json::Value::Null);
 
-                    // Get targets
-                    let targets = match self.client
+                    let targets: Vec<serde_json::Value> = match self.client
                         .list_targets_by_rule()
                         .rule(&rule_name)
                         .event_bus_name(bus_name)
@@ -147,17 +140,19 @@ impl CsvCollector for EventBridgeRulesCollector {
                     {
                         Ok(r) => r.targets()
                             .iter()
-                            .map(|t| {
-                                let id  = t.id();
-                                let arn = t.arn();
-                                format!("{id}:{arn}")
-                            })
-                            .collect::<Vec<_>>()
-                            .join("; "),
-                        Err(_) => String::new(),
+                            .map(|t| serde_json::json!({ "id": t.id(), "arn": t.arn() }))
+                            .collect(),
+                        Err(_) => vec![],
                     };
 
-                    rows.push(vec![rule_name, bus_name.clone(), state, pattern, targets]);
+                    records.push(serde_json::json!({
+                        "rule_name":           rule_name,
+                        "event_bus":           bus_name,
+                        "state":               state,
+                        "schedule_expression": schedule,
+                        "event_pattern":       event_pattern,
+                        "targets":             targets,
+                    }));
                 }
 
                 next_token = resp.next_token().map(|s| s.to_string());
@@ -165,7 +160,7 @@ impl CsvCollector for EventBridgeRulesCollector {
             }
         }
 
-        Ok(rows)
+        Ok(records)
     }
 }
 

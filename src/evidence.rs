@@ -26,6 +26,26 @@ pub trait EvidenceCollector: Send + Sync {
     async fn collect(&self, params: &CollectParams) -> Result<Vec<EvidenceRecord>>;
 }
 
+/// Snapshot collectors that produce structured JSON output (no time window needed).
+/// Use for data that contains nested/policy documents where JSON is richer than CSV.
+#[async_trait]
+pub trait JsonCollector: Send + Sync {
+    fn name(&self) -> &str;
+    fn filename_prefix(&self) -> &str;
+    async fn collect_records(&self, account_id: &str, region: &str) -> Result<Vec<serde_json::Value>>;
+}
+
+/// Output envelope written to disk for every JsonCollector.
+#[derive(Debug, Serialize)]
+pub struct JsonInventoryReport {
+    pub collected_at: String,
+    pub account_id: String,
+    pub region: String,
+    pub collector: String,
+    pub record_count: usize,
+    pub records: Vec<serde_json::Value>,
+}
+
 /// Inventory / snapshot collectors that produce CSV output.
 /// These capture current resource state (no time window needed).
 #[async_trait]

@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use aws_sdk_cloudtrail::Client as CtClient;
 use aws_sdk_cloudtrail::types::{LookupAttribute, LookupAttributeKey};
 
-use crate::evidence::CsvCollector;
+use crate::evidence::{CsvCollector, JsonCollector};
 
 fn now_secs() -> i64 {
     std::time::SystemTime::now()
@@ -33,16 +33,12 @@ impl CloudTrailConfigChangesCollector {
 }
 
 #[async_trait]
-impl CsvCollector for CloudTrailConfigChangesCollector {
+impl JsonCollector for CloudTrailConfigChangesCollector {
     fn name(&self) -> &str { "CloudTrail Configuration Change Events" }
     fn filename_prefix(&self) -> &str { "CloudTrail_Config_Changes" }
-    fn headers(&self) -> &'static [&'static str] {
-        &["Event Name", "Event Time", "User Identity", "Source IP Address",
-          "Request Parameters", "Response Elements"]
-    }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
-        let mut rows = Vec::new();
+    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+        let mut records = Vec::new();
         let end_secs   = now_secs();
         let start_secs = end_secs - 90 * 24 * 3600;
         let start_dt = aws_sdk_cloudtrail::primitives::DateTime::from_secs(start_secs);
@@ -98,10 +94,18 @@ impl CsvCollector for CloudTrailConfigChangesCollector {
                     let username   = event.username().unwrap_or("").to_string();
                     let source_ip  = raw.get("sourceIPAddress")
                         .and_then(|v| v.as_str()).unwrap_or("").to_string();
-                    let req_params = raw.get("requestParameters").map(|v| v.to_string()).unwrap_or_default();
-                    let resp_elems = raw.get("responseElements").map(|v| v.to_string()).unwrap_or_default();
-                    rows.push(vec![event_name.to_string(), event_time, username,
-                                   source_ip, req_params, resp_elems]);
+                    let req_params = raw.get("requestParameters").cloned()
+                        .unwrap_or(serde_json::Value::Null);
+                    let resp_elems = raw.get("responseElements").cloned()
+                        .unwrap_or(serde_json::Value::Null);
+                    records.push(serde_json::json!({
+                        "event_name":           event_name,
+                        "event_time":           event_time,
+                        "user_identity":        username,
+                        "source_ip":            source_ip,
+                        "request_parameters":   req_params,
+                        "response_elements":    resp_elems,
+                    }));
                 }
                 pages += 1;
                 next_token = resp.next_token().map(|s| s.to_string());
@@ -110,7 +114,7 @@ impl CsvCollector for CloudTrailConfigChangesCollector {
             }
         }
 
-        Ok(rows)
+        Ok(records)
     }
 }
 
