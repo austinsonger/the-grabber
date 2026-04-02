@@ -25,21 +25,6 @@ An AWS compliance evidence collector with an interactive TUI and CLI mode. Colle
 ---
 
 
-## Installation
-
-```bash
-git clone <repo-url>
-cd grabber
-cargo build --release
-```
-
-Binary is at `target/release/grabber`. Optionally install globally:
-
-```bash
-cargo install --path .
-```
-
----
 
 ## Configuration
 
