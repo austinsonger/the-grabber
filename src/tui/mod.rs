@@ -209,19 +209,85 @@ impl App {
             // Containers
             ("ecs",                "ECS Clusters             (current state, CSV)"),
             ("eks",                "EKS Clusters             (current state, CSV)"),
+            // IAM extended
+            ("iam-trusts",         "IAM Role Trust Policies  (current state, CSV)"),
+            ("access-analyzer",    "IAM Access Analyzer      (current state, CSV)"),
+            ("scp",                "Org SCPs                 (requires org admin, CSV)"),
+            // CloudTrail extended
+            ("ct-selectors",       "CloudTrail Evt Selectors (current state, CSV)"),
+            ("ct-validation",      "CloudTrail Log Validation(current state, CSV)"),
+            ("ct-s3-policy",       "CloudTrail S3 Policy     (current state, CSV)"),
+            ("ct-changes",         "CloudTrail Change Events (last 7 days, CSV)"),
+            ("s3-data-events",     "S3 Data Events Config    (current state, CSV)"),
+            // GuardDuty extended
+            ("guardduty-config",   "GuardDuty Config         (current state, CSV)"),
+            ("guardduty-rules",    "GuardDuty Suppression    (current state, CSV)"),
+            // Security Hub extended
+            ("sh-standards",       "SecurityHub Standards    (current state, CSV)"),
+            // Network extended
+            ("igw",                "Internet Gateways        (current state, CSV)"),
+            ("nat-gateways",       "NAT Gateways             (current state, CSV)"),
+            ("public-resources",   "Publicly Exposed Res.    (current state, CSV)"),
+            // EC2/SSM extended
+            ("ec2-detailed",       "EC2 Details (AMI/IMDS)   (current state, CSV)"),
+            ("ssm-instances",      "SSM Managed Instances    (current state, CSV)"),
+            ("ssm-patches",        "SSM Patch Compliance     (current state, CSV)"),
+            // Encryption extended
+            ("kms-policies",       "KMS Key Policies         (current state, CSV)"),
+            ("ebs-encryption",     "EBS Default Encryption   (current state, CSV)"),
+            ("rds-snapshots",      "RDS Snapshots            (current state, CSV)"),
+            ("s3-policies",        "S3 Bucket Policies       (current state, CSV)"),
+            // Other
+            ("macie",              "Macie Findings           (if enabled, CSV)"),
+            ("config-history",     "Config Resource History  (current state, CSV)"),
+            ("inspector",          "Inspector2 Findings      (if enabled, CSV)"),
+            ("ecr-scan",           "ECR Image Scan Findings  (current state, CSV)"),
+            ("waf-logging",        "WAF Logging Config       (current state, CSV)"),
+            ("alb-logs",           "ALB Access Log Config    (current state, CSV)"),
+            // IAM config
+            ("iam-role-policies",  "IAM Role Policies        (current state, CSV)"),
+            ("iam-user-policies",  "IAM User Policies        (current state, CSV)"),
+            ("iam-password-policy","IAM Password Policy      (current state, CSV)"),
+            // KMS / EBS config
+            ("kms-config",         "KMS Key Config (Full)    (current state, CSV)"),
+            ("ebs-config",         "EBS Encryption Config    (current state, CSV)"),
+            // S3 detail
+            ("s3-encryption",      "S3 Encryption Config     (current state, CSV)"),
+            ("s3-bucket-policy",   "S3 Bucket Policy (Full)  (current state, CSV)"),
+            ("s3-public-access",   "S3 Public Access Block   (current state, CSV)"),
+            ("s3-logging-config",  "S3 Logging Config        (current state, CSV)"),
+            // EC2 config
+            ("sg-config",          "Security Group Config    (current state, CSV)"),
+            ("vpc-config",         "VPC Configuration        (current state, CSV)"),
+            ("rt-config",          "Route Table Config       (current state, CSV)"),
+            ("ec2-config",         "EC2 Instance Config      (current state, CSV)"),
+            // CloudTrail / CloudWatch config
+            ("ct-full-config",     "CloudTrail Full Config   (current state, CSV)"),
+            ("cw-log-config",      "CW Log Group Config      (current state, CSV)"),
+            ("metric-filter-config","Metric Filter Config    (current state, CSV)"),
+            // Security service config
+            ("gd-full-config",     "GuardDuty Full Config    (current state, CSV)"),
+            ("sh-config",          "SecurityHub Config       (current state, CSV)"),
+            ("config-recorder",    "AWS Config Recorder      (current state, CSV)"),
         ];
 
         // Default: all collectors selected except opt-in ones.
-        let total = 42usize;
+        let total = collector_items.len();
         let mut collector_selected = HashSet::new();
         for i in 0..total {
             collector_selected.insert(i);
         }
-        // Deselect opt-in / expensive collectors by key:
-        // index 3  = s3 (requires separate s3-bucket config)
-        collector_selected.remove(&3);
-        // index 8  = elasticache-global (most accounts don't use global datastores)
-        collector_selected.remove(&8);
+        // Deselect opt-in / requires-special-setup collectors by key name:
+        for (i, (key, _)) in collector_items.iter().enumerate() {
+            match *key {
+                "s3"               => { collector_selected.remove(&i); } // requires s3-bucket config
+                "elasticache-global" => { collector_selected.remove(&i); } // most accounts don't use
+                "scp"              => { collector_selected.remove(&i); } // requires org admin
+                "macie"            => { collector_selected.remove(&i); } // optional service
+                "inspector"        => { collector_selected.remove(&i); } // optional service
+                _ => {}
+            }
+        }
 
         let profile_cursor = profiles
             .iter()

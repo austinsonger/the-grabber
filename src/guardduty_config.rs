@@ -76,13 +76,7 @@ impl CsvCollector for GuardDutyConfigCollector {
                 .map(|s| s.as_str().to_string())
                 .unwrap_or_default();
 
-            let created_at = resp.created_at()
-                .map(|ts| {
-                    chrono::DateTime::<chrono::Utc>::from_timestamp(*ts as i64, 0)
-                        .map(|c| c.to_rfc3339())
-                        .unwrap_or_default()
-                })
-                .unwrap_or_default();
+            let created_at = resp.created_at().unwrap_or("").to_string();
 
             rows.push(vec![
                 detector_id.to_string(),
@@ -169,10 +163,8 @@ impl CsvCollector for GuardDutySuppressionCollector {
                 let criteria_summary = filter_resp.finding_criteria()
                     .map(|fc| {
                         fc.criterion()
-                            .keys()
-                            .cloned()
-                            .collect::<Vec<_>>()
-                            .join(", ")
+                            .map(|c| c.keys().cloned().collect::<Vec<_>>().join(", "))
+                            .unwrap_or_default()
                     })
                     .unwrap_or_default();
 

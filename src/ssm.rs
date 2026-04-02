@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aws_sdk_ssm::Client as SsmClient;
-use aws_sdk_ssm::types::{ComplianceStringFilter, ComplianceStringFilterKey};
+use aws_sdk_ssm::types::ComplianceStringFilter;
 
 use crate::evidence::CsvCollector;
 
@@ -103,7 +103,7 @@ impl CsvCollector for SsmPatchComplianceCollector {
         let mut next_token: Option<String> = None;
 
         let filter = ComplianceStringFilter::builder()
-            .key(ComplianceStringFilterKey::ComplianceType)
+            .key("ComplianceType")
             .values("Patch")
             .build();
 
@@ -132,8 +132,7 @@ impl CsvCollector for SsmPatchComplianceCollector {
                     .map(|s| s.as_str().to_string())
                     .unwrap_or_default();
                 let non_compliant = item.non_compliant_summary()
-                    .and_then(|s| s.non_compliant_count())
-                    .map(|n| n.to_string())
+                    .map(|s| s.non_compliant_count().to_string())
                     .unwrap_or_default();
 
                 rows.push(vec![

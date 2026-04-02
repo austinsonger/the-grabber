@@ -1,17 +1,26 @@
+mod access_analyzer;
 mod acm;
+mod alb_logs;
 mod apigateway;
 mod autoscaling;
 mod backup;
 mod cloudfront;
 mod cloudtrail;
+mod cloudtrail_config;
+mod cloudtrail_details;
 mod cloudtrail_inventory;
 mod cloudtrail_s3;
 mod cloudwatch;
+mod cloudwatch_config;
 mod cloudwatch_resources;
+mod config_history;
 mod config_rules;
 mod dynamodb;
 mod ebs;
+mod ec2_config;
+mod ec2_detailed;
 mod ec2_inventory;
+mod ecr;
 mod ecs;
 mod eks;
 mod elasticache;
@@ -19,20 +28,37 @@ mod efs;
 mod elb;
 mod evidence;
 mod guardduty;
+mod guardduty_config;
 mod iam_certs;
 mod iam_inventory;
+mod iam_policies;
+mod iam_trusts;
+mod inspector;
 mod kms;
+mod kms_config;
+mod kms_policies;
+mod macie;
+mod network_gateways;
+mod organizations;
+mod public_resources;
 mod rds;
 mod rds_inventory;
+mod rds_snapshots;
 mod s3_config;
+mod s3_detail;
 mod s3_inventory;
+mod s3_policies;
 mod secretsmanager;
 mod securityhub;
+mod securityhub_standards;
+mod security_svc_config;
 mod sns;
+mod ssm;
 mod tui;
 mod vpc;
 mod vpcflowlogs;
 mod waf;
+mod waf_logging;
 
 use std::path::PathBuf;
 
@@ -43,40 +69,69 @@ use chrono::{NaiveDate, Utc};
 use clap::Parser;
 use tokio::sync::mpsc;
 
-use crate::backup::BackupCollector;
-use crate::cloudtrail::CloudTrailCollector;
-use crate::cloudtrail_s3::{CloudTrailS3Collector, CloudTrailS3Config};
+use crate::access_analyzer::AccessAnalyzerCollector;
 use crate::acm::AcmCertCollector;
+use crate::alb_logs::AlbLogsCollector;
 use crate::apigateway::ApiGatewayCollector;
 use crate::autoscaling::AutoScalingCollector;
+use crate::backup::BackupCollector;
 use crate::cloudfront::CloudFrontCollector;
+use crate::cloudtrail::CloudTrailCollector;
+use crate::cloudtrail_details::{
+    CloudTrailChangeEventsCollector, CloudTrailEventSelectorsCollector,
+    CloudTrailLogValidationCollector, CloudTrailS3PolicyCollector, S3DataEventsCollector,
+};
 use crate::cloudtrail_inventory::CloudTrailInventoryCollector;
+use crate::cloudtrail_s3::{CloudTrailS3Collector, CloudTrailS3Config};
 use crate::cloudwatch::MetricFilterAlarmCollector;
 use crate::cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector};
+use crate::config_history::ConfigHistoryCollector;
 use crate::config_rules::ConfigRulesCollector;
-use crate::ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector};
-use crate::ecs::EcsClusterCollector;
-use crate::eks::EksClusterCollector;
-use crate::guardduty::GuardDutyCollector;
-use crate::iam_inventory::{IamAccessKeyCollector, IamPolicyCollector, IamRoleCollector, IamUserCollector};
-use crate::kms::KmsKeyCollector;
-use crate::s3_config::S3BucketConfigCollector;
-use crate::secretsmanager::SecretsManagerCollector;
-use crate::securityhub::SecurityHubCollector;
 use crate::dynamodb::DynamoDbCollector;
 use crate::ebs::EbsCollector;
+use crate::ec2_detailed::Ec2DetailedCollector;
+use crate::ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector};
+use crate::ecr::EcrScanCollector;
+use crate::ecs::EcsClusterCollector;
+use crate::eks::EksClusterCollector;
 use crate::elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector};
 use crate::efs::EfsCollector;
 use crate::elb::{LoadBalancerCollector, LoadBalancerListenerCollector};
+use crate::guardduty::GuardDutyCollector;
+use crate::guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector};
 use crate::iam_certs::IamCertCollector;
+use crate::iam_inventory::{IamAccessKeyCollector, IamPolicyCollector, IamRoleCollector, IamUserCollector};
+use crate::iam_trusts::IamTrustsCollector;
+use crate::inspector::InspectorCollector;
+use crate::kms::KmsKeyCollector;
+use crate::kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector};
+use crate::macie::MacieCollector;
+use crate::network_gateways::{InternetGatewayCollector, NatGatewayCollector};
+use crate::organizations::OrganizationsSCPCollector;
+use crate::public_resources::PublicResourceCollector;
+use crate::rds::RdsCollector;
+use crate::rds_inventory::RdsInventoryCollector;
+use crate::rds_snapshots::RdsSnapshotCollector;
+use crate::s3_config::S3BucketConfigCollector;
 use crate::s3_inventory::S3BucketLoggingCollector;
+use crate::s3_policies::S3PoliciesCollector;
+use crate::secretsmanager::SecretsManagerCollector;
+use crate::securityhub::SecurityHubCollector;
+use crate::securityhub_standards::SecurityHubStandardsCollector;
 use crate::sns::SnsSubscriptionCollector;
+use crate::ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector};
 use crate::vpcflowlogs::VpcFlowLogCollector;
+use crate::waf_logging::WafLoggingCollector;
+use crate::cloudtrail_config::CloudTrailFullConfigCollector;
+use crate::cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector};
+use crate::ec2_config::{Ec2InstanceConfigCollector, RouteTableConfigCollector, SecurityGroupConfigCollector, VpcConfigCollector};
+use crate::iam_policies::{IamPasswordPolicyCollector, IamRolePoliciesCollector, IamUserPoliciesCollector};
+use crate::kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector};
+use crate::s3_detail::{S3BucketPolicyDetailCollector, S3EncryptionConfigCollector, S3LoggingConfigCollector, S3PublicAccessBlockCollector};
+use crate::security_svc_config::{AwsConfigRecorderCollector, GuardDutyFullConfigCollector, SecurityHubConfigCollector};
 use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, ReportMetadata,
 };
-use crate::rds::RdsCollector;
-use crate::rds_inventory::RdsInventoryCollector;
 use crate::tui::{
     App, CollectorState, CollectorStatus, Progress,
     read_aws_profiles, restore_terminal, run as run_tui, setup_terminal,
@@ -337,6 +392,67 @@ async fn main() -> Result<()> {
     if wants("cloudfront")        { csv_collectors.push(Box::new(CloudFrontCollector::new(&config))); }
     if wants("ecs")               { csv_collectors.push(Box::new(EcsClusterCollector::new(&config))); }
     if wants("eks")               { csv_collectors.push(Box::new(EksClusterCollector::new(&config))); }
+    // IAM extended
+    if wants("iam-trusts")        { csv_collectors.push(Box::new(IamTrustsCollector::new(&config))); }
+    if wants("access-analyzer")   { csv_collectors.push(Box::new(AccessAnalyzerCollector::new(&config))); }
+    if wants("scp")               { csv_collectors.push(Box::new(OrganizationsSCPCollector::new(&config))); }
+    // CloudTrail extended
+    if wants("ct-selectors")      { csv_collectors.push(Box::new(CloudTrailEventSelectorsCollector::new(&config))); }
+    if wants("ct-validation")     { csv_collectors.push(Box::new(CloudTrailLogValidationCollector::new(&config))); }
+    if wants("ct-s3-policy")      { csv_collectors.push(Box::new(CloudTrailS3PolicyCollector::new(&config))); }
+    if wants("ct-changes")        { csv_collectors.push(Box::new(CloudTrailChangeEventsCollector::new(&config))); }
+    if wants("s3-data-events")    { csv_collectors.push(Box::new(S3DataEventsCollector::new(&config))); }
+    // GuardDuty extended
+    if wants("guardduty-config")  { csv_collectors.push(Box::new(GuardDutyConfigCollector::new(&config))); }
+    if wants("guardduty-rules")   { csv_collectors.push(Box::new(GuardDutySuppressionCollector::new(&config))); }
+    // Security Hub extended
+    if wants("sh-standards")      { csv_collectors.push(Box::new(SecurityHubStandardsCollector::new(&config))); }
+    // Network
+    if wants("igw")               { csv_collectors.push(Box::new(InternetGatewayCollector::new(&config))); }
+    if wants("nat-gateways")      { csv_collectors.push(Box::new(NatGatewayCollector::new(&config))); }
+    if wants("public-resources")  { csv_collectors.push(Box::new(PublicResourceCollector::new(&config))); }
+    // EC2/SSM extended
+    if wants("ec2-detailed")      { csv_collectors.push(Box::new(Ec2DetailedCollector::new(&config))); }
+    if wants("ssm-instances")     { csv_collectors.push(Box::new(SsmManagedInstanceCollector::new(&config))); }
+    if wants("ssm-patches")       { csv_collectors.push(Box::new(SsmPatchComplianceCollector::new(&config))); }
+    // Encryption extended
+    if wants("kms-policies")      { csv_collectors.push(Box::new(KmsKeyPolicyCollector::new(&config))); }
+    if wants("ebs-encryption")    { csv_collectors.push(Box::new(EbsDefaultEncryptionCollector::new(&config))); }
+    if wants("rds-snapshots")     { csv_collectors.push(Box::new(RdsSnapshotCollector::new(&config))); }
+    if wants("s3-policies")       { csv_collectors.push(Box::new(S3PoliciesCollector::new(&config))); }
+    // Other
+    if wants("macie")             { csv_collectors.push(Box::new(MacieCollector::new(&config))); }
+    if wants("config-history")    { csv_collectors.push(Box::new(ConfigHistoryCollector::new(&config))); }
+    if wants("inspector")         { csv_collectors.push(Box::new(InspectorCollector::new(&config))); }
+    if wants("ecr-scan")          { csv_collectors.push(Box::new(EcrScanCollector::new(&config))); }
+    if wants("waf-logging")       { csv_collectors.push(Box::new(WafLoggingCollector::new(&config))); }
+    if wants("alb-logs")          { csv_collectors.push(Box::new(AlbLogsCollector::new(&config))); }
+    // IAM config
+    if wants("iam-role-policies")  { csv_collectors.push(Box::new(IamRolePoliciesCollector::new(&config))); }
+    if wants("iam-user-policies")  { csv_collectors.push(Box::new(IamUserPoliciesCollector::new(&config))); }
+    if wants("iam-password-policy"){ csv_collectors.push(Box::new(IamPasswordPolicyCollector::new(&config))); }
+    // KMS / EBS config
+    if wants("kms-config")         { csv_collectors.push(Box::new(KmsKeyConfigCollector::new(&config))); }
+    if wants("ebs-config")         { csv_collectors.push(Box::new(EbsEncryptionConfigCollector::new(&config))); }
+    // S3 detail
+    if wants("s3-encryption")      { csv_collectors.push(Box::new(S3EncryptionConfigCollector::new(&config))); }
+    if wants("s3-bucket-policy")   { csv_collectors.push(Box::new(S3BucketPolicyDetailCollector::new(&config))); }
+    if wants("s3-public-access")   { csv_collectors.push(Box::new(S3PublicAccessBlockCollector::new(&config))); }
+    if wants("s3-logging-config")  { csv_collectors.push(Box::new(S3LoggingConfigCollector::new(&config))); }
+    // EC2 config
+    if wants("sg-config")          { csv_collectors.push(Box::new(SecurityGroupConfigCollector::new(&config))); }
+    if wants("vpc-config")         { csv_collectors.push(Box::new(VpcConfigCollector::new(&config))); }
+    if wants("rt-config")          { csv_collectors.push(Box::new(RouteTableConfigCollector::new(&config))); }
+    if wants("ec2-config")         { csv_collectors.push(Box::new(Ec2InstanceConfigCollector::new(&config))); }
+    // CloudTrail config
+    if wants("ct-full-config")     { csv_collectors.push(Box::new(CloudTrailFullConfigCollector::new(&config))); }
+    // CloudWatch config
+    if wants("cw-log-config")      { csv_collectors.push(Box::new(CwLogGroupConfigCollector::new(&config))); }
+    if wants("metric-filter-config"){ csv_collectors.push(Box::new(MetricFilterConfigCollector::new(&config))); }
+    // Security service config
+    if wants("gd-full-config")     { csv_collectors.push(Box::new(GuardDutyFullConfigCollector::new(&config))); }
+    if wants("sh-config")          { csv_collectors.push(Box::new(SecurityHubConfigCollector::new(&config))); }
+    if wants("config-recorder")    { csv_collectors.push(Box::new(AwsConfigRecorderCollector::new(&config))); }
 
     if json_collectors.is_empty() && csv_collectors.is_empty() {
         anyhow::bail!("No collectors selected.");
@@ -409,6 +525,67 @@ async fn run_tui_running(
             "cloudfront"       => csv_collectors.push(Box::new(CloudFrontCollector::new(config))),
             "ecs"              => csv_collectors.push(Box::new(EcsClusterCollector::new(config))),
             "eks"              => csv_collectors.push(Box::new(EksClusterCollector::new(config))),
+            // IAM extended
+            "iam-trusts"       => csv_collectors.push(Box::new(IamTrustsCollector::new(config))),
+            "access-analyzer"  => csv_collectors.push(Box::new(AccessAnalyzerCollector::new(config))),
+            "scp"              => csv_collectors.push(Box::new(OrganizationsSCPCollector::new(config))),
+            // CloudTrail extended
+            "ct-selectors"     => csv_collectors.push(Box::new(CloudTrailEventSelectorsCollector::new(config))),
+            "ct-validation"    => csv_collectors.push(Box::new(CloudTrailLogValidationCollector::new(config))),
+            "ct-s3-policy"     => csv_collectors.push(Box::new(CloudTrailS3PolicyCollector::new(config))),
+            "ct-changes"       => csv_collectors.push(Box::new(CloudTrailChangeEventsCollector::new(config))),
+            "s3-data-events"   => csv_collectors.push(Box::new(S3DataEventsCollector::new(config))),
+            // GuardDuty extended
+            "guardduty-config" => csv_collectors.push(Box::new(GuardDutyConfigCollector::new(config))),
+            "guardduty-rules"  => csv_collectors.push(Box::new(GuardDutySuppressionCollector::new(config))),
+            // Security Hub extended
+            "sh-standards"     => csv_collectors.push(Box::new(SecurityHubStandardsCollector::new(config))),
+            // Network
+            "igw"              => csv_collectors.push(Box::new(InternetGatewayCollector::new(config))),
+            "nat-gateways"     => csv_collectors.push(Box::new(NatGatewayCollector::new(config))),
+            "public-resources" => csv_collectors.push(Box::new(PublicResourceCollector::new(config))),
+            // EC2/SSM extended
+            "ec2-detailed"     => csv_collectors.push(Box::new(Ec2DetailedCollector::new(config))),
+            "ssm-instances"    => csv_collectors.push(Box::new(SsmManagedInstanceCollector::new(config))),
+            "ssm-patches"      => csv_collectors.push(Box::new(SsmPatchComplianceCollector::new(config))),
+            // Encryption extended
+            "kms-policies"     => csv_collectors.push(Box::new(KmsKeyPolicyCollector::new(config))),
+            "ebs-encryption"   => csv_collectors.push(Box::new(EbsDefaultEncryptionCollector::new(config))),
+            "rds-snapshots"    => csv_collectors.push(Box::new(RdsSnapshotCollector::new(config))),
+            "s3-policies"      => csv_collectors.push(Box::new(S3PoliciesCollector::new(config))),
+            // Other
+            "macie"            => csv_collectors.push(Box::new(MacieCollector::new(config))),
+            "config-history"   => csv_collectors.push(Box::new(ConfigHistoryCollector::new(config))),
+            "inspector"        => csv_collectors.push(Box::new(InspectorCollector::new(config))),
+            "ecr-scan"         => csv_collectors.push(Box::new(EcrScanCollector::new(config))),
+            "waf-logging"      => csv_collectors.push(Box::new(WafLoggingCollector::new(config))),
+            "alb-logs"          => csv_collectors.push(Box::new(AlbLogsCollector::new(config))),
+            // IAM config
+            "iam-role-policies"  => csv_collectors.push(Box::new(IamRolePoliciesCollector::new(config))),
+            "iam-user-policies"  => csv_collectors.push(Box::new(IamUserPoliciesCollector::new(config))),
+            "iam-password-policy"=> csv_collectors.push(Box::new(IamPasswordPolicyCollector::new(config))),
+            // KMS / EBS config
+            "kms-config"         => csv_collectors.push(Box::new(KmsKeyConfigCollector::new(config))),
+            "ebs-config"         => csv_collectors.push(Box::new(EbsEncryptionConfigCollector::new(config))),
+            // S3 detail
+            "s3-encryption"      => csv_collectors.push(Box::new(S3EncryptionConfigCollector::new(config))),
+            "s3-bucket-policy"   => csv_collectors.push(Box::new(S3BucketPolicyDetailCollector::new(config))),
+            "s3-public-access"   => csv_collectors.push(Box::new(S3PublicAccessBlockCollector::new(config))),
+            "s3-logging-config"  => csv_collectors.push(Box::new(S3LoggingConfigCollector::new(config))),
+            // EC2 config
+            "sg-config"          => csv_collectors.push(Box::new(SecurityGroupConfigCollector::new(config))),
+            "vpc-config"         => csv_collectors.push(Box::new(VpcConfigCollector::new(config))),
+            "rt-config"          => csv_collectors.push(Box::new(RouteTableConfigCollector::new(config))),
+            "ec2-config"         => csv_collectors.push(Box::new(Ec2InstanceConfigCollector::new(config))),
+            // CloudTrail config
+            "ct-full-config"     => csv_collectors.push(Box::new(CloudTrailFullConfigCollector::new(config))),
+            // CloudWatch config
+            "cw-log-config"      => csv_collectors.push(Box::new(CwLogGroupConfigCollector::new(config))),
+            "metric-filter-config"=> csv_collectors.push(Box::new(MetricFilterConfigCollector::new(config))),
+            // Security service config
+            "gd-full-config"     => csv_collectors.push(Box::new(GuardDutyFullConfigCollector::new(config))),
+            "sh-config"          => csv_collectors.push(Box::new(SecurityHubConfigCollector::new(config))),
+            "config-recorder"    => csv_collectors.push(Box::new(AwsConfigRecorderCollector::new(config))),
             _ => {}
         }
     }

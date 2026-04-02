@@ -90,7 +90,7 @@ impl CsvCollector for CloudTrailEventSelectorsCollector {
                     ]);
                 }
             } else if !advanced.is_empty() {
-                let types: Vec<String> = advanced.iter().map(|a| a.name().to_string()).collect();
+                let types: Vec<String> = advanced.iter().map(|a| a.name().unwrap_or("").to_string()).collect();
                 rows.push(vec![
                     trail_name,
                     trail_arn,
@@ -500,7 +500,7 @@ impl CsvCollector for S3DataEventsCollector {
 
             // Advanced event selectors
             for aes in sel_resp.advanced_event_selectors() {
-                let name = aes.name().to_string();
+                let name = aes.name().unwrap_or("").to_string();
                 // Check if this selector covers S3 data events
                 let has_s3 = aes.field_selectors().iter().any(|fs| {
                     fs.field() == "resources.type"

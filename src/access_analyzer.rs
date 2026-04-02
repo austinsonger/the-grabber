@@ -39,9 +39,7 @@ impl CsvCollector for AccessAnalyzerCollector {
             for az in resp.analyzers() {
                 let arn = az.arn().to_string();
                 let name = az.name().to_string();
-                let az_type = az.r#type()
-                    .map(|t| t.as_str().to_string())
-                    .unwrap_or_default();
+                let az_type = az.r#type().as_str().to_string();
                 analyzers.push((arn, name, az_type));
             }
 
@@ -74,19 +72,18 @@ impl CsvCollector for AccessAnalyzerCollector {
 
                 for finding in resp.findings() {
                     let resource_arn = finding.resource().unwrap_or("").to_string();
-                    let resource_type = finding.resource_type()
-                        .map(|rt| rt.as_str().to_string())
-                        .unwrap_or_default();
+                    let resource_type = finding.resource_type().as_str().to_string();
 
                     // Finding type derived from analyzer type
                     let finding_type = az_type.clone();
 
-                    let is_public = if finding.is_public() { "Yes" } else { "No" };
+                    let is_public = if finding.is_public().unwrap_or(false) { "Yes" } else { "No" };
 
                     // Cross account: check principal map for ARNs with different account IDs
                     let cross_account = {
                         let mut cross = "No";
-                        for val in finding.principal().values() {
+                        let principals = finding.principal();
+                        for val in principals.map(|p| p.values()).into_iter().flatten() {
                             if val.starts_with("arn:aws") {
                                 let parts: Vec<&str> = val.splitn(6, ':').collect();
                                 if parts.len() >= 5 {
@@ -100,9 +97,7 @@ impl CsvCollector for AccessAnalyzerCollector {
                         cross
                     };
 
-                    let status = finding.status()
-                        .map(|s| s.as_str().to_string())
-                        .unwrap_or_default();
+                    let status = finding.status().as_str().to_string();
 
                     rows.push(vec![
                         az_name.clone(),
