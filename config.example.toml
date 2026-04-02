@@ -1,28 +1,33 @@
 # The Grabber — Example Configuration
-# Copy to ~/.config/evidence/config.toml and edit for your environment.
+# Copy to config.toml (project root) or ~/.config/evidence/config.toml and edit for your environment.
 #
-# The TUI reads this file at startup. If it is missing the app falls back
-# to the legacy profile/region picker flow.
+# The app looks for config in this order:
+#   1. ./config.toml           (project-local)
+#   2. ~/.config/evidence/config.toml  (user-global)
+#
+# Each [[account]] block appears in the TUI account picker.
+# `profile` must match a [profile NAME] entry in ~/.aws/config.
+# Run `aws sso login --profile <name>` before collecting.
 
 # ── Global defaults ──────────────────────────────────────────────────────────
 
 [defaults]
-region                = "us-east-1"
-output_dir            = "./evidence"
+region                 = "us-east-1"
+output_dir             = "./evidence-output"
 start_date_offset_days = 90      # start date = today minus N days
-include_raw           = false
+include_raw            = false
 
-# Collectors that are off by default (opt-in / require special permissions).
+# Collectors disabled by default (opt-in / require special permissions).
 [defaults.collectors]
 disable = [
-    "s3",                # requires --s3-bucket flag
-    "macie",             # optional service — enable if Macie is active
-    "inspector",         # optional service — enable if Inspector is active
+    "s3",                 # requires --s3-bucket flag
+    "macie",              # optional service — enable if Macie is active
+    "inspector",          # optional service — enable if Inspector is active
     "inspector-config",
     "inspector-history",
-    "scp",               # requires organization admin role
-    "org-config",        # requires organization master account
-    "elasticache-global",
+    "scp",                # requires organization admin role
+    "org-config",         # requires organization master account
+    "elasticache-global", # most accounts don't use global datastores
 ]
 
 # ── Accounts ─────────────────────────────────────────────────────────────────
@@ -31,30 +36,147 @@ disable = [
 # Run `aws configure sso` or `aws sso login` to activate SSO profiles.
 
 [[account]]
-name        = "Production"
+name        = "Security"
 account_id  = "111111111111"
-description = "Production workloads"
-profile     = "ProdAdmin"            # SSO role name
+description = "Security workloads"
+profile     = "SecurityAdmin"
 region      = "us-east-1"
-output_dir  = "./evidence/production"
+output_dir  = "./evidence-output/security"
+
+# Subtractive list — run defaults minus these collectors:
+[account.collectors]
+disable = [
+    "backup-plans",          # Backup_Plans_Config
+    "ct-full-config",        # CloudTrail_Config
+    "ct-selectors",          # CloudTrail_EventSelectors
+    "cloudtrail-config",     # CloudTrail_Logs
+    "ct-validation",         # CloudTrail_LogValidation
+    "s3-data-events",        # CloudTrail_S3DataEvents
+    "ct-s3-policy",          # CloudTrail_S3Policy
+    "config-snapshot",       # Config_Snapshot
+    "dynamodb",              # DynamoDB
+    "ecr-config",            # ECR_Config
+    "ecr-scan",              # ECR_ScanFindings
+    "ecs",                   # ECS_Clusters
+    "efs",                   # EFS
+    "guardduty",             # GuardDuty_Findings
+    "guardduty-rules",       # GuardDuty_Suppression
+    "iam-certs",             # IAM_Certificates
+    "iam-password-policy",   # IAM_Password_Policy
+    "metric-filters",        # Log_Metric_Filters_and_Alarms
+    "metric-filter-config",  # Metric_Filter_Config
+    "ssm-maint-windows",     # SSM_Maintenance_Window
+    "ssm-instances",         # SSM_ManagedInstances
+    "ssm-patch-detail",      # SSM_Patch_Compliance_Detail
+    "ssm-patch-exec",        # SSM_Patch_Execution
+    "ssm-patch-summary",     # SSM_Patch_Summary
+    "ssm-patches",           # SSM_PatchCompliance
+    "time-sync",             # Time_Sync_Config
+    "backup",                # AWS_Backup_job_history_exports
+    "cloudtrail",            # CloudTrail_backup_and_snapshot_events
+]
+
+
+[[account]]
+name        = "Production"
+account_id  = "222222222222"
+description = "Production workloads"
+profile     = "ProdAdmin"
+region      = "us-east-1"
+output_dir  = "./evidence-output/production"
+
+[account.collectors]
+disable = [
+    "backup-plans",          # Backup_Plans_Config
+    "ct-full-config",        # CloudTrail_Config
+    "ct-selectors",          # CloudTrail_EventSelectors
+    "cloudtrail-config",     # CloudTrail_Logs
+    "ct-validation",         # CloudTrail_LogValidation
+    "s3-data-events",        # CloudTrail_S3DataEvents
+    "ct-s3-policy",          # CloudTrail_S3Policy
+    "config-snapshot",       # Config_Snapshot
+    "dynamodb",              # DynamoDB
+    "ecr-config",            # ECR_Config
+    "ecr-scan",              # ECR_ScanFindings
+    "ecs",                   # ECS_Clusters
+    "efs",                   # EFS
+    "guardduty",             # GuardDuty_Findings
+    "guardduty-rules",       # GuardDuty_Suppression
+    "iam-certs",             # IAM_Certificates
+    "iam-password-policy",   # IAM_Password_Policy
+    "metric-filters",        # Log_Metric_Filters_and_Alarms
+    "metric-filter-config",  # Metric_Filter_Config
+    "ssm-maint-windows",     # SSM_Maintenance_Window
+    "ssm-instances",         # SSM_ManagedInstances
+    "ssm-patch-detail",      # SSM_Patch_Compliance_Detail
+    "ssm-patch-exec",        # SSM_Patch_Execution
+    "ssm-patch-summary",     # SSM_Patch_Summary
+    "ssm-patches",           # SSM_PatchCompliance
+    "time-sync",             # Time_Sync_Config
+    "backup",                # AWS_Backup_job_history_exports
+    "cloudtrail",            # CloudTrail_backup_and_snapshot_events
+]
+
 
 [[account]]
 name        = "Development"
-account_id  = "222222222222"
+account_id  = "333333333333"
 description = "Development environment"
 profile     = "DevAdmin"
 region      = "us-east-1"
-output_dir  = "./evidence/development"
+output_dir  = "./evidence-output/development"
+
+
+[[account]]
+name        = "Operations"
+account_id  = "444444444444"
+description = "Operations account"
+profile     = "OpsAdmin"
+region      = "us-east-1"
+output_dir  = "./evidence-output/operations"
+
+[account.collectors]
+disable = [
+    "backup-plans",          # Backup_Plans_Config
+    "ct-full-config",        # CloudTrail_Config
+    "ct-selectors",          # CloudTrail_EventSelectors
+    "cloudtrail-config",     # CloudTrail_Logs
+    "ct-validation",         # CloudTrail_LogValidation
+    "s3-data-events",        # CloudTrail_S3DataEvents
+    "ct-s3-policy",          # CloudTrail_S3Policy
+    "config-snapshot",       # Config_Snapshot
+    "dynamodb",              # DynamoDB
+    "ecr-config",            # ECR_Config
+    "ecr-scan",              # ECR_ScanFindings
+    "ecs",                   # ECS_Clusters
+    "efs",                   # EFS
+    "guardduty",             # GuardDuty_Findings
+    "guardduty-rules",       # GuardDuty_Suppression
+    "iam-certs",             # IAM_Certificates
+    "iam-password-policy",   # IAM_Password_Policy
+    "metric-filters",        # Log_Metric_Filters_and_Alarms
+    "metric-filter-config",  # Metric_Filter_Config
+    "ssm-maint-windows",     # SSM_Maintenance_Window
+    "ssm-instances",         # SSM_ManagedInstances
+    "ssm-patch-detail",      # SSM_Patch_Compliance_Detail
+    "ssm-patch-exec",        # SSM_Patch_Execution
+    "ssm-patch-summary",     # SSM_Patch_Summary
+    "ssm-patches",           # SSM_PatchCompliance
+    "time-sync",             # Time_Sync_Config
+    "backup",                # AWS_Backup_job_history_exports
+    "cloudtrail",            # CloudTrail_backup_and_snapshot_events
+]
+
 
 [[account]]
 name        = "Master / Management"
-account_id  = "333333333333"
+account_id  = "555555555555"
 description = "Organization management account"
 profile     = "MasterAdmin"
 region      = "us-east-1"
-output_dir  = "./evidence/master"
+output_dir  = "./evidence-output/master"
 
-# Master account: add org-level collectors on top of global defaults.
+# Master account gets org-level collectors added on top of global defaults.
 [account.collectors]
 enable_extra = ["scp", "org-config"]
 
@@ -70,30 +192,12 @@ enable_extra = ["scp", "org-config"]
 # [account.collectors]
 # enable = ["iam-users", "iam-roles", "s3-config", "kms", "vpc"]
 
-# Subtractive list — run defaults minus these (auto-excluded on Collectors page):
-#
-# [[account]]
-# name    = "Legacy"
-# profile = "LegacyAdmin"
-#
-# [account.collectors]
-# disable = ["eks", "ecs", "lambda-config", "ecr-config"]
-#
 # Combine disable + enable_extra for fine-grained per-account control:
-#
-# [[account]]
-# name    = "Security"
-# profile = "SecurityAdmin"
-#
-# [account.collectors]
-# enable_extra = ["sh-standards", "sh-findings", "macie", "inspector"]
-# disable      = ["eks", "ecs", "ecr-config", "elasticache"]
-
-# Additive list — run defaults plus these extras:
 #
 # [[account]]
 # name    = "Security Hub Account"
 # profile = "SecurityAdmin"
 #
 # [account.collectors]
-# enable_extra = ["sh-standards", "sh-config", "access-analyzer"]
+# enable_extra = ["sh-standards", "sh-findings", "macie", "inspector"]
+# disable      = ["eks", "ecs", "ecr-config", "elasticache"]

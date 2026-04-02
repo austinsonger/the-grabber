@@ -1,4 +1,4 @@
-# evidence
+# The Grabber
 
 An AWS compliance evidence collector with an interactive TUI and CLI mode. Collects current-state snapshots and time-windowed audit records from 100+ AWS service APIs and writes them as CSV and JSON files — suitable for FedRAMP, SOC 2, HIPAA, or internal audit submissions.
 
@@ -42,7 +42,7 @@ cargo install --path .
 
 ## Configuration
 
-Create `~/.config/evidence/config.toml`:
+Create `config.toml`:
 
 ```toml
 [defaults]
@@ -123,13 +123,125 @@ region         = us-east-1
 
 ### Interactive TUI (recommended)
 
+The binary must be built before running. From the repo root:
+
 ```bash
+# Build once (output: target/release/evidence)
+cargo build --release
+
+# Run directly
+./target/release/evidence
+
+# Or install to PATH so `evidence` works from anywhere
+cargo install --path .
 evidence
 ```
 
-The wizard walks through: account selection → date range → collector selection → options → confirmation → collection → results.
 
-### Non-interactive CLI
+![Alt text](assets/1.Grabber_LandingPage.png)
+
+
+
+The wizard walks through six steps:
+
+---
+
+### Account
+
+Displays every `[[account]]` block from your `config.toml` as a selectable list. Each row shows the account name, account ID, AWS profile, and region.
+
+Navigate with `↑`/`↓` and press `Enter` to select. Selecting an account:
+
+- Sets the AWS profile, region, and output directory from that account's config block.
+- Applies any per-account collector overrides (`enable`, `disable`, `enable_extra`) before you reach the Collectors step — so the collector list is already filtered for that account.
+
+An **Other** option at the bottom falls back to a manual profile/region picker if the account is not in config.
+
+![Alt text](assets/2.Grabber_AccountSelector.png)
+
+
+---
+
+### Dates
+
+Two text fields: **Start Date** and **End Date** (format: `YYYY-MM-DD`).
+
+`Tab` switches between fields and clears the newly focused field so you type fresh. `Ctrl+U` clears the current field. Dates are validated on `Enter` — an invalid format shows an inline error and does not advance.
+
+These dates bound all time-windowed collectors (CloudTrail events, Backup job history, RDS backup events, etc.). Snapshot collectors (IAM, EC2, S3, etc.) run at the current moment regardless.
+
+
+![Alt text](assets/3.Grabber_DateRange.png)
+
+
+---
+
+### Collectors
+
+A scrollable checklist of 90+ collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.).
+
+- `Space` toggles the collector under the cursor.
+- The title shows **X of Y selected** as you make changes.
+- Per-account `disable` and `enable_extra` overrides from `config.toml` are already applied — disabled collectors are pre-unchecked and extra collectors are pre-checked.
+- At least one collector must be selected to advance.
+
+
+![Alt text](assets/4.Grabber_CollectorsSelection.png)
+
+
+
+
+---
+
+### Options
+
+Two settings:
+
+| Setting | Description |
+|---------|-------------|
+| **Output Dir** | Read-only — sourced from the selected account's `output_dir` in config. |
+| **Include Raw** | Toggle (`Space`) between **Disabled** and **Enabled**. When enabled, the full raw AWS API response is embedded inside each JSON evidence record. Off by default. |
+
+`Tab` moves between fields.
+
+![Alt text](assets/5.Grabber_Options.png)
+
+---
+
+### Confirm
+
+A summary screen showing all selected settings before anything runs:
+
+- Profile, Region, Start Date, End Date
+- Number of collectors selected
+- Output directory, Include Raw setting
+
+Press `Enter` (or the **▸▸ Start Collection ◂◂** button) to begin. No AWS calls have been made up to this point.
+
+
+![Alt text](assets/6.Grabber_Confirm.png)
+
+
+---
+
+### Run
+
+Collection executes all selected collectors concurrently. The screen shows:
+
+- **Progress bar** — `X / Y collectors` complete.
+- **Collector list** — each entry shows a live status icon: `·` waiting, spinner running, `✓` done with record count, `✗` failed with error message.
+- **Stats card** — elapsed time, completed count, total records collected, error count.
+- **Activity log** — reverse-chronological feed of the last 20 collector events (started / finished / failed).
+
+Each collector has a **3-minute timeout** — if it hangs it is cancelled and collection continues. All `WARN`-level messages are written to `evidence-collection.log` in the output directory so the terminal stays readable.
+
+When all collectors finish, the **Results** screen shows a success banner, total file count, total record count, and the full list of output file paths written.
+
+![Alt text](assets/7.Grabber_Running.png)
+
+
+
+## Non-interactive CLI
 
 ```bash
 evidence \
@@ -140,7 +252,7 @@ evidence \
   --output-dir ./evidence-output/production
 ```
 
-### CLI Options
+## CLI Options
 
 | Flag | Default | Description |
 |------|---------|-------------|

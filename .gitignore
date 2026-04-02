@@ -34,3 +34,5 @@ node_modules/
 # Misc
 .env
 .env.*
+
+config.toml
