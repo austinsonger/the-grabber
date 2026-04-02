@@ -257,11 +257,15 @@ struct Cli {
 // ---------------------------------------------------------------------------
 
 fn main() -> Result<()> {
-    tokio::runtime::Builder::new_multi_thread()
-        .thread_stack_size(8 * 1024 * 1024) // 8 MB — prevents stack overflow with 120+ collectors
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .thread_stack_size(16 * 1024 * 1024) // 16 MB — deep IAM/JSON async futures need headroom
         .enable_all()
-        .build()?
-        .block_on(async_main())
+        .build()?;
+    // Run async_main on a worker thread (which has the 16 MB stack) rather than
+    // the main OS thread (which has the default ~8 MB stack on macOS).
+    rt.block_on(async {
+        tokio::spawn(async_main()).await?
+    })
 }
 
 async fn async_main() -> Result<()> {

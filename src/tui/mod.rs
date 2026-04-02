@@ -722,6 +722,15 @@ pub fn read_aws_profiles() -> Vec<String> {
 // ---------------------------------------------------------------------------
 
 pub fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
+    // Install a panic hook that restores the terminal before printing the panic message.
+    // Without this, a panic leaves the terminal in raw/alternate-screen mode.
+    let original_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let _ = disable_raw_mode();
+        let _ = crossterm::execute!(io::stdout(), LeaveAlternateScreen);
+        original_hook(info);
+    }));
+
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;

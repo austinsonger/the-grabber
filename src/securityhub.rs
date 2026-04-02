@@ -41,6 +41,7 @@ impl CsvCollector for SecurityHubCollector {
             .record_state(record_filter)
             .build();
 
+        const MAX_FINDINGS: usize = 1000;
         let mut next_token: Option<String> = None;
 
         loop {
@@ -93,7 +94,7 @@ impl CsvCollector for SecurityHubCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() || rows.len() >= MAX_FINDINGS { break; }
         }
 
         Ok(rows)

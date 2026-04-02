@@ -1,128 +1,26 @@
 # evidence
 
-A Rust CLI tool that collects AWS Backup compliance evidence from two independent sources:
+An AWS compliance evidence collector with an interactive TUI and CLI mode. Collects current-state snapshots and time-windowed audit records from 100+ AWS service APIs and writes them as CSV and JSON files — suitable for FedRAMP, SOC 2, HIPAA, or internal audit submissions.
 
-- **AWS Backup API** — structured job records (`ListBackupJobs`)
-- **AWS CloudTrail** — immutable audit log entries (`LookupEvents`)
+---
 
-Both sources are correlated and written to a single JSON report containing `StartBackupJob` and `BackupJobCompleted` events with timestamps, backup plan IDs, and resource identifiers — suitable for FedRAMP, SOC 2, or internal audit submissions.
+## Features
+
+- **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
+- **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
+- **100+ collectors** — IAM, EC2, S3, RDS, CloudTrail, GuardDuty, SecurityHub, SSM, KMS, and more
+- **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
+- **Per-collector timeouts** — collectors that hang are cancelled after 3 minutes and collection continues
+- **Clean TUI output** — all WARN messages are captured to `evidence-collection.log` so the terminal stays readable
+- **Non-interactive CLI** — pass flags directly for scripted/CI use
 
 ---
 
 ## Requirements
 
-- Rust 1.91.1 or later (`rustup update stable`)
-- AWS credentials with the permissions listed below
-- An AWS account with AWS Backup enabled and at least one completed backup job in the query window
-
----
-
-## AWS Credentials Setup
-
-The tool uses the standard AWS credential chain in this priority order:
-
-1. **Environment variables** — fastest for CI/CD
-2. **AWS profile** (`~/.aws/credentials` + `~/.aws/config`) — recommended for local use
-3. **IAM role** (EC2 instance profile, ECS task role, Lambda execution role)
-4. **AWS SSO** — via `aws sso login`
-
-### Option 1 — Environment Variables
-
-```bash
-export AWS_ACCESS_KEY_ID=AKIA...
-export AWS_SECRET_ACCESS_KEY=...
-export AWS_DEFAULT_REGION=us-east-1
-```
-
-For temporary credentials (assumed role, SSO, etc.) also set:
-
-```bash
-export AWS_SESSION_TOKEN=...
-```
-
-### Option 2 — Named Profile (`~/.aws/config`)
-
-```ini
-[profile evidence-collector]
-region = us-east-1
-output = json
-```
-
-```ini
-# ~/.aws/credentials
-[evidence-collector]
-aws_access_key_id = AKIA...
-aws_secret_access_key = ...
-```
-
-Then activate the profile before running:
-
-```bash
-export AWS_PROFILE=evidence-collector
-```
-
-### Option 3 — AWS SSO
-
-```bash
-aws configure sso
-# follow prompts to set up SSO profile
-
-aws sso login --profile my-sso-profile
-export AWS_PROFILE=my-sso-profile
-```
-
-### Option 4 — Assume a Role
-
-```bash
-eval $(aws sts assume-role \
-  --role-arn arn:aws:iam::123456789012:role/EvidenceCollectorRole \
-  --role-session-name evidence-session \
-  --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
-  --output text | awk '{print "export AWS_ACCESS_KEY_ID="$1"\nexport AWS_SECRET_ACCESS_KEY="$2"\nexport AWS_SESSION_TOKEN="$3}')
-```
-
----
-
-## IAM Permissions
-
-The identity (user or role) running this tool needs the following minimum permissions.
-A ready-to-use policy document is at [iam/evidence-collector-policy.json](iam/evidence-collector-policy.json).
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "cloudtrail:LookupEvents",
-        "backup:ListBackupJobs",
-        "backup:DescribeBackupJob"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-### Attach the policy via AWS CLI
-
-```bash
-# Create the policy
-aws iam create-policy \
-  --policy-name EvidenceCollectorPolicy \
-  --policy-document file://iam/evidence-collector-policy.json
-
-# Attach to a user
-aws iam attach-user-policy \
-  --user-name <your-user> \
-  --policy-arn arn:aws:iam::<account-id>:policy/EvidenceCollectorPolicy
-
-# Or attach to a role
-aws iam attach-role-policy \
-  --role-name <your-role> \
-  --policy-arn arn:aws:iam::<account-id>:policy/EvidenceCollectorPolicy
-```
+- Rust 1.75 or later (`rustup update stable`)
+- AWS CLI v2 with configured SSO or credential profiles
+- IAM permissions for the services you want to collect (see [IAM Permissions](#iam-permissions))
 
 ---
 
@@ -134,9 +32,7 @@ cd evidence
 cargo build --release
 ```
 
-The binary will be at `target/release/evidence`.
-
-Optionally install to `~/.cargo/bin`:
+Binary is at `target/release/evidence`. Optionally install globally:
 
 ```bash
 cargo install --path .
@@ -144,182 +40,433 @@ cargo install --path .
 
 ---
 
-## Usage
+## Configuration
 
+Create `~/.config/evidence/config.toml`:
+
+```toml
+[defaults]
+region                 = "us-east-1"
+output_dir             = "./evidence-output"
+start_date_offset_days = 90      # start date = today minus N days
+include_raw            = false
+
+[defaults.collectors]
+disable = [
+    "s3",                # requires --s3-bucket flag
+    "macie",             # optional service
+    "scp",               # requires org admin role
+    "org-config",        # requires org master account
+]
+
+[[account]]
+name        = "Production"
+account_id  = "123456789012"
+profile     = "ProdAdmin-123456789012"   # must match a profile in ~/.aws/config
+region      = "us-east-1"
+output_dir  = "./evidence-output/production"
+
+[[account]]
+name        = "Operations"
+account_id  = "098765432109"
+profile     = "OpsAdmin-098765432109"
+region      = "us-east-1"
+output_dir  = "./evidence-output/operations"
+
+# Master account — add org-level collectors
+[[account]]
+name        = "Master"
+account_id  = "111122223333"
+profile     = "MasterAdmin-111122223333"
+region      = "us-east-1"
+output_dir  = "./evidence-output/master"
+
+[account.collectors]
+enable_extra = ["scp", "org-config"]
 ```
-evidence --start-date <YYYY-MM-DD> --end-date <YYYY-MM-DD> [OPTIONS]
-```
 
-### Options
+The `name` field becomes the prefix on every output file (e.g. `Production_IAM_Roles-2026-04-01-120000.json`).
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--start-date` | *(required)* | Start of query window, inclusive |
-| `--end-date` | *(required)* | End of query window, inclusive |
-| `--region` | `us-east-1` | AWS region to query |
-| `-o, --output` | stdout | Write JSON report to this file |
-| `--backup-plan-id` | *(all plans)* | Filter results to a specific backup plan ID |
-| `--collectors` | `cloudtrail,backup` | Comma-separated list of collectors to run |
-| `--include-raw` | off | Embed full CloudTrail event JSON in each record |
-
-### Examples
-
-Collect all backup evidence for March 2026, write to a file:
+Profile names must exactly match entries in `~/.aws/config`. To find your profile names:
 
 ```bash
-evidence \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-31 \
-  --region us-east-1 \
-  --output evidence-march-2026.json
-```
-
-Run only the Backup API collector (faster, no CloudTrail rate limiting):
-
-```bash
-evidence \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-31 \
-  --collectors backup \
-  --output evidence-backup-only.json
-```
-
-Filter to a specific backup plan and include raw CloudTrail events:
-
-```bash
-evidence \
-  --start-date 2026-03-01 \
-  --end-date 2026-03-31 \
-  --backup-plan-id abc123-plan-id \
-  --include-raw \
-  --output evidence-plan-abc123.json
+aws configure list-profiles
 ```
 
 ---
 
-## Output Format
+## AWS SSO Login
 
-The report is a single JSON object:
+Authenticate before running:
+
+```bash
+# Login to your SSO session (session name is in ~/.aws/config)
+aws sso login --sso-session <session-name>
+
+# Verify a profile works
+aws sts get-caller-identity --profile <profile-name>
+```
+
+To add a new profile for an account/role you have access to, add a block to `~/.aws/config`:
+
+```ini
+[profile RoleName-AccountId]
+sso_session   = <session-name>
+sso_account_id = 123456789012
+sso_role_name  = RoleName
+region         = us-east-1
+```
+
+---
+
+## Usage
+
+### Interactive TUI (recommended)
+
+```bash
+evidence
+```
+
+The wizard walks through: account selection → date range → collector selection → options → confirmation → collection → results.
+
+### Non-interactive CLI
+
+```bash
+evidence \
+  --start-date 2026-01-01 \
+  --end-date   2026-04-01 \
+  --region     us-east-1 \
+  --profile    ProdAdmin-123456789012 \
+  --output-dir ./evidence-output/production
+```
+
+### CLI Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--start-date` | *(required for CLI)* | Start of query window (YYYY-MM-DD) |
+| `--end-date` | *(required for CLI)* | End of query window (YYYY-MM-DD) |
+| `--region` | `us-east-1` | AWS region |
+| `--profile` | default | AWS CLI profile name |
+| `--output-dir` | `.` | Directory to write output files |
+| `--collectors` | all | Comma-separated list of collector keys to run |
+| `--include-raw` | off | Embed full raw JSON in evidence records |
+
+---
+
+## Output Files
+
+Files are written to the configured output directory. Filenames follow the pattern:
+
+```
+<AccountName>_<CollectorName>-<YYYY-MM-DD-HHmmss>.<csv|json>
+```
+
+Example:
+```
+evidence-output/production/
+  Production_IAM_Roles-2026-04-01-120000.json
+  Production_IAM_Users-2026-04-01-120000.csv
+  Production_KMS_Key_Configuration-2026-04-01-120000.json
+  Production_SecurityHub_Findings-2026-04-01-120000.csv
+  ...
+  evidence-collection.log   ← WARN messages from all collectors
+```
+
+JSON files (inventory/policy data) include a metadata envelope:
 
 ```json
 {
-  "metadata": {
-    "collected_at": "2026-04-01T12:00:00Z",
-    "region": "us-east-1",
-    "start_date": "2026-03-01",
-    "end_date": "2026-03-31",
-    "filter": null
-  },
-  "sections": [
+  "collected_at": "2026-04-01T12:00:00Z",
+  "account_id": "Production",
+  "region": "us-east-1",
+  "collector": "IAM Roles",
+  "record_count": 42,
+  "records": [ ... ]
+}
+```
+
+---
+
+## Collectors
+
+### Time-windowed (query a date range)
+
+| Key | Description |
+|-----|-------------|
+| `cloudtrail` | CloudTrail events |
+| `backup` | AWS Backup job records |
+| `rds` | RDS automated backup events |
+
+### IAM
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `iam-users` | CSV | Users with MFA status, last login, key status |
+| `iam-roles` | JSON | Roles with trust policies and attached policies |
+| `iam-policies` | CSV | Customer-managed policies with permissions summary |
+| `iam-access-keys` | CSV | Access keys with status and last-used date |
+| `iam-role-policies` | JSON | Role inline and attached policies |
+| `iam-user-policies` | JSON | User inline, attached policies, permissions boundary |
+| `iam-trusts` | CSV | Cross-account and service trust relationships |
+| `iam-certs` | CSV | Server certificates |
+| `iam-password-policy` | CSV | Account password policy |
+| `iam-account-summary` | CSV | Account-level IAM summary |
+| `saml-providers` | CSV | SAML identity provider configs |
+| `access-analyzer` | CSV | IAM Access Analyzer findings |
+
+### EC2 / Networking
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `ec2-instances` | CSV | Instance inventory |
+| `ec2-detailed` | CSV | Detailed instance config |
+| `ec2-config` | CSV | Instance-level config settings |
+| `vpc` | CSV | VPC configuration |
+| `vpc-config` | CSV | VPC attributes |
+| `vpc-flow-logs` | CSV | VPC flow log settings |
+| `vpc-endpoints` | CSV | VPC endpoint inventory |
+| `nacl` | CSV | Network ACL rules |
+| `security-groups` | CSV | Security group rules |
+| `sg-config` | CSV | Security group config details |
+| `route-tables` | CSV | Route table entries |
+| `rt-config` | CSV | Route table configuration |
+| `igw` | CSV | Internet gateways |
+| `nat-gateways` | CSV | NAT gateways |
+| `launch-templates` | CSV | EC2 launch templates |
+| `ebs` | CSV | EBS volume inventory |
+| `ebs-config` | CSV | EBS volume configuration |
+| `ebs-encryption` | CSV | EBS default encryption settings |
+
+### Storage
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `s3-config` | CSV | S3 bucket configuration |
+| `s3-logging` | CSV | S3 access logging settings |
+| `s3-logging-config` | CSV | S3 logging configuration detail |
+| `s3-encryption` | CSV | S3 bucket encryption settings |
+| `s3-public-access` | CSV | S3 public access block settings |
+| `s3-policies` | CSV | S3 bucket policies |
+| `s3-bucket-policy` | CSV | S3 bucket policy detail |
+| `s3-data-events` | CSV | S3 CloudTrail data event selectors |
+| `efs` | CSV | EFS file systems |
+| `dynamodb` | CSV | DynamoDB tables |
+
+### RDS
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `rds-inventory` | CSV | RDS instance inventory |
+| `rds-snapshots` | CSV | Automated and manual snapshots |
+| `rds-backup-config` | CSV | Backup retention and window settings |
+
+### KMS
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `kms` | CSV | KMS key inventory |
+| `kms-config` | JSON | Key configuration with full key policy |
+| `kms-policies` | CSV | Key policies summary |
+
+### CloudTrail
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `cloudtrail-config` | CSV | Trail inventory |
+| `ct-selectors` | CSV | Event selector configuration |
+| `ct-validation` | CSV | Log file validation settings |
+| `ct-s3-policy` | CSV | S3 bucket policies for trails |
+| `ct-full-config` | CSV | Full trail configuration |
+| `ct-changes` | CSV | CloudTrail change events |
+| `ct-config-changes` | JSON | Config-related CloudTrail events |
+| `ct-iam-changes` | CSV | IAM-related CloudTrail events |
+
+### AWS Config
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `config-rules` | CSV | Config rules and compliance status |
+| `config-history` | CSV | Config change history |
+| `config-timeline` | CSV | Resource configuration timeline |
+| `config-compliance` | CSV | Compliance history |
+| `config-snapshot` | CSV | Config snapshot summary |
+| `config-recorder` | CSV | Configuration recorder settings |
+
+### Security Services
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `guardduty` | CSV | GuardDuty findings |
+| `guardduty-config` | CSV | GuardDuty detector configuration |
+| `guardduty-rules` | CSV | GuardDuty suppression rules |
+| `gd-full-config` | CSV | Full GuardDuty configuration |
+| `securityhub` | CSV | Security Hub findings |
+| `sh-standards` | CSV | Enabled Security Hub standards |
+| `sh-config` | CSV | Security Hub configuration |
+| `securityhub-standards` | CSV | Security Hub standard controls |
+| `macie` | CSV | Macie findings (if enabled) |
+| `inspector` | CSV | Inspector findings |
+| `inspector-config` | CSV | Inspector configuration |
+| `inspector-history` | CSV | Inspector findings history |
+| `access-analyzer` | CSV | IAM Access Analyzer findings |
+| `public-resources` | CSV | Publicly accessible resources |
+
+### SSM / Patch Management
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `ssm-patches` | CSV | SSM patch compliance |
+| `ssm-patch-summary` | CSV | Patch compliance summary |
+| `ssm-patch-detail` | CSV | Per-instance patch detail |
+| `ssm-patch-exec` | CSV | Patch execution history |
+| `ssm-baselines` | CSV | Patch baselines |
+| `ssm-maint-windows` | CSV | Maintenance windows |
+| `ssm-instances` | CSV | Managed instance inventory |
+| `ssm-params` | CSV | Parameter Store entries |
+| `time-sync` | CSV | EC2 time synchronization config |
+
+### Monitoring / Alerting
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `cw-alarms` | CSV | CloudWatch alarms |
+| `cw-log-groups` | CSV | CloudWatch log groups |
+| `cw-config-alarms` | CSV | Config-related CloudWatch alarms |
+| `cw-log-config` | CSV | Log group configuration |
+| `metric-filters` | CSV | Metric filter alarm mappings |
+| `metric-filter-config` | CSV | Metric filter configuration |
+| `change-event-rules` | CSV | EventBridge change event rules |
+| `eventbridge-rules` | JSON | EventBridge rule configuration |
+
+### Compute / Containers
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `ecs` | CSV | ECS cluster inventory |
+| `eks` | CSV | EKS cluster inventory |
+| `ecr-scan` | CSV | ECR image scan findings |
+| `ecr-config` | CSV | ECR repository configuration |
+| `lambda-config` | CSV | Lambda function configuration |
+| `lambda-permissions` | CSV | Lambda resource-based policies |
+| `asg` | CSV | Auto Scaling groups |
+
+### Other Services
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `acm` | CSV | ACM certificates |
+| `elb` | CSV | Load balancer inventory |
+| `elb-listeners` | CSV | Load balancer listener rules |
+| `elb-full-config` | CSV | Full load balancer configuration |
+| `alb-logs` | CSV | ALB access log settings |
+| `sns` | CSV | SNS topic subscriptions |
+| `sns-policies` | CSV | SNS topic policies |
+| `secrets` | CSV | Secrets Manager secrets |
+| `secrets-policies` | CSV | Secrets Manager resource policies |
+| `cloudfront` | CSV | CloudFront distributions |
+| `api-gateway` | CSV | API Gateway inventory |
+| `backup-plans` | CSV | AWS Backup plans |
+| `backup-vaults` | CSV | AWS Backup vaults |
+| `route53-zones` | CSV | Route 53 hosted zones |
+| `route53-resolver` | CSV | Route 53 Resolver rules |
+| `waf` | CSV | WAF web ACLs |
+| `waf-config` | CSV | WAF configuration |
+| `waf-logging` | CSV | WAF logging configuration |
+| `elasticache` | CSV | ElastiCache clusters |
+| `elasticache-global` | CSV | ElastiCache global datastores |
+| `cfn-drift` | CSV | CloudFormation stack drift |
+| `resource-tags` | CSV | Resource tagging inventory |
+| `account-contacts` | CSV | Account alternate contacts |
+| `scp` | CSV | Service Control Policies (org admin required) |
+| `org-config` | CSV | Organization configuration (master account required) |
+
+---
+
+## IAM Permissions
+
+The collecting identity needs read-only access to the services it queries. A minimal policy covering all collectors:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
     {
-      "collector": "CloudTrail",
-      "record_count": 42,
-      "records": [
-        {
-          "source": "cloud_trail",
-          "event_name": "StartBackupJob",
-          "timestamp": "2026-03-15T02:00:01Z",
-          "job_id": "abc-123",
-          "plan_id": "plan-xyz",
-          "resource_arn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abc",
-          "resource_type": "EBS",
-          "status": null
-        }
-      ]
-    },
-    {
-      "collector": "AWS Backup",
-      "record_count": 84,
-      "records": [
-        {
-          "source": "backup_api",
-          "event_name": "StartBackupJob",
-          "timestamp": "2026-03-15T02:00:00Z",
-          "job_id": "abc-123",
-          "plan_id": "plan-xyz",
-          "resource_arn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abc",
-          "resource_type": "EBS",
-          "status": "COMPLETED",
-          "completion_timestamp": "2026-03-15T02:47:33Z"
-        },
-        {
-          "source": "backup_api",
-          "event_name": "BackupJobCompleted",
-          "timestamp": "2026-03-15T02:47:33Z",
-          "job_id": "abc-123",
-          "plan_id": "plan-xyz",
-          "resource_arn": "arn:aws:ec2:us-east-1:123456789012:volume/vol-0abc",
-          "resource_type": "EBS",
-          "status": "COMPLETED",
-          "completion_timestamp": "2026-03-15T02:47:33Z"
-        }
-      ]
+      "Effect": "Allow",
+      "Action": [
+        "access-analyzer:List*",
+        "acm:List*", "acm:Describe*",
+        "autoscaling:Describe*",
+        "backup:List*", "backup:Describe*", "backup:Get*",
+        "cloudformation:Describe*", "cloudformation:List*", "cloudformation:Detect*",
+        "cloudfront:List*", "cloudfront:Get*",
+        "cloudtrail:Describe*", "cloudtrail:Get*", "cloudtrail:List*", "cloudtrail:LookupEvents",
+        "cloudwatch:Describe*", "cloudwatch:List*", "cloudwatch:Get*",
+        "config:Describe*", "config:Get*", "config:List*", "config:Select*",
+        "dynamodb:List*", "dynamodb:Describe*",
+        "ec2:Describe*",
+        "ecr:Describe*", "ecr:List*", "ecr:Get*",
+        "ecs:List*", "ecs:Describe*",
+        "efs:Describe*",
+        "eks:List*", "eks:Describe*",
+        "elasticache:Describe*",
+        "elasticloadbalancing:Describe*",
+        "guardduty:List*", "guardduty:Get*",
+        "iam:List*", "iam:Get*", "iam:GenerateCredentialReport",
+        "inspector2:List*", "inspector2:Get*",
+        "kms:List*", "kms:Describe*", "kms:Get*",
+        "lambda:List*", "lambda:Get*",
+        "logs:Describe*", "logs:List*",
+        "macie2:List*", "macie2:Get*",
+        "organizations:List*", "organizations:Describe*",
+        "rds:Describe*", "rds:List*",
+        "route53:List*", "route53:Get*",
+        "route53resolver:List*",
+        "s3:List*", "s3:Get*",
+        "secretsmanager:List*", "secretsmanager:Get*",
+        "securityhub:Describe*", "securityhub:Get*", "securityhub:List*",
+        "sns:List*", "sns:Get*",
+        "ssm:Describe*", "ssm:List*", "ssm:Get*",
+        "sts:GetCallerIdentity",
+        "tag:Get*",
+        "wafv2:List*", "wafv2:Get*"
+      ],
+      "Resource": "*"
     }
   ]
 }
 ```
 
-**Note on dual sources**: The Backup API section provides structured, reliable job data including completion status and timestamps. The CloudTrail section provides the immutable audit trail — auditors often require both to satisfy the "automated initiation and completion" evidence requirement.
-
----
-
-## Adding New Evidence Collectors
-
-The project is designed to be extended. To add a new evidence type (e.g. GuardDuty findings, AWS Config compliance, IAM Access Analyzer):
-
-1. Create a new module, e.g. `src/guardduty.rs`
-2. Implement the `EvidenceCollector` trait:
-
-```rust
-use async_trait::async_trait;
-use crate::evidence::{CollectParams, EvidenceCollector, EvidenceRecord};
-
-pub struct GuardDutyCollector { /* AWS client */ }
-
-#[async_trait]
-impl EvidenceCollector for GuardDutyCollector {
-    fn name(&self) -> &str { "GuardDuty" }
-
-    async fn collect(&self, params: &CollectParams) -> anyhow::Result<Vec<EvidenceRecord>> {
-        // query the AWS API, map results to EvidenceRecord, return
-        todo!()
-    }
-}
-```
-
-3. Add the SDK dependency to `Cargo.toml`:
-
-```toml
-aws-sdk-guardduty = "1"
-```
-
-4. Register it in `src/main.rs` — find the collector registration block and add one line:
-
-```rust
-let all_collectors: Vec<(&str, Box<dyn EvidenceCollector>)> = vec![
-    ("cloudtrail", Box::new(CloudTrailCollector::new(&config))),
-    ("backup",     Box::new(BackupCollector::new(&config))),
-    ("guardduty",  Box::new(GuardDutyCollector::new(&config))),  // <-- add this
-];
-```
-
-The new collector will automatically appear in `--help`, be selectable via `--collectors guardduty`, and produce a named section in the JSON report.
-
 ---
 
 ## Troubleshooting
 
-**`NoCredentialsError` / `CredentialsNotLoaded`**
-Run `aws sts get-caller-identity` to verify your credentials are valid before running the tool.
+**SSO token expired**
+```bash
+aws sso login --sso-session <session-name>
+```
 
-**`AccessDeniedException` on CloudTrail or Backup**
-Check that the IAM policy above is attached to your identity. Use `aws iam simulate-principal-policy` to test permissions without making real API calls.
+**Profile not found**
+```bash
+aws configure list-profiles   # see available profiles
+aws configure sso             # add a new profile interactively
+```
 
-**CloudTrail returns 0 events but Backup API returns jobs**
-CloudTrail `LookupEvents` only returns events from the last 90 days. For older data, use only `--collectors backup`.
+**Files created but empty / `dispatch failure` in log**
+The SSO session expired mid-run or the profile lacks permissions. Re-authenticate and verify:
+```bash
+aws sts get-caller-identity --profile <profile-name>
+```
 
-**Rate limit errors from CloudTrail**
-The tool already adds a 500 ms delay between paginated CloudTrail calls. If you're still hitting limits, use `--collectors backup` to skip CloudTrail entirely.
+**Collector hangs**
+Each collector has a 3-minute timeout. If a collector consistently times out, disable it in `config.toml`:
+```toml
+[defaults.collectors]
+disable = ["guardduty", "inspector"]
+```
 
-**Backup API returns jobs but `plan_id` is null**
-Jobs created manually (not from a backup plan) do not have a `plan_id`. This is expected.
+**TUI shows 0 files**
+The output directory may not exist — it is created automatically on first run. Check that `output_dir` in `config.toml` is a writable path.
+
+**Stack overflow at startup**
+The runtime uses 8MB thread stacks to accommodate the large number of async collectors. If you see stack overflows on a constrained system, reduce the number of selected collectors.

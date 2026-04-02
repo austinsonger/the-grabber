@@ -33,7 +33,8 @@ impl CsvCollector for GuardDutyCollector {
             .context("GuardDuty list_detectors")?;
 
         for detector_id in detectors.detector_ids() {
-            // List active (non-archived) findings.
+            // List active (non-archived) findings — cap at 500 to avoid timeouts.
+            const MAX_FINDINGS: usize = 500;
             let mut next_token: Option<String> = None;
             let mut all_finding_ids: Vec<String> = Vec::new();
 
@@ -41,6 +42,7 @@ impl CsvCollector for GuardDutyCollector {
                 let mut req = self.client
                     .list_findings()
                     .detector_id(detector_id)
+                    .max_results(50)
                     .finding_criteria(
                         aws_sdk_guardduty::types::FindingCriteria::builder()
                             .criterion(
@@ -57,8 +59,9 @@ impl CsvCollector for GuardDutyCollector {
                 let resp = req.send().await.context("GuardDuty list_findings")?;
                 all_finding_ids.extend(resp.finding_ids().iter().map(|s| s.to_string()));
                 next_token = resp.next_token().map(|s| s.to_string());
-                if next_token.is_none() { break; }
+                if next_token.is_none() || all_finding_ids.len() >= MAX_FINDINGS { break; }
             }
+            all_finding_ids.truncate(MAX_FINDINGS);
 
             // Fetch findings in batches of 50 (API limit).
             for chunk in all_finding_ids.chunks(50) {
