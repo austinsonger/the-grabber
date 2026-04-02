@@ -269,6 +269,60 @@ impl App {
             ("gd-full-config",     "GuardDuty Full Config    (current state, CSV)"),
             ("sh-config",          "SecurityHub Config       (current state, CSV)"),
             ("config-recorder",    "AWS Config Recorder      (current state, CSV)"),
+            // EC2 extended
+            ("launch-templates",   "EC2 Launch Templates     (current state, CSV)"),
+            ("vpc-endpoints",      "VPC Endpoints            (current state, CSV)"),
+            // SSM extended
+            ("ssm-baselines",      "SSM Patch Baselines      (current state, CSV)"),
+            ("ssm-params",         "SSM Parameter Store      (current state, CSV)"),
+            ("time-sync",          "Time Sync Config (SSM)   (current state, CSV)"),
+            // Inspector / WAF / ELB
+            ("inspector-config",   "Inspector2 Config        (if enabled, CSV)"),
+            ("waf-config",         "WAF Full Config          (current state, CSV)"),
+            ("elb-full-config",    "Load Balancer Full Config(current state, CSV)"),
+            // Org + account
+            ("org-config",         "AWS Org Config           (requires org master, CSV)"),
+            ("account-contacts",   "Account Alt. Contacts    (current state, CSV)"),
+            ("saml-providers",     "SAML IdP Config          (current state, CSV)"),
+            ("iam-account-summary","IAM Account Summary      (current state, CSV)"),
+            // SNS / EventBridge
+            ("sns-policies",       "SNS Topic Policies       (current state, CSV)"),
+            ("eventbridge-rules",  "EventBridge Rules        (current state, CSV)"),
+            // Backup
+            ("backup-plans",       "AWS Backup Plans         (current state, CSV)"),
+            ("backup-vaults",      "Backup Vault Config      (current state, CSV)"),
+            ("rds-backup-config",  "RDS Backup Config        (current state, CSV)"),
+            // Lambda
+            ("lambda-config",      "Lambda Configuration     (current state, CSV)"),
+            ("lambda-permissions", "Lambda Permissions       (current state, CSV)"),
+            // ECR
+            ("ecr-config",         "ECR Repo Config          (current state, CSV)"),
+            // Route53
+            ("route53-zones",      "Route53 Hosted Zones     (current state, CSV)"),
+            ("route53-resolver",   "Route53 Resolver Rules   (current state, CSV)"),
+            // Tagging / Secrets
+            ("resource-tags",      "Resource Tags            (current state, CSV)"),
+            ("secrets-policies",   "Secrets Manager Policies (current state, CSV)"),
+            // Config timeline / compliance / snapshot
+            ("config-timeline",    "Config Resource Timeline (last 5 per resource, CSV)"),
+            ("config-compliance",  "Config Compliance History(all rules, CSV)"),
+            ("config-snapshot",    "Config Snapshot (PiT)    (point-in-time, CSV)"),
+            // CloudTrail high-signal changes
+            ("ct-config-changes",  "CT Config Change Events  (last 90 days, CSV)"),
+            ("ct-iam-changes",     "CT IAM Changes (Hi-Risk) (last 90 days, CSV)"),
+            // CloudFormation
+            ("cfn-drift",          "CloudFormation Drift     (current state, CSV)"),
+            // SSM patch detail
+            ("ssm-patch-detail",   "SSM Patch Detail         (per instance, CSV)"),
+            ("ssm-patch-summary",  "SSM Patch Summary        (per instance, CSV)"),
+            ("ssm-patch-exec",     "SSM Patch Executions     (command history, CSV)"),
+            ("ssm-maint-windows",  "SSM Maintenance Windows  (current state, CSV)"),
+            // Inspector history
+            ("inspector-history",  "Inspector Findings Hist. (if enabled, CSV)"),
+            // CloudWatch alarms
+            ("cw-config-alarms",   "CW Alarms (All)          (current state, CSV)"),
+            // EventBridge change rules
+            ("change-event-rules", "EventBridge Change Rules (event-pattern, CSV)"),
         ];
 
         // Default: all collectors selected except opt-in ones.
@@ -285,6 +339,8 @@ impl App {
                 "scp"              => { collector_selected.remove(&i); } // requires org admin
                 "macie"            => { collector_selected.remove(&i); } // optional service
                 "inspector"        => { collector_selected.remove(&i); } // optional service
+                "inspector-config" => { collector_selected.remove(&i); } // optional service
+                "org-config"       => { collector_selected.remove(&i); } // requires org master account
                 _ => {}
             }
         }

@@ -59,6 +59,27 @@ mod vpc;
 mod vpcflowlogs;
 mod waf;
 mod waf_logging;
+mod account_config;
+mod backup_config;
+mod ecr_config;
+mod elb_config;
+mod inspector_config;
+mod lambda_config;
+mod launch_templates;
+mod org_config;
+mod route53_config;
+mod secrets_extended;
+mod sns_eventbridge;
+mod ssm_extended;
+mod tagging_config;
+mod vpc_endpoints;
+mod waf_full_config;
+mod cloudformation_drift;
+mod cloudtrail_iam;
+mod cloudwatch_alarms;
+mod config_timeline;
+mod inspector_history;
+mod ssm_patch_detail;
 
 use std::path::PathBuf;
 
@@ -129,6 +150,28 @@ use crate::iam_policies::{IamPasswordPolicyCollector, IamRolePoliciesCollector, 
 use crate::kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector};
 use crate::s3_detail::{S3BucketPolicyDetailCollector, S3EncryptionConfigCollector, S3LoggingConfigCollector, S3PublicAccessBlockCollector};
 use crate::security_svc_config::{AwsConfigRecorderCollector, GuardDutyFullConfigCollector, SecurityHubConfigCollector};
+use crate::account_config::{AccountContactsCollector, IamAccountSummaryCollector, SamlProviderCollector};
+use crate::backup_config::{BackupPlanConfigCollector, BackupVaultConfigCollector, RdsBackupConfigCollector};
+use crate::ecr_config::EcrRepoConfigCollector;
+use crate::elb_config::ElbFullConfigCollector;
+use crate::inspector_config::InspectorConfigCollector;
+use crate::lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector};
+use crate::launch_templates::LaunchTemplateCollector;
+use crate::org_config::OrgConfigCollector;
+use crate::route53_config::{Route53ResolverRulesCollector, Route53ZonesCollector};
+use crate::secrets_extended::SecretsManagerPoliciesCollector;
+use crate::sns_eventbridge::{EventBridgeRulesCollector, SnsTopicPoliciesCollector};
+use crate::ssm_extended::{SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector};
+use crate::tagging_config::ResourceTaggingCollector;
+use crate::vpc_endpoints::VpcEndpointCollector;
+use crate::waf_full_config::WafFullConfigCollector;
+use crate::cloudformation_drift::CloudFormationDriftCollector;
+use crate::cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector};
+use crate::cloudwatch_alarms::CloudWatchConfigAlarmsCollector;
+use crate::config_timeline::{ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector};
+use crate::inspector_history::InspectorFindingsHistoryCollector;
+use crate::sns_eventbridge::ChangeEventRulesCollector;
+use crate::ssm_patch_detail::{SsmMaintenanceWindowCollector, SsmPatchDetailCollector, SsmPatchExecutionCollector, SsmPatchSummaryCollector};
 use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, ReportMetadata,
 };
@@ -209,8 +252,15 @@ struct Cli {
 // Main
 // ---------------------------------------------------------------------------
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    tokio::runtime::Builder::new_multi_thread()
+        .thread_stack_size(8 * 1024 * 1024) // 8 MB — prevents stack overflow with 120+ collectors
+        .enable_all()
+        .build()?
+        .block_on(async_main())
+}
+
+async fn async_main() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.start_date.is_none() {
@@ -453,6 +503,63 @@ async fn main() -> Result<()> {
     if wants("gd-full-config")     { csv_collectors.push(Box::new(GuardDutyFullConfigCollector::new(&config))); }
     if wants("sh-config")          { csv_collectors.push(Box::new(SecurityHubConfigCollector::new(&config))); }
     if wants("config-recorder")    { csv_collectors.push(Box::new(AwsConfigRecorderCollector::new(&config))); }
+    // EC2 extended
+    if wants("launch-templates")   { csv_collectors.push(Box::new(LaunchTemplateCollector::new(&config))); }
+    if wants("vpc-endpoints")      { csv_collectors.push(Box::new(VpcEndpointCollector::new(&config))); }
+    // SSM extended
+    if wants("ssm-baselines")      { csv_collectors.push(Box::new(SsmPatchBaselineCollector::new(&config))); }
+    if wants("ssm-params")         { csv_collectors.push(Box::new(SsmParameterConfigCollector::new(&config))); }
+    if wants("time-sync")          { csv_collectors.push(Box::new(TimeSyncConfigCollector::new(&config))); }
+    // Inspector config
+    if wants("inspector-config")   { csv_collectors.push(Box::new(InspectorConfigCollector::new(&config))); }
+    // WAF full config
+    if wants("waf-config")         { csv_collectors.push(Box::new(WafFullConfigCollector::new(&config))); }
+    // ELB full config
+    if wants("elb-full-config")    { csv_collectors.push(Box::new(ElbFullConfigCollector::new(&config))); }
+    // Org + account
+    if wants("org-config")         { csv_collectors.push(Box::new(OrgConfigCollector::new(&config))); }
+    if wants("account-contacts")   { csv_collectors.push(Box::new(AccountContactsCollector::new(&config))); }
+    if wants("saml-providers")     { csv_collectors.push(Box::new(SamlProviderCollector::new(&config))); }
+    if wants("iam-account-summary"){ csv_collectors.push(Box::new(IamAccountSummaryCollector::new(&config))); }
+    // SNS / EventBridge
+    if wants("sns-policies")       { csv_collectors.push(Box::new(SnsTopicPoliciesCollector::new(&config))); }
+    if wants("eventbridge-rules")  { csv_collectors.push(Box::new(EventBridgeRulesCollector::new(&config))); }
+    // Backup
+    if wants("backup-plans")       { csv_collectors.push(Box::new(BackupPlanConfigCollector::new(&config))); }
+    if wants("backup-vaults")      { csv_collectors.push(Box::new(BackupVaultConfigCollector::new(&config))); }
+    if wants("rds-backup-config")  { csv_collectors.push(Box::new(RdsBackupConfigCollector::new(&config))); }
+    // Lambda
+    if wants("lambda-config")      { csv_collectors.push(Box::new(LambdaConfigCollector::new(&config))); }
+    if wants("lambda-permissions") { csv_collectors.push(Box::new(LambdaPermissionsCollector::new(&config))); }
+    // ECR config
+    if wants("ecr-config")         { csv_collectors.push(Box::new(EcrRepoConfigCollector::new(&config))); }
+    // Route53
+    if wants("route53-zones")      { csv_collectors.push(Box::new(Route53ZonesCollector::new(&config))); }
+    if wants("route53-resolver")   { csv_collectors.push(Box::new(Route53ResolverRulesCollector::new(&config))); }
+    // Tagging
+    if wants("resource-tags")      { csv_collectors.push(Box::new(ResourceTaggingCollector::new(&config))); }
+    // Secrets extended
+    if wants("secrets-policies")   { csv_collectors.push(Box::new(SecretsManagerPoliciesCollector::new(&config))); }
+    // Config timeline / compliance
+    if wants("config-timeline")    { csv_collectors.push(Box::new(ConfigResourceTimelineCollector::new(&config))); }
+    if wants("config-compliance")  { csv_collectors.push(Box::new(ConfigComplianceHistoryCollector::new(&config))); }
+    if wants("config-snapshot")    { csv_collectors.push(Box::new(ConfigSnapshotCollector::new(&config))); }
+    // CloudTrail IAM / config changes
+    if wants("ct-config-changes")  { csv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(&config))); }
+    if wants("ct-iam-changes")     { csv_collectors.push(Box::new(CloudTrailIamChangesCollector::new(&config))); }
+    // CloudFormation drift
+    if wants("cfn-drift")          { csv_collectors.push(Box::new(CloudFormationDriftCollector::new(&config))); }
+    // SSM patch detail
+    if wants("ssm-patch-detail")   { csv_collectors.push(Box::new(SsmPatchDetailCollector::new(&config))); }
+    if wants("ssm-patch-summary")  { csv_collectors.push(Box::new(SsmPatchSummaryCollector::new(&config))); }
+    if wants("ssm-patch-exec")     { csv_collectors.push(Box::new(SsmPatchExecutionCollector::new(&config))); }
+    if wants("ssm-maint-windows")  { csv_collectors.push(Box::new(SsmMaintenanceWindowCollector::new(&config))); }
+    // Inspector findings history
+    if wants("inspector-history")  { csv_collectors.push(Box::new(InspectorFindingsHistoryCollector::new(&config))); }
+    // CloudWatch alarms
+    if wants("cw-config-alarms")   { csv_collectors.push(Box::new(CloudWatchConfigAlarmsCollector::new(&config))); }
+    // EventBridge change rules
+    if wants("change-event-rules") { csv_collectors.push(Box::new(ChangeEventRulesCollector::new(&config))); }
 
     if json_collectors.is_empty() && csv_collectors.is_empty() {
         anyhow::bail!("No collectors selected.");
@@ -586,6 +693,62 @@ async fn run_tui_running(
             "gd-full-config"     => csv_collectors.push(Box::new(GuardDutyFullConfigCollector::new(config))),
             "sh-config"          => csv_collectors.push(Box::new(SecurityHubConfigCollector::new(config))),
             "config-recorder"    => csv_collectors.push(Box::new(AwsConfigRecorderCollector::new(config))),
+            // EC2 extended
+            "launch-templates"   => csv_collectors.push(Box::new(LaunchTemplateCollector::new(config))),
+            "vpc-endpoints"      => csv_collectors.push(Box::new(VpcEndpointCollector::new(config))),
+            // SSM extended
+            "ssm-baselines"      => csv_collectors.push(Box::new(SsmPatchBaselineCollector::new(config))),
+            "ssm-params"         => csv_collectors.push(Box::new(SsmParameterConfigCollector::new(config))),
+            "time-sync"          => csv_collectors.push(Box::new(TimeSyncConfigCollector::new(config))),
+            // Inspector config
+            "inspector-config"   => csv_collectors.push(Box::new(InspectorConfigCollector::new(config))),
+            // WAF / ELB full config
+            "waf-config"         => csv_collectors.push(Box::new(WafFullConfigCollector::new(config))),
+            "elb-full-config"    => csv_collectors.push(Box::new(ElbFullConfigCollector::new(config))),
+            // Org + account
+            "org-config"         => csv_collectors.push(Box::new(OrgConfigCollector::new(config))),
+            "account-contacts"   => csv_collectors.push(Box::new(AccountContactsCollector::new(config))),
+            "saml-providers"     => csv_collectors.push(Box::new(SamlProviderCollector::new(config))),
+            "iam-account-summary"=> csv_collectors.push(Box::new(IamAccountSummaryCollector::new(config))),
+            // SNS / EventBridge
+            "sns-policies"       => csv_collectors.push(Box::new(SnsTopicPoliciesCollector::new(config))),
+            "eventbridge-rules"  => csv_collectors.push(Box::new(EventBridgeRulesCollector::new(config))),
+            // Backup
+            "backup-plans"       => csv_collectors.push(Box::new(BackupPlanConfigCollector::new(config))),
+            "backup-vaults"      => csv_collectors.push(Box::new(BackupVaultConfigCollector::new(config))),
+            "rds-backup-config"  => csv_collectors.push(Box::new(RdsBackupConfigCollector::new(config))),
+            // Lambda
+            "lambda-config"      => csv_collectors.push(Box::new(LambdaConfigCollector::new(config))),
+            "lambda-permissions" => csv_collectors.push(Box::new(LambdaPermissionsCollector::new(config))),
+            // ECR config
+            "ecr-config"         => csv_collectors.push(Box::new(EcrRepoConfigCollector::new(config))),
+            // Route53
+            "route53-zones"      => csv_collectors.push(Box::new(Route53ZonesCollector::new(config))),
+            "route53-resolver"   => csv_collectors.push(Box::new(Route53ResolverRulesCollector::new(config))),
+            // Tagging
+            "resource-tags"      => csv_collectors.push(Box::new(ResourceTaggingCollector::new(config))),
+            // Secrets extended
+            "secrets-policies"   => csv_collectors.push(Box::new(SecretsManagerPoliciesCollector::new(config))),
+            // Config timeline / compliance
+            "config-timeline"    => csv_collectors.push(Box::new(ConfigResourceTimelineCollector::new(config))),
+            "config-compliance"  => csv_collectors.push(Box::new(ConfigComplianceHistoryCollector::new(config))),
+            "config-snapshot"    => csv_collectors.push(Box::new(ConfigSnapshotCollector::new(config))),
+            // CloudTrail IAM / config changes
+            "ct-config-changes"  => csv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(config))),
+            "ct-iam-changes"     => csv_collectors.push(Box::new(CloudTrailIamChangesCollector::new(config))),
+            // CloudFormation drift
+            "cfn-drift"          => csv_collectors.push(Box::new(CloudFormationDriftCollector::new(config))),
+            // SSM patch detail
+            "ssm-patch-detail"   => csv_collectors.push(Box::new(SsmPatchDetailCollector::new(config))),
+            "ssm-patch-summary"  => csv_collectors.push(Box::new(SsmPatchSummaryCollector::new(config))),
+            "ssm-patch-exec"     => csv_collectors.push(Box::new(SsmPatchExecutionCollector::new(config))),
+            "ssm-maint-windows"  => csv_collectors.push(Box::new(SsmMaintenanceWindowCollector::new(config))),
+            // Inspector findings history
+            "inspector-history"  => csv_collectors.push(Box::new(InspectorFindingsHistoryCollector::new(config))),
+            // CloudWatch alarms
+            "cw-config-alarms"   => csv_collectors.push(Box::new(CloudWatchConfigAlarmsCollector::new(config))),
+            // EventBridge change rules
+            "change-event-rules" => csv_collectors.push(Box::new(ChangeEventRulesCollector::new(config))),
             _ => {}
         }
     }
