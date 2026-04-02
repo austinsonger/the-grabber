@@ -753,6 +753,17 @@ async fn run_tui_running(
         }
     }
 
+    // Re-key collector_statuses using display names so Progress messages match.
+    app.collector_statuses = json_collectors
+        .iter()
+        .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting })
+        .chain(
+            csv_collectors
+                .iter()
+                .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting })
+        )
+        .collect();
+
     let params_clone = params.clone();
     let output_dir_clone = output_path.clone();
     let tx_clone = tx.clone();
