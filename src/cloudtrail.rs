@@ -35,7 +35,7 @@ impl EvidenceCollector for CloudTrailCollector {
     }
 
     fn filename_prefix(&self) -> &str {
-        "CloudTrail_backup_and_snapshot_events"
+        "CloudTrail_Backup_And_Snapshot_Events"
     }
 
     async fn collect(&self, params: &CollectParams) -> Result<Vec<EvidenceRecord>> {

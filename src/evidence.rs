@@ -19,7 +19,7 @@ pub trait EvidenceCollector: Send + Sync {
     fn name(&self) -> &str;
 
     /// Prefix used to name the output file.
-    /// e.g. "AWS_Backup_job_history_exports" → AWS_Backup_job_history_exports-2026-04-01-120000.json
+    /// e.g. "AWS_Backup_Job_History_Exports" → AWS_Backup_Job_History_Exports-2026-04-01-120000.json
     fn filename_prefix(&self) -> &str;
 
     /// Collect evidence for the given time window.

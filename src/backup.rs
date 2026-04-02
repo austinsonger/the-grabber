@@ -24,7 +24,7 @@ impl EvidenceCollector for BackupCollector {
     }
 
     fn filename_prefix(&self) -> &str {
-        "AWS_Backup_job_history_exports"
+        "AWS_Backup_Job_History_Exports"
     }
 
     async fn collect(&self, params: &CollectParams) -> Result<Vec<EvidenceRecord>> {

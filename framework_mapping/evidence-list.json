@@ -1,0 +1,4284 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-04-02T00:00:00Z",
+  "evidence": [
+    {
+      "evidence_id": "EV1",
+      "name": "CloudTrail",
+      "description": "StartBackupJob, BackupJobCompleted, and related CloudTrail events via LookupEvents API",
+      "detail": "StartBackupJob, BackupJobCompleted, and related CloudTrail events via LookupEvents API",
+      "filename_prefix": "CloudTrail_backup_and_snapshot_events",
+      "category": "JSON Evidence (Time-Windowed)",
+      "sub_category": null,
+      "collection_method": "automated",
+      "format": "json",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.3.10",
+            "CC5.2.0",
+            "CC5.2.3"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV2",
+      "name": "AWS Backup",
+      "description": "AWS Backup job records (status, resource, plan, vault) via Backup ListBackupJobs API",
+      "detail": "AWS Backup job records (status, resource, plan, vault) via Backup ListBackupJobs API",
+      "filename_prefix": "AWS_Backup_job_history_exports",
+      "category": "JSON Evidence (Time-Windowed)",
+      "sub_category": null,
+      "collection_method": "automated",
+      "format": "json",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.5.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(7)(ii)(E)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV3",
+      "name": "RDS Automated Snapshots",
+      "description": "RDS automated and manual snapshot records via DescribeDBSnapshots",
+      "detail": "RDS automated and manual snapshot records via DescribeDBSnapshots",
+      "filename_prefix": "RDS_automated_snapshot_exports",
+      "category": "JSON Evidence (Time-Windowed)",
+      "sub_category": null,
+      "collection_method": "automated",
+      "format": "json",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.306(c)",
+            "164.306(d)",
+            "164.306(e)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV4",
+      "name": "CloudTrail S3 Logs",
+      "description": "CloudTrail events parsed directly from S3 log files (requires --s3-bucket)",
+      "detail": "CloudTrail events parsed directly from S3 log files (requires --s3-bucket)",
+      "filename_prefix": "CloudTrail_S3_historical_log_exports",
+      "category": "JSON Evidence (Time-Windowed)",
+      "sub_category": null,
+      "collection_method": "automated",
+      "format": "json",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC7.2.3"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)",
+            "164.316(b)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV5",
+      "name": "Account Alternate Contacts",
+      "description": "Contact Type, Name, Email, Phone, Title",
+      "detail": "Contact Type, Name, Email, Phone, Title",
+      "filename_prefix": "Account_Contacts_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "P6.2.0",
+            "P6.7.0",
+            "P6.7.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.310(d)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV6",
+      "name": "IAM SAML Identity Providers",
+      "description": "Provider ARN, Provider Name, Created Date, Valid Until, Metadata Length (bytes)",
+      "detail": "Provider ARN, Provider Name, Created Date, Valid Until, Metadata Length (bytes)",
+      "filename_prefix": "IAM_Identity_Provider_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.5.0",
+            "CC1.5.1",
+            "CC1.5.2",
+            "CC1.5.3",
+            "P5.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.312(a)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV7",
+      "name": "IAM Account Summary",
+      "description": "Key, Value",
+      "detail": "Key, Value",
+      "filename_prefix": "IAM_Account_Summary",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.5.0",
+            "CC1.5.1",
+            "CC1.5.2",
+            "CC1.5.3",
+            "P5.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.312(a)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV8",
+      "name": "IAM Users",
+      "description": "User Name, ARN, MFA Enabled, Password Last Used, Access Key Status, Created Date",
+      "detail": "User Name, ARN, MFA Enabled, Password Last Used, Access Key Status, Created Date",
+      "filename_prefix": "IAM_Users",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.3.7",
+            "CC6.2.0",
+            "CC6.2.1",
+            "CC6.2.2",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.310(c)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV9",
+      "name": "IAM Roles",
+      "description": "Role Name, ARN, Trust Policy, Attached Policies, Last Used, Region",
+      "detail": "Role Name, ARN, Trust Policy, Attached Policies, Last Used, Region",
+      "filename_prefix": "IAM_Roles",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.5.0",
+            "CC1.5.1",
+            "CC1.5.2",
+            "CC1.5.3",
+            "CC1.5.4",
+            "CC2.2.0",
+            "CC2.2.1",
+            "CC2.2.10",
+            "CC2.2.2",
+            "CC2.2.3",
+            "CC2.2.6",
+            "CC2.2.7",
+            "CC2.2.9",
+            "CC8.1.11",
+            "CC8.1.12",
+            "CC8.1.2",
+            "CC8.1.3",
+            "CC8.1.4",
+            "CC8.1.5",
+            "CC8.1.6",
+            "CC8.1.7",
+            "CC8.1.8",
+            "CC8.1.9"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(a)(2)(iii)",
+            "164.316(b)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV10",
+      "name": "IAM Policies",
+      "description": "Policy Name, ARN, Policy Type, Attached Entities, Permissions Summary",
+      "detail": "Policy Name, ARN, Policy Type, Attached Entities, Permissions Summary",
+      "filename_prefix": "IAM_Policies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.4.0",
+            "CC5.3.1",
+            "CC5.3.2",
+            "CC5.3.3",
+            "CC5.3.4",
+            "P4.3.2",
+            "P6.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(2)",
+            "164.310(a)(2)(iv)",
+            "164.316(a)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV11",
+      "name": "IAM Access Keys",
+      "description": "User Name, Access Key ID, Status, Created Date, Last Used",
+      "detail": "User Name, Access Key ID, Status, Created Date, Last Used",
+      "filename_prefix": "IAM_Access_Keys",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.0",
+            "CC6.8.1",
+            "CC6.8.2",
+            "CC6.8.3",
+            "CC7.2.1",
+            "P5.0.0",
+            "P5.2.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV12",
+      "name": "IAM Certificates",
+      "description": "Name, ARN, Issuer, Subject, Subject Alternative Names, Public Key Algorithm, Signature Algorithm, Key Usage, Extended Key Usage, Hierarchy, Issued On, Expires, Region",
+      "detail": "Name, ARN, Issuer, Subject, Subject Alternative Names, Public Key Algorithm, Signature Algorithm, Key Usage, Extended Key Usage, Hierarchy, Issued On, Expires, Region",
+      "filename_prefix": "IAM_Certificates",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.5.0",
+            "CC1.5.1",
+            "CC1.5.2",
+            "CC6.1.5",
+            "P5.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.312(a)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV13",
+      "name": "IAM Role Trust Policies",
+      "description": "Role Name, Trusted Entity, Entity Type, External ID, Conditions, Cross Account",
+      "detail": "Role Name, Trusted Entity, Entity Type, External ID, Conditions, Cross Account",
+      "filename_prefix": "IAM_Role_Trusts",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.5.0",
+            "CC1.5.1",
+            "CC1.5.2",
+            "CC1.5.3",
+            "CC5.3.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(1)(ii)(C)",
+            "164.308(a)(2)",
+            "164.310(d)(1)",
+            "164.316(a)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV14",
+      "name": "IAM Role Policies",
+      "description": "Role Name, Assume Role Policy (Trust), Inline Policies, Attached Managed Policies",
+      "detail": "Role Name, Assume Role Policy (Trust), Inline Policies, Attached Managed Policies",
+      "filename_prefix": "IAM_Role_Policies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.2.8"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV15",
+      "name": "IAM User Policies",
+      "description": "User Name, Inline Policies, Attached Policies, Permissions Boundary",
+      "detail": "User Name, Inline Policies, Attached Policies, Permissions Boundary",
+      "filename_prefix": "IAM_User_Policies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(a)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV16",
+      "name": "IAM Account Password Policy",
+      "description": "Minimum Password Length, Require Symbols, Require Numbers, Require Uppercase, Require Lowercase, Allow Users To Change, Expire Passwords, Max Password Age, Password Reuse Prevention, Hard Expiry",
+      "detail": "Minimum Password Length, Require Symbols, Require Numbers, Require Uppercase, Require Lowercase, Allow Users To Change, Expire Passwords, Max Password Age, Password Reuse Prevention, Hard Expiry",
+      "filename_prefix": "IAM_Password_Policy",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.3.1",
+            "CC1.3.2",
+            "CC2.2.5",
+            "CC7.4.0",
+            "CC7.4.1",
+            "CC7.4.12",
+            "CC7.4.2",
+            "CC7.5.4",
+            "CC8.1.10",
+            "P6.3.0",
+            "PI1.3.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(5)(ii)(B)",
+            "164.308(a)(5)(ii)(D)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV17",
+      "name": "IAM Access Analyzer Findings",
+      "description": "Analyzer Name, Resource ARN, Resource Type, Finding Type, Public Access, Cross Account, Status",
+      "detail": "Analyzer Name, Resource ARN, Resource Type, Finding Type, Public Access, Cross Account, Status",
+      "filename_prefix": "AccessAnalyzer_Findings",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.6.1",
+            "CC6.6.2",
+            "CC6.8.1",
+            "CC6.8.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(4)(i)",
+            "164.308(a)(4)(ii)(B)",
+            "164.310(c)",
+            "164.312(a)(1)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV18",
+      "name": "Organizations Service Control Policies",
+      "description": "Policy Name, Policy ID, Attached Targets, AWS Managed, Actions Summary",
+      "detail": "Policy Name, Policy ID, Attached Targets, AWS Managed, Actions Summary",
+      "filename_prefix": "Organizations_SCPs",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.4.1"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV19",
+      "name": "AWS Organizations Configuration",
+      "description": "Org ID, Master Account ID, Master Account Email, Feature Set, Total Accounts, Root ID, SCPs Enabled",
+      "detail": "Org ID, Master Account ID, Master Account Email, Feature Set, Total Accounts, Root ID, SCPs Enabled",
+      "filename_prefix": "AWS_Organizations_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.1",
+            "CC7.4.12",
+            "CC8.1.11",
+            "CC8.1.5",
+            "P5.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.312(a)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV20",
+      "name": "Certificate Manager Certificates",
+      "description": "Certificate ARN, Domain Name, Expires, In Use By, Issued On, Issuer, Key Algorithm, Renewal Eligibility, Signature Algorithm, Status, Cert Type",
+      "detail": "Certificate ARN, Domain Name, Expires, In Use By, Issued On, Issuer, Key Algorithm, Renewal Eligibility, Signature Algorithm, Status, Cert Type",
+      "filename_prefix": "Certificate_Manager_Certificates",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Certificates & PKI",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.5",
+            "CC6.7.0",
+            "CC6.7.1",
+            "CC6.7.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(c)(1)",
+            "164.312(e)(1)",
+            "164.312(e)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV21",
+      "name": "CloudTrail Logs",
+      "description": "Cloud Trail Name, Apply Trail To All Regions, Log File Validation, S3 Bucket, Cloud Watch Logs Log Group ARN, Is Logging, Include Management Events, Read/Write Type",
+      "detail": "Cloud Trail Name, Apply Trail To All Regions, Log File Validation, S3 Bucket, Cloud Watch Logs Log Group ARN, Is Logging, Include Management Events, Read/Write Type",
+      "filename_prefix": "CloudTrail_Logs",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.7",
+            "CC7.2.3"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)",
+            "164.316(b)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV22",
+      "name": "CloudTrail Configuration",
+      "description": "Trail Name, Trail ARN, Is Multi-Region, Home Region, Log File Validation, S3 Bucket, Is Logging, Event Selectors, Insight Selectors",
+      "detail": "Trail Name, Trail ARN, Is Multi-Region, Home Region, Log File Validation, S3 Bucket, Is Logging, Event Selectors, Insight Selectors",
+      "filename_prefix": "CloudTrail_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.7",
+            "CC7.2.3"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)",
+            "164.316(b)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV23",
+      "name": "CloudTrail Event Selectors",
+      "description": "Trail Name, Trail ARN, Management Events, Read Write Type, Data Events Enabled, Data Resource Types",
+      "detail": "Trail Name, Trail ARN, Management Events, Read Write Type, Data Events Enabled, Data Resource Types",
+      "filename_prefix": "CloudTrail_EventSelectors",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.5.2"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV24",
+      "name": "CloudTrail Log Validation",
+      "description": "Trail Name, S3 Bucket, Log Validation Enabled, Is Logging, Latest Delivery, Latest Digest",
+      "detail": "Trail Name, S3 Bucket, Log Validation Enabled, Is Logging, Latest Delivery, Latest Digest",
+      "filename_prefix": "CloudTrail_LogValidation",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.7"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(C)",
+            "164.310(a)(2)(iii)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV25",
+      "name": "CloudTrail S3 Bucket Policies",
+      "description": "Trail Name, S3 Bucket, Public Access Block, Encryption Type, Access Logging Enabled, Policy Has Public Allow",
+      "detail": "Trail Name, S3 Bucket, Public Access Block, Encryption Type, Access Logging Enabled, Policy Has Public Allow",
+      "filename_prefix": "CloudTrail_S3Policy",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.1.3",
+            "CC2.3.1",
+            "P1.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(c)",
+            "164.306(d)",
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(C)",
+            "164.308(b)(1)",
+            "164.312(b)",
+            "164.314(b)(1)",
+            "164.314(b)(2)(ii)",
+            "164.314(b)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV26",
+      "name": "CloudTrail Change Events",
+      "description": "Event Name, Event Source, Resource Type, Resource Name, User Identity, Timestamp, Source IP (last 7 days)",
+      "detail": "Event Name, Event Source, Resource Type, Resource Name, User Identity, Timestamp, Source IP (last 7 days)",
+      "filename_prefix": "CloudTrail_ChangeEvents",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.2.3"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV27",
+      "name": "CloudTrail S3 Data Events",
+      "description": "Trail Name, S3 Bucket/Prefix, Read Events, Write Events, Advanced Selector",
+      "detail": "Trail Name, S3 Bucket/Prefix, Read Events, Write Events, Advanced Selector",
+      "filename_prefix": "CloudTrail_S3DataEvents",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.1.1",
+            "CC2.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV28",
+      "name": "CloudTrail Configuration Change Events",
+      "description": "Event Name, Event Time, User Identity, Source IP Address, Request Parameters, Response Elements (last 90 days)",
+      "detail": "Event Name, Event Time, User Identity, Source IP Address, Request Parameters, Response Elements (last 90 days)",
+      "filename_prefix": "CloudTrail_Config_Changes",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.4.10",
+            "CC7.4.11",
+            "CC7.4.5",
+            "CC7.4.6",
+            "CC7.4.7",
+            "CC7.4.8",
+            "CC7.4.9",
+            "CC7.5.1",
+            "P6.0.0",
+            "P6.4.1",
+            "P6.6.0",
+            "P6.6.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(6)(ii)",
+            "164.314(a)(1)",
+            "164.314(b)(2)(iv)",
+            "164.316(b)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV29",
+      "name": "CloudTrail IAM Changes (High-Risk)",
+      "description": "Event Name, User Identity, Event Time, Request Parameters (last 90 days \u2014 CreateUser, CreateRole, AttachPolicy, AssumeRole, etc.)",
+      "detail": "Event Name, User Identity, Event Time, Request Parameters (last 90 days \u2014 CreateUser, CreateRole, AttachPolicy, AssumeRole, etc.)",
+      "filename_prefix": "CloudTrail_IAM_Changes",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.1.0",
+            "CC1.2.1",
+            "CC2.3.2",
+            "CC3.1.0",
+            "CC3.1.1",
+            "CC3.1.10",
+            "CC3.1.11",
+            "CC3.1.12",
+            "CC3.1.13",
+            "CC3.1.14",
+            "CC3.1.15",
+            "CC3.1.2",
+            "CC3.1.3",
+            "CC3.1.4",
+            "CC3.1.5",
+            "CC3.1.6",
+            "CC3.1.7",
+            "CC3.1.8",
+            "CC3.1.9",
+            "CC3.2.0",
+            "CC3.2.1",
+            "CC3.2.2",
+            "CC3.2.3",
+            "CC3.2.4",
+            "CC3.2.5",
+            "CC3.2.6",
+            "CC3.2.7",
+            "CC3.3.0",
+            "CC3.3.1",
+            "CC3.3.2",
+            "CC3.3.3",
+            "CC3.3.4",
+            "CC3.4.0",
+            "CC3.4.1",
+            "CC3.4.2",
+            "CC3.4.3",
+            "CC3.4.4",
+            "CC4.1.5",
+            "CC4.2.0",
+            "CC4.2.1",
+            "CC4.2.2",
+            "CC5.1.0",
+            "CC5.1.1",
+            "CC5.1.2",
+            "CC5.1.3",
+            "CC5.1.4",
+            "CC5.1.5",
+            "CC7.1.0",
+            "CC7.1.1",
+            "CC7.1.2",
+            "CC7.1.3",
+            "CC7.1.4",
+            "CC7.2.0",
+            "CC7.3.1",
+            "CC7.3.3",
+            "CC7.3.4",
+            "CC7.5.3",
+            "CC7.5.5",
+            "CC9.1.0",
+            "CC9.1.1",
+            "CC9.2.0",
+            "CC9.2.1",
+            "CC9.2.10",
+            "CC9.2.11",
+            "CC9.2.2",
+            "CC9.2.3",
+            "CC9.2.4",
+            "CC9.2.5",
+            "CC9.2.6",
+            "CC9.2.7"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV30",
+      "name": "AWS Config Rules",
+      "description": "Rule Name, Compliance Status, Resource Type, Last Evaluated",
+      "detail": "Rule Name, Compliance Status, Resource Type, Last Evaluated",
+      "filename_prefix": "AWS_Config_Rules",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.1.2",
+            "CC1.2.1",
+            "CC1.3.1",
+            "CC1.4.1",
+            "CC1.5.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.308(a)(1)(ii)(A)",
+            "164.308(a)(1)(ii)(B)",
+            "164.316(b)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV31",
+      "name": "AWS Config Recorder",
+      "description": "Recorder Name, Role ARN, All Supported, Include Global Resources, Recording, Last Status, Last Status Change",
+      "detail": "Recorder Name, Role ARN, All Supported, Include Global Resources, Recording, Last Status, Last Status Change",
+      "filename_prefix": "AWS_Config_Recorder",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.5.0",
+            "CC1.5.1",
+            "CC1.5.2",
+            "CC1.5.3",
+            "CC1.5.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.308(a)(3)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV32",
+      "name": "AWS Config Resource History",
+      "description": "Resource Type, Resource ID, Resource Name, Change Type, Capture Time, Config Status",
+      "detail": "Resource Type, Resource ID, Resource Name, Change Type, Capture Time, Config Status",
+      "filename_prefix": "Config_ResourceHistory",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC7.2.0",
+            "CC8.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(8)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV33",
+      "name": "AWS Config Resource Timeline",
+      "description": "Resource ID, Resource Type, Capture Time, Config State ID, Configuration (excerpt), Change Type",
+      "detail": "Resource ID, Resource Type, Capture Time, Config State ID, Configuration (excerpt), Change Type",
+      "filename_prefix": "Config_Resource_Timeline",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC7.2.0",
+            "CC8.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(8)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV34",
+      "name": "AWS Config Compliance History",
+      "description": "Config Rule Name, Resource ID, Resource Type, Compliance Type, Ordering Timestamp",
+      "detail": "Config Rule Name, Resource ID, Resource Type, Compliance Type, Ordering Timestamp",
+      "filename_prefix": "Config_Compliance_History",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC3.2.0",
+            "CC4.1.0",
+            "CC4.2.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(A)",
+            "164.308(a)(8)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV35",
+      "name": "AWS Config Snapshot (Point-in-Time)",
+      "description": "Resource ID, Resource Type, Resource Name, Account ID, Configuration (excerpt), Relationships",
+      "detail": "Resource ID, Resource Type, Resource Name, Account ID, Configuration (excerpt), Relationships",
+      "filename_prefix": "Config_Snapshot",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.5.0",
+            "CC1.5.1",
+            "CC1.5.2",
+            "CC1.5.3",
+            "CC1.5.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.308(a)(3)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV36",
+      "name": "CloudFormation Stack Drift",
+      "description": "Stack Name, Stack Status, Drift Status, Last Drift Check, Drifted Resource Count, Resource Drifts",
+      "detail": "Stack Name, Stack Status, Drift Status, Last Drift Check, Drifted Resource Count, Resource Drifts",
+      "filename_prefix": "CloudFormation_Drift",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudFormation",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC8.1.0",
+            "CC8.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(8)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV37",
+      "name": "Log Metric Filters and Alarms",
+      "description": "Metric Filter Name, Metric Filter Namespace, Metric Filter Metric, Alarms, Alarm Actions, Cloud Watch Logs Log Group ARN",
+      "detail": "Metric Filter Name, Metric Filter Namespace, Metric Filter Metric, Alarms, Alarm Actions, Cloud Watch Logs Log Group ARN",
+      "filename_prefix": "Log_Metric_Filters_and_Alarms",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.4",
+            "CC4.1.6"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV38",
+      "name": "CloudWatch Log Group Config",
+      "description": "Log Group Name, Retention In Days, KMS Key ID, Stored Bytes, Created At",
+      "detail": "Log Group Name, Retention In Days, KMS Key ID, Stored Bytes, Created At",
+      "filename_prefix": "CloudWatch_Log_Group_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.4.2",
+            "CC1.4.4",
+            "CC1.4.5",
+            "CC1.4.6",
+            "CC2.3.6",
+            "P1.0.0",
+            "P1.1.1",
+            "P1.1.2",
+            "P1.1.3",
+            "P2.0.0",
+            "P2.1.0",
+            "P2.1.1",
+            "P2.1.2",
+            "P2.1.3",
+            "P2.1.4",
+            "P2.1.5",
+            "P3.0.0",
+            "P3.1.0",
+            "P3.1.1",
+            "P3.1.2",
+            "P3.1.3",
+            "P3.2.0",
+            "P3.2.1",
+            "P4.0.0",
+            "P4.1.0",
+            "P4.2.0",
+            "P4.3.0",
+            "P5.2.1",
+            "P5.2.2",
+            "P6.1.1",
+            "P6.1.3",
+            "P7.0.0",
+            "P7.1.0",
+            "P7.1.1",
+            "P8.1.0",
+            "P8.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.316(b)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV39",
+      "name": "Metric Filter Configuration",
+      "description": "Filter Name, Log Group Name, Filter Pattern, Metric Transformations",
+      "detail": "Filter Name, Log Group Name, Filter Pattern, Metric Transformations",
+      "filename_prefix": "Metric_Filter_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.4",
+            "CC4.1.6"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV40",
+      "name": "CloudWatch Alarms",
+      "description": "Alarm Name, Metric, Threshold, Comparison Operator, Actions Enabled, State",
+      "detail": "Alarm Name, Metric, Threshold, Comparison Operator, Actions Enabled, State",
+      "filename_prefix": "CloudWatch_Alarms",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4",
+            "CC4.1.6",
+            "CC4.1.7"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV41",
+      "name": "CloudWatch Log Groups",
+      "description": "Log Group Name, Retention Days, KMS Key ARN, Stored Bytes, Region",
+      "detail": "Log Group Name, Retention Days, KMS Key ARN, Stored Bytes, Region",
+      "filename_prefix": "CloudWatch_Log_Groups",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "P8.0.0"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV42",
+      "name": "CloudWatch Alarms for Config Changes",
+      "description": "Alarm Name, Metric Name, Namespace, Threshold, Comparison Operator, Actions Enabled, Alarm Actions",
+      "detail": "Alarm Name, Metric Name, Namespace, Threshold, Comparison Operator, Actions Enabled, Alarm Actions",
+      "filename_prefix": "Change_Alerts_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.4",
+            "CC4.1.6"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)",
+            "164.316(b)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV43",
+      "name": "EC2 Instances",
+      "description": "Instance ID, Instance Type, AMI ID, State, VPC ID, Subnet ID, IAM Role, Encryption, Region",
+      "detail": "Instance ID, Instance Type, AMI ID, State, VPC ID, Subnet ID, IAM Role, Encryption, Region",
+      "filename_prefix": "EC2_Instances",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.1.3",
+            "CC5.2.2",
+            "CC6.1.0",
+            "CC6.1.1",
+            "CC6.1.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.308(a)(3)(ii)(B)",
+            "164.308(a)(3)(ii)(C)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV44",
+      "name": "EC2 Instance Details",
+      "description": "Instance ID, Instance Type, AMI ID, AMI Owner ID, IMDS Version, EBS Optimized, Monitoring",
+      "detail": "Instance ID, Instance Type, AMI ID, AMI Owner ID, IMDS Version, EBS Optimized, Monitoring",
+      "filename_prefix": "EC2_Detailed",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV45",
+      "name": "EC2 Instance Configuration",
+      "description": "Instance ID, Image ID, Instance Type, State, IMDS Version, IAM Instance Profile, Block Devices, Monitoring",
+      "detail": "Instance ID, Image ID, Instance Type, State, IMDS Version, IAM Instance Profile, Block Devices, Monitoring",
+      "filename_prefix": "EC2_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV46",
+      "name": "EC2 Launch Templates",
+      "description": "Template ID, Template Name, Version, Image ID, Instance Type, Security Group IDs, IAM Instance Profile",
+      "detail": "Template ID, Template Name, Version, Image ID, Instance Type, Security Group IDs, IAM Instance Profile",
+      "filename_prefix": "Launch_Template_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.0",
+            "CC8.1.0",
+            "CC8.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(7)(ii)(C)",
+            "164.312(a)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV47",
+      "name": "Auto Scaling Groups",
+      "description": "Group Name, Launch Template, Desired Capacity, Min, Max, Instances, Region",
+      "detail": "Group Name, Launch Template, Desired Capacity, Min, Max, Instances, Region",
+      "filename_prefix": "AutoScaling_Groups",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.1.0",
+            "A1.1.1",
+            "A1.2.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(7)(ii)(B)",
+            "164.308(a)(7)(ii)(C)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV48",
+      "name": "EBS Volumes",
+      "description": "Volume ID, Volume ARN, Availability Zone, Encryption Status, KMS Key ARN, Region",
+      "detail": "Volume ID, Volume ARN, Availability Zone, Encryption Status, KMS Key ARN, Region",
+      "filename_prefix": "EBS",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.1.1",
+            "A1.1.2",
+            "CC1.1.0",
+            "CC1.1.1",
+            "CC1.1.2",
+            "CC1.1.3",
+            "CC1.1.4",
+            "CC1.2.3",
+            "CC2.3.5",
+            "CC5.2.1",
+            "CC9.2.9",
+            "PI1.1.0",
+            "PI1.1.1",
+            "PI1.1.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.308(a)(1)(ii)(A)",
+            "164.312(e)(2)(i)",
+            "164.314(b)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV49",
+      "name": "EBS Default Encryption",
+      "description": "Region, Default Encryption Enabled, KMS Key ID",
+      "detail": "Region, Default Encryption Enabled, KMS Key ID",
+      "filename_prefix": "EBS_DefaultEncryption",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.1.0",
+            "CC6.1.8",
+            "CC6.1.9",
+            "CC6.7.1",
+            "CC6.7.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.306(c)",
+            "164.312(a)(2)(iv)",
+            "164.312(e)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV50",
+      "name": "EBS Encryption Config",
+      "description": "Region, EBS Encryption By Default, Default KMS Key ID",
+      "detail": "Region, EBS Encryption By Default, Default KMS Key ID",
+      "filename_prefix": "EBS_Encryption_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.1.0",
+            "CC6.1.8",
+            "CC6.1.9",
+            "CC6.7.1",
+            "CC6.7.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.306(c)",
+            "164.312(a)(2)(iv)",
+            "164.312(e)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV51",
+      "name": "ECS Clusters",
+      "description": "Cluster Name, Status, Running Tasks, Container Insights Enabled",
+      "detail": "Cluster Name, Status, Running Tasks, Container Insights Enabled",
+      "filename_prefix": "ECS_Clusters",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.1.0",
+            "CC6.8.0",
+            "CC6.8.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(7)(ii)(C)",
+            "164.312(a)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV52",
+      "name": "EKS Clusters",
+      "description": "Cluster Name, Version, Endpoint Public Access, Logging Enabled",
+      "detail": "Cluster Name, Version, Endpoint Public Access, Logging Enabled",
+      "filename_prefix": "EKS_Clusters",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.1.1",
+            "CC6.1.2",
+            "CC6.1.3",
+            "CC6.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.310(a)(2)(iii)",
+            "164.310(c)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV53",
+      "name": "ECR Repository Configuration",
+      "description": "Repository Name, Registry ID, URI, Image Tag Mutability, Scan On Push, Encryption Type, KMS Key, Has Lifecycle Policy",
+      "detail": "Repository Name, Registry ID, URI, Image Tag Mutability, Scan On Push, Encryption Type, KMS Key, Has Lifecycle Policy",
+      "filename_prefix": "ECR_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "C1.1.0",
+            "C1.1.1",
+            "C1.2.0",
+            "C1.2.1",
+            "P6.1.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.310(d)(2)(ii)",
+            "164.316(b)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV54",
+      "name": "ECR Image Scan Findings",
+      "description": "Repository, Image Tag, Scan Status, CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL",
+      "detail": "Repository, Image Tag, Scan Status, CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL",
+      "filename_prefix": "ECR_ScanFindings",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.0",
+            "CC7.1.0",
+            "CC7.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV55",
+      "name": "Lambda Function Configuration",
+      "description": "Function Name, Runtime, Role ARN, Handler, Timeout (s), Memory (MB), VPC ID, Env Vars (count, redacted), Dead Letter Config",
+      "detail": "Function Name, Runtime, Role ARN, Handler, Timeout (s), Memory (MB), VPC ID, Env Vars (count, redacted), Dead Letter Config",
+      "filename_prefix": "Lambda_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 Serverless",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC5.3.1",
+            "CC6.8.1",
+            "CC7.1.2",
+            "CC8.1.11",
+            "CC8.1.5"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.310(a)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV56",
+      "name": "Lambda Function Permissions",
+      "description": "Function Name, Statement ID, Principal, Action, Source ARN, Effect",
+      "detail": "Function Name, Statement ID, Principal, Action, Source ARN, Effect",
+      "filename_prefix": "Lambda_Permissions_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute \u2014 Serverless",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.3.0",
+            "CC6.3.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(4)(ii)(B)",
+            "164.312(a)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV57",
+      "name": "RDS Inventory",
+      "description": "DB Instance ARN, Engine, Engine Version, Encryption Status, KMS Key ARN, Publicly Accessible, Auto Minor Version Upgrades, Region",
+      "detail": "DB Instance ARN, Engine, Engine Version, Encryption Status, KMS Key ARN, Publicly Accessible, Auto Minor Version Upgrades, Region",
+      "filename_prefix": "RDS",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.1.3",
+            "CC5.2.2",
+            "CC6.1.0",
+            "CC6.1.1",
+            "CC6.1.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.308(a)(3)(ii)(B)",
+            "164.308(a)(3)(ii)(C)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV58",
+      "name": "RDS Backup Configuration",
+      "description": "DB Instance ID, Engine, Multi-AZ, Backup Retention (days), Preferred Backup Window, Auto Minor Upgrade, Deletion Protection",
+      "detail": "DB Instance ID, Engine, Multi-AZ, Backup Retention (days), Preferred Backup Window, Auto Minor Upgrade, Deletion Protection",
+      "filename_prefix": "RDS_Backup_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.2.2",
+            "A1.2.6",
+            "A1.2.9",
+            "CC6.4.0",
+            "CC6.4.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(7)(i)",
+            "164.308(a)(7)(ii)(A)",
+            "164.308(a)(7)(ii)(C)",
+            "164.310(d)(2)(i)",
+            "164.310(d)(2)(iv)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV59",
+      "name": "RDS Snapshots",
+      "description": "Snapshot ID, DB Instance ID, Snapshot Type, Encrypted, KMS Key ID, Created Time, Public Accessible",
+      "detail": "Snapshot ID, DB Instance ID, Snapshot Type, Encrypted, KMS Key ID, Created Time, Public Accessible",
+      "filename_prefix": "RDS_Snapshots",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.1.3",
+            "CC5.2.2",
+            "CC6.1.0",
+            "CC6.1.1",
+            "CC6.1.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.308(a)(3)(ii)(B)",
+            "164.308(a)(3)(ii)(C)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV60",
+      "name": "DynamoDB Tables",
+      "description": "Table ARN, Table Name, Encryption Status, Encryption Type, KMS Key ARN, Region",
+      "detail": "Table ARN, Table Name, Encryption Status, Encryption Type, KMS Key ARN, Region",
+      "filename_prefix": "DynamoDB",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.1.0",
+            "CC1.1.1",
+            "CC1.1.2",
+            "CC1.1.3",
+            "CC1.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.306(c)",
+            "164.306(d)",
+            "164.306(e)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV61",
+      "name": "ElastiCache Clusters",
+      "description": "Cluster Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, Availability Zone, Cluster ARN, KMS Key ARN, Region",
+      "detail": "Cluster Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, Availability Zone, Cluster ARN, KMS Key ARN, Region",
+      "filename_prefix": "ElastiCache",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.1.1",
+            "CC1.1.0",
+            "CC1.1.1",
+            "CC1.1.2",
+            "CC5.2.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.312(c)(1)",
+            "164.312(e)(2)(i)",
+            "164.314(b)(2)(i)",
+            "164.316(b)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV62",
+      "name": "ElastiCache Global Datastores",
+      "description": "Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, ARN, Region",
+      "detail": "Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, ARN, Region",
+      "filename_prefix": "ElastiCache_Global_Datastore",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.1.0",
+            "CC1.1.1",
+            "CC1.1.2",
+            "CC1.1.3",
+            "CC1.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.306(c)",
+            "164.306(d)",
+            "164.306(e)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV63",
+      "name": "KMS Keys",
+      "description": "Key ID, ARN, Key Manager, Key State, Rotation Enabled, Region",
+      "detail": "Key ID, ARN, Key Manager, Key State, Rotation Enabled, Region",
+      "filename_prefix": "KMS_Keys",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Encryption & Key Management",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.2.3",
+            "CC1.3.3",
+            "CC8.1.0",
+            "CC8.1.13",
+            "CC8.1.14"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.308(a)(4)(i)",
+            "164.312(a)(2)(iv)",
+            "164.312(e)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV64",
+      "name": "KMS Key Policies",
+      "description": "Key ID, Key ARN, Key State, Rotation Enabled, Key Usage, Policy Allows External Access",
+      "detail": "Key ID, Key ARN, Key State, Rotation Enabled, Key Usage, Policy Allows External Access",
+      "filename_prefix": "KMS_KeyPolicies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Encryption & Key Management",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.2.2",
+            "CC5.2.2",
+            "CC6.3.0",
+            "CC6.3.1",
+            "CC6.3.2",
+            "CC6.3.3",
+            "CC6.5.0",
+            "CC6.5.1",
+            "CC8.1.0",
+            "CC8.1.1",
+            "CC8.1.13",
+            "CC8.1.14",
+            "P6.4.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(3)(ii)(A)",
+            "164.308(a)(3)(ii)(B)",
+            "164.308(a)(3)(ii)(C)",
+            "164.308(a)(4)(i)",
+            "164.308(a)(4)(ii)(A)",
+            "164.308(a)(5)(i)",
+            "164.312(a)(2)(ii)",
+            "164.312(c)(2)",
+            "164.312(d)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV65",
+      "name": "KMS Key Configuration",
+      "description": "Key ID, Key ARN, Enabled, Key Usage, Origin, Key State, Rotation Enabled, Key Policy",
+      "detail": "Key ID, Key ARN, Enabled, Key Usage, Origin, Key State, Rotation Enabled, Key Policy",
+      "filename_prefix": "KMS_Key_Configuration",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Encryption & Key Management",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.2.0",
+            "CC1.3.0",
+            "CC1.3.3"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV66",
+      "name": "Secrets Manager",
+      "description": "Secret Name, ARN, Rotation Enabled, Last Rotated, Region",
+      "detail": "Secret Name, ARN, Rotation Enabled, Last Rotated, Region",
+      "filename_prefix": "Secrets_Manager",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Encryption & Key Management",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.2.3",
+            "CC1.3.3",
+            "CC8.1.0",
+            "CC8.1.13",
+            "CC8.1.14"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.308(a)(4)(i)",
+            "164.312(a)(2)(iv)",
+            "164.312(e)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV67",
+      "name": "Secrets Manager Resource Policies",
+      "description": "Secret Name, Secret ARN, KMS Key ID, Rotation Enabled, Rotation Interval (days), Last Rotated, Has Resource Policy",
+      "detail": "Secret Name, Secret ARN, KMS Key ID, Rotation Enabled, Rotation Interval (days), Last Rotated, Has Resource Policy",
+      "filename_prefix": "Secrets_Manager_Policies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Encryption & Key Management",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC5.3.0",
+            "CC5.3.5",
+            "P4.2.1",
+            "PI1.4.1",
+            "PI1.4.2",
+            "PI1.4.3",
+            "PI1.5.2",
+            "PI1.5.3"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.310(d)(1)",
+            "164.310(d)(2)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV68",
+      "name": "SNS Topic Subscribers",
+      "description": "Subscription ID, SNS Topic Name, SNS Topic ARN, Region",
+      "detail": "Subscription ID, SNS Topic Name, SNS Topic ARN, Region",
+      "filename_prefix": "SNS_Topic_Subscribers",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Messaging & Events",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.1.3",
+            "CC6.1.4",
+            "CC6.1.6",
+            "CC6.1.9"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(1)(ii)(B)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV69",
+      "name": "SNS Topic Policies",
+      "description": "Topic ARN, Display Name, Subscriptions Confirmed, Subscriptions Pending, KMS Key ID, Has Policy",
+      "detail": "Topic ARN, Display Name, Subscriptions Confirmed, Subscriptions Pending, KMS Key ID, Has Policy",
+      "filename_prefix": "SNS_Topic_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Messaging & Events",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.2.2",
+            "CC7.3.0",
+            "CC7.3.2",
+            "PI1.2.0",
+            "PI1.2.1",
+            "PI1.2.2",
+            "PI1.3.0",
+            "PI1.3.1",
+            "PI1.3.2",
+            "PI1.3.3",
+            "PI1.4.0",
+            "PI1.5.0",
+            "PI1.5.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(6)(i)",
+            "164.308(a)(8)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV70",
+      "name": "EventBridge Rules",
+      "description": "Rule Name, Event Bus, State, Schedule / Event Pattern, Targets",
+      "detail": "Rule Name, Event Bus, State, Schedule / Event Pattern, Targets",
+      "filename_prefix": "EventBridge_Rules_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Messaging & Events",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.1.3",
+            "CC6.1.5",
+            "CC6.1.6",
+            "CC6.1.9"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(1)(ii)(B)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV71",
+      "name": "EventBridge Rules for Changes",
+      "description": "Rule Name, Event Bus, State, Event Pattern, Targets (event-pattern rules only)",
+      "detail": "Rule Name, Event Bus, State, Event Pattern, Targets (event-pattern rules only)",
+      "filename_prefix": "Change_Event_Rules",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Messaging & Events",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.1.3",
+            "CC6.1.5",
+            "CC6.1.9",
+            "CC8.1.10"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(1)(ii)(B)",
+            "164.308(a)(8)",
+            "164.310(a)(2)(i)",
+            "164.316(b)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV72",
+      "name": "VPCs",
+      "description": "ID, Name, CIDR Block, Owner, Region",
+      "detail": "ID, Name, CIDR Block, Owner, Region",
+      "filename_prefix": "VPCs",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.6.1",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(4)(i)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV73",
+      "name": "Network ACLs",
+      "description": "Network ACL ID, Rule Count, Subnet Associations, Default, VPC, Ingress Rules, Egress Rules, Owner, ARN, Region",
+      "detail": "Network ACL ID, Rule Count, Subnet Associations, Default, VPC, Ingress Rules, Egress Rules, Owner, ARN, Region",
+      "filename_prefix": "Network-ACL",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.6.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(a)(1)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV74",
+      "name": "VPC Configuration",
+      "description": "VPC ID, CIDR Block, State, Instance Tenancy, Enable DNS Support, Enable DNS Hostnames, Is Default",
+      "detail": "VPC ID, CIDR Block, State, Instance Tenancy, Enable DNS Support, Enable DNS Hostnames, Is Default",
+      "filename_prefix": "VPC_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.6.1",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(4)(i)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV75",
+      "name": "VPC Flow Logging",
+      "description": "VPC ID, VPC Flow Log Name, VPC Flow Log ID, Filter, Destination, Destination Log Group, IAM Role, Status, Log Line Format",
+      "detail": "VPC ID, VPC Flow Log Name, VPC Flow Log ID, Filter, Destination, Destination Log Group, IAM Role, Status, Log Line Format",
+      "filename_prefix": "VPC_Flow_Logging",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.310(a)(2)(iii)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV76",
+      "name": "VPC Endpoints",
+      "description": "Endpoint ID, VPC ID, Service Name, Endpoint Type, State, Private DNS Enabled, Has Policy",
+      "detail": "Endpoint ID, VPC ID, Service Name, Endpoint Type, State, Private DNS Enabled, Has Policy",
+      "filename_prefix": "VPC_Endpoints_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.2.0",
+            "CC1.3.0",
+            "CC1.3.1",
+            "CC1.5.0",
+            "CC1.5.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(1)(ii)(C)",
+            "164.308(a)(2)",
+            "164.308(a)(5)(ii)(B)",
+            "164.308(a)(5)(ii)(D)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV77",
+      "name": "Internet Gateways",
+      "description": "Gateway ID, Attached VPC ID, Attachment State, Name Tag, Region",
+      "detail": "Gateway ID, Attached VPC ID, Attachment State, Name Tag, Region",
+      "filename_prefix": "Network_InternetGateways",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.6.1",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV78",
+      "name": "NAT Gateways",
+      "description": "NAT Gateway ID, Subnet ID, VPC ID, Public IP, Private IP, Connectivity Type, State",
+      "detail": "NAT Gateway ID, Subnet ID, VPC ID, Public IP, Private IP, Connectivity Type, State",
+      "filename_prefix": "Network_NatGateways",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV79",
+      "name": "Security Groups",
+      "description": "Group ID, Group Name, Inbound Rules, Outbound Rules, VPC ID, Region",
+      "detail": "Group ID, Group Name, Inbound Rules, Outbound Rules, VPC ID, Region",
+      "filename_prefix": "Security_Groups",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.6.0",
+            "CC6.6.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(a)(1)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV80",
+      "name": "Security Group Configuration",
+      "description": "Group ID, Name, Description, VPC ID, Ingress Rules, Egress Rules",
+      "detail": "Group ID, Name, Description, VPC ID, Ingress Rules, Egress Rules",
+      "filename_prefix": "Security_Group_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.6.0",
+            "CC6.6.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(a)(1)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV81",
+      "name": "Route Tables",
+      "description": "Route Table ID, Routes, Subnet Associations, VPC ID, Region",
+      "detail": "Route Table ID, Routes, Subnet Associations, VPC ID, Region",
+      "filename_prefix": "Route_Tables",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV82",
+      "name": "Route Table Configuration",
+      "description": "Route Table ID, VPC ID, Routes, Associations, Propagating VGWs",
+      "detail": "Route Table ID, VPC ID, Routes, Associations, Propagating VGWs",
+      "filename_prefix": "Route_Table_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV83",
+      "name": "Public Resources",
+      "description": "Resource ID, Resource Type, Public IP / DNS, Port Exposure, Notes",
+      "detail": "Resource ID, Resource Type, Public IP / DNS, Port Exposure, Notes",
+      "filename_prefix": "Public_Resources",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.3.0",
+            "CC6.3.1",
+            "CC6.6.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(4)(i)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV84",
+      "name": "Route53 Hosted Zones",
+      "description": "Zone ID, Name, Private Zone, Record Count, Comment, Sample Records",
+      "detail": "Zone ID, Name, Private Zone, Record Count, Comment, Sample Records",
+      "filename_prefix": "Route53_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV85",
+      "name": "Route53 Resolver Rules",
+      "description": "Rule ID, Name, Domain Name, Rule Type, Status, Target IPs",
+      "detail": "Rule ID, Name, Domain Name, Rule Type, Status, Target IPs",
+      "filename_prefix": "Route53_Resolver_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV86",
+      "name": "API Gateway",
+      "description": "API Name, Endpoint Type, Authorization Type, Logging Enabled, Region",
+      "detail": "API Name, Endpoint Type, Authorization Type, Logging Enabled, Region",
+      "filename_prefix": "API_Gateway",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC6.1.3",
+            "CC6.1.7"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.310(a)(2)(iii)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV87",
+      "name": "CloudFront Distributions",
+      "description": "Distribution ID, Domain Name, WAF Enabled, Logging Enabled, TLS Version",
+      "detail": "Distribution ID, Domain Name, WAF Enabled, Logging Enabled, TLS Version",
+      "filename_prefix": "CloudFront_Distributions",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV88",
+      "name": "Load Balancers",
+      "description": "Name, Balancer Type, ARN, Region",
+      "detail": "Name, Balancer Type, ARN, Region",
+      "filename_prefix": "Load_Balancers",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Load Balancing",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.1.0",
+            "CC6.6.0",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(7)(ii)(C)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV89",
+      "name": "Load Balancer Listeners",
+      "description": "Balancer Name, ARN, Certificate ID, Protocol, Region",
+      "detail": "Balancer Name, ARN, Certificate ID, Protocol, Region",
+      "filename_prefix": "Load_Balancer_Listeners",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Load Balancing",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.7.0",
+            "CC6.7.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(e)(1)",
+            "164.312(e)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV90",
+      "name": "Load Balancer Configuration",
+      "description": "LB Name, LB ARN, Type, Scheme, VPC ID, Security Groups, Listeners, SSL Policies",
+      "detail": "LB Name, LB ARN, Type, Scheme, VPC ID, Security Groups, Listeners, SSL Policies",
+      "filename_prefix": "Load_Balancer_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Load Balancing",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC1.2.0",
+            "CC1.3.0",
+            "CC1.3.1",
+            "CC8.1.11",
+            "CC8.1.5"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(1)(ii)(C)",
+            "164.308(a)(2)",
+            "164.308(a)(5)(ii)(B)",
+            "164.308(a)(5)(ii)(D)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV91",
+      "name": "ALB Access Log Configuration",
+      "description": "ALB Name, ALB ARN, Scheme, Access Logs Enabled, Access Logs S3 Bucket, Access Logs S3 Prefix",
+      "detail": "ALB Name, ALB ARN, Scheme, Access Logs Enabled, Access Logs S3 Bucket, Access Logs S3 Prefix",
+      "filename_prefix": "ALB_AccessLogs",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Load Balancing",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.6.1",
+            "CC6.6.2",
+            "CC6.8.1",
+            "CC6.8.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.310(a)(2)(iii)",
+            "164.310(c)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV92",
+      "name": "EFS File Systems",
+      "description": "File System ID, File System Name, File System ARN, KMS Key ARN, Encryption Status, Region",
+      "detail": "File System ID, File System Name, File System ARN, KMS Key ARN, Encryption Status, Region",
+      "filename_prefix": "EFS",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.9",
+            "CC6.4.0",
+            "CC6.4.1",
+            "CC6.4.2",
+            "PI1.5.2"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(a)",
+            "164.306(b)",
+            "164.306(c)",
+            "164.306(d)",
+            "164.310(d)(2)(iv)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV93",
+      "name": "S3 Buckets Config",
+      "description": "Bucket Name, Public Access Block, Versioning, Encryption, Logging, Policy, Region",
+      "detail": "Bucket Name, Public Access Block, Versioning, Encryption, Logging, Policy, Region",
+      "filename_prefix": "S3_Buckets_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC5.2.2",
+            "CC6.3.0",
+            "CC6.3.1",
+            "CC6.3.2",
+            "CC6.3.3"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(3)(i)",
+            "164.308(a)(3)(ii)(A)",
+            "164.308(a)(3)(ii)(B)",
+            "164.308(a)(3)(ii)(C)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV94",
+      "name": "S3 Bucket Access Logging",
+      "description": "Bucket Name, Bucket ARN, Storage Encrypted, Encryption Type, Block Public Access, MFA Delete, Logging, KMS Key ID, Region",
+      "detail": "Bucket Name, Bucket ARN, Storage Encrypted, Encryption Type, Block Public Access, MFA Delete, Logging, KMS Key ID, Region",
+      "filename_prefix": "S3_Bucket_Access_Logging",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.1.1",
+            "CC6.1.2",
+            "CC6.1.3",
+            "CC6.1.4",
+            "CC6.1.5",
+            "CC6.1.6",
+            "CC6.1.7",
+            "CC6.1.8",
+            "CC6.1.9",
+            "CC6.6.0",
+            "CC6.6.1",
+            "CC6.6.2",
+            "CC6.6.3",
+            "CC6.7.1",
+            "CC6.7.3",
+            "CC9.2.8",
+            "P5.1.0",
+            "P5.1.1",
+            "P5.1.2",
+            "P5.1.3"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV95",
+      "name": "S3 Bucket Policies",
+      "description": "Bucket Name, Public Access Block All, TLS Enforced, Has Bucket Policy, Policy Allows Public, Default Encryption",
+      "detail": "Bucket Name, Public Access Block All, TLS Enforced, Has Bucket Policy, Policy Allows Public, Default Encryption",
+      "filename_prefix": "S3_Policies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(3)(i)",
+            "164.308(a)(4)(ii)(B)",
+            "164.308(a)(4)(ii)(C)",
+            "164.310(a)(2)(ii)",
+            "164.312(a)(1)",
+            "164.312(c)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV96",
+      "name": "S3 Bucket Encryption Config",
+      "description": "Bucket Name, SSE Algorithm, KMS Master Key ID, Bucket Key Enabled",
+      "detail": "Bucket Name, SSE Algorithm, KMS Master Key ID, Bucket Key Enabled",
+      "filename_prefix": "S3_Encryption_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(a)(2)(iv)",
+            "164.312(e)(2)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV97",
+      "name": "S3 Bucket Policy",
+      "description": "Bucket Name, Has Policy, Policy Document",
+      "detail": "Bucket Name, Has Policy, Policy Document",
+      "filename_prefix": "S3_Bucket_Policy",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(C)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV98",
+      "name": "S3 Public Access Block",
+      "description": "Bucket Name, Block Public ACLs, Ignore Public ACLs, Block Public Policy, Restrict Public Buckets",
+      "detail": "Bucket Name, Block Public ACLs, Ignore Public ACLs, Block Public Policy, Restrict Public Buckets",
+      "filename_prefix": "S3_Public_Access_Block",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.310 (a)(1)",
+            "164.310(a)(2)(iii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV99",
+      "name": "S3 Logging Configuration",
+      "description": "Bucket Name, Logging Enabled, Target Bucket, Target Prefix",
+      "detail": "Bucket Name, Logging Enabled, Target Bucket, Target Prefix",
+      "filename_prefix": "S3_Logging_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV100",
+      "name": "GuardDuty Findings",
+      "description": "Finding ID, Type, Severity, Resource, Region, Created At, Status",
+      "detail": "Finding ID, Type, Severity, Resource, Region, Created At, Status",
+      "filename_prefix": "GuardDuty_Findings",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.2.0",
+            "CC7.2.1",
+            "CC7.3.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(6)(ii)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV101",
+      "name": "GuardDuty Configuration",
+      "description": "Detector ID, Status, S3 Protection, EKS Audit Logs, Malware Protection, Created At",
+      "detail": "Detector ID, Status, S3 Protection, EKS Audit Logs, Malware Protection, Created At",
+      "filename_prefix": "GuardDuty_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV102",
+      "name": "GuardDuty Suppression Rules",
+      "description": "Detector ID, Rule Name, Action, Description, Filter Criteria Summary",
+      "detail": "Detector ID, Rule Name, Action, Description, Filter Criteria Summary",
+      "filename_prefix": "GuardDuty_Suppression",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.3.0",
+            "CC7.3.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(6)(i)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV103",
+      "name": "Security Hub Findings",
+      "description": "Control ID, Severity, Compliance Status, Resource ARN, Region",
+      "detail": "Control ID, Severity, Compliance Status, Resource ARN, Region",
+      "filename_prefix": "SecurityHub_Findings",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC3.2.0",
+            "CC4.2.0",
+            "CC7.2.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(A)",
+            "164.308(a)(1)(ii)(D)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV104",
+      "name": "Security Hub Enabled Standards",
+      "description": "Standard Name, Standards ARN, Status, Subscribed At",
+      "detail": "Standard Name, Standards ARN, Status, Subscribed At",
+      "filename_prefix": "SecurityHub_Standards",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC2.2.0",
+            "CC4.1.0",
+            "CC4.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(8)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV105",
+      "name": "Security Hub Configuration",
+      "description": "Hub ARN, Auto Enable Controls, Subscribed Standards, Subscribed At",
+      "detail": "Hub ARN, Auto Enable Controls, Subscribed Standards, Subscribed At",
+      "filename_prefix": "SecurityHub_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC7.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(8)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV106",
+      "name": "Inspector2 Findings",
+      "description": "Finding ARN, Type, Severity, CVE ID, Resource ID, Status, Fix Available",
+      "detail": "Finding ARN, Type, Severity, CVE ID, Resource ID, Status, Fix Available",
+      "filename_prefix": "Inspector2_Findings",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.0",
+            "CC7.1.0",
+            "CC7.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV107",
+      "name": "Inspector2 Configuration",
+      "description": "Resource Type, Scan Status, Scan Type, EC2 Status, ECR Status, Lambda Status",
+      "detail": "Resource Type, Scan Status, Scan Type, EC2 Status, ECR Status, Lambda Status",
+      "filename_prefix": "Inspector_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC7.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(i)",
+            "164.308(a)(8)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV108",
+      "name": "Inspector2 Findings History",
+      "description": "Finding ID, First Observed At, Last Observed At, Status, Severity, Resource ID, Title",
+      "detail": "Finding ID, First Observed At, Last Observed At, Status, Severity, Resource ID, Title",
+      "filename_prefix": "Inspector_Findings_History",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.2.0",
+            "CC7.3.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(D)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV109",
+      "name": "Macie Findings",
+      "description": "Finding ID, Finding Type, Resource ARN, Severity, Count, Created At",
+      "detail": "Finding ID, Finding Type, Resource ARN, Severity, Count, Created At",
+      "filename_prefix": "Macie_Findings",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC7.2.0",
+            "P4.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(A)",
+            "164.308(a)(1)(ii)(D)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV110",
+      "name": "WAF Regional Web ACL Rules",
+      "description": "Name, Web ACL Name, Managed Rule, Default Action, Region",
+      "detail": "Name, Web ACL Name, Managed Rule, Default Action, Region",
+      "filename_prefix": "WAF_Regional_Web_ACL_Rules",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.6.1",
+            "CC6.8.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(c)(1)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV111",
+      "name": "WAF Web ACL Configuration",
+      "description": "Web ACL Name, Web ACL ARN, Default Action, Rules Count, Rule Names, CloudWatch Metric, Sampled Requests Enabled",
+      "detail": "Web ACL Name, Web ACL ARN, Default Action, Rules Count, Rule Names, CloudWatch Metric, Sampled Requests Enabled",
+      "filename_prefix": "WAF_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.6.0",
+            "CC6.7.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(c)(1)",
+            "164.312(e)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV112",
+      "name": "WAFv2 Logging Configuration",
+      "description": "Web ACL Name, Web ACL ARN, Logging Enabled, Log Destination, Sampled Requests Enabled",
+      "detail": "Web ACL Name, Web ACL ARN, Logging Enabled, Log Destination, Sampled Requests Enabled",
+      "filename_prefix": "WAF_Logging",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0",
+            "CC4.1.1",
+            "CC4.1.2",
+            "CC4.1.3",
+            "CC4.1.4"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(e)",
+            "164.308(a)(1)(ii)(D)",
+            "164.308(a)(4)(ii)(C)",
+            "164.308(a)(5)(ii)(C)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV113",
+      "name": "SSM Managed Instances",
+      "description": "Instance ID, Computer Name, Platform, SSM Agent Version, Ping Status, Last Ping",
+      "detail": "Instance ID, Computer Name, Platform, SSM Agent Version, Ping Status, Last Ping",
+      "filename_prefix": "SSM_ManagedInstances",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.0",
+            "CC6.8.1",
+            "CC7.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(5)(ii)(B)",
+            "164.312(a)(1)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV114",
+      "name": "SSM Patch Compliance",
+      "description": "Instance ID, Resource Type, Compliance Status, Overall Severity, Non Compliant Count",
+      "detail": "Instance ID, Resource Type, Compliance Status, Overall Severity, Non Compliant Count",
+      "filename_prefix": "SSM_PatchCompliance",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.0",
+            "CC7.1.0",
+            "CC7.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV115",
+      "name": "SSM Patch Baselines",
+      "description": "Baseline ID, Name, Operating System, Default Baseline, Approved Patches, Patch Rules Summary",
+      "detail": "Baseline ID, Name, Operating System, Default Baseline, Approved Patches, Patch Rules Summary",
+      "filename_prefix": "SSM_Patch_Baseline_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.1.0",
+            "CC7.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV116",
+      "name": "SSM Parameter Store Config",
+      "description": "Name, Type, KMS Key ID, Last Modified, Description, Tier",
+      "detail": "Name, Type, KMS Key ID, Last Modified, Description, Tier",
+      "filename_prefix": "SSM_Parameter_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.1.0",
+            "CC6.2.0",
+            "CC6.2.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(a)(1)",
+            "164.312(a)(2)(iv)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV117",
+      "name": "EC2 Time Sync Config (SSM)",
+      "description": "Instance ID, Computer Name, Platform, SSM Ping Status, Time Source Note",
+      "detail": "Instance ID, Computer Name, Platform, SSM Ping Status, Time Source Note",
+      "filename_prefix": "Time_Sync_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC4.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV118",
+      "name": "SSM Patch Compliance (Detailed)",
+      "description": "Instance ID, Patch ID, Title, Severity, State, Installed Time",
+      "detail": "Instance ID, Patch ID, Title, Severity, State, Installed Time",
+      "filename_prefix": "SSM_Patch_Compliance_Detail",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC6.8.0",
+            "CC7.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV119",
+      "name": "SSM Patch Summary",
+      "description": "Instance ID, Compliance Status, Critical Count, Security Count, Other Count, Missing Count, Installed Count, Operation",
+      "detail": "Instance ID, Compliance Status, Critical Count, Security Count, Other Count, Missing Count, Installed Count, Operation",
+      "filename_prefix": "SSM_Patch_Summary",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(5)(ii)(B)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV120",
+      "name": "SSM Patch Execution History",
+      "description": "Command ID, Instance ID, Requested Date Time, Completed Date Time, Status",
+      "detail": "Command ID, Instance ID, Requested Date Time, Completed Date Time, Status",
+      "filename_prefix": "SSM_Patch_Execution",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC7.1.0",
+            "CC8.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(5)(ii)(B)",
+            "164.312(b)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV121",
+      "name": "SSM Maintenance Windows",
+      "description": "Window ID, Name, Enabled, Schedule, Duration (hrs), Targets, Tasks",
+      "detail": "Window ID, Name, Enabled, Schedule, Duration (hrs), Targets, Tasks",
+      "filename_prefix": "SSM_Maintenance_Window",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.2.0",
+            "CC8.1.0",
+            "CC8.1.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(7)(ii)(C)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV122",
+      "name": "AWS Backup Plans",
+      "description": "Plan ID, Plan Name, Version ID, Rules Count, Rules Summary",
+      "detail": "Plan ID, Plan Name, Version ID, Rules Count, Rules Summary",
+      "filename_prefix": "Backup_Plans_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.310(d)(2)(iv)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV123",
+      "name": "Backup Vault Configuration",
+      "description": "Vault Name, Vault ARN, Encryption Key ARN, Recovery Points, Has Access Policy",
+      "detail": "Vault Name, Vault ARN, Encryption Key ARN, Recovery Points, Has Access Policy",
+      "filename_prefix": "Backup_Vault_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "A1.2.0",
+            "A1.2.1",
+            "A1.2.2",
+            "A1.2.3",
+            "A1.2.4",
+            "A1.2.5",
+            "A1.2.6",
+            "A1.2.7",
+            "A1.2.8",
+            "A1.2.9",
+            "A1.3.0",
+            "A1.3.1",
+            "CC6.7.2",
+            "CC7.4.3",
+            "CC7.4.4",
+            "P4.3.1",
+            "P6.5.0",
+            "P6.5.1"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.306(b)",
+            "164.308(a)(7)(i)",
+            "164.308(a)(7)(ii)(A)",
+            "164.308(a)(7)(ii)(B)",
+            "164.308(a)(7)(ii)(C)",
+            "164.308(a)(7)(ii)(D)",
+            "164.310(a)(2)(i)",
+            "164.314(a)(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV124",
+      "name": "Resource Tagging Configuration",
+      "description": "Resource ARN, Resource Type, Owner, Environment, Data Classification, All Tags",
+      "detail": "Resource ARN, Resource Type, Owner, Environment, Data Classification, All Tags",
+      "filename_prefix": "Resource_Tagging_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Tagging & Inventory",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "SOC2_TSC",
+          "controls": [
+            "CC3.1.0",
+            "CC6.1.0"
+          ]
+        },
+        {
+          "framework": "HIPAA_Security_Rule",
+          "controls": [
+            "164.308(a)(1)(ii)(A)"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -46,12 +46,12 @@ const BORDER_SUBTLE: Color = Color::Rgb(50, 56, 72);
 // ═══════════════════════════════════════════════════════════════════════════
 
 const LOGO: &[&str] = &[
-    r"███████╗██╗   ██╗██╗██████╗ ███████╗███╗   ██╗ ██████╗███████╗",
-    r"██╔════╝██║   ██║██║██╔══██╗██╔════╝████╗  ██║██╔════╝██╔════╝",
-    r"█████╗  ██║   ██║██║██║  ██║█████╗  ██╔██╗ ██║██║     █████╗  ",
-    r"██╔══╝  ╚██╗ ██╔╝██║██║  ██║██╔══╝  ██║╚██╗██║██║     ██╔══╝  ",
-    r"███████╗ ╚████╔╝ ██║██████╔╝███████╗██║ ╚████║╚██████╗███████╗",
-    r"╚══════╝  ╚═══╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝",
+    r" ██████╗ ██████╗  █████╗ ██████╗ ██████╗ ███████╗██████╗ ",
+    r"██╔════╝ ██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔════╝██╔══██╗",
+    r"██║  ███╗██████╔╝███████║██████╔╝██████╔╝█████╗  ██████╔╝",
+    r"██║   ██║██╔══██╗██╔══██║██╔══██╗██╔══██╗██╔══╝  ██╔══██╗",
+    r"╚██████╔╝██║  ██║██║  ██║██████╔╝██████╔╝███████╗██║  ██║",
+    r" ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝",
 ];
 
 const LOGO_COLORS: &[Color] = &[CYAN, CYAN, TEAL, TEAL, PURPLE, PURPLE];
@@ -179,7 +179,7 @@ pub fn draw(f: &mut Frame, app: &App) {
 fn draw_header(f: &mut Frame, area: Rect, step: Option<(usize, usize)>, screen: &Screen) {
     let left = vec![
         Span::styled(" ◆ ", Style::default().fg(CYAN)),
-        Span::styled("EVIDENCE", Style::default().fg(CYAN).add_modifier(Modifier::BOLD)),
+        Span::styled("THE GRABBER", Style::default().fg(CYAN).add_modifier(Modifier::BOLD)),
         Span::styled("   ", Style::default()),
         Span::styled(
             "AWS Compliance Evidence Collector",
@@ -306,16 +306,16 @@ fn draw_footer(f: &mut Frame, area: Rect, hints: &[(&str, &str)]) {
 
 fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
     match screen {
-        Screen::Welcome => vec![("⏎", "Begin"), ("⎋", "Quit")],
-        Screen::SelectAccount => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("⎋", "Quit")],
-        Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("⎋", "Back")],
-        Screen::SelectRegion => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("⎋", "Back")],
-        Screen::SetDates => vec![("⇥", "Switch"), ("⏎", "Confirm"), ("⎋", "Back")],
-        Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("⏎", "Confirm"), ("⎋", "Back")],
-        Screen::SetOptions => vec![("⇥", "Switch"), ("␣", "Toggle"), ("⏎", "Confirm"), ("⎋", "Back")],
-        Screen::Confirm => vec![("⏎", "Start"), ("⎋", "Back")],
+        Screen::Welcome => vec![("⏎", "Begin"), ("Esc", "Quit")],
+        Screen::SelectAccount => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Quit")],
+        Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
+        Screen::SelectRegion => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SetDates => vec![("⇥", "Switch"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SetOptions => vec![("⇥", "Switch"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
         Screen::Running => vec![],
-        Screen::Results => vec![("q", "Quit"), ("⎋", "Exit")],
+        Screen::Results => vec![("q", "Quit"), ("Esc", "Exit")],
     }
 }
 
@@ -367,7 +367,7 @@ fn draw_welcome(f: &mut Frame, area: Rect) {
     // Title
     f.render_widget(
         Paragraph::new(Span::styled(
-            "AWS Compliance Evidence Collector",
+            "The Grabber",
             Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center),
@@ -673,7 +673,7 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     let total_count = app.collector_items.len();
 
     let title = format!(
-        " Evidence Collectors ─────────── {} of {} selected ",
+        " Collectors ─────────── {} of {} selected ",
         selected_count, total_count,
     );
 

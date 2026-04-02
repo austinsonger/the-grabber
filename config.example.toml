@@ -1,4 +1,4 @@
-# Evidence Collector — Example Configuration
+# The Grabber — Example Configuration
 # Copy to ~/.config/evidence/config.toml and edit for your environment.
 #
 # The TUI reads this file at startup. If it is missing the app falls back
@@ -70,7 +70,7 @@ enable_extra = ["scp", "org-config"]
 # [account.collectors]
 # enable = ["iam-users", "iam-roles", "s3-config", "kms", "vpc"]
 
-# Subtractive list — run defaults minus these:
+# Subtractive list — run defaults minus these (auto-excluded on Collectors page):
 #
 # [[account]]
 # name    = "Legacy"
@@ -78,6 +78,16 @@ enable_extra = ["scp", "org-config"]
 #
 # [account.collectors]
 # disable = ["eks", "ecs", "lambda-config", "ecr-config"]
+#
+# Combine disable + enable_extra for fine-grained per-account control:
+#
+# [[account]]
+# name    = "Security"
+# profile = "SecurityAdmin"
+#
+# [account.collectors]
+# enable_extra = ["sh-standards", "sh-findings", "macie", "inspector"]
+# disable      = ["eks", "ecs", "ecr-config", "elasticache"]
 
 # Additive list — run defaults plus these extras:
 #

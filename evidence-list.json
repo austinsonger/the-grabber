@@ -1,0 +1,994 @@
+[
+  {
+    "id": "EV1",
+    "name": "CloudTrail",
+    "filename_prefix": "CloudTrail_backup_and_snapshot_events",
+    "detail": "StartBackupJob, BackupJobCompleted, and related CloudTrail events via LookupEvents API",
+    "category": "JSON Evidence (Time-Windowed)",
+    "subCategory": null
+  },
+  {
+    "id": "EV2",
+    "name": "AWS Backup",
+    "filename_prefix": "AWS_Backup_job_history_exports",
+    "detail": "AWS Backup job records (status, resource, plan, vault) via Backup ListBackupJobs API",
+    "category": "JSON Evidence (Time-Windowed)",
+    "subCategory": null
+  },
+  {
+    "id": "EV3",
+    "name": "RDS Automated Snapshots",
+    "filename_prefix": "RDS_automated_snapshot_exports",
+    "detail": "RDS automated and manual snapshot records via DescribeDBSnapshots",
+    "category": "JSON Evidence (Time-Windowed)",
+    "subCategory": null
+  },
+  {
+    "id": "EV4",
+    "name": "CloudTrail S3 Logs",
+    "filename_prefix": "CloudTrail_S3_historical_log_exports",
+    "detail": "CloudTrail events parsed directly from S3 log files (requires --s3-bucket)",
+    "category": "JSON Evidence (Time-Windowed)",
+    "subCategory": null
+  },
+  {
+    "id": "EV5",
+    "name": "Account Alternate Contacts",
+    "filename_prefix": "Account_Contacts_Config",
+    "detail": "Contact Type, Name, Email, Phone, Title",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV6",
+    "name": "IAM SAML Identity Providers",
+    "filename_prefix": "IAM_Identity_Provider_Config",
+    "detail": "Provider ARN, Provider Name, Created Date, Valid Until, Metadata Length (bytes)",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV7",
+    "name": "IAM Account Summary",
+    "filename_prefix": "IAM_Account_Summary",
+    "detail": "Key, Value",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV8",
+    "name": "IAM Users",
+    "filename_prefix": "IAM_Users",
+    "detail": "User Name, ARN, MFA Enabled, Password Last Used, Access Key Status, Created Date",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV9",
+    "name": "IAM Roles",
+    "filename_prefix": "IAM_Roles",
+    "detail": "Role Name, ARN, Trust Policy, Attached Policies, Last Used, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV10",
+    "name": "IAM Policies",
+    "filename_prefix": "IAM_Policies",
+    "detail": "Policy Name, ARN, Policy Type, Attached Entities, Permissions Summary",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV11",
+    "name": "IAM Access Keys",
+    "filename_prefix": "IAM_Access_Keys",
+    "detail": "User Name, Access Key ID, Status, Created Date, Last Used",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV12",
+    "name": "IAM Certificates",
+    "filename_prefix": "IAM_Certificates",
+    "detail": "Name, ARN, Issuer, Subject, Subject Alternative Names, Public Key Algorithm, Signature Algorithm, Key Usage, Extended Key Usage, Hierarchy, Issued On, Expires, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV13",
+    "name": "IAM Role Trust Policies",
+    "filename_prefix": "IAM_Role_Trusts",
+    "detail": "Role Name, Trusted Entity, Entity Type, External ID, Conditions, Cross Account",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV14",
+    "name": "IAM Role Policies",
+    "filename_prefix": "IAM_Role_Policies",
+    "detail": "Role Name, Assume Role Policy (Trust), Inline Policies, Attached Managed Policies",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV15",
+    "name": "IAM User Policies",
+    "filename_prefix": "IAM_User_Policies",
+    "detail": "User Name, Inline Policies, Attached Policies, Permissions Boundary",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV16",
+    "name": "IAM Account Password Policy",
+    "filename_prefix": "IAM_Password_Policy",
+    "detail": "Minimum Password Length, Require Symbols, Require Numbers, Require Uppercase, Require Lowercase, Allow Users To Change, Expire Passwords, Max Password Age, Password Reuse Prevention, Hard Expiry",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV17",
+    "name": "IAM Access Analyzer Findings",
+    "filename_prefix": "AccessAnalyzer_Findings",
+    "detail": "Analyzer Name, Resource ARN, Resource Type, Finding Type, Public Access, Cross Account, Status",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV18",
+    "name": "Organizations Service Control Policies",
+    "filename_prefix": "Organizations_SCPs",
+    "detail": "Policy Name, Policy ID, Attached Targets, AWS Managed, Actions Summary",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV19",
+    "name": "AWS Organizations Configuration",
+    "filename_prefix": "AWS_Organizations_Config",
+    "detail": "Org ID, Master Account ID, Master Account Email, Feature Set, Total Accounts, Root ID, SCPs Enabled",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Account & Identity"
+  },
+  {
+    "id": "EV20",
+    "name": "Certificate Manager Certificates",
+    "filename_prefix": "Certificate_Manager_Certificates",
+    "detail": "Certificate ARN, Domain Name, Expires, In Use By, Issued On, Issuer, Key Algorithm, Renewal Eligibility, Signature Algorithm, Status, Cert Type",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Certificates & PKI"
+  },
+  {
+    "id": "EV21",
+    "name": "CloudTrail Logs",
+    "filename_prefix": "CloudTrail_Logs",
+    "detail": "Cloud Trail Name, Apply Trail To All Regions, Log File Validation, S3 Bucket, Cloud Watch Logs Log Group ARN, Is Logging, Include Management Events, Read/Write Type",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV22",
+    "name": "CloudTrail Configuration",
+    "filename_prefix": "CloudTrail_Config",
+    "detail": "Trail Name, Trail ARN, Is Multi-Region, Home Region, Log File Validation, S3 Bucket, Is Logging, Event Selectors, Insight Selectors",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV23",
+    "name": "CloudTrail Event Selectors",
+    "filename_prefix": "CloudTrail_EventSelectors",
+    "detail": "Trail Name, Trail ARN, Management Events, Read Write Type, Data Events Enabled, Data Resource Types",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV24",
+    "name": "CloudTrail Log Validation",
+    "filename_prefix": "CloudTrail_LogValidation",
+    "detail": "Trail Name, S3 Bucket, Log Validation Enabled, Is Logging, Latest Delivery, Latest Digest",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV25",
+    "name": "CloudTrail S3 Bucket Policies",
+    "filename_prefix": "CloudTrail_S3Policy",
+    "detail": "Trail Name, S3 Bucket, Public Access Block, Encryption Type, Access Logging Enabled, Policy Has Public Allow",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV26",
+    "name": "CloudTrail Change Events",
+    "filename_prefix": "CloudTrail_ChangeEvents",
+    "detail": "Event Name, Event Source, Resource Type, Resource Name, User Identity, Timestamp, Source IP (last 7 days)",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV27",
+    "name": "CloudTrail S3 Data Events",
+    "filename_prefix": "CloudTrail_S3DataEvents",
+    "detail": "Trail Name, S3 Bucket/Prefix, Read Events, Write Events, Advanced Selector",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV28",
+    "name": "CloudTrail Configuration Change Events",
+    "filename_prefix": "CloudTrail_Config_Changes",
+    "detail": "Event Name, Event Time, User Identity, Source IP Address, Request Parameters, Response Elements (last 90 days)",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV29",
+    "name": "CloudTrail IAM Changes (High-Risk)",
+    "filename_prefix": "CloudTrail_IAM_Changes",
+    "detail": "Event Name, User Identity, Event Time, Request Parameters (last 90 days — CreateUser, CreateRole, AttachPolicy, AssumeRole, etc.)",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudTrail & Audit"
+  },
+  {
+    "id": "EV30",
+    "name": "AWS Config Rules",
+    "filename_prefix": "AWS_Config_Rules",
+    "detail": "Rule Name, Compliance Status, Resource Type, Last Evaluated",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "AWS Config"
+  },
+  {
+    "id": "EV31",
+    "name": "AWS Config Recorder",
+    "filename_prefix": "AWS_Config_Recorder",
+    "detail": "Recorder Name, Role ARN, All Supported, Include Global Resources, Recording, Last Status, Last Status Change",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "AWS Config"
+  },
+  {
+    "id": "EV32",
+    "name": "AWS Config Resource History",
+    "filename_prefix": "Config_ResourceHistory",
+    "detail": "Resource Type, Resource ID, Resource Name, Change Type, Capture Time, Config Status",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "AWS Config"
+  },
+  {
+    "id": "EV33",
+    "name": "AWS Config Resource Timeline",
+    "filename_prefix": "Config_Resource_Timeline",
+    "detail": "Resource ID, Resource Type, Capture Time, Config State ID, Configuration (excerpt), Change Type",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "AWS Config"
+  },
+  {
+    "id": "EV34",
+    "name": "AWS Config Compliance History",
+    "filename_prefix": "Config_Compliance_History",
+    "detail": "Config Rule Name, Resource ID, Resource Type, Compliance Type, Ordering Timestamp",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "AWS Config"
+  },
+  {
+    "id": "EV35",
+    "name": "AWS Config Snapshot (Point-in-Time)",
+    "filename_prefix": "Config_Snapshot",
+    "detail": "Resource ID, Resource Type, Resource Name, Account ID, Configuration (excerpt), Relationships",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "AWS Config"
+  },
+  {
+    "id": "EV36",
+    "name": "CloudFormation Stack Drift",
+    "filename_prefix": "CloudFormation_Drift",
+    "detail": "Stack Name, Stack Status, Drift Status, Last Drift Check, Drifted Resource Count, Resource Drifts",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudFormation"
+  },
+  {
+    "id": "EV37",
+    "name": "Log Metric Filters and Alarms",
+    "filename_prefix": "Log_Metric_Filters_and_Alarms",
+    "detail": "Metric Filter Name, Metric Filter Namespace, Metric Filter Metric, Alarms, Alarm Actions, Cloud Watch Logs Log Group ARN",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudWatch & Monitoring"
+  },
+  {
+    "id": "EV38",
+    "name": "CloudWatch Log Group Config",
+    "filename_prefix": "CloudWatch_Log_Group_Config",
+    "detail": "Log Group Name, Retention In Days, KMS Key ID, Stored Bytes, Created At",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudWatch & Monitoring"
+  },
+  {
+    "id": "EV39",
+    "name": "Metric Filter Configuration",
+    "filename_prefix": "Metric_Filter_Config",
+    "detail": "Filter Name, Log Group Name, Filter Pattern, Metric Transformations",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudWatch & Monitoring"
+  },
+  {
+    "id": "EV40",
+    "name": "CloudWatch Alarms",
+    "filename_prefix": "CloudWatch_Alarms",
+    "detail": "Alarm Name, Metric, Threshold, Comparison Operator, Actions Enabled, State",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudWatch & Monitoring"
+  },
+  {
+    "id": "EV41",
+    "name": "CloudWatch Log Groups",
+    "filename_prefix": "CloudWatch_Log_Groups",
+    "detail": "Log Group Name, Retention Days, KMS Key ARN, Stored Bytes, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudWatch & Monitoring"
+  },
+  {
+    "id": "EV42",
+    "name": "CloudWatch Alarms for Config Changes",
+    "filename_prefix": "Change_Alerts_Config",
+    "detail": "Alarm Name, Metric Name, Namespace, Threshold, Comparison Operator, Actions Enabled, Alarm Actions",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "CloudWatch & Monitoring"
+  },
+  {
+    "id": "EV43",
+    "name": "EC2 Instances",
+    "filename_prefix": "EC2_Instances",
+    "detail": "Instance ID, Instance Type, AMI ID, State, VPC ID, Subnet ID, IAM Role, Encryption, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV44",
+    "name": "EC2 Instance Details",
+    "filename_prefix": "EC2_Detailed",
+    "detail": "Instance ID, Instance Type, AMI ID, AMI Owner ID, IMDS Version, EBS Optimized, Monitoring",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV45",
+    "name": "EC2 Instance Configuration",
+    "filename_prefix": "EC2_Config",
+    "detail": "Instance ID, Image ID, Instance Type, State, IMDS Version, IAM Instance Profile, Block Devices, Monitoring",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV46",
+    "name": "EC2 Launch Templates",
+    "filename_prefix": "Launch_Template_Config",
+    "detail": "Template ID, Template Name, Version, Image ID, Instance Type, Security Group IDs, IAM Instance Profile",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV47",
+    "name": "Auto Scaling Groups",
+    "filename_prefix": "AutoScaling_Groups",
+    "detail": "Group Name, Launch Template, Desired Capacity, Min, Max, Instances, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV48",
+    "name": "EBS Volumes",
+    "filename_prefix": "EBS",
+    "detail": "Volume ID, Volume ARN, Availability Zone, Encryption Status, KMS Key ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV49",
+    "name": "EBS Default Encryption",
+    "filename_prefix": "EBS_DefaultEncryption",
+    "detail": "Region, Default Encryption Enabled, KMS Key ID",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV50",
+    "name": "EBS Encryption Config",
+    "filename_prefix": "EBS_Encryption_Config",
+    "detail": "Region, EBS Encryption By Default, Default KMS Key ID",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — EC2"
+  },
+  {
+    "id": "EV51",
+    "name": "ECS Clusters",
+    "filename_prefix": "ECS_Clusters",
+    "detail": "Cluster Name, Status, Running Tasks, Container Insights Enabled",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — Containers"
+  },
+  {
+    "id": "EV52",
+    "name": "EKS Clusters",
+    "filename_prefix": "EKS_Clusters",
+    "detail": "Cluster Name, Version, Endpoint Public Access, Logging Enabled",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — Containers"
+  },
+  {
+    "id": "EV53",
+    "name": "ECR Repository Configuration",
+    "filename_prefix": "ECR_Config",
+    "detail": "Repository Name, Registry ID, URI, Image Tag Mutability, Scan On Push, Encryption Type, KMS Key, Has Lifecycle Policy",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — Containers"
+  },
+  {
+    "id": "EV54",
+    "name": "ECR Image Scan Findings",
+    "filename_prefix": "ECR_ScanFindings",
+    "detail": "Repository, Image Tag, Scan Status, CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — Containers"
+  },
+  {
+    "id": "EV55",
+    "name": "Lambda Function Configuration",
+    "filename_prefix": "Lambda_Config",
+    "detail": "Function Name, Runtime, Role ARN, Handler, Timeout (s), Memory (MB), VPC ID, Env Vars (count, redacted), Dead Letter Config",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — Serverless"
+  },
+  {
+    "id": "EV56",
+    "name": "Lambda Function Permissions",
+    "filename_prefix": "Lambda_Permissions_Config",
+    "detail": "Function Name, Statement ID, Principal, Action, Source ARN, Effect",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Compute — Serverless"
+  },
+  {
+    "id": "EV57",
+    "name": "RDS Inventory",
+    "filename_prefix": "RDS",
+    "detail": "DB Instance ARN, Engine, Engine Version, Encryption Status, KMS Key ARN, Publicly Accessible, Auto Minor Version Upgrades, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Databases"
+  },
+  {
+    "id": "EV58",
+    "name": "RDS Backup Configuration",
+    "filename_prefix": "RDS_Backup_Config",
+    "detail": "DB Instance ID, Engine, Multi-AZ, Backup Retention (days), Preferred Backup Window, Auto Minor Upgrade, Deletion Protection",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Databases"
+  },
+  {
+    "id": "EV59",
+    "name": "RDS Snapshots",
+    "filename_prefix": "RDS_Snapshots",
+    "detail": "Snapshot ID, DB Instance ID, Snapshot Type, Encrypted, KMS Key ID, Created Time, Public Accessible",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Databases"
+  },
+  {
+    "id": "EV60",
+    "name": "DynamoDB Tables",
+    "filename_prefix": "DynamoDB",
+    "detail": "Table ARN, Table Name, Encryption Status, Encryption Type, KMS Key ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Databases"
+  },
+  {
+    "id": "EV61",
+    "name": "ElastiCache Clusters",
+    "filename_prefix": "ElastiCache",
+    "detail": "Cluster Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, Availability Zone, Cluster ARN, KMS Key ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Databases"
+  },
+  {
+    "id": "EV62",
+    "name": "ElastiCache Global Datastores",
+    "filename_prefix": "ElastiCache_Global_Datastore",
+    "detail": "Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Databases"
+  },
+  {
+    "id": "EV63",
+    "name": "KMS Keys",
+    "filename_prefix": "KMS_Keys",
+    "detail": "Key ID, ARN, Key Manager, Key State, Rotation Enabled, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Encryption & Key Management"
+  },
+  {
+    "id": "EV64",
+    "name": "KMS Key Policies",
+    "filename_prefix": "KMS_KeyPolicies",
+    "detail": "Key ID, Key ARN, Key State, Rotation Enabled, Key Usage, Policy Allows External Access",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Encryption & Key Management"
+  },
+  {
+    "id": "EV65",
+    "name": "KMS Key Configuration",
+    "filename_prefix": "KMS_Key_Configuration",
+    "detail": "Key ID, Key ARN, Enabled, Key Usage, Origin, Key State, Rotation Enabled, Key Policy",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Encryption & Key Management"
+  },
+  {
+    "id": "EV66",
+    "name": "Secrets Manager",
+    "filename_prefix": "Secrets_Manager",
+    "detail": "Secret Name, ARN, Rotation Enabled, Last Rotated, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Encryption & Key Management"
+  },
+  {
+    "id": "EV67",
+    "name": "Secrets Manager Resource Policies",
+    "filename_prefix": "Secrets_Manager_Policies",
+    "detail": "Secret Name, Secret ARN, KMS Key ID, Rotation Enabled, Rotation Interval (days), Last Rotated, Has Resource Policy",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Encryption & Key Management"
+  },
+  {
+    "id": "EV68",
+    "name": "SNS Topic Subscribers",
+    "filename_prefix": "SNS_Topic_Subscribers",
+    "detail": "Subscription ID, SNS Topic Name, SNS Topic ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Messaging & Events"
+  },
+  {
+    "id": "EV69",
+    "name": "SNS Topic Policies",
+    "filename_prefix": "SNS_Topic_Config",
+    "detail": "Topic ARN, Display Name, Subscriptions Confirmed, Subscriptions Pending, KMS Key ID, Has Policy",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Messaging & Events"
+  },
+  {
+    "id": "EV70",
+    "name": "EventBridge Rules",
+    "filename_prefix": "EventBridge_Rules_Config",
+    "detail": "Rule Name, Event Bus, State, Schedule / Event Pattern, Targets",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Messaging & Events"
+  },
+  {
+    "id": "EV71",
+    "name": "EventBridge Rules for Changes",
+    "filename_prefix": "Change_Event_Rules",
+    "detail": "Rule Name, Event Bus, State, Event Pattern, Targets (event-pattern rules only)",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Messaging & Events"
+  },
+  {
+    "id": "EV72",
+    "name": "VPCs",
+    "filename_prefix": "VPCs",
+    "detail": "ID, Name, CIDR Block, Owner, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV73",
+    "name": "Network ACLs",
+    "filename_prefix": "Network-ACL",
+    "detail": "Network ACL ID, Rule Count, Subnet Associations, Default, VPC, Ingress Rules, Egress Rules, Owner, ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV74",
+    "name": "VPC Configuration",
+    "filename_prefix": "VPC_Config",
+    "detail": "VPC ID, CIDR Block, State, Instance Tenancy, Enable DNS Support, Enable DNS Hostnames, Is Default",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV75",
+    "name": "VPC Flow Logging",
+    "filename_prefix": "VPC_Flow_Logging",
+    "detail": "VPC ID, VPC Flow Log Name, VPC Flow Log ID, Filter, Destination, Destination Log Group, IAM Role, Status, Log Line Format",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV76",
+    "name": "VPC Endpoints",
+    "filename_prefix": "VPC_Endpoints_Config",
+    "detail": "Endpoint ID, VPC ID, Service Name, Endpoint Type, State, Private DNS Enabled, Has Policy",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV77",
+    "name": "Internet Gateways",
+    "filename_prefix": "Network_InternetGateways",
+    "detail": "Gateway ID, Attached VPC ID, Attachment State, Name Tag, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV78",
+    "name": "NAT Gateways",
+    "filename_prefix": "Network_NatGateways",
+    "detail": "NAT Gateway ID, Subnet ID, VPC ID, Public IP, Private IP, Connectivity Type, State",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV79",
+    "name": "Security Groups",
+    "filename_prefix": "Security_Groups",
+    "detail": "Group ID, Group Name, Inbound Rules, Outbound Rules, VPC ID, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV80",
+    "name": "Security Group Configuration",
+    "filename_prefix": "Security_Group_Config",
+    "detail": "Group ID, Name, Description, VPC ID, Ingress Rules, Egress Rules",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV81",
+    "name": "Route Tables",
+    "filename_prefix": "Route_Tables",
+    "detail": "Route Table ID, Routes, Subnet Associations, VPC ID, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV82",
+    "name": "Route Table Configuration",
+    "filename_prefix": "Route_Table_Config",
+    "detail": "Route Table ID, VPC ID, Routes, Associations, Propagating VGWs",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV83",
+    "name": "Public Resources",
+    "filename_prefix": "Public_Resources",
+    "detail": "Resource ID, Resource Type, Public IP / DNS, Port Exposure, Notes",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV84",
+    "name": "Route53 Hosted Zones",
+    "filename_prefix": "Route53_Config",
+    "detail": "Zone ID, Name, Private Zone, Record Count, Comment, Sample Records",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV85",
+    "name": "Route53 Resolver Rules",
+    "filename_prefix": "Route53_Resolver_Config",
+    "detail": "Rule ID, Name, Domain Name, Rule Type, Status, Target IPs",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV86",
+    "name": "API Gateway",
+    "filename_prefix": "API_Gateway",
+    "detail": "API Name, Endpoint Type, Authorization Type, Logging Enabled, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV87",
+    "name": "CloudFront Distributions",
+    "filename_prefix": "CloudFront_Distributions",
+    "detail": "Distribution ID, Domain Name, WAF Enabled, Logging Enabled, TLS Version",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Network"
+  },
+  {
+    "id": "EV88",
+    "name": "Load Balancers",
+    "filename_prefix": "Load_Balancers",
+    "detail": "Name, Balancer Type, ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Load Balancing"
+  },
+  {
+    "id": "EV89",
+    "name": "Load Balancer Listeners",
+    "filename_prefix": "Load_Balancer_Listeners",
+    "detail": "Balancer Name, ARN, Certificate ID, Protocol, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Load Balancing"
+  },
+  {
+    "id": "EV90",
+    "name": "Load Balancer Configuration",
+    "filename_prefix": "Load_Balancer_Config",
+    "detail": "LB Name, LB ARN, Type, Scheme, VPC ID, Security Groups, Listeners, SSL Policies",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Load Balancing"
+  },
+  {
+    "id": "EV91",
+    "name": "ALB Access Log Configuration",
+    "filename_prefix": "ALB_AccessLogs",
+    "detail": "ALB Name, ALB ARN, Scheme, Access Logs Enabled, Access Logs S3 Bucket, Access Logs S3 Prefix",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Load Balancing"
+  },
+  {
+    "id": "EV92",
+    "name": "EFS File Systems",
+    "filename_prefix": "EFS",
+    "detail": "File System ID, File System Name, File System ARN, KMS Key ARN, Encryption Status, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV93",
+    "name": "S3 Buckets Config",
+    "filename_prefix": "S3_Buckets_Config",
+    "detail": "Bucket Name, Public Access Block, Versioning, Encryption, Logging, Policy, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV94",
+    "name": "S3 Bucket Access Logging",
+    "filename_prefix": "S3_Bucket_Access_Logging",
+    "detail": "Bucket Name, Bucket ARN, Storage Encrypted, Encryption Type, Block Public Access, MFA Delete, Logging, KMS Key ID, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV95",
+    "name": "S3 Bucket Policies",
+    "filename_prefix": "S3_Policies",
+    "detail": "Bucket Name, Public Access Block All, TLS Enforced, Has Bucket Policy, Policy Allows Public, Default Encryption",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV96",
+    "name": "S3 Bucket Encryption Config",
+    "filename_prefix": "S3_Encryption_Config",
+    "detail": "Bucket Name, SSE Algorithm, KMS Master Key ID, Bucket Key Enabled",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV97",
+    "name": "S3 Bucket Policy",
+    "filename_prefix": "S3_Bucket_Policy",
+    "detail": "Bucket Name, Has Policy, Policy Document",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV98",
+    "name": "S3 Public Access Block",
+    "filename_prefix": "S3_Public_Access_Block",
+    "detail": "Bucket Name, Block Public ACLs, Ignore Public ACLs, Block Public Policy, Restrict Public Buckets",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV99",
+    "name": "S3 Logging Configuration",
+    "filename_prefix": "S3_Logging_Config",
+    "detail": "Bucket Name, Logging Enabled, Target Bucket, Target Prefix",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Storage"
+  },
+  {
+    "id": "EV100",
+    "name": "GuardDuty Findings",
+    "filename_prefix": "GuardDuty_Findings",
+    "detail": "Finding ID, Type, Severity, Resource, Region, Created At, Status",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV101",
+    "name": "GuardDuty Configuration",
+    "filename_prefix": "GuardDuty_Config",
+    "detail": "Detector ID, Status, S3 Protection, EKS Audit Logs, Malware Protection, Created At",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV102",
+    "name": "GuardDuty Suppression Rules",
+    "filename_prefix": "GuardDuty_Suppression",
+    "detail": "Detector ID, Rule Name, Action, Description, Filter Criteria Summary",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV103",
+    "name": "Security Hub Findings",
+    "filename_prefix": "SecurityHub_Findings",
+    "detail": "Control ID, Severity, Compliance Status, Resource ARN, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV104",
+    "name": "Security Hub Enabled Standards",
+    "filename_prefix": "SecurityHub_Standards",
+    "detail": "Standard Name, Standards ARN, Status, Subscribed At",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV105",
+    "name": "Security Hub Configuration",
+    "filename_prefix": "SecurityHub_Config",
+    "detail": "Hub ARN, Auto Enable Controls, Subscribed Standards, Subscribed At",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV106",
+    "name": "Inspector2 Findings",
+    "filename_prefix": "Inspector2_Findings",
+    "detail": "Finding ARN, Type, Severity, CVE ID, Resource ID, Status, Fix Available",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV107",
+    "name": "Inspector2 Configuration",
+    "filename_prefix": "Inspector_Config",
+    "detail": "Resource Type, Scan Status, Scan Type, EC2 Status, ECR Status, Lambda Status",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV108",
+    "name": "Inspector2 Findings History",
+    "filename_prefix": "Inspector_Findings_History",
+    "detail": "Finding ID, First Observed At, Last Observed At, Status, Severity, Resource ID, Title",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV109",
+    "name": "Macie Findings",
+    "filename_prefix": "Macie_Findings",
+    "detail": "Finding ID, Finding Type, Resource ARN, Severity, Count, Created At",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV110",
+    "name": "WAF Regional Web ACL Rules",
+    "filename_prefix": "WAF_Regional_Web_ACL_Rules",
+    "detail": "Name, Web ACL Name, Managed Rule, Default Action, Region",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV111",
+    "name": "WAF Web ACL Configuration",
+    "filename_prefix": "WAF_Config",
+    "detail": "Web ACL Name, Web ACL ARN, Default Action, Rules Count, Rule Names, CloudWatch Metric, Sampled Requests Enabled",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV112",
+    "name": "WAFv2 Logging Configuration",
+    "filename_prefix": "WAF_Logging",
+    "detail": "Web ACL Name, Web ACL ARN, Logging Enabled, Log Destination, Sampled Requests Enabled",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Security Services"
+  },
+  {
+    "id": "EV113",
+    "name": "SSM Managed Instances",
+    "filename_prefix": "SSM_ManagedInstances",
+    "detail": "Instance ID, Computer Name, Platform, SSM Agent Version, Ping Status, Last Ping",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV114",
+    "name": "SSM Patch Compliance",
+    "filename_prefix": "SSM_PatchCompliance",
+    "detail": "Instance ID, Resource Type, Compliance Status, Overall Severity, Non Compliant Count",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV115",
+    "name": "SSM Patch Baselines",
+    "filename_prefix": "SSM_Patch_Baseline_Config",
+    "detail": "Baseline ID, Name, Operating System, Default Baseline, Approved Patches, Patch Rules Summary",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV116",
+    "name": "SSM Parameter Store Config",
+    "filename_prefix": "SSM_Parameter_Config",
+    "detail": "Name, Type, KMS Key ID, Last Modified, Description, Tier",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV117",
+    "name": "EC2 Time Sync Config (SSM)",
+    "filename_prefix": "Time_Sync_Config",
+    "detail": "Instance ID, Computer Name, Platform, SSM Ping Status, Time Source Note",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV118",
+    "name": "SSM Patch Compliance (Detailed)",
+    "filename_prefix": "SSM_Patch_Compliance_Detail",
+    "detail": "Instance ID, Patch ID, Title, Severity, State, Installed Time",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV119",
+    "name": "SSM Patch Summary",
+    "filename_prefix": "SSM_Patch_Summary",
+    "detail": "Instance ID, Compliance Status, Critical Count, Security Count, Other Count, Missing Count, Installed Count, Operation",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV120",
+    "name": "SSM Patch Execution History",
+    "filename_prefix": "SSM_Patch_Execution",
+    "detail": "Command ID, Instance ID, Requested Date Time, Completed Date Time, Status",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV121",
+    "name": "SSM Maintenance Windows",
+    "filename_prefix": "SSM_Maintenance_Window",
+    "detail": "Window ID, Name, Enabled, Schedule, Duration (hrs), Targets, Tasks",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Systems Manager (SSM)"
+  },
+  {
+    "id": "EV122",
+    "name": "AWS Backup Plans",
+    "filename_prefix": "Backup_Plans_Config",
+    "detail": "Plan ID, Plan Name, Version ID, Rules Count, Rules Summary",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Backup"
+  },
+  {
+    "id": "EV123",
+    "name": "Backup Vault Configuration",
+    "filename_prefix": "Backup_Vault_Config",
+    "detail": "Vault Name, Vault ARN, Encryption Key ARN, Recovery Points, Has Access Policy",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Backup"
+  },
+  {
+    "id": "EV124",
+    "name": "Resource Tagging Configuration",
+    "filename_prefix": "Resource_Tagging_Config",
+    "detail": "Resource ARN, Resource Type, Owner, Environment, Data Classification, All Tags",
+    "category": "CSV Evidence (Current-State Snapshots)",
+    "subCategory": "Tagging & Inventory"
+  }
+]

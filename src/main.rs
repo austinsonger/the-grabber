@@ -848,7 +848,7 @@ async fn run_tui_running(
                         records,
                     };
 
-                    let filename = format!("{}-{}.json", collector.filename_prefix(), timestamp);
+                    let filename = format!("{}_{}-{}.json", account_id_clone, collector.filename_prefix(), timestamp);
                     let path = out_dir.join(&filename);
 
                     if let Ok(json) = serde_json::to_string_pretty(&report) {

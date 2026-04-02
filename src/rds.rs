@@ -23,7 +23,7 @@ impl EvidenceCollector for RdsCollector {
     }
 
     fn filename_prefix(&self) -> &str {
-        "RDS_automated_snapshot_exports"
+        "RDS_Automated_Snapshot_Exports"
     }
 
     async fn collect(&self, params: &CollectParams) -> Result<Vec<EvidenceRecord>> {

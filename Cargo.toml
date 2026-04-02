@@ -1,8 +1,8 @@
 [package]
-name = "evidence"
+name = "the-grabber"
 version = "0.1.0"
 edition = "2021"
-description = "Extensible AWS compliance evidence collector"
+description = "The Grabber — Extensible AWS compliance evidence collector"
 
 [dependencies]
 aws-config = { version = "1", features = ["behavior-version-latest"] }
