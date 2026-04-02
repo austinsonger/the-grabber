@@ -20,15 +20,12 @@ impl KmsKeyConfigCollector {
 }
 
 #[async_trait]
-impl CsvCollector for KmsKeyConfigCollector {
+impl JsonCollector for KmsKeyConfigCollector {
     fn name(&self) -> &str { "KMS Key Configuration" }
     fn filename_prefix(&self) -> &str { "KMS_Key_Configuration" }
-    fn headers(&self) -> &'static [&'static str] {
-        &["Key ID", "Key ARN", "Enabled", "Key Usage", "Origin", "Key State", "Rotation Enabled", "Key Policy"]
-    }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
-        let mut rows = Vec::new();
+    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+        let mut records = Vec::new();
         let mut next_marker: Option<String> = None;
 
         loop {
@@ -55,48 +52,55 @@ impl CsvCollector for KmsKeyConfigCollector {
                 };
 
                 // Skip AWS-managed keys
-                if meta.key_manager()
-                    .map(|m| m.as_str() == "AWS")
-                    .unwrap_or(false)
-                {
+                if meta.key_manager().map(|m| m.as_str() == "AWS").unwrap_or(false) {
                     continue;
                 }
 
-                let key_arn     = meta.arn().unwrap_or("").to_string();
-                let enabled     = meta.enabled().to_string();
-                let key_usage   = meta.key_usage().map(|u| u.as_str().to_string()).unwrap_or_default();
-                let origin      = meta.origin().map(|o| o.as_str().to_string()).unwrap_or_default();
-                let key_state   = meta.key_state().map(|s| s.as_str().to_string()).unwrap_or_default();
+                let key_arn   = meta.arn().unwrap_or("").to_string();
+                let enabled   = meta.enabled();
+                let key_usage = meta.key_usage().map(|u| u.as_str()).unwrap_or("");
+                let origin    = meta.origin().map(|o| o.as_str()).unwrap_or("");
+                let key_state = meta.key_state().map(|s| s.as_str()).unwrap_or("");
 
-                let rotation = match self.client
+                let rotation_enabled = match self.client
                     .get_key_rotation_status()
                     .key_id(&key_id)
                     .send()
                     .await
                 {
-                    Ok(r) => r.key_rotation_enabled().to_string(),
-                    Err(_) => "Unknown".to_string(),
+                    Ok(r) => r.key_rotation_enabled(),
+                    Err(_) => false,
                 };
 
-                let policy = match self.client
+                let key_policy: serde_json::Value = match self.client
                     .get_key_policy()
                     .key_id(&key_id)
                     .policy_name("default")
                     .send()
                     .await
                 {
-                    Ok(r) => r.policy().unwrap_or("").to_string(),
-                    Err(_) => String::new(),
+                    Ok(r) => serde_json::from_str(r.policy().unwrap_or("{}"))
+                        .unwrap_or(serde_json::Value::Null),
+                    Err(_) => serde_json::Value::Null,
                 };
 
-                rows.push(vec![key_id, key_arn, enabled, key_usage, origin, key_state, rotation, policy]);
+                records.push(serde_json::json!({
+                    "key_id":            key_id,
+                    "key_arn":           key_arn,
+                    "enabled":           enabled,
+                    "key_usage":         key_usage,
+                    "origin":            origin,
+                    "key_state":         key_state,
+                    "rotation_enabled":  rotation_enabled,
+                    "key_policy":        key_policy,
+                }));
             }
 
             next_marker = if resp.truncated() { resp.next_marker().map(|s| s.to_string()) } else { None };
             if next_marker.is_none() { break; }
         }
 
-        Ok(rows)
+        Ok(records)
     }
 }
 

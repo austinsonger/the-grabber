@@ -174,7 +174,8 @@ use crate::inspector_history::InspectorFindingsHistoryCollector;
 use crate::sns_eventbridge::ChangeEventRulesCollector;
 use crate::ssm_patch_detail::{SsmMaintenanceWindowCollector, SsmPatchDetailCollector, SsmPatchExecutionCollector, SsmPatchSummaryCollector};
 use crate::evidence::{
-    CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, ReportMetadata,
+    CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, JsonCollector,
+    JsonInventoryReport, ReportMetadata,
 };
 use crate::tui::{
     App, CollectorState, CollectorStatus, Progress,
@@ -403,6 +404,15 @@ async fn async_main() -> Result<()> {
         }
     }
 
+    // --- JSON inventory collectors (current-state, structured JSON output) ---
+    let mut json_inv_collectors: Vec<Box<dyn JsonCollector>> = Vec::new();
+    if wants("iam-roles")        { json_inv_collectors.push(Box::new(IamRoleCollector::new(&config))); }
+    if wants("iam-role-policies"){ json_inv_collectors.push(Box::new(IamRolePoliciesCollector::new(&config))); }
+    if wants("iam-user-policies"){ json_inv_collectors.push(Box::new(IamUserPoliciesCollector::new(&config))); }
+    if wants("eventbridge-rules"){ json_inv_collectors.push(Box::new(EventBridgeRulesCollector::new(&config))); }
+    if wants("ct-config-changes"){ json_inv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(&config))); }
+    if wants("kms-config")       { json_inv_collectors.push(Box::new(KmsKeyConfigCollector::new(&config))); }
+
     // --- CSV inventory collectors (current-state snapshots) -----------------
     let mut csv_collectors: Vec<Box<dyn CsvCollector>> = Vec::new();
     if wants("vpc")               { csv_collectors.push(Box::new(VpcCollector::new(&config))); }
@@ -424,7 +434,7 @@ async fn async_main() -> Result<()> {
     if wants("elb-listeners")     { csv_collectors.push(Box::new(LoadBalancerListenerCollector::new(&config))); }
     if wants("acm")               { csv_collectors.push(Box::new(AcmCertCollector::new(&config))); }
     if wants("iam-users")         { csv_collectors.push(Box::new(IamUserCollector::new(&config))); }
-    if wants("iam-roles")         { csv_collectors.push(Box::new(IamRoleCollector::new(&config))); }
+    // iam-roles → json_inv_collectors (see above)
     if wants("iam-policies")      { csv_collectors.push(Box::new(IamPolicyCollector::new(&config))); }
     if wants("iam-access-keys")   { csv_collectors.push(Box::new(IamAccessKeyCollector::new(&config))); }
     if wants("guardduty")         { csv_collectors.push(Box::new(GuardDutyCollector::new(&config))); }
@@ -479,11 +489,10 @@ async fn async_main() -> Result<()> {
     if wants("waf-logging")       { csv_collectors.push(Box::new(WafLoggingCollector::new(&config))); }
     if wants("alb-logs")          { csv_collectors.push(Box::new(AlbLogsCollector::new(&config))); }
     // IAM config
-    if wants("iam-role-policies")  { csv_collectors.push(Box::new(IamRolePoliciesCollector::new(&config))); }
-    if wants("iam-user-policies")  { csv_collectors.push(Box::new(IamUserPoliciesCollector::new(&config))); }
+    // iam-role-policies, iam-user-policies → json_inv_collectors (see above)
     if wants("iam-password-policy"){ csv_collectors.push(Box::new(IamPasswordPolicyCollector::new(&config))); }
     // KMS / EBS config
-    if wants("kms-config")         { csv_collectors.push(Box::new(KmsKeyConfigCollector::new(&config))); }
+    // kms-config → json_inv_collectors (see above)
     if wants("ebs-config")         { csv_collectors.push(Box::new(EbsEncryptionConfigCollector::new(&config))); }
     // S3 detail
     if wants("s3-encryption")      { csv_collectors.push(Box::new(S3EncryptionConfigCollector::new(&config))); }
@@ -524,7 +533,7 @@ async fn async_main() -> Result<()> {
     if wants("iam-account-summary"){ csv_collectors.push(Box::new(IamAccountSummaryCollector::new(&config))); }
     // SNS / EventBridge
     if wants("sns-policies")       { csv_collectors.push(Box::new(SnsTopicPoliciesCollector::new(&config))); }
-    if wants("eventbridge-rules")  { csv_collectors.push(Box::new(EventBridgeRulesCollector::new(&config))); }
+    // eventbridge-rules → json_inv_collectors (see above)
     // Backup
     if wants("backup-plans")       { csv_collectors.push(Box::new(BackupPlanConfigCollector::new(&config))); }
     if wants("backup-vaults")      { csv_collectors.push(Box::new(BackupVaultConfigCollector::new(&config))); }
@@ -546,7 +555,7 @@ async fn async_main() -> Result<()> {
     if wants("config-compliance")  { csv_collectors.push(Box::new(ConfigComplianceHistoryCollector::new(&config))); }
     if wants("config-snapshot")    { csv_collectors.push(Box::new(ConfigSnapshotCollector::new(&config))); }
     // CloudTrail IAM / config changes
-    if wants("ct-config-changes")  { csv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(&config))); }
+    // ct-config-changes → json_inv_collectors (see above)
     if wants("ct-iam-changes")     { csv_collectors.push(Box::new(CloudTrailIamChangesCollector::new(&config))); }
     // CloudFormation drift
     if wants("cfn-drift")          { csv_collectors.push(Box::new(CloudFormationDriftCollector::new(&config))); }
@@ -568,6 +577,7 @@ async fn async_main() -> Result<()> {
 
     let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
     run_json_collectors(&json_collectors, &params, &cli.region, &output_dir).await?;
+    run_json_inv_collectors(&json_inv_collectors, &account_id, &cli.region, &output_dir).await?;
     run_csv_collectors(&csv_collectors, &account_id, &cli.region, &output_dir).await
 }
 
@@ -587,9 +597,10 @@ async fn run_tui_running(
 ) -> Result<()> {
     use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
-    // Build the actual collectors (JSON + CSV).
-    let mut json_collectors: Vec<Box<dyn EvidenceCollector>> = Vec::new();
-    let mut csv_collectors:  Vec<Box<dyn CsvCollector>>      = Vec::new();
+    // Build the actual collectors (JSON + JSON-inventory + CSV).
+    let mut json_collectors:     Vec<Box<dyn EvidenceCollector>> = Vec::new();
+    let mut json_inv_collectors: Vec<Box<dyn JsonCollector>>     = Vec::new();
+    let mut csv_collectors:      Vec<Box<dyn CsvCollector>>      = Vec::new();
     for name in collector_names {
         match name.as_str() {
             "cloudtrail"       => json_collectors.push(Box::new(CloudTrailCollector::new(config))),
@@ -614,7 +625,7 @@ async fn run_tui_running(
             "elb-listeners"    => csv_collectors.push(Box::new(LoadBalancerListenerCollector::new(config))),
             "acm"              => csv_collectors.push(Box::new(AcmCertCollector::new(config))),
             "iam-users"        => csv_collectors.push(Box::new(IamUserCollector::new(config))),
-            "iam-roles"        => csv_collectors.push(Box::new(IamRoleCollector::new(config))),
+            "iam-roles"        => json_inv_collectors.push(Box::new(IamRoleCollector::new(config))),
             "iam-policies"     => csv_collectors.push(Box::new(IamPolicyCollector::new(config))),
             "iam-access-keys"  => csv_collectors.push(Box::new(IamAccessKeyCollector::new(config))),
             "guardduty"        => csv_collectors.push(Box::new(GuardDutyCollector::new(config))),
@@ -669,11 +680,11 @@ async fn run_tui_running(
             "waf-logging"      => csv_collectors.push(Box::new(WafLoggingCollector::new(config))),
             "alb-logs"          => csv_collectors.push(Box::new(AlbLogsCollector::new(config))),
             // IAM config
-            "iam-role-policies"  => csv_collectors.push(Box::new(IamRolePoliciesCollector::new(config))),
-            "iam-user-policies"  => csv_collectors.push(Box::new(IamUserPoliciesCollector::new(config))),
+            "iam-role-policies"  => json_inv_collectors.push(Box::new(IamRolePoliciesCollector::new(config))),
+            "iam-user-policies"  => json_inv_collectors.push(Box::new(IamUserPoliciesCollector::new(config))),
             "iam-password-policy"=> csv_collectors.push(Box::new(IamPasswordPolicyCollector::new(config))),
             // KMS / EBS config
-            "kms-config"         => csv_collectors.push(Box::new(KmsKeyConfigCollector::new(config))),
+            "kms-config"         => json_inv_collectors.push(Box::new(KmsKeyConfigCollector::new(config))),
             "ebs-config"         => csv_collectors.push(Box::new(EbsEncryptionConfigCollector::new(config))),
             // S3 detail
             "s3-encryption"      => csv_collectors.push(Box::new(S3EncryptionConfigCollector::new(config))),
@@ -713,7 +724,7 @@ async fn run_tui_running(
             "iam-account-summary"=> csv_collectors.push(Box::new(IamAccountSummaryCollector::new(config))),
             // SNS / EventBridge
             "sns-policies"       => csv_collectors.push(Box::new(SnsTopicPoliciesCollector::new(config))),
-            "eventbridge-rules"  => csv_collectors.push(Box::new(EventBridgeRulesCollector::new(config))),
+            "eventbridge-rules"  => json_inv_collectors.push(Box::new(EventBridgeRulesCollector::new(config))),
             // Backup
             "backup-plans"       => csv_collectors.push(Box::new(BackupPlanConfigCollector::new(config))),
             "backup-vaults"      => csv_collectors.push(Box::new(BackupVaultConfigCollector::new(config))),
@@ -735,7 +746,7 @@ async fn run_tui_running(
             "config-compliance"  => csv_collectors.push(Box::new(ConfigComplianceHistoryCollector::new(config))),
             "config-snapshot"    => csv_collectors.push(Box::new(ConfigSnapshotCollector::new(config))),
             // CloudTrail IAM / config changes
-            "ct-config-changes"  => csv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(config))),
+            "ct-config-changes"  => json_inv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(config))),
             "ct-iam-changes"     => csv_collectors.push(Box::new(CloudTrailIamChangesCollector::new(config))),
             // CloudFormation drift
             "cfn-drift"          => csv_collectors.push(Box::new(CloudFormationDriftCollector::new(config))),
@@ -758,11 +769,12 @@ async fn run_tui_running(
     app.collector_statuses = json_collectors
         .iter()
         .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting })
-        .chain(
-            csv_collectors
-                .iter()
-                .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting })
-        )
+        .chain(json_inv_collectors
+            .iter()
+            .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting }))
+        .chain(csv_collectors
+            .iter()
+            .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting }))
         .collect();
 
     let params_clone = params.clone();
@@ -805,6 +817,45 @@ async fn run_tui_running(
                     let filename = format!("{}-{}.json", collector.filename_prefix(), timestamp);
                     let path = out_dir.join(&filename);
 
+                    if let Ok(json) = serde_json::to_string_pretty(&report) {
+                        if std::fs::write(&path, json).is_ok() {
+                            written_files.push(path.display().to_string());
+                        }
+                    }
+                }
+                Err(e) => {
+                    let _ = tx_clone.send(Progress::Error {
+                        collector: collector.name().to_string(),
+                        message: e.to_string(),
+                    });
+                }
+            }
+        }
+
+        // --- JSON inventory collectors --------------------------------------
+        for collector in &json_inv_collectors {
+            let _ = tx_clone.send(Progress::Started { collector: collector.name().to_string() });
+
+            match collector.collect_records(&account_id_clone, &region_clone).await {
+                Ok(records) => {
+                    let count = records.len();
+                    let _ = tx_clone.send(Progress::Done { collector: collector.name().to_string(), count });
+
+                    let report = JsonInventoryReport {
+                        collected_at: Utc::now().to_rfc3339(),
+                        account_id: account_id_clone.clone(),
+                        region: region_clone.clone(),
+                        collector: collector.name().to_string(),
+                        record_count: count,
+                        records,
+                    };
+                    let filename = format!(
+                        "{}_{}-{}.json",
+                        account_id_clone,
+                        collector.filename_prefix(),
+                        timestamp
+                    );
+                    let path = out_dir.join(&filename);
                     if let Ok(json) = serde_json::to_string_pretty(&report) {
                         if std::fs::write(&path, json).is_ok() {
                             written_files.push(path.display().to_string());
@@ -954,6 +1005,45 @@ async fn run_csv_collectors(
                 let path = output_dir.join(&filename);
                 let bytes = write_csv_bytes(collector.headers(), &rows)?;
                 std::fs::write(&path, bytes)
+                    .with_context(|| format!("Failed to write {}", path.display()))?;
+                eprintln!("  Written: {}", format_path_with_osc8(&path));
+            }
+            Err(e) => eprintln!("  ERROR from {}: {e:#}", collector.name()),
+        }
+    }
+    Ok(())
+}
+
+async fn run_json_inv_collectors(
+    collectors: &[Box<dyn JsonCollector>],
+    account_id: &str,
+    region: &str,
+    output_dir: &PathBuf,
+) -> Result<()> {
+    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    for collector in collectors {
+        eprintln!("Collecting from {}...", collector.name());
+        match collector.collect_records(account_id, region).await {
+            Ok(records) => {
+                eprintln!("  {} returned {} records", collector.name(), records.len());
+                let report = JsonInventoryReport {
+                    collected_at: Utc::now().to_rfc3339(),
+                    account_id: account_id.to_string(),
+                    region: region.to_string(),
+                    collector: collector.name().to_string(),
+                    record_count: records.len(),
+                    records,
+                };
+                let filename = format!(
+                    "{}_{}-{}.json",
+                    account_id,
+                    collector.filename_prefix(),
+                    timestamp
+                );
+                let path = output_dir.join(&filename);
+                let json = serde_json::to_string_pretty(&report)
+                    .context("JSON serialise")?;
+                std::fs::write(&path, json)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));
             }
