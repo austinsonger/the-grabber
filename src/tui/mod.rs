@@ -13,6 +13,8 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use tokio::sync::mpsc;
 
+use crate::app_config;
+
 // ---------------------------------------------------------------------------
 // Progress events sent from collector tasks → TUI
 // ---------------------------------------------------------------------------
@@ -156,6 +158,8 @@ pub struct App {
 
 impl App {
     pub fn new(profiles: Vec<String>) -> Self {
+        let config = app_config::load_config().unwrap_or_default();
+
         let collector_items = vec![
             // JSON evidence collectors (time-windowed)
             ("cloudtrail",         "CloudTrail API           (last 90 days, JSON)"),
@@ -345,26 +349,44 @@ impl App {
             }
         }
 
-        let profile_cursor = profiles
-            .iter()
-            .position(|p| p.contains("Prod"))
-            .unwrap_or(0);
+        let profile_cursor = if let Some(ref needle) = config.default_profile_contains {
+            profiles
+                .iter()
+                .position(|p| p.contains(needle))
+                .unwrap_or(0)
+        } else {
+            profiles
+                .iter()
+                .position(|p| p.contains("Prod"))
+                .unwrap_or(0)
+        };
+
+        let regions = vec![
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-central-1",
+            "ap-southeast-1",
+            "ap-northeast-1",
+        ];
+
+        let region_cursor = if let Some(ref default_region) = config.default_region {
+            regions
+                .iter()
+                .position(|r| r == default_region)
+                .unwrap_or(0)
+        } else {
+            0
+        };
 
         Self {
             screen: Screen::Welcome,
             profiles,
             profile_cursor,
-            regions: vec![
-                "us-east-1",
-                "us-east-2",
-                "us-west-1",
-                "us-west-2",
-                "eu-west-1",
-                "eu-central-1",
-                "ap-southeast-1",
-                "ap-northeast-1",
-            ],
-            region_cursor: 0,
+            regions,
+            region_cursor,
             region_custom: TextInput::default(),
             region_use_custom: false,
             start_date: TextInput::new("2025-09-01"),
@@ -375,7 +397,12 @@ impl App {
             collector_items,
             collector_cursor: 0,
             collector_selected,
-            output_dir: TextInput::new("."),
+            output_dir: TextInput::new(
+                config
+                    .default_output_dir
+                    .as_deref()
+                    .unwrap_or("."),
+            ),
             filter_input: TextInput::default(),
             include_raw: false,
             options_field: 0,
