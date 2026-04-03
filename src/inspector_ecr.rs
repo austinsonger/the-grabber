@@ -12,49 +12,92 @@ fn secs_to_rfc3339(secs: i64) -> String {
         .unwrap_or_default()
 }
 
-// Deduplicate ECR findings by (CVE ID + Package Name), keeping the most recently
-// updated row for each key.
+// Deduplicate ECR findings by (CVE ID, Repository Name, Package Name).
 //
-// The same CVE often appears across dozens of image versions (different hashes)
-// in the same or different repos. Keying on CVE ID + Package Name collapses all
-// of those into a single representative row — the one with the latest Updated At
-// (col 47). RFC3339 strings compare correctly as plain strings.
+// Within each group the row with the newest Pushed At (col 33) is kept as the
+// representative finding — it reflects the current state of the repo. Five
+// annotation columns are appended to that row summarising the group:
 //
-// Fallback chain when fields are empty:
-//   1. CVE ID + Package Name      — same vuln in the same package (preferred)
-//   2. CVE ID + Source Layer Hash — same vuln at the same layer
-//   3. CVE ID + Resource ID       — same vuln in the same ECR resource
-//   4. Finding ARN                — no dedup (non-CVE or completely unidentified)
+//   Affected Image Count  — how many distinct images had this finding
+//   Oldest Push Date      — earliest Pushed At across the group
+//   Newest Push Date      — latest Pushed At across the group
+//   Has Closed Findings   — YES if any image in the group has status CLOSED
+//   Package Version Varies — YES if the vulnerable package version differs
+//                            across images (vuln persists through upgrades)
+//
+// Fallback key when fields are empty:
+//   1. CVE ID + Repository Name + Package Name  (primary)
+//   2. CVE ID + Package Name                    (no repo)
+//   3. CVE ID only                              (no package)
+//   4. Finding ARN                              (non-CVE)
+//
+// RFC3339 date strings compare correctly as plain strings, so string max/min
+// correctly identifies newest/oldest dates.
 fn dedup_ecr_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
     use std::collections::HashMap;
-    // Maps dedup key → (row, updated_at_string)
-    let mut best: HashMap<String, (Vec<String>, String)> = HashMap::new();
-    for row in rows {
-        let cve_id    = row.get(8).map(|s| s.as_str()).unwrap_or("");
-        let pkg_name  = row.get(18).map(|s| s.as_str()).unwrap_or("");
-        let src_layer = row.get(25).map(|s| s.as_str()).unwrap_or("");
-        let resource  = row.get(36).map(|s| s.as_str()).unwrap_or("");
-        let arn       = row.get(0).map(|s| s.as_str()).unwrap_or("");
-        let updated   = row.get(47).map(|s| s.clone()).unwrap_or_default();
 
-        let key = if !cve_id.is_empty() && !pkg_name.is_empty() {
+    // Group rows by dedup key
+    let mut groups: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    for row in rows {
+        let cve_id   = row.get(8).map(|s| s.as_str()).unwrap_or("");
+        let pkg_name = row.get(18).map(|s| s.as_str()).unwrap_or("");
+        let repo     = row.get(26).map(|s| s.as_str()).unwrap_or("");
+        let arn      = row.get(0).map(|s| s.as_str()).unwrap_or("");
+
+        let key = if !cve_id.is_empty() && !repo.is_empty() && !pkg_name.is_empty() {
+            format!("repo_pkg:{}|{}|{}", cve_id, repo, pkg_name)
+        } else if !cve_id.is_empty() && !pkg_name.is_empty() {
             format!("pkg:{}|{}", cve_id, pkg_name)
-        } else if !cve_id.is_empty() && !src_layer.is_empty() {
-            format!("lyr:{}|{}", cve_id, src_layer)
-        } else if !cve_id.is_empty() && !resource.is_empty() {
-            format!("res:{}|{}", cve_id, resource)
+        } else if !cve_id.is_empty() {
+            format!("cve:{}", cve_id)
         } else {
             format!("arn:{}", arn)
         };
 
-        let replace = best.get(&key)
-            .map(|(_, existing)| updated > *existing)
-            .unwrap_or(true);
-        if replace {
-            best.insert(key, (row, updated));
-        }
+        groups.entry(key).or_default().push(row);
     }
-    best.into_values().map(|(row, _)| row).collect()
+
+    let mut out = Vec::with_capacity(groups.len());
+    for (_key, mut group_rows) in groups {
+        // Sort descending by Pushed At so index 0 is the newest image
+        group_rows.sort_by(|a, b| {
+            let pa = a.get(33).map(|s| s.as_str()).unwrap_or("");
+            let pb = b.get(33).map(|s| s.as_str()).unwrap_or("");
+            pb.cmp(pa)
+        });
+
+        // Collect group-level metadata
+        let image_count = group_rows.len().to_string();
+
+        let pushed_dates: Vec<&str> = group_rows.iter()
+            .map(|r| r.get(33).map(|s| s.as_str()).unwrap_or(""))
+            .filter(|s| !s.is_empty())
+            .collect();
+        // After sort-desc: first = newest, last = oldest
+        let newest_push = pushed_dates.first().copied().unwrap_or("").to_string();
+        let oldest_push = pushed_dates.last().copied().unwrap_or("").to_string();
+
+        let has_closed = if group_rows.iter()
+            .any(|r| r.get(43).map(|s| s.as_str()).unwrap_or("") == "CLOSED")
+        { "YES" } else { "NO" };
+
+        let pkg_versions: std::collections::HashSet<&str> = group_rows.iter()
+            .map(|r| r.get(19).map(|s| s.as_str()).unwrap_or(""))
+            .filter(|s| !s.is_empty())
+            .collect();
+        let version_varies = if pkg_versions.len() > 1 { "YES" } else { "NO" };
+
+        // Take the best row (newest Pushed At) and append annotation columns
+        let mut best_row = group_rows.into_iter().next().unwrap();
+        best_row.push(image_count);
+        best_row.push(oldest_push);
+        best_row.push(newest_push);
+        best_row.push(has_closed.to_string());
+        best_row.push(version_varies.to_string());
+
+        out.push(best_row);
+    }
+    out
 }
 
 pub struct InspectorEcrCollector {
@@ -130,6 +173,12 @@ impl CsvCollector for InspectorEcrCollector {
             "First Observed At",
             "Last Observed At",
             "Updated At",
+            // Dedup annotations (appended by dedup_ecr_rows)
+            "Affected Image Count",
+            "Oldest Push Date",
+            "Newest Push Date",
+            "Has Closed Findings",
+            "Package Version Varies",
         ]
     }
 
