@@ -49,15 +49,14 @@ impl CsvCollector for InspectorFindingsHistoryCollector {
         }
 
         // Filter findings to the requested date window by first_observed_at.
+        // !! DATE FILTER: MUST use first_observed_at — do NOT use last_observed_at or updated_at !!
+        // See inspector.rs for full rationale. last_observed_at and updated_at are refreshed
+        // on every rescan and cannot be used to scope results to a specific time period.
         let filter = dates.map(|(start, end)| {
             FilterCriteria::builder()
-                .last_observed_at(
-                    DateFilter::builder()
-                        .start_inclusive(InspectorDateTime::from_secs(start))
-                        .build()
-                )
                 .first_observed_at(
                     DateFilter::builder()
+                        .start_inclusive(InspectorDateTime::from_secs(start))
                         .end_inclusive(InspectorDateTime::from_secs(end))
                         .build()
                 )

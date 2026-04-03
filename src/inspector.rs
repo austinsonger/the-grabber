@@ -2,7 +2,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use aws_sdk_inspector2::Client as Inspector2Client;
 use aws_sdk_inspector2::primitives::DateTime as InspectorDateTime;
-use aws_sdk_inspector2::types::{DateFilter, FilterCriteria, StringComparison, StringFilter};
+use aws_sdk_inspector2::types::{DateFilter, FilterCriteria, SortCriteria, SortField,
+    SortOrder, StringComparison, StringFilter};
 
 use crate::evidence::CsvCollector;
 
@@ -10,6 +11,47 @@ fn secs_to_rfc3339(secs: i64) -> String {
     chrono::DateTime::<chrono::Utc>::from_timestamp(secs, 0)
         .map(|c| c.to_rfc3339())
         .unwrap_or_default()
+}
+
+// Deduplicate Inspector2 findings (non-ECR) by (CVE ID + Resource ID + Package Name).
+//
+// The same CVE can appear in multiple rows when a vulnerability is present in
+// several packages on the same resource, or when the same package vulnerability
+// is reported against multiple layers. Using all three fields avoids collapsing
+// genuinely distinct package-level findings while removing true duplicates.
+//
+// Fallback chain when fields are empty:
+//   1. CVE ID + Resource ID + Package Name  — same vuln in same pkg on same resource
+//   2. CVE ID + Resource ID                 — same vuln on same resource (any package)
+//   3. CVE ID + Source Layer Hash           — same vuln at the same layer
+//   4. Finding ARN                          — no dedup (non-CVE or unidentified)
+//
+// Rows arrive sorted by Inspector Score descending (API-side sort), so the first
+// occurrence for each key already has the highest score.
+fn dedup_findings_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
+    use std::collections::HashSet;
+    let mut seen = HashSet::new();
+    let mut out  = Vec::with_capacity(rows.len());
+    for row in rows {
+        let cve_id    = row.get(8).map(|s| s.as_str()).unwrap_or("");
+        let pkg_name  = row.get(18).map(|s| s.as_str()).unwrap_or("");
+        let src_layer = row.get(25).map(|s| s.as_str()).unwrap_or("");
+        let resource  = row.get(26).map(|s| s.as_str()).unwrap_or("");
+        let arn       = row.get(0).map(|s| s.as_str()).unwrap_or("");
+        let key = if !cve_id.is_empty() && !resource.is_empty() && !pkg_name.is_empty() {
+            format!("res_pkg:{}|{}|{}", cve_id, resource, pkg_name)
+        } else if !cve_id.is_empty() && !resource.is_empty() {
+            format!("res:{}|{}", cve_id, resource)
+        } else if !cve_id.is_empty() && !src_layer.is_empty() {
+            format!("lyr:{}|{}", cve_id, src_layer)
+        } else {
+            format!("arn:{}", arn)
+        };
+        if seen.insert(key) {
+            out.push(row);
+        }
+    }
+    out
 }
 
 pub struct InspectorCollector {
@@ -125,28 +167,23 @@ impl CsvCollector for InspectorCollector {
             .resource_type(ecr_exclusion_1)
             .resource_type(ecr_exclusion_2);
 
-        // Apply audit-period overlap filter when a date range is provided.
+        // !! DATE FILTER: MUST use first_observed_at — do NOT use last_observed_at or updated_at !!
         //
-        // A finding "overlaps" the audit period when:
-        //   first_observed_at <= end_date  (was present before or during the period)
-        //   last_observed_at  >= start_date (was still active at or after period start)
+        // Inspector2 rescans continuously. last_observed_at and updated_at are refreshed
+        // on EVERY rescan for EVERY active finding, so they are always stamped with today's
+        // date. Filtering on them returns the full active findings set regardless of the
+        // requested window — verified empirically: 10,000 findings returned for a 30-day
+        // window when those fields were used.
         //
-        // This returns every finding that was active at any point during the window —
-        // including long-running vulnerabilities first seen before the period and
-        // new ones still open at the end.  Using only updated_at would miss stable
-        // findings that Inspector2 confirmed but didn't re-score during the window.
+        // first_observed_at is set ONCE when Inspector2 creates the finding and never
+        // changes. It is the only field that reliably scopes results to a date period.
         if let Some((start, end)) = dates {
-            filter_builder = filter_builder
-                .last_observed_at(
-                    DateFilter::builder()
-                        .start_inclusive(InspectorDateTime::from_secs(start))
-                        .build()
-                )
-                .first_observed_at(
-                    DateFilter::builder()
-                        .end_inclusive(InspectorDateTime::from_secs(end))
-                        .build()
-                );
+            filter_builder = filter_builder.first_observed_at(
+                DateFilter::builder()
+                    .start_inclusive(InspectorDateTime::from_secs(start))
+                    .end_inclusive(InspectorDateTime::from_secs(end))
+                    .build()
+            );
         }
         let filter = filter_builder.build();
 
@@ -159,7 +196,14 @@ impl CsvCollector for InspectorCollector {
             let mut req = self.client
                 .list_findings()
                 .max_results(100)
-                .filter_criteria(filter.clone());
+                .filter_criteria(filter.clone())
+                .sort_criteria(
+                    SortCriteria::builder()
+                        .field(SortField::InspectorScore)
+                        .sort_order(SortOrder::Desc)
+                        .build()
+                        .expect("SortCriteria is always valid")
+                );
             if let Some(ref t) = next_token {
                 req = req.next_token(t);
             }
@@ -302,6 +346,13 @@ impl CsvCollector for InspectorCollector {
 
             next_token = resp.next_token().map(|s| s.to_string());
             if next_token.is_none() { break; }
+        }
+
+        let before = rows.len();
+        let rows = dedup_findings_rows(rows);
+        let removed = before - rows.len();
+        if removed > 0 {
+            eprintln!("  Inspector2: removed {removed} duplicate findings ({before} → {})", rows.len());
         }
 
         Ok(rows)

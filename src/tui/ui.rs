@@ -311,7 +311,7 @@ fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::SelectAccount => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "All"), ("d", "None"), ("⏎", "Confirm"), ("Esc", "Quit")],
         Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::SelectRegion => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SetDates => vec![("⇥", "Switch"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SetDates => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SetOptions => vec![("⇥", "Switch"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
@@ -637,32 +637,59 @@ fn draw_region(f: &mut Frame, area: Rect, app: &App) {
 fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::vertical([
         Constraint::Length(2),
-        Constraint::Length(1),
-        Constraint::Length(3),
-        Constraint::Length(1),
-        Constraint::Length(3),
         Constraint::Fill(1),
     ])
     .split(content_inset(area));
 
     f.render_widget(
         Paragraph::new(Span::styled(
-            "Set the date range for time-windowed evidence:",
+            "Select how far back to collect evidence:",
             Style::default().fg(TEXT_DIM),
         )),
         chunks[0],
     );
 
-    f.render_widget(
-        Paragraph::new(Span::styled(
-            "Format: YYYY-MM-DD",
-            Style::default().fg(TEXT_DIM).add_modifier(Modifier::ITALIC),
-        )),
-        Rect { x: chunks[1].x + 6, ..chunks[1] },
-    );
+    const MONTH_LABELS: [&str; 12] = [
+        "1 Month", "2 Months", "3 Months", "4 Months",
+        "5 Months", "6 Months", "7 Months", "8 Months",
+        "9 Months", "10 Months", "11 Months", "12 Months",
+    ];
 
-    draw_text_field(f, chunks[2], "Start Date", &app.start_date.value, app.date_field == 0);
-    draw_text_field(f, chunks[4], "End Date", &app.end_date.value, app.date_field == 1);
+    let items: Vec<ListItem> = MONTH_LABELS
+        .iter()
+        .enumerate()
+        .map(|(i, label)| {
+            let selected = i == app.time_frame_cursor;
+            let icon = if selected { "▸ " } else { "  " };
+            let style = if selected {
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+            ListItem::new(Line::from(vec![
+                Span::styled(icon, Style::default().fg(AMBER)),
+                Span::styled(*label, style),
+            ]))
+        })
+        .collect();
+
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .title(Span::styled(" Time Frame ", Style::default().fg(CYAN_DIM)))
+        .padding(Padding::horizontal(1));
+
+    let mut state = ListState::default();
+    state.select(Some(app.time_frame_cursor));
+
+    f.render_stateful_widget(
+        List::new(items)
+            .highlight_style(Style::default())
+            .highlight_symbol("")
+            .block(block),
+        chunks[1],
+        &mut state,
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -671,17 +698,18 @@ fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
 
 /// Category boundaries for section headers.
 const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
-    (0,  "Time-Windowed Evidence (JSON)"),
-    (4,  "Infrastructure & Services (CSV)"),
-    (22, "IAM"),
-    (26, "Security Services"),
-    (29, "Network & Compute"),
-    (33, "Encryption & Secrets"),
-    (35, "Storage"),
-    (36, "Monitoring"),
-    (38, "Application Layer"),
-    (40, "Containers"),
-    (42, "Extended Configuration"),
+    (0,   "App Layer & DNS"),
+    (6,   "Audit Trail"),
+    (23,  "Compute"),
+    (37,  "Containers"),
+    (41,  "Database & Backup"),
+    (48,  "Encryption & Secrets"),
+    (55,  "Identity & Access"),
+    (67,  "Monitoring & Events"),
+    (77,  "Network"),
+    (97,  "Organization & Account"),
+    (101, "Security Detection"),
+    (113, "Storage"),
 ];
 
 fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
@@ -914,7 +942,13 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         rows.push(kv_line("Region", &region));
     }
 
+    let time_frame_label = format!(
+        "{} Month{}",
+        app.time_frame_months(),
+        if app.time_frame_months() == 1 { "" } else { "s" },
+    );
     rows.extend_from_slice(&[
+        kv_line("Time Frame", &time_frame_label),
         kv_line("Start Date", &app.start_date.value),
         kv_line("End Date", &app.end_date.value),
         kv_line_colored("Collectors", &collectors, AMBER),

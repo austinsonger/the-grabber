@@ -153,10 +153,10 @@ pub struct App {
     /// When true, collect evidence from every enabled AWS region (round-robin).
     pub all_regions: bool,
 
-    // Date inputs
+    // Date inputs (computed from time_frame_cursor, not typed by user)
     pub start_date: TextInput,
     pub end_date: TextInput,
-    pub date_field: usize, // 0 = start, 1 = end
+    pub time_frame_cursor: usize, // 0 = 1 Month, 1 = 2 Months, … 11 = 12 Months
 
     // Collector selection (multi-select)
     pub collector_items: Vec<(&'static str, &'static str)>, // (key, label)
@@ -196,173 +196,144 @@ impl App {
         let config = app_config::load_config().unwrap_or_default();
 
         let collector_items = vec![
-            // JSON evidence collectors (time-windowed)
-            ("cloudtrail",         "CloudTrail API           (last 90 days, JSON)"),
-            ("backup",             "AWS Backup API           (native backup jobs, JSON)"),
-            ("rds",                "RDS Snapshots            (last 30 days, JSON)"),
-            ("s3",                 "CloudTrail S3            (7 months, requires s3-bucket, JSON)"),
-            // CSV inventory collectors (current state)
-            ("vpc",                "VPCs                     (current state, CSV)"),
-            ("nacl",               "Network ACLs             (current state, CSV)"),
-            ("waf",                "WAF Regional Web ACLs    (current state, CSV)"),
-            ("elasticache",        "ElastiCache Clusters     (current state, CSV)"),
-            ("elasticache-global", "ElastiCache Global DS    (current state, CSV)"),
-            ("efs",                "EFS File Systems         (current state, CSV)"),
-            ("dynamodb",           "DynamoDB Tables          (current state, CSV)"),
-            ("ebs",                "EBS Volumes              (current state, CSV)"),
-            ("rds-inventory",      "RDS Inventory            (current state, CSV)"),
-            ("cloudtrail-config",  "CloudTrail Configuration (current state, CSV)"),
-            ("sns",                "SNS Topic Subscribers    (current state, CSV)"),
-            ("vpc-flow-logs",      "VPC Flow Logging         (current state, CSV)"),
-            ("metric-filters",     "Log Metric Filters/Alarms(current state, CSV)"),
-            ("s3-logging",         "S3 Bucket Access Logging (current state, CSV)"),
-            ("iam-certs",          "IAM Certificates         (current state, CSV)"),
-            ("elb",                "Load Balancers           (current state, CSV)"),
-            ("elb-listeners",      "Load Balancer Listeners  (current state, CSV)"),
-            ("acm",                "ACM Certificates         (current state, CSV)"),
-            // IAM
-            ("iam-users",          "IAM Users                (current state, CSV)"),
-            ("iam-roles",          "IAM Roles                (current state, CSV)"),
-            ("iam-policies",       "IAM Policies             (current state, CSV)"),
-            ("iam-access-keys",    "IAM Access Keys          (current state, CSV)"),
-            // Security
-            ("guardduty",          "GuardDuty Findings       (current state, CSV)"),
-            ("securityhub",        "Security Hub Findings    (current state, CSV)"),
-            ("config-rules",       "AWS Config Rules         (current state, CSV)"),
-            // Network (EC2)
-            ("security-groups",    "Security Groups          (current state, CSV)"),
-            ("route-tables",       "Route Tables             (current state, CSV)"),
-            ("ec2-instances",      "EC2 Instances            (current state, CSV)"),
-            ("asg",                "Auto Scaling Groups      (current state, CSV)"),
-            // Encryption / secrets
-            ("kms",                "KMS Keys                 (current state, CSV)"),
-            ("secrets",            "Secrets Manager          (current state, CSV)"),
-            // Storage
-            ("s3-config",          "S3 Buckets Config        (current state, CSV)"),
-            // Monitoring
-            ("cw-alarms",          "CloudWatch Alarms        (current state, CSV)"),
-            ("cw-log-groups",      "CloudWatch Log Groups    (current state, CSV)"),
-            // App layer
+            // ── App Layer & DNS ── (0..6)
             ("api-gateway",        "API Gateway              (current state, CSV)"),
             ("cloudfront",         "CloudFront Distributions (current state, CSV)"),
-            // Containers
+            ("lambda-config",      "Lambda Configuration     (current state, CSV)"),
+            ("lambda-permissions", "Lambda Permissions       (current state, CSV)"),
+            ("route53-zones",      "Route53 Hosted Zones     (current state, CSV)"),
+            ("route53-resolver",   "Route53 Resolver Rules   (current state, CSV)"),
+            // ── Audit Trail ── (6..23)
+            ("config-recorder",    "AWS Config Recorder      (current state, CSV)"),
+            ("config-rules",       "AWS Config Rules         (current state, CSV)"),
+            ("cfn-drift",          "CloudFormation Drift     (current state, CSV)"),
+            ("cloudtrail",         "CloudTrail API           (last 90 days, JSON)"),
+            ("ct-changes",         "CloudTrail Change Events (last 7 days, CSV)"),
+            ("cloudtrail-config",  "CloudTrail Configuration (current state, CSV)"),
+            ("ct-selectors",       "CloudTrail Evt Selectors (current state, CSV)"),
+            ("ct-full-config",     "CloudTrail Full Config   (current state, CSV)"),
+            ("ct-validation",      "CloudTrail Log Validation(current state, CSV)"),
+            ("s3",                 "CloudTrail S3            (7 months, requires s3-bucket, JSON)"),
+            ("ct-s3-policy",       "CloudTrail S3 Policy     (current state, CSV)"),
+            ("config-compliance",  "Config Compliance History(all rules, CSV)"),
+            ("config-history",     "Config Resource History  (current state, CSV)"),
+            ("config-timeline",    "Config Resource Timeline (last 5 per resource, CSV)"),
+            ("config-snapshot",    "Config Snapshot (PiT)    (point-in-time, CSV)"),
+            ("ct-config-changes",  "CT Config Change Events  (last 90 days, CSV)"),
+            ("ct-iam-changes",     "CT IAM Changes (Hi-Risk) (last 90 days, CSV)"),
+            // ── Compute ── (23..37)
+            ("asg",                "Auto Scaling Groups      (current state, CSV)"),
+            ("ec2-detailed",       "EC2 Details (AMI/IMDS)   (current state, CSV)"),
+            ("ec2-config",         "EC2 Instance Config      (current state, CSV)"),
+            ("ec2-instances",      "EC2 Instances            (current state, CSV)"),
+            ("launch-templates",   "EC2 Launch Templates     (current state, CSV)"),
+            ("ssm-maint-windows",  "SSM Maintenance Windows  (current state, CSV)"),
+            ("ssm-instances",      "SSM Managed Instances    (current state, CSV)"),
+            ("ssm-params",         "SSM Parameter Store      (current state, CSV)"),
+            ("ssm-baselines",      "SSM Patch Baselines      (current state, CSV)"),
+            ("ssm-patches",        "SSM Patch Compliance     (current state, CSV)"),
+            ("ssm-patch-detail",   "SSM Patch Detail         (per instance, CSV)"),
+            ("ssm-patch-exec",     "SSM Patch Executions     (command history, CSV)"),
+            ("ssm-patch-summary",  "SSM Patch Summary        (per instance, CSV)"),
+            ("time-sync",          "Time Sync Config (SSM)   (current state, CSV)"),
+            // ── Containers ── (37..41)
+            ("ecr-scan",           "ECR Image Scan Findings  (current state, CSV)"),
+            ("ecr-config",         "ECR Repo Config          (current state, CSV)"),
             ("ecs",                "ECS Clusters             (current state, CSV)"),
             ("eks",                "EKS Clusters             (current state, CSV)"),
-            // IAM extended
-            ("iam-trusts",         "IAM Role Trust Policies  (current state, CSV)"),
-            ("access-analyzer",    "IAM Access Analyzer      (current state, CSV)"),
-            ("scp",                "Org SCPs                 (requires org admin, CSV)"),
-            // CloudTrail extended
-            ("ct-selectors",       "CloudTrail Evt Selectors (current state, CSV)"),
-            ("ct-validation",      "CloudTrail Log Validation(current state, CSV)"),
-            ("ct-s3-policy",       "CloudTrail S3 Policy     (current state, CSV)"),
-            ("ct-changes",         "CloudTrail Change Events (last 7 days, CSV)"),
-            ("s3-data-events",     "S3 Data Events Config    (current state, CSV)"),
-            // GuardDuty extended
-            ("guardduty-config",   "GuardDuty Config         (current state, CSV)"),
-            ("guardduty-rules",    "GuardDuty Suppression    (current state, CSV)"),
-            // Security Hub extended
-            ("sh-standards",       "SecurityHub Standards    (current state, CSV)"),
-            // Network extended
-            ("igw",                "Internet Gateways        (current state, CSV)"),
-            ("nat-gateways",       "NAT Gateways             (current state, CSV)"),
-            ("public-resources",   "Publicly Exposed Res.    (current state, CSV)"),
-            // EC2/SSM extended
-            ("ec2-detailed",       "EC2 Details (AMI/IMDS)   (current state, CSV)"),
-            ("ssm-instances",      "SSM Managed Instances    (current state, CSV)"),
-            ("ssm-patches",        "SSM Patch Compliance     (current state, CSV)"),
-            // Encryption extended
-            ("kms-policies",       "KMS Key Policies         (current state, CSV)"),
-            ("ebs-encryption",     "EBS Default Encryption   (current state, CSV)"),
-            ("rds-snapshots",      "RDS Snapshots            (current state, CSV)"),
-            ("s3-policies",        "S3 Bucket Policies       (current state, CSV)"),
-            // Other
-            ("macie",              "Macie Findings           (if enabled, CSV)"),
-            ("config-history",     "Config Resource History  (current state, CSV)"),
-            ("inspector",          "Inspector2 Findings      (if enabled, CSV)"),
-            ("ecr-scan",           "ECR Image Scan Findings  (current state, CSV)"),
-            ("waf-logging",        "WAF Logging Config       (current state, CSV)"),
-            ("alb-logs",           "ALB Access Log Config    (current state, CSV)"),
-            // IAM config
-            ("iam-role-policies",  "IAM Role Policies        (current state, CSV)"),
-            ("iam-user-policies",  "IAM User Policies        (current state, CSV)"),
-            ("iam-password-policy","IAM Password Policy      (current state, CSV)"),
-            // KMS / EBS config
-            ("kms-config",         "KMS Key Config (Full)    (current state, CSV)"),
-            ("ebs-config",         "EBS Encryption Config    (current state, CSV)"),
-            // S3 detail
-            ("s3-encryption",      "S3 Encryption Config     (current state, CSV)"),
-            ("s3-bucket-policy",   "S3 Bucket Policy (Full)  (current state, CSV)"),
-            ("s3-public-access",   "S3 Public Access Block   (current state, CSV)"),
-            ("s3-logging-config",  "S3 Logging Config        (current state, CSV)"),
-            // EC2 config
-            ("sg-config",          "Security Group Config    (current state, CSV)"),
-            ("vpc-config",         "VPC Configuration        (current state, CSV)"),
-            ("rt-config",          "Route Table Config       (current state, CSV)"),
-            ("ec2-config",         "EC2 Instance Config      (current state, CSV)"),
-            // CloudTrail / CloudWatch config
-            ("ct-full-config",     "CloudTrail Full Config   (current state, CSV)"),
-            ("cw-log-config",      "CW Log Group Config      (current state, CSV)"),
-            ("metric-filter-config","Metric Filter Config    (current state, CSV)"),
-            // Security service config
-            ("gd-full-config",     "GuardDuty Full Config    (current state, CSV)"),
-            ("sh-config",          "SecurityHub Config       (current state, CSV)"),
-            ("config-recorder",    "AWS Config Recorder      (current state, CSV)"),
-            // EC2 extended
-            ("launch-templates",   "EC2 Launch Templates     (current state, CSV)"),
-            ("vpc-endpoints",      "VPC Endpoints            (current state, CSV)"),
-            // SSM extended
-            ("ssm-baselines",      "SSM Patch Baselines      (current state, CSV)"),
-            ("ssm-params",         "SSM Parameter Store      (current state, CSV)"),
-            ("time-sync",          "Time Sync Config (SSM)   (current state, CSV)"),
-            // Inspector / WAF / ELB
-            ("inspector-config",   "Inspector2 Config        (if enabled, CSV)"),
-            ("inspector-ecr",      "Inspector2 ECR Findings  (if enabled, CSV)"),
-            ("waf-config",         "WAF Full Config          (current state, CSV)"),
-            ("elb-full-config",    "Load Balancer Full Config(current state, CSV)"),
-            // Org + account
-            ("org-config",         "AWS Org Config           (requires org master, CSV)"),
-            ("account-contacts",   "Account Alt. Contacts    (current state, CSV)"),
-            ("saml-providers",     "SAML IdP Config          (current state, CSV)"),
-            ("iam-account-summary","IAM Account Summary      (current state, CSV)"),
-            // SNS / EventBridge
-            ("sns-policies",       "SNS Topic Policies       (current state, CSV)"),
-            ("eventbridge-rules",  "EventBridge Rules        (current state, CSV)"),
-            // Backup
+            // ── Database & Backup ── (41..48)
+            ("backup",             "AWS Backup API           (native backup jobs, JSON)"),
             ("backup-plans",       "AWS Backup Plans         (current state, CSV)"),
             ("backup-vaults",      "Backup Vault Config      (current state, CSV)"),
             ("rds-backup-config",  "RDS Backup Config        (current state, CSV)"),
-            // Lambda
-            ("lambda-config",      "Lambda Configuration     (current state, CSV)"),
-            ("lambda-permissions", "Lambda Permissions       (current state, CSV)"),
-            // ECR
-            ("ecr-config",         "ECR Repo Config          (current state, CSV)"),
-            // Route53
-            ("route53-zones",      "Route53 Hosted Zones     (current state, CSV)"),
-            ("route53-resolver",   "Route53 Resolver Rules   (current state, CSV)"),
-            // Tagging / Secrets
-            ("resource-tags",      "Resource Tags            (current state, CSV)"),
+            ("rds-inventory",      "RDS Inventory            (current state, CSV)"),
+            ("rds",                "RDS Snapshots            (last 30 days, JSON)"),
+            ("rds-snapshots",      "RDS Snapshots            (current state, CSV)"),
+            // ── Encryption & Secrets ── (48..55)
+            ("ebs-encryption",     "EBS Default Encryption   (current state, CSV)"),
+            ("ebs-config",         "EBS Encryption Config    (current state, CSV)"),
+            ("kms-config",         "KMS Key Config (Full)    (current state, CSV)"),
+            ("kms-policies",       "KMS Key Policies         (current state, CSV)"),
+            ("kms",                "KMS Keys                 (current state, CSV)"),
+            ("secrets",            "Secrets Manager          (current state, CSV)"),
             ("secrets-policies",   "Secrets Manager Policies (current state, CSV)"),
-            // Config timeline / compliance / snapshot
-            ("config-timeline",    "Config Resource Timeline (last 5 per resource, CSV)"),
-            ("config-compliance",  "Config Compliance History(all rules, CSV)"),
-            ("config-snapshot",    "Config Snapshot (PiT)    (point-in-time, CSV)"),
-            // CloudTrail high-signal changes
-            ("ct-config-changes",  "CT Config Change Events  (last 90 days, CSV)"),
-            ("ct-iam-changes",     "CT IAM Changes (Hi-Risk) (last 90 days, CSV)"),
-            // CloudFormation
-            ("cfn-drift",          "CloudFormation Drift     (current state, CSV)"),
-            // SSM patch detail
-            ("ssm-patch-detail",   "SSM Patch Detail         (per instance, CSV)"),
-            ("ssm-patch-summary",  "SSM Patch Summary        (per instance, CSV)"),
-            ("ssm-patch-exec",     "SSM Patch Executions     (command history, CSV)"),
-            ("ssm-maint-windows",  "SSM Maintenance Windows  (current state, CSV)"),
-            // Inspector history
-            ("inspector-history",  "Inspector Findings Hist. (if enabled, CSV)"),
-            // CloudWatch alarms
+            // ── Identity & Access ── (55..67)
+            ("access-analyzer",    "IAM Access Analyzer      (current state, CSV)"),
+            ("iam-access-keys",    "IAM Access Keys          (current state, CSV)"),
+            ("iam-account-summary","IAM Account Summary      (current state, CSV)"),
+            ("iam-certs",          "IAM Certificates         (current state, CSV)"),
+            ("iam-password-policy","IAM Password Policy      (current state, CSV)"),
+            ("iam-policies",       "IAM Policies             (current state, CSV)"),
+            ("iam-role-policies",  "IAM Role Policies        (current state, CSV)"),
+            ("iam-trusts",         "IAM Role Trust Policies  (current state, CSV)"),
+            ("iam-roles",          "IAM Roles                (current state, CSV)"),
+            ("iam-user-policies",  "IAM User Policies        (current state, CSV)"),
+            ("iam-users",          "IAM Users                (current state, CSV)"),
+            ("saml-providers",     "SAML IdP Config          (current state, CSV)"),
+            // ── Monitoring & Events ── (67..77)
+            ("cw-alarms",          "CloudWatch Alarms        (current state, CSV)"),
+            ("cw-log-groups",      "CloudWatch Log Groups    (current state, CSV)"),
             ("cw-config-alarms",   "CW Alarms (All)          (current state, CSV)"),
-            // EventBridge change rules
+            ("cw-log-config",      "CW Log Group Config      (current state, CSV)"),
             ("change-event-rules", "EventBridge Change Rules (event-pattern, CSV)"),
+            ("eventbridge-rules",  "EventBridge Rules        (current state, CSV)"),
+            ("metric-filters",     "Log Metric Filters/Alarms(current state, CSV)"),
+            ("metric-filter-config","Metric Filter Config    (current state, CSV)"),
+            ("sns-policies",       "SNS Topic Policies       (current state, CSV)"),
+            ("sns",                "SNS Topic Subscribers    (current state, CSV)"),
+            // ── Network ── (77..97)
+            ("acm",                "ACM Certificates         (current state, CSV)"),
+            ("alb-logs",           "ALB Access Log Config    (current state, CSV)"),
+            ("igw",                "Internet Gateways        (current state, CSV)"),
+            ("elb-full-config",    "Load Balancer Full Config(current state, CSV)"),
+            ("elb-listeners",      "Load Balancer Listeners  (current state, CSV)"),
+            ("elb",                "Load Balancers           (current state, CSV)"),
+            ("nat-gateways",       "NAT Gateways             (current state, CSV)"),
+            ("nacl",               "Network ACLs             (current state, CSV)"),
+            ("public-resources",   "Publicly Exposed Res.    (current state, CSV)"),
+            ("rt-config",          "Route Table Config       (current state, CSV)"),
+            ("route-tables",       "Route Tables             (current state, CSV)"),
+            ("sg-config",          "Security Group Config    (current state, CSV)"),
+            ("security-groups",    "Security Groups          (current state, CSV)"),
+            ("vpc-config",         "VPC Configuration        (current state, CSV)"),
+            ("vpc-endpoints",      "VPC Endpoints            (current state, CSV)"),
+            ("vpc-flow-logs",      "VPC Flow Logging         (current state, CSV)"),
+            ("vpc",                "VPCs                     (current state, CSV)"),
+            ("waf-config",         "WAF Full Config          (current state, CSV)"),
+            ("waf-logging",        "WAF Logging Config       (current state, CSV)"),
+            ("waf",                "WAF Regional Web ACLs    (current state, CSV)"),
+            // ── Organization & Account ── (97..101)
+            ("account-contacts",   "Account Alt. Contacts    (current state, CSV)"),
+            ("org-config",         "AWS Org Config           (requires org master, CSV)"),
+            ("scp",                "Org SCPs                 (requires org admin, CSV)"),
+            ("resource-tags",      "Resource Tags            (current state, CSV)"),
+            // ── Security Detection ── (101..113)
+            ("guardduty-config",   "GuardDuty Config         (current state, CSV)"),
+            ("guardduty",          "GuardDuty Findings       (current state, CSV)"),
+            ("gd-full-config",     "GuardDuty Full Config    (current state, CSV)"),
+            ("guardduty-rules",    "GuardDuty Suppression    (current state, CSV)"),
+            ("inspector-history",  "Inspector Findings Hist. (if enabled, CSV)"),
+            ("inspector-config",   "Inspector2 Config        (if enabled, CSV)"),
+            ("inspector-ecr",      "Inspector2 ECR Findings  (if enabled, CSV)"),
+            ("inspector",          "Inspector2 Findings      (if enabled, CSV)"),
+            ("macie",              "Macie Findings           (if enabled, CSV)"),
+            ("securityhub",        "Security Hub Findings    (current state, CSV)"),
+            ("sh-config",          "SecurityHub Config       (current state, CSV)"),
+            ("sh-standards",       "SecurityHub Standards    (current state, CSV)"),
+            // ── Storage ── (113..126)
+            ("dynamodb",           "DynamoDB Tables          (current state, CSV)"),
+            ("ebs",                "EBS Volumes              (current state, CSV)"),
+            ("efs",                "EFS File Systems         (current state, CSV)"),
+            ("elasticache",        "ElastiCache Clusters     (current state, CSV)"),
+            ("elasticache-global", "ElastiCache Global DS    (current state, CSV)"),
+            ("s3-logging",         "S3 Bucket Access Logging (current state, CSV)"),
+            ("s3-policies",        "S3 Bucket Policies       (current state, CSV)"),
+            ("s3-bucket-policy",   "S3 Bucket Policy (Full)  (current state, CSV)"),
+            ("s3-config",          "S3 Buckets Config        (current state, CSV)"),
+            ("s3-data-events",     "S3 Data Events Config    (current state, CSV)"),
+            ("s3-encryption",      "S3 Encryption Config     (current state, CSV)"),
+            ("s3-logging-config",  "S3 Logging Config        (current state, CSV)"),
+            ("s3-public-access",   "S3 Public Access Block   (current state, CSV)"),
         ];
 
         // --- Collector selection defaults ---
@@ -442,13 +413,13 @@ impl App {
             0
         };
 
-        // --- Start date ---
-        let start_date = if let Some(days) = config.defaults.start_date_offset_days {
-            let d = chrono::Utc::now().date_naive()
-                - chrono::Duration::days(days as i64);
-            d.format("%Y-%m-%d").to_string()
+        // --- Time frame cursor (default: derived from start_date_offset_days, else 2 = 3 months) ---
+        let time_frame_cursor = if let Some(days) = config.defaults.start_date_offset_days {
+            // Convert days to nearest whole month (1–12), clamp to 0-based index
+            let months = ((days as f32) / 30.0).round() as usize;
+            months.saturating_sub(1).min(11)
         } else {
-            "2025-09-01".to_string()
+            2 // default: 3 months
         };
 
         let include_raw = config.defaults.include_raw.unwrap_or(false);
@@ -468,11 +439,15 @@ impl App {
             region_custom: TextInput::default(),
             region_use_custom: false,
             all_regions: false,
-            start_date: TextInput::new(&start_date),
+            start_date: TextInput::new(
+                &(chrono::Utc::now().date_naive()
+                    - chrono::Months::new((time_frame_cursor as u32) + 1))
+                    .format("%Y-%m-%d").to_string(),
+            ),
             end_date: TextInput::new(
                 &chrono::Utc::now().format("%Y-%m-%d").to_string(),
             ),
-            date_field: 0,
+            time_frame_cursor,
             collector_items,
             collector_cursor: 0,
             collector_selected,
@@ -593,6 +568,20 @@ impl App {
     }
 
     // ------------------------------------------------------------------
+    // Time frame helpers
+    // ------------------------------------------------------------------
+
+    pub fn time_frame_months(&self) -> u32 {
+        (self.time_frame_cursor as u32) + 1
+    }
+
+    pub fn apply_time_frame(&mut self) {
+        let today = chrono::Utc::now().date_naive();
+        let start = today - chrono::Months::new(self.time_frame_months());
+        self.start_date = TextInput::new(&start.format("%Y-%m-%d").to_string());
+        self.end_date = TextInput::new(&today.format("%Y-%m-%d").to_string());
+    }
+
     // Navigation helpers
     // ------------------------------------------------------------------
 
@@ -617,11 +606,6 @@ impl App {
             Screen::Running         => Screen::Results,
             Screen::Results         => Screen::Results,
         };
-        // When entering the Dates screen, clear start_date so the user types fresh.
-        if self.screen == Screen::SetDates {
-            self.date_field = 0;
-            self.start_date.clear();
-        }
     }
 
     pub fn prev_screen(&mut self) {
@@ -667,16 +651,7 @@ impl App {
                 true
             }
             Screen::SetDates => {
-                let ok_start = chrono::NaiveDate::parse_from_str(
-                    &self.start_date.value, "%Y-%m-%d",
-                ).is_ok();
-                let ok_end = chrono::NaiveDate::parse_from_str(
-                    &self.end_date.value, "%Y-%m-%d",
-                ).is_ok();
-                if !ok_start || !ok_end {
-                    self.error_msg = Some("Dates must be YYYY-MM-DD format".into());
-                    return false;
-                }
+                self.apply_time_frame();
                 true
             }
             Screen::SelectCollectors => {
@@ -955,32 +930,8 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SetDates => match key {
-            KeyCode::Tab => {
-                app.date_field = (app.date_field + 1) % 2;
-                // Clear the newly focused field so the user types fresh.
-                if app.date_field == 0 { app.start_date.clear(); }
-                else { app.end_date.clear(); }
-            }
-            KeyCode::Char('u') if modifiers.contains(KeyModifiers::CONTROL) => {
-                if app.date_field == 0 { app.start_date.clear(); }
-                else { app.end_date.clear(); }
-            }
-            KeyCode::Char(c) => {
-                if app.date_field == 0 { app.start_date.insert(c); }
-                else { app.end_date.insert(c); }
-            }
-            KeyCode::Backspace => {
-                if app.date_field == 0 { app.start_date.backspace(); }
-                else { app.end_date.backspace(); }
-            }
-            KeyCode::Left => {
-                if app.date_field == 0 { app.start_date.move_left(); }
-                else { app.end_date.move_left(); }
-            }
-            KeyCode::Right => {
-                if app.date_field == 0 { app.start_date.move_right(); }
-                else { app.end_date.move_right(); }
-            }
+            KeyCode::Up   => { if app.time_frame_cursor > 0 { app.time_frame_cursor -= 1; } }
+            KeyCode::Down => { if app.time_frame_cursor < 11 { app.time_frame_cursor += 1; } }
             KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
             KeyCode::Esc   => app.prev_screen(),
             _ => {}
