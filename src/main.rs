@@ -564,6 +564,31 @@ async fn async_main() -> Result<()> {
                     });
                 }
 
+                // Guard: if every account failed the canary check, prepared is empty.
+                // Show an error on the Preparing screen and return cleanly instead of
+                // panicking at prepared[0].
+                if prepared.is_empty() {
+                    app.prep_log.push(String::new());
+                    app.prep_log.push("⚠  No accounts are ready to collect from.".to_string());
+                    app.prep_log.push("   All credential checks failed — check your AWS profile or SSO login.".to_string());
+                    app.prep_log.push(String::new());
+                    app.prep_log.push("   Press any key to return to the setup wizard.".to_string());
+                    terminal.draw(|f| tui::ui::draw(f, &app))?;
+                    // Wait for a keypress, then restart the wizard.
+                    use crossterm::event as cxevent;
+                    loop {
+                        if cxevent::poll(std::time::Duration::from_millis(200))? {
+                            let _ = cxevent::read()?;
+                            break;
+                        }
+                    }
+                    restore_terminal(&mut terminal)?;
+                    restore_stderr(stderr_backup);
+                    app.reset();
+                    // Fall through to outer loop — restart the wizard.
+                    continue;
+                }
+
                 // Set up progress channel so the TUI running screen gets live updates.
                 let (tx, rx) = mpsc::unbounded_channel::<Progress>();
                 app.progress_rx = Some(rx);
