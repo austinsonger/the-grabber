@@ -12,34 +12,33 @@ fn secs_to_rfc3339(secs: i64) -> String {
         .unwrap_or_default()
 }
 
-// Deduplicate ECR findings by (CVE ID + Image Hash).
+// Deduplicate ECR findings by (CVE ID + Package Name), keeping the most recently
+// updated row for each key.
 //
-// The same CVE can appear in multiple rows when the same image is stored in
-// several ECR repos or referenced under different tags. Image Hash (col 28) is
-// the OCI image digest — it uniquely identifies image *content* regardless of
-// repo, tag, or account, making (CVE ID, Image Hash) the strongest possible key.
+// The same CVE often appears across dozens of image versions (different hashes)
+// in the same or different repos. Keying on CVE ID + Package Name collapses all
+// of those into a single representative row — the one with the latest Updated At
+// (col 47). RFC3339 strings compare correctly as plain strings.
 //
 // Fallback chain when fields are empty:
-//   1. CVE ID + Image Hash   — same vuln in the same image content (preferred)
+//   1. CVE ID + Package Name      — same vuln in the same package (preferred)
 //   2. CVE ID + Source Layer Hash — same vuln at the same layer
-//   3. CVE ID + Resource ID  — same vuln in the same ECR resource
-//   4. Finding ARN           — no dedup (non-CVE or completely unidentified)
-//
-// Rows arrive sorted by Inspector Score descending (API-side sort), so the first
-// occurrence for each key already has the highest score. Subsequent duplicates
-// are discarded.
+//   3. CVE ID + Resource ID       — same vuln in the same ECR resource
+//   4. Finding ARN                — no dedup (non-CVE or completely unidentified)
 fn dedup_ecr_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
-    use std::collections::HashSet;
-    let mut seen = HashSet::new();
-    let mut out  = Vec::with_capacity(rows.len());
+    use std::collections::HashMap;
+    // Maps dedup key → (row, updated_at_string)
+    let mut best: HashMap<String, (Vec<String>, String)> = HashMap::new();
     for row in rows {
-        let cve_id     = row.get(8).map(|s| s.as_str()).unwrap_or("");
-        let src_layer  = row.get(25).map(|s| s.as_str()).unwrap_or("");
-        let image_hash = row.get(28).map(|s| s.as_str()).unwrap_or("");
-        let resource   = row.get(36).map(|s| s.as_str()).unwrap_or("");
-        let arn        = row.get(0).map(|s| s.as_str()).unwrap_or("");
-        let key = if !cve_id.is_empty() && !image_hash.is_empty() {
-            format!("img:{}|{}", cve_id, image_hash)
+        let cve_id    = row.get(8).map(|s| s.as_str()).unwrap_or("");
+        let pkg_name  = row.get(18).map(|s| s.as_str()).unwrap_or("");
+        let src_layer = row.get(25).map(|s| s.as_str()).unwrap_or("");
+        let resource  = row.get(36).map(|s| s.as_str()).unwrap_or("");
+        let arn       = row.get(0).map(|s| s.as_str()).unwrap_or("");
+        let updated   = row.get(47).map(|s| s.clone()).unwrap_or_default();
+
+        let key = if !cve_id.is_empty() && !pkg_name.is_empty() {
+            format!("pkg:{}|{}", cve_id, pkg_name)
         } else if !cve_id.is_empty() && !src_layer.is_empty() {
             format!("lyr:{}|{}", cve_id, src_layer)
         } else if !cve_id.is_empty() && !resource.is_empty() {
@@ -47,11 +46,15 @@ fn dedup_ecr_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
         } else {
             format!("arn:{}", arn)
         };
-        if seen.insert(key) {
-            out.push(row);
+
+        let replace = best.get(&key)
+            .map(|(_, existing)| updated > *existing)
+            .unwrap_or(true);
+        if replace {
+            best.insert(key, (row, updated));
         }
     }
-    out
+    best.into_values().map(|(row, _)| row).collect()
 }
 
 pub struct InspectorEcrCollector {

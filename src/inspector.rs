@@ -13,7 +13,8 @@ fn secs_to_rfc3339(secs: i64) -> String {
         .unwrap_or_default()
 }
 
-// Deduplicate Inspector2 findings (non-ECR) by (CVE ID + Resource ID + Package Name).
+// Deduplicate Inspector2 findings (non-ECR) by (CVE ID + Resource ID + Package Name),
+// keeping the most recently updated row for each key.
 //
 // The same CVE can appear in multiple rows when a vulnerability is present in
 // several packages on the same resource, or when the same package vulnerability
@@ -26,18 +27,20 @@ fn secs_to_rfc3339(secs: i64) -> String {
 //   3. CVE ID + Source Layer Hash           — same vuln at the same layer
 //   4. Finding ARN                          — no dedup (non-CVE or unidentified)
 //
-// Rows arrive sorted by Inspector Score descending (API-side sort), so the first
-// occurrence for each key already has the highest score.
+// Winner for each key: row with the latest Updated At (col 37). RFC3339 strings
+// compare correctly as plain strings.
 fn dedup_findings_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
-    use std::collections::HashSet;
-    let mut seen = HashSet::new();
-    let mut out  = Vec::with_capacity(rows.len());
+    use std::collections::HashMap;
+    // Maps dedup key → (row, updated_at_string)
+    let mut best: HashMap<String, (Vec<String>, String)> = HashMap::new();
     for row in rows {
         let cve_id    = row.get(8).map(|s| s.as_str()).unwrap_or("");
         let pkg_name  = row.get(18).map(|s| s.as_str()).unwrap_or("");
         let src_layer = row.get(25).map(|s| s.as_str()).unwrap_or("");
         let resource  = row.get(26).map(|s| s.as_str()).unwrap_or("");
         let arn       = row.get(0).map(|s| s.as_str()).unwrap_or("");
+        let updated   = row.get(37).map(|s| s.clone()).unwrap_or_default();
+
         let key = if !cve_id.is_empty() && !resource.is_empty() && !pkg_name.is_empty() {
             format!("res_pkg:{}|{}|{}", cve_id, resource, pkg_name)
         } else if !cve_id.is_empty() && !resource.is_empty() {
@@ -47,11 +50,15 @@ fn dedup_findings_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
         } else {
             format!("arn:{}", arn)
         };
-        if seen.insert(key) {
-            out.push(row);
+
+        let replace = best.get(&key)
+            .map(|(_, existing)| updated > *existing)
+            .unwrap_or(true);
+        if replace {
+            best.insert(key, (row, updated));
         }
     }
-    out
+    best.into_values().map(|(row, _)| row).collect()
 }
 
 pub struct InspectorCollector {
