@@ -84,6 +84,7 @@ mod inspector_ecr;
 mod inspector_history;
 mod ssm_patch_detail;
 mod app_config;
+mod audit_log;
 
 use std::path::PathBuf;
 #[cfg(unix)]
@@ -461,13 +462,15 @@ async fn async_main() -> Result<()> {
                     // (or SSO session is not logged in) and every collector would
                     // fail anyway.
                     let sts = aws_sdk_sts::Client::new(&probe_config);
-                    let canary_ok = match sts.get_caller_identity().send().await {
+                    let (canary_ok, aws_caller_arn, aws_user_id) = match sts.get_caller_identity().send().await {
                         Ok(resp) => {
+                            let arn = resp.arn().unwrap_or("unknown").to_string();
+                            let uid = resp.user_id().unwrap_or("unknown").to_string();
                             app.prep_log.push(format!(
                                 "  ✓ Credentials OK  account={}",
                                 resp.account().unwrap_or("?"),
                             ));
-                            true
+                            (true, arn, uid)
                         }
                         Err(e) => {
                             app.prep_log.push(format!(
@@ -475,7 +478,7 @@ async fn async_main() -> Result<()> {
                                 profile,
                             ));
                             app.prep_log.push(format!("    ({})", e));
-                            false
+                            (false, String::new(), String::new())
                         }
                     };
                     terminal.draw(|f| tui::ui::draw(f, &app))?;
@@ -593,7 +596,8 @@ async fn async_main() -> Result<()> {
                     }
 
                     prepared.push(AccountCollectors {
-                        account_id, profile, region, output_path, collector_keys,
+                        account_id, aws_caller_arn, aws_user_id,
+                        profile, region, output_path, collector_keys,
                         json_collectors, json_inv_collectors, csv_collectors, display_names,
                         discovered_regions, regional_collectors,
                     });
@@ -703,7 +707,16 @@ async fn async_main() -> Result<()> {
         config.clone()
     };
 
-    let account_id = print_identity(&config).await;
+    let cli_started_at = Utc::now().to_rfc3339();
+    let cli_identity = audit_log::resolve_aws_identity(&config).await;
+    let account_id = cli_identity.as_ref()
+        .map(|id| id.account_id.clone())
+        .unwrap_or_else(|| "unknown".to_string());
+    eprintln!(
+        "Identity: account={} arn={}",
+        account_id,
+        cli_identity.as_ref().map(|id| id.caller_arn.as_str()).unwrap_or("unknown"),
+    );
 
     let params = CollectParams {
         start_time: start,
@@ -970,13 +983,19 @@ async fn async_main() -> Result<()> {
             .filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
         // JSON time-windowed collectors are all regional.
 
+        let mr_run_id = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+        let mr_dates = Some((params.start_time.timestamp(), params.end_time.timestamp()));
+        let mr_coll_start = params.start_time.format("%Y-%m-%d").to_string();
+        let mr_coll_end   = params.end_time.format("%Y-%m-%d").to_string();
+        let mut mr_outcomes: Vec<audit_log::CollectorOutcome> = Vec::new();
+
         // ── Run global collectors once (into base output dir) ─────────────────
         if !global_csv.is_empty() || !global_json_inv.is_empty() {
             eprintln!("\n=== Global collectors (running once) ===");
             let global_csv_v  = build_csv_collectors(&global_csv, &config);
             let global_inv_v  = build_json_inv_collectors(&global_json_inv, &config);
-            run_csv_collectors(&global_csv_v, &account_id, &cli.region, &output_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await?;
-            run_json_inv_collectors(&global_inv_v, &account_id, &cli.region, &output_dir).await?;
+            mr_outcomes.extend(run_csv_collectors(&global_csv_v, &account_id, &cli.region, &output_dir, mr_dates, &mr_run_id).await?);
+            mr_outcomes.extend(run_json_inv_collectors(&global_inv_v, &account_id, &cli.region, &output_dir, &mr_run_id).await?);
         }
 
         // ── Loop through each region ──────────────────────────────────────────
@@ -996,19 +1015,57 @@ async fn async_main() -> Result<()> {
 
             if !regional_csv.is_empty() {
                 let csv_v = build_csv_collectors(&regional_csv, &region_config);
-                run_csv_collectors(&csv_v, &account_id, region_name, &region_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await?;
+                mr_outcomes.extend(run_csv_collectors(&csv_v, &account_id, region_name, &region_dir, mr_dates, &mr_run_id).await?);
             }
             if !regional_json_inv.is_empty() {
                 let inv_v = build_json_inv_collectors(&regional_json_inv, &region_config);
-                run_json_inv_collectors(&inv_v, &account_id, region_name, &region_dir).await?;
+                mr_outcomes.extend(run_json_inv_collectors(&inv_v, &account_id, region_name, &region_dir, &mr_run_id).await?);
             }
             if !wanted_json.is_empty() {
                 let json_v = build_json_collectors(&wanted_json, &region_config);
-                run_json_collectors(&json_v, &params, region_name, &region_dir).await?;
+                mr_outcomes.extend(run_json_collectors(&json_v, &params, region_name, &region_dir, &mr_run_id).await?);
             }
         }
 
-        let mr_timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+        // ── Write run manifest (multi-region) ─────────────────────────────────
+        let mr_manifest = audit_log::RunManifest::build(
+            &mr_run_id,
+            &account_id,
+            &cli.region,
+            &mr_coll_start,
+            &mr_coll_end,
+            mr_outcomes,
+        );
+        match audit_log::write_run_manifest(&output_dir, &mr_manifest) {
+            Ok(p) => eprintln!("Run manifest written: {}", p.display()),
+            Err(e) => eprintln!("WARN: could not write run manifest: {e}"),
+        }
+
+        // ── Write chain-of-custody (multi-region) ─────────────────────────────
+        {
+            let identity = cli_identity.unwrap_or(audit_log::AwsIdentity {
+                account_id: account_id.clone(),
+                caller_arn: "unknown".to_string(),
+                user_id: "unknown".to_string(),
+            });
+            let profile = cli.profile.as_deref().unwrap_or("default");
+            let entry = audit_log::CustodyEntry::new(
+                &mr_run_id,
+                &cli_started_at,
+                identity,
+                profile,
+                &cli.region,
+                &mr_coll_start,
+                &mr_coll_end,
+                mr_manifest.summary.total_collectors,
+            );
+            match audit_log::write_chain_of_custody(&output_dir, &entry) {
+                Ok(p) => eprintln!("Chain of custody written: {}", p.display()),
+                Err(e) => eprintln!("WARN: could not write chain of custody: {e}"),
+            }
+        }
+
+        let mr_timestamp = mr_run_id.clone();
 
         if cli.zip {
             let zip_name = format!("Evidence-{}.zip", mr_timestamp);
@@ -1040,11 +1097,53 @@ async fn async_main() -> Result<()> {
     }
 
     // ── Single-region path (existing behaviour) ──────────────────────────────
-    run_json_collectors(&json_collectors, &params, &cli.region, &output_dir).await?;
-    run_json_inv_collectors(&json_inv_collectors, &account_id, &cli.region, &output_dir).await?;
-    run_csv_collectors(&csv_collectors, &account_id, &cli.region, &output_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await?;
-
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let sr_dates = Some((params.start_time.timestamp(), params.end_time.timestamp()));
+    let sr_coll_start = params.start_time.format("%Y-%m-%d").to_string();
+    let sr_coll_end   = params.end_time.format("%Y-%m-%d").to_string();
+    let mut sr_outcomes: Vec<audit_log::CollectorOutcome> = Vec::new();
+
+    sr_outcomes.extend(run_json_collectors(&json_collectors, &params, &cli.region, &output_dir, &timestamp).await?);
+    sr_outcomes.extend(run_json_inv_collectors(&json_inv_collectors, &account_id, &cli.region, &output_dir, &timestamp).await?);
+    sr_outcomes.extend(run_csv_collectors(&csv_collectors, &account_id, &cli.region, &output_dir, sr_dates, &timestamp).await?);
+
+    // ── Write run manifest (single-region) ───────────────────────────────────
+    let sr_manifest = audit_log::RunManifest::build(
+        &timestamp,
+        &account_id,
+        &cli.region,
+        &sr_coll_start,
+        &sr_coll_end,
+        sr_outcomes,
+    );
+    match audit_log::write_run_manifest(&output_dir, &sr_manifest) {
+        Ok(p) => eprintln!("Run manifest written: {}", p.display()),
+        Err(e) => eprintln!("WARN: could not write run manifest: {e}"),
+    }
+
+    // ── Write chain-of-custody (single-region) ───────────────────────────────
+    {
+        let identity = cli_identity.unwrap_or(audit_log::AwsIdentity {
+            account_id: account_id.clone(),
+            caller_arn: "unknown".to_string(),
+            user_id: "unknown".to_string(),
+        });
+        let profile = cli.profile.as_deref().unwrap_or("default");
+        let entry = audit_log::CustodyEntry::new(
+            &timestamp,
+            &cli_started_at,
+            identity,
+            profile,
+            &cli.region,
+            &sr_coll_start,
+            &sr_coll_end,
+            sr_manifest.summary.total_collectors,
+        );
+        match audit_log::write_chain_of_custody(&output_dir, &entry) {
+            Ok(p) => eprintln!("Chain of custody written: {}", p.display()),
+            Err(e) => eprintln!("WARN: could not write chain of custody: {e}"),
+        }
+    }
 
     if cli.zip {
         let zip_name = format!("Evidence-{}.zip", timestamp);
@@ -1091,6 +1190,7 @@ async fn run_tui_csv_collector(
     tx: &mpsc::UnboundedSender<Progress>,
     timeout: std::time::Duration,
     written: &mut Vec<String>,
+    outcomes: &mut Vec<audit_log::CollectorOutcome>,
     dates: Option<(i64, i64)>,
 ) {
     let name = collector.name().to_string();
@@ -1099,22 +1199,33 @@ async fn run_tui_csv_collector(
         Ok(Ok(rows)) => {
             let count = rows.len();
             let _ = tx.send(Progress::Done { collector: name.clone(), count });
-            if count == 0 { return; }
+            if count == 0 {
+                outcomes.push(audit_log::CollectorOutcome::empty(&name));
+                return;
+            }
             let filename = format!("{}_{}-{}.csv", account_id, collector.filename_prefix(), timestamp);
             let path = out_dir.join(&filename);
             if let Ok(bytes) = write_csv_bytes(collector.headers(), &rows) {
                 if std::fs::write(&path, bytes).is_ok() {
+                    outcomes.push(audit_log::CollectorOutcome::success(&name, count, &path));
                     written.push(path.display().to_string());
+                } else {
+                    outcomes.push(audit_log::CollectorOutcome::error(&name, "write failed".to_string()));
                 }
+            } else {
+                outcomes.push(audit_log::CollectorOutcome::error(&name, "CSV serialisation failed".to_string()));
             }
         }
         Ok(Err(e)) => {
-            eprintln!("  ERROR [csv] {}: {:#}", name, e);
-            let _ = tx.send(Progress::Error { collector: name, message: format!("{:#}", e) });
+            let msg = format!("{:#}", e);
+            eprintln!("  ERROR [csv] {}: {}", name, msg);
+            let _ = tx.send(Progress::Error { collector: name.clone(), message: msg.clone() });
+            outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
         }
         Err(_) => {
             eprintln!("  ERROR [csv] {}: timed out after 3 minutes", name);
-            let _ = tx.send(Progress::Error { collector: name, message: "timed out after 3 minutes".to_string() });
+            let _ = tx.send(Progress::Error { collector: name.clone(), message: "timed out after 3 minutes".to_string() });
+            outcomes.push(audit_log::CollectorOutcome::timeout(&name));
         }
     }
 }
@@ -1128,6 +1239,7 @@ async fn run_tui_inv_collector(
     tx: &mpsc::UnboundedSender<Progress>,
     timeout: std::time::Duration,
     written: &mut Vec<String>,
+    outcomes: &mut Vec<audit_log::CollectorOutcome>,
 ) {
     let name = collector.name().to_string();
     let _ = tx.send(Progress::Started { collector: name.clone() });
@@ -1135,7 +1247,10 @@ async fn run_tui_inv_collector(
         Ok(Ok(records)) => {
             let count = records.len();
             let _ = tx.send(Progress::Done { collector: name.clone(), count });
-            if count == 0 { return; }
+            if count == 0 {
+                outcomes.push(audit_log::CollectorOutcome::empty(&name));
+                return;
+            }
             let report = JsonInventoryReport {
                 collected_at: Utc::now().to_rfc3339(),
                 account_id: account_id.to_string(),
@@ -1148,17 +1263,25 @@ async fn run_tui_inv_collector(
             let path = out_dir.join(&filename);
             if let Ok(json) = serde_json::to_string_pretty(&report) {
                 if std::fs::write(&path, json).is_ok() {
+                    outcomes.push(audit_log::CollectorOutcome::success(&name, count, &path));
                     written.push(path.display().to_string());
+                } else {
+                    outcomes.push(audit_log::CollectorOutcome::error(&name, "write failed".to_string()));
                 }
+            } else {
+                outcomes.push(audit_log::CollectorOutcome::error(&name, "JSON serialisation failed".to_string()));
             }
         }
         Ok(Err(e)) => {
-            eprintln!("  ERROR [inv] {}: {:#}", name, e);
-            let _ = tx.send(Progress::Error { collector: name, message: format!("{:#}", e) });
+            let msg = format!("{:#}", e);
+            eprintln!("  ERROR [inv] {}: {}", name, msg);
+            let _ = tx.send(Progress::Error { collector: name.clone(), message: msg.clone() });
+            outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
         }
         Err(_) => {
             eprintln!("  ERROR [inv] {}: timed out after 3 minutes", name);
-            let _ = tx.send(Progress::Error { collector: name, message: "timed out after 3 minutes".to_string() });
+            let _ = tx.send(Progress::Error { collector: name.clone(), message: "timed out after 3 minutes".to_string() });
+            outcomes.push(audit_log::CollectorOutcome::timeout(&name));
         }
     }
 }
@@ -1173,6 +1296,7 @@ async fn run_tui_json_collector(
     tx: &mpsc::UnboundedSender<Progress>,
     timeout: std::time::Duration,
     written: &mut Vec<String>,
+    outcomes: &mut Vec<audit_log::CollectorOutcome>,
 ) {
     let name = collector.name().to_string();
     let _ = tx.send(Progress::Started { collector: name.clone() });
@@ -1180,7 +1304,10 @@ async fn run_tui_json_collector(
         Ok(Ok(records)) => {
             let count = records.len();
             let _ = tx.send(Progress::Done { collector: name.clone(), count });
-            if count == 0 { return; }
+            if count == 0 {
+                outcomes.push(audit_log::CollectorOutcome::empty(&name));
+                return;
+            }
             let report = EvidenceReport {
                 metadata: ReportMetadata {
                     collected_at: Utc::now().to_rfc3339(),
@@ -1197,17 +1324,25 @@ async fn run_tui_json_collector(
             let path = out_dir.join(&filename);
             if let Ok(json) = serde_json::to_string_pretty(&report) {
                 if std::fs::write(&path, json).is_ok() {
+                    outcomes.push(audit_log::CollectorOutcome::success(&name, count, &path));
                     written.push(path.display().to_string());
+                } else {
+                    outcomes.push(audit_log::CollectorOutcome::error(&name, "write failed".to_string()));
                 }
+            } else {
+                outcomes.push(audit_log::CollectorOutcome::error(&name, "JSON serialisation failed".to_string()));
             }
         }
         Ok(Err(e)) => {
-            eprintln!("  ERROR [json] {}: {:#}", name, e);
-            let _ = tx.send(Progress::Error { collector: name, message: format!("{:#}", e) });
+            let msg = format!("{:#}", e);
+            eprintln!("  ERROR [json] {}: {}", name, msg);
+            let _ = tx.send(Progress::Error { collector: name.clone(), message: msg.clone() });
+            outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
         }
         Err(_) => {
             eprintln!("  ERROR [json] {}: timed out after 3 minutes", name);
-            let _ = tx.send(Progress::Error { collector: name, message: "timed out after 3 minutes".to_string() });
+            let _ = tx.send(Progress::Error { collector: name.clone(), message: "timed out after 3 minutes".to_string() });
+            outcomes.push(audit_log::CollectorOutcome::timeout(&name));
         }
     }
 }
@@ -1217,6 +1352,8 @@ async fn run_tui_json_collector(
 /// tokio::spawn) so that the HTTP/TLS connector initializes correctly.
 struct AccountCollectors {
     account_id: String,
+    aws_caller_arn: String,
+    aws_user_id: String,
     profile: String,
     region: String,
     output_path: Option<PathBuf>,
@@ -1269,8 +1406,12 @@ async fn run_tui_multi_account(
     tokio::spawn(async move {
         let mut all_written_files: Vec<String> = Vec::new();
         let collector_timeout = std::time::Duration::from_secs(600); // 10 minutes
-        let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+        let run_id = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+        let timestamp = run_id.clone();
+        let started_at = Utc::now().to_rfc3339();
         let dates = Some((params_clone.start_time.timestamp(), params_clone.end_time.timestamp()));
+        let coll_start = params_clone.start_time.format("%Y-%m-%d").to_string();
+        let coll_end   = params_clone.end_time.format("%Y-%m-%d").to_string();
 
         for (acct_idx, acct) in prepared.into_iter().enumerate() {
             let out_dir = acct.output_path.unwrap_or_else(|| PathBuf::from("."));
@@ -1297,6 +1438,8 @@ async fn run_tui_multi_account(
                 collectors: acct.display_names,
             });
 
+            let mut acct_outcomes: Vec<audit_log::CollectorOutcome> = Vec::new();
+
             // ── All-regions path: use pre-built regional collectors ──
             if !acct.discovered_regions.is_empty() {
                 eprintln!("  all-regions: {} regions pre-built", acct.discovered_regions.len());
@@ -1304,26 +1447,61 @@ async fn run_tui_multi_account(
                     let _ = tx.send(Progress::RegionStarted { region: region_name.clone() });
                     let _ = std::fs::create_dir_all(rdir);
                     for collector in rcsv {
-                        run_tui_csv_collector(collector, &acct.account_id, region_name, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files, dates).await;
+                        run_tui_csv_collector(collector, &acct.account_id, region_name, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes, dates).await;
                     }
                     for collector in rinv {
-                        run_tui_inv_collector(collector, &acct.account_id, region_name, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
+                        run_tui_inv_collector(collector, &acct.account_id, region_name, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes).await;
                     }
                     for collector in rjson {
-                        run_tui_json_collector(collector, &params_clone, region_name, &acct.account_id, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
+                        run_tui_json_collector(collector, &params_clone, region_name, &acct.account_id, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes).await;
                     }
                 }
             } else {
                 // ── Single-region path (default) ──
                 for collector in &acct.json_collectors {
-                    run_tui_json_collector(collector, &params_clone, &acct.region, &acct.account_id, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
+                    run_tui_json_collector(collector, &params_clone, &acct.region, &acct.account_id, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes).await;
                 }
                 for collector in &acct.json_inv_collectors {
-                    run_tui_inv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
+                    run_tui_inv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes).await;
                 }
                 for collector in &acct.csv_collectors {
-                    run_tui_csv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, dates).await;
+                    run_tui_csv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes, dates).await;
                 }
+            }
+
+            // ── Write run manifest ────────────────────────────────────────────
+            let manifest = audit_log::RunManifest::build(
+                &run_id,
+                &acct.account_id,
+                &acct.region,
+                &coll_start,
+                &coll_end,
+                acct_outcomes.clone(),
+            );
+            match audit_log::write_run_manifest(&out_dir, &manifest) {
+                Ok(p) => eprintln!("  Run manifest: {}", p.display()),
+                Err(e) => eprintln!("  WARN: could not write run manifest: {e}"),
+            }
+
+            // ── Write chain-of-custody log ────────────────────────────────────
+            let identity = audit_log::AwsIdentity {
+                account_id: acct.account_id.clone(),
+                caller_arn: acct.aws_caller_arn.clone(),
+                user_id: acct.aws_user_id.clone(),
+            };
+            let entry = audit_log::CustodyEntry::new(
+                &run_id,
+                &started_at,
+                identity,
+                &acct.profile,
+                &acct.region,
+                &coll_start,
+                &coll_end,
+                acct_outcomes.len(),
+            );
+            match audit_log::write_chain_of_custody(&out_dir, &entry) {
+                Ok(p) => eprintln!("  Chain of custody: {}", p.display()),
+                Err(e) => eprintln!("  WARN: could not write chain of custody: {e}"),
             }
 
             let _ = tx.send(Progress::AccountFinished { name: acct.account_id });
@@ -1430,17 +1608,21 @@ async fn run_json_collectors(
     params: &CollectParams,
     region: &str,
     output_dir: &PathBuf,
-) -> Result<()> {
+    timestamp: &str,
+) -> Result<Vec<audit_log::CollectorOutcome>> {
     std::fs::create_dir_all(output_dir)
         .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
-    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let mut outcomes = Vec::new();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
         match collector.collect(params).await {
             Ok(records) => {
                 let count = records.len();
                 eprintln!("  {} returned {} records", collector.name(), count);
-                if count == 0 { continue; }
+                if count == 0 {
+                    outcomes.push(audit_log::CollectorOutcome::empty(collector.name()));
+                    continue;
+                }
 
                 let report = EvidenceReport {
                     metadata: ReportMetadata {
@@ -1462,11 +1644,15 @@ async fn run_json_collectors(
                 std::fs::write(&path, json)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));
+                outcomes.push(audit_log::CollectorOutcome::success(collector.name(), count, &path));
             }
-            Err(e) => eprintln!("  ERROR from {}: {e:#}", collector.name()),
+            Err(e) => {
+                eprintln!("  ERROR from {}: {e:#}", collector.name());
+                outcomes.push(audit_log::CollectorOutcome::error(collector.name(), format!("{e:#}")));
+            }
         }
     }
-    Ok(())
+    Ok(outcomes)
 }
 
 async fn run_csv_collectors(
@@ -1475,16 +1661,21 @@ async fn run_csv_collectors(
     region: &str,
     output_dir: &PathBuf,
     dates: Option<(i64, i64)>,
-) -> Result<()> {
+    timestamp: &str,
+) -> Result<Vec<audit_log::CollectorOutcome>> {
     std::fs::create_dir_all(output_dir)
         .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
-    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let mut outcomes = Vec::new();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
         match collector.collect_rows(account_id, region, dates).await {
             Ok(rows) => {
-                eprintln!("  {} returned {} rows", collector.name(), rows.len());
-                if rows.is_empty() { continue; }
+                let count = rows.len();
+                eprintln!("  {} returned {} rows", collector.name(), count);
+                if rows.is_empty() {
+                    outcomes.push(audit_log::CollectorOutcome::empty(collector.name()));
+                    continue;
+                }
                 let filename = format!(
                     "{}_{}-{}.csv",
                     account_id,
@@ -1496,11 +1687,15 @@ async fn run_csv_collectors(
                 std::fs::write(&path, bytes)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));
+                outcomes.push(audit_log::CollectorOutcome::success(collector.name(), count, &path));
             }
-            Err(e) => eprintln!("  ERROR from {}: {e:#}", collector.name()),
+            Err(e) => {
+                eprintln!("  ERROR from {}: {e:#}", collector.name());
+                outcomes.push(audit_log::CollectorOutcome::error(collector.name(), format!("{e:#}")));
+            }
         }
     }
-    Ok(())
+    Ok(outcomes)
 }
 
 async fn run_json_inv_collectors(
@@ -1508,22 +1703,27 @@ async fn run_json_inv_collectors(
     account_id: &str,
     region: &str,
     output_dir: &PathBuf,
-) -> Result<()> {
+    timestamp: &str,
+) -> Result<Vec<audit_log::CollectorOutcome>> {
     std::fs::create_dir_all(output_dir)
         .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
-    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let mut outcomes = Vec::new();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
         match collector.collect_records(account_id, region).await {
             Ok(records) => {
-                eprintln!("  {} returned {} records", collector.name(), records.len());
-                if records.is_empty() { continue; }
+                let count = records.len();
+                eprintln!("  {} returned {} records", collector.name(), count);
+                if records.is_empty() {
+                    outcomes.push(audit_log::CollectorOutcome::empty(collector.name()));
+                    continue;
+                }
                 let report = JsonInventoryReport {
                     collected_at: Utc::now().to_rfc3339(),
                     account_id: account_id.to_string(),
                     region: region.to_string(),
                     collector: collector.name().to_string(),
-                    record_count: records.len(),
+                    record_count: count,
                     records,
                 };
                 let filename = format!(
@@ -1538,11 +1738,15 @@ async fn run_json_inv_collectors(
                 std::fs::write(&path, json)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));
+                outcomes.push(audit_log::CollectorOutcome::success(collector.name(), count, &path));
             }
-            Err(e) => eprintln!("  ERROR from {}: {e:#}", collector.name()),
+            Err(e) => {
+                eprintln!("  ERROR from {}: {e:#}", collector.name());
+                outcomes.push(audit_log::CollectorOutcome::error(collector.name(), format!("{e:#}")));
+            }
         }
     }
-    Ok(())
+    Ok(outcomes)
 }
 
 // ---------------------------------------------------------------------------
