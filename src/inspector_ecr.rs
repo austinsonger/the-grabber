@@ -113,12 +113,18 @@ impl CsvCollector for InspectorEcrCollector {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
-        // Build a date-range filter if the caller specified one.
+        // Build an audit-period overlap filter when a date range is provided.
+        // See inspector.rs for the rationale: last_observed_at >= start AND
+        // first_observed_at <= end captures every finding active during the window.
         let filter = dates.map(|(start, end)| {
             FilterCriteria::builder()
-                .updated_at(
+                .last_observed_at(
                     DateFilter::builder()
                         .start_inclusive(InspectorDateTime::from_secs(start))
+                        .build()
+                )
+                .first_observed_at(
+                    DateFilter::builder()
                         .end_inclusive(InspectorDateTime::from_secs(end))
                         .build()
                 )

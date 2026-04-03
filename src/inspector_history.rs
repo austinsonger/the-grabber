@@ -51,9 +51,13 @@ impl CsvCollector for InspectorFindingsHistoryCollector {
         // Filter findings to the requested date window by first_observed_at.
         let filter = dates.map(|(start, end)| {
             FilterCriteria::builder()
-                .first_observed_at(
+                .last_observed_at(
                     DateFilter::builder()
                         .start_inclusive(InspectorDateTime::from_secs(start))
+                        .build()
+                )
+                .first_observed_at(
+                    DateFilter::builder()
                         .end_inclusive(InspectorDateTime::from_secs(end))
                         .build()
                 )

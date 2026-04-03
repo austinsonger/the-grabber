@@ -125,14 +125,28 @@ impl CsvCollector for InspectorCollector {
             .resource_type(ecr_exclusion_1)
             .resource_type(ecr_exclusion_2);
 
-        // Also apply a date-range filter when the caller specified one.
+        // Apply audit-period overlap filter when a date range is provided.
+        //
+        // A finding "overlaps" the audit period when:
+        //   first_observed_at <= end_date  (was present before or during the period)
+        //   last_observed_at  >= start_date (was still active at or after period start)
+        //
+        // This returns every finding that was active at any point during the window —
+        // including long-running vulnerabilities first seen before the period and
+        // new ones still open at the end.  Using only updated_at would miss stable
+        // findings that Inspector2 confirmed but didn't re-score during the window.
         if let Some((start, end)) = dates {
-            filter_builder = filter_builder.updated_at(
-                DateFilter::builder()
-                    .start_inclusive(InspectorDateTime::from_secs(start))
-                    .end_inclusive(InspectorDateTime::from_secs(end))
-                    .build()
-            );
+            filter_builder = filter_builder
+                .last_observed_at(
+                    DateFilter::builder()
+                        .start_inclusive(InspectorDateTime::from_secs(start))
+                        .build()
+                )
+                .first_observed_at(
+                    DateFilter::builder()
+                        .end_inclusive(InspectorDateTime::from_secs(end))
+                        .build()
+                );
         }
         let filter = filter_builder.build();
 
