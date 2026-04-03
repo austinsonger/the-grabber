@@ -287,15 +287,18 @@ async fn async_main() -> Result<()> {
     if cli.start_date.is_none() {
         // ── Interactive TUI mode ─────────────────────────────────────────
         let profiles = read_aws_profiles();
-        let app = App::new(profiles);
+        let mut app = App::new(profiles);
 
-        match run_tui(app)? {
+        loop {
+        app = match run_tui(app)? {
             None => {
                 // User quit before confirming
                 println!("No collection started.");
                 return Ok(());
             }
-            Some(mut app) => {
+            Some(a) => a,
+        };
+        {
                 // Build params from what the user configured in the TUI.
                 let start = NaiveDate::parse_from_str(&app.start_date.value, "%Y-%m-%d")
                     .context("invalid start date from TUI")?
@@ -367,6 +370,7 @@ async fn async_main() -> Result<()> {
                 // collection.  SSO credential resolution is lazy (reads cached token
                 // from ~/.aws/sso/cache), so we can safely be in TUI mode already.
                 let use_all_regions = app.all_regions;
+                let explicit_regions = app.explicit_regions(); // empty = use account default
                 let total_accounts = account_runs.len();
 
                 // Redirect stderr to a log file BEFORE entering TUI so that any
@@ -451,78 +455,83 @@ async fn async_main() -> Result<()> {
 
                     let names_ref: Vec<&str> = collector_keys.iter().map(|s| s.as_str()).collect();
 
-                    // Pre-discover regions using the probe config (OK to consume it).
+                    // Pre-discover or explicitly set the region list.
                     let mut discovered_regions: Vec<String> = Vec::new();
                     let mut regional_collectors = Vec::new();
                     if use_all_regions {
                         app.prep_log.push("    Discovering enabled regions…".to_string());
                         terminal.draw(|f| tui::ui::draw(f, &app))?;
                         discovered_regions = discover_regions(&probe_config).await;
-                        if !discovered_regions.is_empty() {
-                            app.prep_log.push(format!(
-                                "    Found {} enabled regions.", discovered_regions.len()
-                            ));
-                            terminal.draw(|f| tui::ui::draw(f, &app))?;
-                            let global_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
-                            let regional_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
-                            let global_inv_keys: Vec<&str> = ["iam-roles","iam-role-policies","iam-user-policies"].iter().copied()
-                                .filter(|k| names_ref.contains(k) && GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
-                            let regional_inv_keys: Vec<&str> = ["eventbridge-rules","ct-config-changes","kms-config"].iter().copied()
-                                .filter(|k| names_ref.contains(k)).collect();
-                            let json_keys: Vec<&str> = ["cloudtrail","backup","rds"].iter().copied()
-                                .filter(|k| names_ref.contains(k)).collect();
-
-                            let out_base = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
-
-                            // Global collectors: fresh config (not the probe).
-                            if !global_csv_keys.is_empty() || !global_inv_keys.is_empty() {
-                                let gcfg = make_cfg().load().await;
-                                regional_collectors.push((
-                                    region.clone(),
-                                    out_base.clone(),
-                                    build_csv_collectors(&global_csv_keys, &gcfg),
-                                    build_json_inv_collectors(&global_inv_keys, &gcfg),
-                                    Vec::new(),
-                                ));
-                            }
-
-                            // Per-region collectors: each gets a fresh config.
-                            let region_total = discovered_regions.len();
-                            app.prep_log.push(format!("    Building collectors for {} regions…", region_total));
-                            terminal.draw(|f| tui::ui::draw(f, &app))?;
-                            for (ridx, region_name) in discovered_regions.iter().enumerate() {
-                                // Update the last log line in place to show region progress.
-                                if let Some(last) = app.prep_log.last_mut() {
-                                    *last = format!(
-                                        "    Region {:>2}/{}: {}",
-                                        ridx + 1, region_total, region_name,
-                                    );
-                                }
-                                terminal.draw(|f| tui::ui::draw(f, &app))?;
-                                let rcfg = aws_config::defaults(BehaviorVersion::latest())
-                                    .region(Region::new(region_name.clone()))
-                                    .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
-                                    .load().await;
-                                let rdir = out_base.join(region_name);
-                                regional_collectors.push((
-                                    region_name.clone(),
-                                    rdir,
-                                    build_csv_collectors(&regional_csv_keys, &rcfg),
-                                    build_json_inv_collectors(&regional_inv_keys, &rcfg),
-                                    build_json_collectors(&json_keys, &rcfg),
-                                ));
-                            }
-                            if let Some(last) = app.prep_log.last_mut() {
-                                *last = format!("    All {} regions ready.", region_total);
-                            }
-                            terminal.draw(|f| tui::ui::draw(f, &app))?;
-                        } else {
+                        if discovered_regions.is_empty() {
                             app.prep_log.push(format!(
                                 "  ✗ Could not discover regions for {}, falling back to {}",
                                 account_id, region,
                             ));
                             terminal.draw(|f| tui::ui::draw(f, &app))?;
                         }
+                    } else if !explicit_regions.is_empty() {
+                        // User selected specific regions — no discovery needed.
+                        discovered_regions = explicit_regions.clone();
+                        app.prep_log.push(format!(
+                            "    Using {} explicitly selected region(s): {}",
+                            discovered_regions.len(),
+                            discovered_regions.join(", "),
+                        ));
+                        terminal.draw(|f| tui::ui::draw(f, &app))?;
+                    }
+                    // ── Build regional collectors from whatever list we now have ─────────
+                    if !discovered_regions.is_empty() {
+                        app.prep_log.push(format!(
+                            "    Building collectors for {} region(s)…", discovered_regions.len()
+                        ));
+                        terminal.draw(|f| tui::ui::draw(f, &app))?;
+                        let global_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                        let regional_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                        let global_inv_keys: Vec<&str> = ["iam-roles","iam-role-policies","iam-user-policies"].iter().copied()
+                            .filter(|k| names_ref.contains(k) && GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                        let regional_inv_keys: Vec<&str> = ["eventbridge-rules","ct-config-changes","kms-config"].iter().copied()
+                            .filter(|k| names_ref.contains(k)).collect();
+                        let json_keys: Vec<&str> = ["cloudtrail","backup","rds"].iter().copied()
+                            .filter(|k| names_ref.contains(k)).collect();
+                        let out_base = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
+                        // Global collectors: run once from the account's base region.
+                        if !global_csv_keys.is_empty() || !global_inv_keys.is_empty() {
+                            let gcfg = make_cfg().load().await;
+                            regional_collectors.push((
+                                region.clone(),
+                                out_base.clone(),
+                                build_csv_collectors(&global_csv_keys, &gcfg),
+                                build_json_inv_collectors(&global_inv_keys, &gcfg),
+                                Vec::new(),
+                            ));
+                        }
+                        // Per-region collectors: each gets a fresh config.
+                        let region_total = discovered_regions.len();
+                        for (ridx, region_name) in discovered_regions.iter().enumerate() {
+                            if let Some(last) = app.prep_log.last_mut() {
+                                *last = format!(
+                                    "    Region {:>2}/{}: {}",
+                                    ridx + 1, region_total, region_name,
+                                );
+                            }
+                            terminal.draw(|f| tui::ui::draw(f, &app))?;
+                            let rcfg = aws_config::defaults(BehaviorVersion::latest())
+                                .region(Region::new(region_name.clone()))
+                                .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
+                                .load().await;
+                            let rdir = out_base.join(region_name);
+                            regional_collectors.push((
+                                region_name.clone(),
+                                rdir,
+                                build_csv_collectors(&regional_csv_keys, &rcfg),
+                                build_json_inv_collectors(&regional_inv_keys, &rcfg),
+                                build_json_collectors(&json_keys, &rcfg),
+                            ));
+                        }
+                        if let Some(last) = app.prep_log.last_mut() {
+                            *last = format!("    All {} regions ready.", region_total);
+                        }
+                        terminal.draw(|f| tui::ui::draw(f, &app))?;
                     }
 
                     // ── Work config (fresh, never used for API calls) ─────────────────
@@ -578,21 +587,27 @@ async fn async_main() -> Result<()> {
                 terminal.draw(|f| tui::ui::draw(f, &app))?;
 
                 // Transition directly to Running screen (terminal is already set up).
-                let run_result = run_tui_multi_account(
+                let restart = run_tui_multi_account(
                     &mut terminal,
                     &mut app,
                     &params,
                     prepared,
                     tx,
                 )
-                .await;
+                .await?;
                 restore_terminal(&mut terminal)?;
 
                 // Restore stderr after TUI exits.
                 restore_stderr(stderr_backup);
-                return run_result;
+
+                if !restart {
+                    return Ok(());
+                }
+                // User pressed 'n' — app.reset() was called inside the collection
+                // loop, so app.screen == Welcome.  Fall through to the top of the
+                // outer loop to re-run the wizard.
             }
-        }
+        } // end restart loop
     }
 
     // ── Non-interactive (CLI flags) mode ─────────────────────────────────
@@ -1110,13 +1125,15 @@ struct AccountCollectors {
 /// IMPORTANT: `prepared` must be built BEFORE the terminal enters raw mode,
 /// because `aws_config::load()` needs a normal terminal for SSO credential
 /// resolution.
+/// Returns `Ok(true)` if the user pressed 'n' (new collection) on the Results
+/// screen, or `Ok(false)` if they pressed 'q'/Esc (exit).
 async fn run_tui_multi_account(
     terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
     app: &mut App,
     params: &CollectParams,
     prepared: Vec<AccountCollectors>,
     tx: mpsc::UnboundedSender<Progress>,
-) -> Result<()> {
+) -> Result<bool> {
     use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
     let params_clone = params.clone();
@@ -1153,6 +1170,7 @@ async fn run_tui_multi_account(
                 name: acct.account_id.clone(),
                 index: acct_idx + 1,
                 total: total_accounts,
+                region: acct.region.clone(),
                 collectors: acct.display_names,
             });
 
@@ -1160,6 +1178,7 @@ async fn run_tui_multi_account(
             if !acct.discovered_regions.is_empty() {
                 eprintln!("  all-regions: {} regions pre-built", acct.discovered_regions.len());
                 for (region_name, rdir, rcsv, rinv, rjson) in &acct.regional_collectors {
+                    let _ = tx.send(Progress::RegionStarted { region: region_name.clone() });
                     let _ = std::fs::create_dir_all(rdir);
                     for collector in rcsv {
                         run_tui_csv_collector(collector, &acct.account_id, region_name, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files, dates).await;
@@ -1191,8 +1210,8 @@ async fn run_tui_multi_account(
         let _ = tx.send(Progress::Finished { files: all_written_files });
     });
 
-    // Drive the TUI until Results screen.
-    loop {
+    // Drive the TUI until the user exits or requests a new collection.
+    let restart = loop {
         app.tick = app.tick.wrapping_add(1);
         app.poll_progress();
 
@@ -1201,23 +1220,28 @@ async fn run_tui_multi_account(
         if app.screen == tui::Screen::Results {
             if event::poll(std::time::Duration::from_millis(100))? {
                 if let Event::Key(key) = event::read()? {
-                    if key.kind == KeyEventKind::Press
-                        && matches!(key.code, KeyCode::Char('q') | KeyCode::Esc)
-                    {
-                        break;
+                    if key.kind == KeyEventKind::Press {
+                        match key.code {
+                            KeyCode::Char('n') => {
+                                app.reset();
+                                break true;
+                            }
+                            KeyCode::Char('q') | KeyCode::Esc => break false,
+                            _ => {}
+                        }
                     }
                 }
             }
         } else if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                    break;
+                    break false;
                 }
             }
         }
-    }
+    };
 
-    Ok(())
+    Ok(restart)
 }
 
 // ---------------------------------------------------------------------------

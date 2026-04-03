@@ -313,11 +313,11 @@ fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::SelectRegion => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SetDates => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SetOptions => vec![("⇥", "Switch"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SetOptions => vec![("⇥", "Switch Field"), ("↑↓", "Navigate Regions"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
         Screen::Preparing => vec![],
         Screen::Running => vec![],
-        Screen::Results => vec![("q", "Quit"), ("Esc", "Exit")],
+        Screen::Results => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
     }
 }
 
@@ -814,15 +814,16 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_options(f: &mut Frame, area: Rect, app: &App) {
-    // Three fields: 0 = filter, 1 = include_raw toggle, 2 = all_regions toggle.
+    // Four fields: 0 = filter, 1 = include_raw, 2 = all_regions, 3 = region list.
     let chunks = Layout::vertical([
         Constraint::Length(2), // heading
         Constraint::Length(3), // filter
         Constraint::Length(1), // spacer
         Constraint::Length(3), // include raw
         Constraint::Length(1), // spacer
-        Constraint::Length(3), // all regions
-        Constraint::Fill(1),
+        Constraint::Length(3), // all regions toggle
+        Constraint::Length(1), // spacer
+        Constraint::Fill(1),   // region list
     ])
     .split(content_inset(area));
 
@@ -882,13 +883,86 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled("Single Region", off_style),
                 Span::styled("    ", Style::default()),
                 Span::styled(format!("{} ", on_icon), on_style),
-                Span::styled("All Regions (round-robin)", on_style),
+                Span::styled("All Regions (round-robin discovery)", on_style),
             ]))
             .block(Block::bordered()
                 .border_type(BorderType::Rounded)
                 .border_style(border_style)
                 .title(Span::styled(" All Regions ", title_style))),
             chunks[5],
+        );
+    }
+
+    // ── Region multi-select list (field 3) ────────────────────────────────────
+    {
+        let focused = app.options_field == 3;
+        let dimmed  = app.all_regions; // when all_regions is ON, list is informational only
+
+        let border_style = if dimmed {
+            Style::default().fg(BORDER_SUBTLE)
+        } else if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(BORDER_SUBTLE)
+        };
+        let title_style = if focused && !dimmed {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+
+        let selected_count = app.options_selected_regions.len();
+        let title = if dimmed {
+            " Specific Regions — disabled while All Regions is ON ".to_string()
+        } else if selected_count == 0 {
+            " Specific Regions (optional — leave empty to use account default) ".to_string()
+        } else {
+            format!(" Specific Regions — {} selected ", selected_count)
+        };
+
+        let items: Vec<ListItem> = app.regions.iter().enumerate().map(|(i, region)| {
+            let is_selected = app.options_selected_regions.contains(&i);
+            let is_cursor   = focused && i == app.options_region_cursor;
+
+            let check_style = if dimmed {
+                Style::default().fg(TEXT_DIM)
+            } else if is_selected {
+                Style::default().fg(GREEN).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(TEXT_DIM)
+            };
+            let name_style = if dimmed {
+                Style::default().fg(TEXT_DIM)
+            } else if is_selected {
+                Style::default().fg(TEXT_NORMAL).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+
+            let check = if is_selected { "[✓]" } else { "[ ]" };
+            let prefix = if is_cursor && !dimmed { " ▶ " } else { "   " };
+
+            ListItem::new(Line::from(vec![
+                Span::styled(prefix, Style::default().fg(CYAN)),
+                Span::styled(check, check_style),
+                Span::styled(format!("  {}", region), name_style),
+            ]))
+        }).collect();
+
+        let block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(border_style)
+            .title(Span::styled(title, title_style));
+
+        let mut list_state = ListState::default();
+        if focused && !dimmed {
+            list_state.select(Some(app.options_region_cursor));
+        }
+
+        f.render_stateful_widget(
+            List::new(items).block(block),
+            chunks[7],
+            &mut list_state,
         );
     }
 }
@@ -955,7 +1029,18 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         kv_line("Output Dir", &app.output_dir.value),
         kv_line("Filter", &filter_display),
         kv_line("Include Raw", if app.include_raw { "yes" } else { "no" }),
-        kv_line("All Regions", if app.all_regions { "yes — round-robin every enabled region" } else { "no — single region" }),
+    ]);
+    let explicit_regions = app.explicit_regions();
+    let explicit_regions_display = explicit_regions.join(", ");
+    let regions_line = if app.all_regions {
+        kv_line("Regions", "all — round-robin every enabled region")
+    } else if explicit_regions.is_empty() {
+        kv_line("Regions", "account default (single region)")
+    } else {
+        kv_line_colored("Regions", &explicit_regions_display, CYAN)
+    };
+    rows.extend_from_slice(&[
+        regions_line,
         Line::raw(""),
     ]);
 
@@ -1066,11 +1151,12 @@ fn draw_preparing(f: &mut Frame, area: Rect, app: &App) {
 fn draw_running(f: &mut Frame, area: Rect, app: &App) {
     let inset = content_inset(area);
 
-    // Show account header when running multi-account collection.
+    // Always show a status line when we have account or region info.
     let multi_account = app.total_account_count > 1;
-    let (account_area, rest) = if multi_account {
+    let has_status = multi_account || app.current_region_label.is_some();
+    let (status_area, rest) = if has_status {
         let parts = Layout::vertical([
-            Constraint::Length(1), // account line
+            Constraint::Length(1), // status line
             Constraint::Length(1), // blank
             Constraint::Fill(1),  // rest
         ])
@@ -1080,16 +1166,29 @@ fn draw_running(f: &mut Frame, area: Rect, app: &App) {
         (None, inset)
     };
 
-    if let Some(area) = account_area {
-        let label = app.current_account_label.as_deref().unwrap_or("…");
-        let text = format!(
-            "Account {} of {}: {}",
-            app.current_account_index, app.total_account_count, label
-        );
-        f.render_widget(
-            Paragraph::new(Span::styled(text, Style::default().fg(AMBER).add_modifier(Modifier::BOLD))),
-            area,
-        );
+    if let Some(area) = status_area {
+        let mut spans: Vec<Span> = Vec::new();
+
+        if multi_account {
+            let label = app.current_account_label.as_deref().unwrap_or("…");
+            spans.push(Span::styled(
+                format!("Account {} of {}: {}", app.current_account_index, app.total_account_count, label),
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            ));
+        }
+
+        if let Some(region) = &app.current_region_label {
+            if !spans.is_empty() {
+                spans.push(Span::styled("   ·   ", Style::default().fg(TEXT_DIM)));
+            }
+            spans.push(Span::styled("Region: ", Style::default().fg(TEXT_DIM)));
+            spans.push(Span::styled(
+                region.clone(),
+                Style::default().fg(CYAN).add_modifier(Modifier::BOLD),
+            ));
+        }
+
+        f.render_widget(Paragraph::new(Line::from(spans)), area);
     }
 
     if rest.width >= 90 {

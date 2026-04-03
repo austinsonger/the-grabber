@@ -22,9 +22,11 @@ use crate::app_config::{self, Account};
 #[derive(Debug, Clone)]
 pub enum Progress {
     /// Signals the start of collection for a new account (multi-account mode).
-    AccountStarted { name: String, index: usize, total: usize, collectors: Vec<String> },
+    AccountStarted { name: String, index: usize, total: usize, region: String, collectors: Vec<String> },
     /// Signals that collection for an account has finished.
     AccountFinished { name: String },
+    /// Signals that collection is now running against a specific region (all-regions mode).
+    RegionStarted { region: String },
     Started { collector: String },
     Done { collector: String, count: usize },
     Error { collector: String, message: String },
@@ -140,6 +142,7 @@ pub struct App {
     pub current_account_label: Option<String>,
     pub current_account_index: usize,
     pub total_account_count: usize,
+    pub current_region_label: Option<String>,
 
     // Profile selection (legacy flow or fallback)
     pub profiles: Vec<String>,
@@ -167,7 +170,9 @@ pub struct App {
     pub output_dir: TextInput,
     pub filter_input: TextInput,
     pub include_raw: bool,
-    pub options_field: usize, // 0 = output_dir, 1 = filter, 2 = include_raw
+    pub options_field: usize, // 0 = filter, 1 = include_raw, 2 = all_regions, 3 = region list
+    pub options_region_cursor: usize,
+    pub options_selected_regions: HashSet<usize>, // indices into self.regions
 
     // Running / results
     pub collector_statuses: Vec<CollectorStatus>,
@@ -394,14 +399,27 @@ impl App {
 
         // --- Regions ---
         let regions = vec![
+            // North America
             "us-east-1",
             "us-east-2",
             "us-west-1",
             "us-west-2",
+            "ca-central-1",
+            // Europe
             "eu-west-1",
+            "eu-west-2",
+            "eu-west-3",
             "eu-central-1",
+            "eu-north-1",
+            "eu-south-1",
+            // Asia Pacific
             "ap-southeast-1",
+            "ap-southeast-2",
             "ap-northeast-1",
+            "ap-northeast-2",
+            "ap-south-1",
+            // South America
+            "sa-east-1",
         ];
 
         let region_cursor = if let Some(ref default_region) = config.defaults.region {
@@ -432,6 +450,7 @@ impl App {
             current_account_label: None,
             current_account_index: 0,
             total_account_count: 0,
+            current_region_label: None,
             profiles,
             profile_cursor,
             regions,
@@ -461,6 +480,8 @@ impl App {
             filter_input: TextInput::default(),
             include_raw,
             options_field: 0,
+            options_region_cursor: 0,
+            options_selected_regions: HashSet::new(),
             collector_statuses: vec![],
             result_files: vec![],
             error_messages: vec![],
@@ -484,6 +505,17 @@ impl App {
             .get(self.profile_cursor)
             .map(|s| s.as_str())
             .unwrap_or("")
+    }
+
+    /// Returns the explicitly selected regions from the Options screen,
+    /// in index order (preserving the geographic ordering from the list).
+    /// Empty means "use the account's default single region".
+    pub fn explicit_regions(&self) -> Vec<String> {
+        let mut indices: Vec<usize> = self.options_selected_regions.iter().copied().collect();
+        indices.sort_unstable();
+        indices.iter()
+            .filter_map(|&i| self.regions.get(i).map(|r| r.to_string()))
+            .collect()
     }
 
     pub fn selected_region(&self) -> String {
@@ -665,15 +697,38 @@ impl App {
         }
     }
 
+    /// Reset collection state so the wizard can be re-run without relaunching.
+    /// User configuration (dates, profile, region, selected collectors) is preserved.
+    pub fn reset(&mut self) {
+        self.screen = Screen::Welcome;
+        self.collector_statuses.clear();
+        self.result_files.clear();
+        self.error_messages.clear();
+        self.progress_rx = None;
+        self.finished_tick = None;
+        self.current_account_label = None;
+        self.current_account_index = 0;
+        self.total_account_count = 0;
+        self.current_region_label = None;
+        self.result_scroll = 0;
+        self.error_msg = None;
+        self.prep_log.clear();
+        self.prep_current = 0;
+        self.prep_total = 0;
+        self.options_region_cursor = 0;
+        // Preserve options_selected_regions so the user's choices carry over.
+    }
+
     /// Drain any pending progress messages from the background task.
     pub fn poll_progress(&mut self) {
         if let Some(rx) = &mut self.progress_rx {
             while let Ok(msg) = rx.try_recv() {
                 match msg {
-                    Progress::AccountStarted { name, index, total, collectors } => {
+                    Progress::AccountStarted { name, index, total, region, collectors } => {
                         self.current_account_label = Some(name);
                         self.current_account_index = index;
                         self.total_account_count = total;
+                        self.current_region_label = if region.is_empty() { None } else { Some(region) };
                         self.collector_statuses = collectors
                             .into_iter()
                             .map(|n| CollectorStatus { name: n, state: CollectorState::Waiting })
@@ -682,6 +737,9 @@ impl App {
                     Progress::AccountFinished { .. } => {
                         // Nothing to do here; the next AccountStarted or
                         // Finished will drive the UI forward.
+                    }
+                    Progress::RegionStarted { region } => {
+                        self.current_region_label = Some(region);
                     }
                     Progress::Started { collector } => {
                         if let Some(s) = self
@@ -823,6 +881,7 @@ fn event_loop(
                 match handle_key(app, key.code, key.modifiers) {
                     Action::Quit => return Ok(()),
                     Action::StartCollection => return Ok(()),
+                    Action::NewCollection => { app.reset(); }
                     Action::Continue => {}
                 }
             }
@@ -838,6 +897,7 @@ enum Action {
     Continue,
     Quit,
     StartCollection,
+    NewCollection,
 }
 
 fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
@@ -962,13 +1022,38 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SetOptions => match key {
-            // 3 fields: 0 = filter, 1 = include_raw toggle, 2 = all_regions toggle
-            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 3; }
+            // 4 fields: 0 = filter, 1 = include_raw, 2 = all_regions, 3 = region list
+            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 4; }
             KeyCode::Char(' ') if app.options_field == 1 => {
                 app.include_raw = !app.include_raw;
             }
             KeyCode::Char(' ') if app.options_field == 2 => {
                 app.all_regions = !app.all_regions;
+                // Turning all_regions ON clears explicit selections (they're redundant).
+                if app.all_regions {
+                    app.options_selected_regions.clear();
+                }
+            }
+            // Region list navigation and toggle (field 3)
+            KeyCode::Up if app.options_field == 3 => {
+                if app.options_region_cursor > 0 {
+                    app.options_region_cursor -= 1;
+                }
+            }
+            KeyCode::Down if app.options_field == 3 => {
+                if app.options_region_cursor + 1 < app.regions.len() {
+                    app.options_region_cursor += 1;
+                }
+            }
+            KeyCode::Char(' ') if app.options_field == 3 => {
+                let i = app.options_region_cursor;
+                if app.options_selected_regions.contains(&i) {
+                    app.options_selected_regions.remove(&i);
+                } else {
+                    app.options_selected_regions.insert(i);
+                    // Selecting a specific region turns off all_regions.
+                    app.all_regions = false;
+                }
             }
             KeyCode::Char(c) if app.options_field == 0 => app.filter_input.insert(c),
             KeyCode::Backspace if app.options_field == 0 => app.filter_input.backspace(),
@@ -998,6 +1083,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
 
         Screen::Results => match key {
             KeyCode::Char('q') | KeyCode::Esc => return Action::Quit,
+            KeyCode::Char('n') => return Action::NewCollection,
             _ => {}
         },
     }
