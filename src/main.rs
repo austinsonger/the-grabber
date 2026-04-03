@@ -54,9 +54,11 @@ mod securityhub_standards;
 mod security_svc_config;
 mod sns;
 mod ssm;
+mod signing;
 mod tui;
 mod vpc;
 mod vpcflowlogs;
+mod zip_bundle;
 mod waf;
 mod waf_logging;
 mod account_config;
@@ -267,6 +269,29 @@ struct Cli {
     /// are auto-discovered via EC2 DescribeRegions.
     #[arg(long, value_delimiter = ',')]
     regions: Option<Vec<String>>,
+
+    /// Bundle all output files into a dated Evidence-<timestamp>.zip after collection.
+    /// The zip is placed in the current working directory.
+    #[arg(long, default_value_t = false)]
+    zip: bool,
+
+    // ------- Signing options -------
+
+    /// HMAC-SHA256-sign all output files after collection.
+    /// Writes SIGNING-MANIFEST-<ts>.json and SIGNING-<ts>.key to the current directory.
+    /// Move the .key file to secure storage (separate from the evidence) before sharing.
+    #[arg(long, default_value_t = false)]
+    sign: bool,
+
+    /// Provide a 64-char hex signing key instead of auto-generating one.
+    /// Used with --sign (CLI mode) or --verify-manifest.
+    #[arg(long)]
+    signing_key: Option<String>,
+
+    /// Verify a SIGNING-MANIFEST-*.json without collecting new evidence.
+    /// Requires --signing-key.
+    #[arg(long)]
+    verify_manifest: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -283,6 +308,16 @@ fn main() -> Result<()> {
 
 async fn async_main() -> Result<()> {
     let cli = Cli::parse();
+
+    // ── Verify-only mode (no collection) ─────────────────────────────────────
+    if let Some(ref manifest_path) = cli.verify_manifest {
+        let key_hex = cli.signing_key.as_deref()
+            .context("--signing-key <hex> is required with --verify-manifest")?;
+        let key = signing::SigningKey::from_hex(key_hex)?;
+        let report = signing::verify_manifest(std::path::Path::new(manifest_path), &key)?;
+        report.print();
+        return Ok(());
+    }
 
     if cli.start_date.is_none() {
         // ── Interactive TUI mode ─────────────────────────────────────────
@@ -612,12 +647,16 @@ async fn async_main() -> Result<()> {
                 terminal.draw(|f| tui::ui::draw(f, &app))?;
 
                 // Transition directly to Running screen (terminal is already set up).
+                let do_zip = app.zip;
+                let do_sign = app.sign;
                 let restart = run_tui_multi_account(
                     &mut terminal,
                     &mut app,
                     &params,
                     prepared,
                     tx,
+                    do_zip,
+                    do_sign,
                 )
                 .await?;
                 restore_terminal(&mut terminal)?;
@@ -969,13 +1008,70 @@ async fn async_main() -> Result<()> {
             }
         }
 
+        let mr_timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+
+        if cli.zip {
+            let zip_name = format!("Evidence-{}.zip", mr_timestamp);
+            let zip_path = std::path::Path::new(&zip_name);
+            match zip_bundle::bundle_dir(&output_dir, zip_path) {
+                Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
+                Err(e) => eprintln!("Zip bundle failed: {e}"),
+            }
+        }
+
+        if cli.sign {
+            let key = match &cli.signing_key {
+                Some(hex) => signing::SigningKey::from_hex(hex)?,
+                None => signing::SigningKey::generate()?,
+            };
+            let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let files = signing::collect_dir_files(&output_dir);
+            match signing::sign_files(&files, &mr_timestamp, &key, &cwd) {
+                Ok((manifest_path, key_path)) => {
+                    eprintln!("Signing manifest: {}", manifest_path.display());
+                    eprintln!("Signing key file: {} (move to secure storage)", key_path.display());
+                    eprintln!("Signing key (hex): {}", key.to_hex());
+                }
+                Err(e) => eprintln!("Signing failed: {e}"),
+            }
+        }
+
         return Ok(());
     }
 
     // ── Single-region path (existing behaviour) ──────────────────────────────
     run_json_collectors(&json_collectors, &params, &cli.region, &output_dir).await?;
     run_json_inv_collectors(&json_inv_collectors, &account_id, &cli.region, &output_dir).await?;
-    run_csv_collectors(&csv_collectors, &account_id, &cli.region, &output_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await
+    run_csv_collectors(&csv_collectors, &account_id, &cli.region, &output_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await?;
+
+    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+
+    if cli.zip {
+        let zip_name = format!("Evidence-{}.zip", timestamp);
+        let zip_path = std::path::Path::new(&zip_name);
+        match zip_bundle::bundle_dir(&output_dir, zip_path) {
+            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
+            Err(e) => eprintln!("Zip bundle failed: {e}"),
+        }
+    }
+
+    if cli.sign {
+        let key = match &cli.signing_key {
+            Some(hex) => signing::SigningKey::from_hex(hex)?,
+            None => signing::SigningKey::generate()?,
+        };
+        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let files = signing::collect_dir_files(&output_dir);
+        match signing::sign_files(&files, &timestamp, &key, &cwd) {
+            Ok((manifest_path, key_path)) => {
+                eprintln!("Signing manifest: {}", manifest_path.display());
+                eprintln!("Signing key file: {} (move to secure storage)", key_path.display());
+                eprintln!("Signing key (hex): {}", key.to_hex());
+            }
+            Err(e) => eprintln!("Signing failed: {e}"),
+        }
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -1158,6 +1254,8 @@ async fn run_tui_multi_account(
     params: &CollectParams,
     prepared: Vec<AccountCollectors>,
     tx: mpsc::UnboundedSender<Progress>,
+    do_zip: bool,
+    do_sign: bool,
 ) -> Result<bool> {
     use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
@@ -1232,7 +1330,61 @@ async fn run_tui_multi_account(
         }
 
         eprintln!("=== All accounts done. {} files written. ===", all_written_files.len());
-        let _ = tx.send(Progress::Finished { files: all_written_files });
+
+        let zip_path = if do_zip && !all_written_files.is_empty() {
+            let zip_name = format!("Evidence-{}.zip", timestamp);
+            let zip_path = std::path::PathBuf::from(&zip_name);
+            let base = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            match zip_bundle::bundle_files(&all_written_files, &base, &zip_path) {
+                Ok(()) => {
+                    eprintln!("=== Zip bundle written: {} ===", zip_name);
+                    Some(zip_name)
+                }
+                Err(e) => {
+                    eprintln!("=== Zip bundle failed: {e} ===");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        let (signing_manifest, signing_key_path) = if do_sign && !all_written_files.is_empty() {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            match signing::SigningKey::generate() {
+                Ok(key) => {
+                    eprintln!("=== Signing {} files with HMAC-SHA256 ===", all_written_files.len());
+                    match signing::sign_files(&all_written_files, &timestamp, &key, &cwd) {
+                        Ok((manifest_path, key_path)) => {
+                            let key_hex = key.to_hex();
+                            eprintln!("=== Signing manifest: {} ===", manifest_path.display());
+                            eprintln!("=== Signing key (store securely): {} ===", key_hex);
+                            (
+                                Some(manifest_path.to_string_lossy().into_owned()),
+                                Some(key_path.to_string_lossy().into_owned()),
+                            )
+                        }
+                        Err(e) => {
+                            eprintln!("=== Signing failed: {e} ===");
+                            (None, None)
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("=== Key generation failed: {e} ===");
+                    (None, None)
+                }
+            }
+        } else {
+            (None, None)
+        };
+
+        let _ = tx.send(Progress::Finished {
+            files: all_written_files,
+            zip_path,
+            signing_manifest,
+            signing_key_path,
+        });
     });
 
     // Drive the TUI until the user exits or requests a new collection.

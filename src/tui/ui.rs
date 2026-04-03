@@ -814,16 +814,20 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_options(f: &mut Frame, area: Rect, app: &App) {
-    // Four fields: 0 = filter, 1 = include_raw, 2 = all_regions, 3 = region list.
+    // Six fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=region list.
     let chunks = Layout::vertical([
-        Constraint::Length(2), // heading
-        Constraint::Length(3), // filter
-        Constraint::Length(1), // spacer
-        Constraint::Length(3), // include raw
-        Constraint::Length(1), // spacer
-        Constraint::Length(3), // all regions toggle
-        Constraint::Length(1), // spacer
-        Constraint::Fill(1),   // region list
+        Constraint::Length(2), // [0] heading
+        Constraint::Length(3), // [1] filter
+        Constraint::Length(1), // [2] spacer
+        Constraint::Length(3), // [3] include raw
+        Constraint::Length(1), // [4] spacer
+        Constraint::Length(3), // [5] all regions toggle
+        Constraint::Length(1), // [6] spacer
+        Constraint::Length(3), // [7] zip bundle toggle
+        Constraint::Length(1), // [8] spacer
+        Constraint::Length(3), // [9] sign output toggle
+        Constraint::Length(1), // [10] spacer
+        Constraint::Fill(1),   // [11] region list
     ])
     .split(content_inset(area));
 
@@ -893,9 +897,65 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         );
     }
 
-    // ── Region multi-select list (field 3) ────────────────────────────────────
+    // ── Zip Bundle toggle (field 3) ───────────────────────────────────────────
     {
         let focused = app.options_field == 3;
+        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
+        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
+        let (off_style, on_style) = if app.zip {
+            (Style::default().fg(TEXT_DIM), Style::default().fg(GREEN).add_modifier(Modifier::BOLD))
+        } else {
+            (Style::default().fg(GREEN).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+        };
+        let off_icon = if !app.zip { "●" } else { "○" };
+        let on_icon  = if  app.zip { "●" } else { "○" };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("   {} ", off_icon), off_style),
+                Span::styled("Disabled", off_style),
+                Span::styled("    ", Style::default()),
+                Span::styled(format!("{} ", on_icon), on_style),
+                Span::styled("Enabled — bundle output into a dated .zip", on_style),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Span::styled(" Zip Package ", title_style))),
+            chunks[7],
+        );
+    }
+
+    // ── Sign Output toggle (field 4) ──────────────────────────────────────────
+    {
+        let focused = app.options_field == 4;
+        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
+        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
+        let (off_style, on_style) = if app.sign {
+            (Style::default().fg(TEXT_DIM), Style::default().fg(PURPLE).add_modifier(Modifier::BOLD))
+        } else {
+            (Style::default().fg(PURPLE).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+        };
+        let off_icon = if !app.sign { "●" } else { "○" };
+        let on_icon  = if  app.sign { "●" } else { "○" };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("   {} ", off_icon), off_style),
+                Span::styled("Disabled", off_style),
+                Span::styled("    ", Style::default()),
+                Span::styled(format!("{} ", on_icon), on_style),
+                Span::styled("Enabled — HMAC-SHA256 sign all output files", on_style),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Span::styled(" Sign Output ", title_style))),
+            chunks[9],
+        );
+    }
+
+    // ── Region multi-select list (field 5) ────────────────────────────────────
+    {
+        let focused = app.options_field == 5;
         let dimmed  = app.all_regions; // when all_regions is ON, list is informational only
 
         let border_style = if dimmed {
@@ -961,7 +1021,7 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
 
         f.render_stateful_widget(
             List::new(items).block(block),
-            chunks[7],
+            chunks[11],
             &mut list_state,
         );
     }
@@ -1029,6 +1089,8 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         kv_line("Output Dir", &app.output_dir.value),
         kv_line("Filter", &filter_display),
         kv_line("Include Raw", if app.include_raw { "yes" } else { "no" }),
+        kv_line("Zip Package", if app.zip { "yes — bundle output into a dated .zip" } else { "no" }),
+        kv_line("Sign Output", if app.sign { "yes — HMAC-SHA256 manifest + key file" } else { "no" }),
     ]);
     let explicit_regions = app.explicit_regions();
     let explicit_regions_display = explicit_regions.join(", ");
@@ -1492,6 +1554,8 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     let inset = content_inset(area);
 
     let has_errors = !app.error_messages.is_empty();
+    let has_zip = app.result_zip.is_some();
+    let has_sign = app.result_signing_manifest.is_some();
     let error_height = if has_errors {
         // Show up to 8 error lines, plus border
         (app.error_messages.len().min(8) as u16) + 2
@@ -1500,13 +1564,17 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     };
 
     let chunks = Layout::vertical([
-        Constraint::Length(3), // success banner
-        Constraint::Length(1), // blank
-        Constraint::Length(5), // stat cards
-        Constraint::Length(1), // blank
-        Constraint::Fill(1),  // file list
-        Constraint::Length(if has_errors { 1 } else { 0 }),  // blank before errors
-        Constraint::Length(error_height),  // error list
+        Constraint::Length(3),                                  // [0] success banner
+        Constraint::Length(1),                                  // [1] blank
+        Constraint::Length(5),                                  // [2] stat cards
+        Constraint::Length(1),                                  // [3] blank
+        Constraint::Fill(1),                                    // [4] file list
+        Constraint::Length(if has_zip { 1 } else { 0 }),       // [5] blank before zip
+        Constraint::Length(if has_zip { 3 } else { 0 }),       // [6] zip path banner
+        Constraint::Length(if has_sign { 1 } else { 0 }),      // [7] blank before sign
+        Constraint::Length(if has_sign { 4 } else { 0 }),      // [8] sign manifest+key banner
+        Constraint::Length(if has_errors { 1 } else { 0 }),    // [9] blank before errors
+        Constraint::Length(error_height),                       // [10] error list
     ])
     .split(inset);
 
@@ -1582,6 +1650,49 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
         &mut state,
     );
 
+    // Zip path banner (only shown when a bundle was created)
+    if let Some(zip) = &app.result_zip {
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled("  ⬇ ", Style::default().fg(GREEN)),
+                Span::styled("Zip bundle: ", Style::default().fg(TEXT_DIM)),
+                Span::styled(zip.as_str(), Style::default().fg(GREEN).add_modifier(Modifier::BOLD)),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(GREEN))
+                .title(Span::styled(" Zip Package Ready ", Style::default().fg(GREEN)))),
+            chunks[6],
+        );
+    }
+
+    // Signing banner (only shown when signing was performed)
+    if let Some(manifest) = &app.result_signing_manifest {
+        let key_line = app.result_signing_key_path
+            .as_deref()
+            .unwrap_or("(see stderr log)");
+        f.render_widget(
+            Paragraph::new(vec![
+                Line::from(vec![
+                    Span::styled("  ✎ ", Style::default().fg(PURPLE)),
+                    Span::styled("Manifest:  ", Style::default().fg(TEXT_DIM)),
+                    Span::styled(manifest.as_str(), Style::default().fg(PURPLE).add_modifier(Modifier::BOLD)),
+                ]),
+                Line::from(vec![
+                    Span::styled("  ⚠ ", Style::default().fg(AMBER)),
+                    Span::styled("Key file:  ", Style::default().fg(TEXT_DIM)),
+                    Span::styled(key_line, Style::default().fg(AMBER).add_modifier(Modifier::BOLD)),
+                    Span::styled("  ← store securely, separate from evidence", Style::default().fg(TEXT_DIM)),
+                ]),
+            ])
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(PURPLE))
+                .title(Span::styled(" Signing Manifest Ready ", Style::default().fg(PURPLE)))),
+            chunks[8],
+        );
+    }
+
     // Error list (only shown if there are errors)
     if has_errors {
         let error_items: Vec<ListItem> = app
@@ -1607,7 +1718,7 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(RED),
             ));
 
-        f.render_widget(List::new(error_items).block(error_block), chunks[6]);
+        f.render_widget(List::new(error_items).block(error_block), chunks[10]);
     }
 }
 

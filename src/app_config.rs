@@ -40,6 +40,13 @@ pub struct Defaults {
     /// Whether to include raw JSON in output by default.
     pub include_raw: Option<bool>,
 
+    /// When true, bundle all output files into a dated .zip after collection.
+    pub zip: Option<bool>,
+
+    /// When true, HMAC-SHA256-sign all output files after collection.
+    /// A per-run signing key is generated and written to SIGNING-<ts>.key.
+    pub sign: Option<bool>,
+
     /// Global collector enable/disable rules.
     #[serde(default)]
     pub collectors: CollectorConfig,

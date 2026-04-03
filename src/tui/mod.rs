@@ -30,8 +30,16 @@ pub enum Progress {
     Started { collector: String },
     Done { collector: String, count: usize },
     Error { collector: String, message: String },
-    /// Sent once all collectors finish; carries the list of written file paths.
-    Finished { files: Vec<String> },
+    /// Sent once all collectors finish.
+    Finished {
+        files: Vec<String>,
+        /// Path to the zip bundle, if the zip option was enabled.
+        zip_path: Option<String>,
+        /// Path to the HMAC-SHA256 signing manifest, if signing was enabled.
+        signing_manifest: Option<String>,
+        /// Path to the signing key file, if signing was enabled.
+        signing_key_path: Option<String>,
+    },
 }
 
 // ---------------------------------------------------------------------------
@@ -170,13 +178,20 @@ pub struct App {
     pub output_dir: TextInput,
     pub filter_input: TextInput,
     pub include_raw: bool,
-    pub options_field: usize, // 0 = filter, 1 = include_raw, 2 = all_regions, 3 = region list
+    pub options_field: usize, // 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=region list
     pub options_region_cursor: usize,
     pub options_selected_regions: HashSet<usize>, // indices into self.regions
 
+    // Options
+    pub zip: bool,
+    pub sign: bool,
+
     // Running / results
     pub collector_statuses: Vec<CollectorStatus>,
-    pub result_files: Vec<String>,   // paths of files written
+    pub result_files: Vec<String>,         // paths of files written
+    pub result_zip: Option<String>,        // path to bundled zip (zip option)
+    pub result_signing_manifest: Option<String>,  // path to SIGNING-MANIFEST-*.json
+    pub result_signing_key_path: Option<String>,  // path to SIGNING-*.key
     pub error_messages: Vec<(String, String)>,  // (collector_name, error_message)
     pub progress_rx: Option<mpsc::UnboundedReceiver<Progress>>,
 
@@ -441,6 +456,8 @@ impl App {
         };
 
         let include_raw = config.defaults.include_raw.unwrap_or(false);
+        let zip = config.defaults.zip.unwrap_or(false);
+        let sign = config.defaults.sign.unwrap_or(false);
 
         Self {
             screen: Screen::Welcome,
@@ -479,11 +496,16 @@ impl App {
             ),
             filter_input: TextInput::default(),
             include_raw,
+            zip,
+            sign,
             options_field: 0,
             options_region_cursor: 0,
             options_selected_regions: HashSet::new(),
             collector_statuses: vec![],
             result_files: vec![],
+            result_zip: None,
+            result_signing_manifest: None,
+            result_signing_key_path: None,
             error_messages: vec![],
             progress_rx: None,
             error_msg: None,
@@ -703,6 +725,9 @@ impl App {
         self.screen = Screen::Welcome;
         self.collector_statuses.clear();
         self.result_files.clear();
+        self.result_zip = None;
+        self.result_signing_manifest = None;
+        self.result_signing_key_path = None;
         self.error_messages.clear();
         self.progress_rx = None;
         self.finished_tick = None;
@@ -769,8 +794,11 @@ impl App {
                             s.state = CollectorState::Failed(message);
                         }
                     }
-                    Progress::Finished { files } => {
+                    Progress::Finished { files, zip_path, signing_manifest, signing_key_path } => {
                         self.result_files = files;
+                        self.result_zip = zip_path;
+                        self.result_signing_manifest = signing_manifest;
+                        self.result_signing_key_path = signing_key_path;
                         self.finished_tick = Some(self.tick);
                         self.screen = Screen::Results;
                     }
@@ -1022,8 +1050,8 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SetOptions => match key {
-            // 4 fields: 0 = filter, 1 = include_raw, 2 = all_regions, 3 = region list
-            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 4; }
+            // 6 fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=region list
+            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 6; }
             KeyCode::Char(' ') if app.options_field == 1 => {
                 app.include_raw = !app.include_raw;
             }
@@ -1034,18 +1062,24 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                     app.options_selected_regions.clear();
                 }
             }
-            // Region list navigation and toggle (field 3)
-            KeyCode::Up if app.options_field == 3 => {
+            KeyCode::Char(' ') if app.options_field == 3 => {
+                app.zip = !app.zip;
+            }
+            KeyCode::Char(' ') if app.options_field == 4 => {
+                app.sign = !app.sign;
+            }
+            // Region list navigation and toggle (field 5)
+            KeyCode::Up if app.options_field == 5 => {
                 if app.options_region_cursor > 0 {
                     app.options_region_cursor -= 1;
                 }
             }
-            KeyCode::Down if app.options_field == 3 => {
+            KeyCode::Down if app.options_field == 5 => {
                 if app.options_region_cursor + 1 < app.regions.len() {
                     app.options_region_cursor += 1;
                 }
             }
-            KeyCode::Char(' ') if app.options_field == 3 => {
+            KeyCode::Char(' ') if app.options_field == 5 => {
                 let i = app.options_region_cursor;
                 if app.options_selected_regions.contains(&i) {
                     app.options_selected_regions.remove(&i);
