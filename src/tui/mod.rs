@@ -21,6 +21,10 @@ use crate::app_config::{self, Account};
 
 #[derive(Debug, Clone)]
 pub enum Progress {
+    /// Signals the start of collection for a new account (multi-account mode).
+    AccountStarted { name: String, index: usize, total: usize, collectors: Vec<String> },
+    /// Signals that collection for an account has finished.
+    AccountFinished { name: String },
     Started { collector: String },
     Done { collector: String, count: usize },
     Error { collector: String, message: String },
@@ -42,6 +46,8 @@ pub enum Screen {
     SelectCollectors,
     SetOptions,
     Confirm,
+    /// Shown while building AWS SDK clients before collection starts.
+    Preparing,
     Running,
     Results,
 }
@@ -128,7 +134,12 @@ pub struct App {
     // TOML-configured accounts (empty = legacy flow)
     pub accounts: Vec<Account>,
     pub account_cursor: usize,
-    pub selected_account: Option<usize>,
+    pub selected_accounts: HashSet<usize>,
+
+    // Multi-account progress tracking
+    pub current_account_label: Option<String>,
+    pub current_account_index: usize,
+    pub total_account_count: usize,
 
     // Profile selection (legacy flow or fallback)
     pub profiles: Vec<String>,
@@ -139,6 +150,8 @@ pub struct App {
     pub region_cursor: usize,
     pub region_custom: TextInput,
     pub region_use_custom: bool,
+    /// When true, collect evidence from every enabled AWS region (round-robin).
+    pub all_regions: bool,
 
     // Date inputs
     pub start_date: TextInput,
@@ -159,15 +172,23 @@ pub struct App {
     // Running / results
     pub collector_statuses: Vec<CollectorStatus>,
     pub result_files: Vec<String>,   // paths of files written
+    pub error_messages: Vec<(String, String)>,  // (collector_name, error_message)
     pub progress_rx: Option<mpsc::UnboundedReceiver<Progress>>,
 
     // Validation error shown at bottom of a screen
     pub error_msg: Option<String>,
 
     pub tick: u64,
+    /// Tick value when collection finished (used to freeze the Duration display).
+    pub finished_tick: Option<u64>,
 
     // Scrollable results
     pub result_scroll: usize,
+
+    // Preparing screen state (set by main before entering the setup loop)
+    pub prep_log: Vec<String>,
+    pub prep_current: usize,   // 1-based index of account currently being set up
+    pub prep_total: usize,     // total number of accounts being prepared
 }
 
 impl App {
@@ -296,6 +317,7 @@ impl App {
             ("time-sync",          "Time Sync Config (SSM)   (current state, CSV)"),
             // Inspector / WAF / ELB
             ("inspector-config",   "Inspector2 Config        (if enabled, CSV)"),
+            ("inspector-ecr",      "Inspector2 ECR Findings  (if enabled, CSV)"),
             ("waf-config",         "WAF Full Config          (current state, CSV)"),
             ("elb-full-config",    "Load Balancer Full Config(current state, CSV)"),
             // Org + account
@@ -435,13 +457,17 @@ impl App {
             screen: Screen::Welcome,
             accounts: config.account.clone(),
             account_cursor: 0,
-            selected_account: None,
+            selected_accounts: HashSet::new(),
+            current_account_label: None,
+            current_account_index: 0,
+            total_account_count: 0,
             profiles,
             profile_cursor,
             regions,
             region_cursor,
             region_custom: TextInput::default(),
             region_use_custom: false,
+            all_regions: false,
             start_date: TextInput::new(&start_date),
             end_date: TextInput::new(
                 &chrono::Utc::now().format("%Y-%m-%d").to_string(),
@@ -462,10 +488,15 @@ impl App {
             options_field: 0,
             collector_statuses: vec![],
             result_files: vec![],
+            error_messages: vec![],
             progress_rx: None,
             error_msg: None,
             tick: 0,
+            finished_tick: None,
             result_scroll: 0,
+            prep_log: Vec::new(),
+            prep_current: 0,
+            prep_total: 0,
         }
     }
 
@@ -503,57 +534,62 @@ impl App {
         !self.accounts.is_empty()
     }
 
-    /// Apply the selected account's settings to the wizard fields.
-    pub fn apply_account(&mut self, index: usize) {
-        self.selected_account = Some(index);
-        let acct = self.accounts[index].clone();
+    /// Returns sorted list of selected account indices.
+    pub fn selected_account_indices(&self) -> Vec<usize> {
+        let mut sorted: Vec<usize> = self.selected_accounts.iter().copied().collect();
+        sorted.sort();
+        sorted
+    }
 
-        // Set profile cursor to matching profile name
-        if let Some(pos) = self.profiles.iter().position(|p| p == &acct.profile) {
-            self.profile_cursor = pos;
-        }
+    /// Compute per-account settings without mutating shared App state.
+    /// Returns (profile, region, output_dir, collector_keys).
+    pub fn resolve_account_settings(&self, index: usize) -> (String, String, Option<String>, Vec<String>) {
+        let acct = &self.accounts[index];
 
-        // Set region
-        if let Some(ref region) = acct.region {
-            if let Some(pos) = self.regions.iter().position(|r| *r == region.as_str()) {
-                self.region_cursor = pos;
-                self.region_use_custom = false;
+        let profile = acct.profile.clone();
+        let region = acct.region.clone().unwrap_or_else(|| {
+            if self.region_use_custom {
+                self.region_custom.value.clone()
             } else {
-                self.region_custom = TextInput::new(region);
-                self.region_use_custom = true;
+                self.regions.get(self.region_cursor)
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "us-east-1".to_string())
             }
-        }
+        });
+        let output_dir = acct.output_dir.clone();
 
-        // Set output dir
-        if let Some(ref dir) = acct.output_dir {
-            self.output_dir = TextInput::new(dir);
-        }
-
-        // Apply per-account collector overrides
+        // Start from the current global collector selection and apply per-account overrides.
+        let mut selected = self.collector_selected.clone();
         if let Some(ref enable_list) = acct.collectors.enable {
-            // Exclusive: ONLY these collectors
-            self.collector_selected.clear();
+            selected.clear();
             for (i, (key, _)) in self.collector_items.iter().enumerate() {
                 if enable_list.iter().any(|k| k == key) {
-                    self.collector_selected.insert(i);
+                    selected.insert(i);
                 }
             }
         } else {
             if let Some(ref disable_list) = acct.collectors.disable {
                 for (i, (key, _)) in self.collector_items.iter().enumerate() {
                     if disable_list.iter().any(|k| k == key) {
-                        self.collector_selected.remove(&i);
+                        selected.remove(&i);
                     }
                 }
             }
             if let Some(ref extra) = acct.collectors.enable_extra {
                 for (i, (key, _)) in self.collector_items.iter().enumerate() {
                     if extra.iter().any(|k| k == key) {
-                        self.collector_selected.insert(i);
+                        selected.insert(i);
                     }
                 }
             }
         }
+
+        let collector_keys: Vec<String> = selected
+            .iter()
+            .filter_map(|&i| self.collector_items.get(i).map(|(k, _)| k.to_string()))
+            .collect();
+
+        (profile, region, output_dir, collector_keys)
     }
 
     // ------------------------------------------------------------------
@@ -577,6 +613,7 @@ impl App {
             Screen::SelectCollectors => Screen::SetOptions,
             Screen::SetOptions      => Screen::Confirm,
             Screen::Confirm         => Screen::Running,
+            Screen::Preparing       => Screen::Running,
             Screen::Running         => Screen::Results,
             Screen::Results         => Screen::Results,
         };
@@ -615,6 +652,13 @@ impl App {
 
     pub fn validate_current(&mut self) -> bool {
         match self.screen {
+            Screen::SelectAccount => {
+                if self.selected_accounts.is_empty() {
+                    self.error_msg = Some("Select at least one account (Space to toggle)".into());
+                    return false;
+                }
+                true
+            }
             Screen::SelectProfile => {
                 if self.profiles.is_empty() {
                     self.error_msg = Some("No AWS profiles found in ~/.aws/config".into());
@@ -651,6 +695,19 @@ impl App {
         if let Some(rx) = &mut self.progress_rx {
             while let Ok(msg) = rx.try_recv() {
                 match msg {
+                    Progress::AccountStarted { name, index, total, collectors } => {
+                        self.current_account_label = Some(name);
+                        self.current_account_index = index;
+                        self.total_account_count = total;
+                        self.collector_statuses = collectors
+                            .into_iter()
+                            .map(|n| CollectorStatus { name: n, state: CollectorState::Waiting })
+                            .collect();
+                    }
+                    Progress::AccountFinished { .. } => {
+                        // Nothing to do here; the next AccountStarted or
+                        // Finished will drive the UI forward.
+                    }
                     Progress::Started { collector } => {
                         if let Some(s) = self
                             .collector_statuses
@@ -670,6 +727,7 @@ impl App {
                         }
                     }
                     Progress::Error { collector, message } => {
+                        self.error_messages.push((collector.clone(), message.clone()));
                         if let Some(s) = self
                             .collector_statuses
                             .iter_mut()
@@ -680,6 +738,7 @@ impl App {
                     }
                     Progress::Finished { files } => {
                         self.result_files = files;
+                        self.finished_tick = Some(self.tick);
                         self.screen = Screen::Results;
                     }
                 }
@@ -826,15 +885,39 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                 let max = app.accounts.len(); // "Other" is at index == len
                 if app.account_cursor < max { app.account_cursor += 1; }
             }
-            KeyCode::Enter => {
-                if app.account_cursor < app.accounts.len() {
-                    // Selected a configured account
-                    app.apply_account(app.account_cursor);
-                    app.next_screen(); // → SetDates
+            KeyCode::Char(' ') => {
+                let i = app.account_cursor;
+                if i < app.accounts.len() {
+                    if app.selected_accounts.contains(&i) {
+                        app.selected_accounts.remove(&i);
+                    } else {
+                        app.selected_accounts.insert(i);
+                    }
                 } else {
-                    // "Other" → fall to legacy SelectProfile flow
-                    app.selected_account = None;
+                    // "Other" → legacy flow
+                    app.selected_accounts.clear();
                     app.screen = Screen::SelectProfile;
+                }
+            }
+            KeyCode::Char('a') => {
+                for i in 0..app.accounts.len() {
+                    app.selected_accounts.insert(i);
+                }
+            }
+            KeyCode::Char('d') => {
+                app.selected_accounts.clear();
+            }
+            KeyCode::Enter => {
+                if app.account_cursor == app.accounts.len() {
+                    // "Other" → legacy flow
+                    app.selected_accounts.clear();
+                    app.screen = Screen::SelectProfile;
+                } else {
+                    // Auto-select cursor item if nothing toggled yet
+                    if app.selected_accounts.is_empty() {
+                        app.selected_accounts.insert(app.account_cursor);
+                    }
+                    if app.validate_current() { app.next_screen(); }
                 }
             }
             KeyCode::Esc => app.prev_screen(),
@@ -928,10 +1011,13 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SetOptions => match key {
-            // 2 fields: 0 = filter, 1 = include_raw toggle
-            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 2; }
+            // 3 fields: 0 = filter, 1 = include_raw toggle, 2 = all_regions toggle
+            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 3; }
             KeyCode::Char(' ') if app.options_field == 1 => {
                 app.include_raw = !app.include_raw;
+            }
+            KeyCode::Char(' ') if app.options_field == 2 => {
+                app.all_regions = !app.all_regions;
             }
             KeyCode::Char(c) if app.options_field == 0 => app.filter_input.insert(c),
             KeyCode::Backspace if app.options_field == 0 => app.filter_input.backspace(),
@@ -953,6 +1039,10 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
 
         Screen::Running => {
             // No navigation while running; collection drives screen transition.
+        }
+
+        Screen::Preparing => {
+            // No key interaction during preparation.
         }
 
         Screen::Results => match key {

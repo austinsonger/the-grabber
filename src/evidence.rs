@@ -58,7 +58,12 @@ pub trait CsvCollector: Send + Sync {
     /// Column headers for the CSV.
     fn headers(&self) -> &'static [&'static str];
     /// Collect rows.  `account_id` and `region` are provided for ARN construction.
-    async fn collect_rows(&self, account_id: &str, region: &str) -> Result<Vec<Vec<String>>>;
+    /// `dates` is an optional `(start_secs, end_secs)` Unix-timestamp range.
+    /// Collectors that retrieve time-windowed data (findings, events, snapshots
+    /// with creation timestamps) MUST filter by this range when provided.
+    /// Pure point-in-time snapshot collectors that have no date dimension may
+    /// ignore it.
+    async fn collect_rows(&self, account_id: &str, region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>>;
 }
 
 /// Parameters passed to every collector.

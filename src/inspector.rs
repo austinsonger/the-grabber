@@ -1,6 +1,8 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use aws_sdk_inspector2::Client as Inspector2Client;
+use aws_sdk_inspector2::primitives::DateTime as InspectorDateTime;
+use aws_sdk_inspector2::types::{DateFilter, FilterCriteria, StringComparison, StringFilter};
 
 use crate::evidence::CsvCollector;
 
@@ -75,12 +77,75 @@ impl CsvCollector for InspectorCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+        // Pre-check: verify Inspector2 is enabled in this region before listing
+        // findings.  list_findings can hang indefinitely when Inspector2 is not
+        // activated, so we bail early if get_configuration indicates it is off.
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            self.client.get_configuration().send(),
+        )
+        .await
+        {
+            // Timeout or any error → Inspector2 not reachable / not enabled.
+            Err(_timeout) => {
+                eprintln!("  WARN: Inspector2 get_configuration timed out — skipping findings");
+                return Ok(Vec::new());
+            }
+            Ok(Err(e)) => {
+                eprintln!("  WARN: Inspector2 get_configuration (not enabled?): {e:#}");
+                return Ok(Vec::new());
+            }
+            Ok(Ok(_)) => {} // Inspector2 is enabled — proceed.
+        }
+
+        // Cap findings at 10 000 rows so a region with millions of findings
+        // doesn't run indefinitely.  Compliance reviews rarely need every
+        // individual finding; the most recent/severe ones are captured first.
+        const MAX_ROWS: usize = 10_000;
+
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
+        // Always exclude ECR resource types — those are covered by InspectorEcrCollector.
+        // Without this, ECR findings dominate the result set (often 95%+) and push out
+        // Lambda/EC2 findings before the row cap is reached.
+        let ecr_exclusion_1 = StringFilter::builder()
+            .comparison(StringComparison::NotEquals)
+            .value("AWS_ECR_CONTAINER_IMAGE")
+            .build()
+            .expect("StringFilter is always valid");
+        let ecr_exclusion_2 = StringFilter::builder()
+            .comparison(StringComparison::NotEquals)
+            .value("AWS_ECR_REPOSITORY")
+            .build()
+            .expect("StringFilter is always valid");
+
+        let mut filter_builder = FilterCriteria::builder()
+            .resource_type(ecr_exclusion_1)
+            .resource_type(ecr_exclusion_2);
+
+        // Also apply a date-range filter when the caller specified one.
+        if let Some((start, end)) = dates {
+            filter_builder = filter_builder.updated_at(
+                DateFilter::builder()
+                    .start_inclusive(InspectorDateTime::from_secs(start))
+                    .end_inclusive(InspectorDateTime::from_secs(end))
+                    .build()
+            );
+        }
+        let filter = filter_builder.build();
+
         loop {
-            let mut req = self.client.list_findings().max_results(100);
+            if rows.len() >= MAX_ROWS {
+                eprintln!("  WARN: Inspector2 list_findings: hit {MAX_ROWS}-row cap, truncating");
+                break;
+            }
+
+            let mut req = self.client
+                .list_findings()
+                .max_results(100)
+                .filter_criteria(filter.clone());
             if let Some(ref t) = next_token {
                 req = req.next_token(t);
             }
@@ -91,6 +156,7 @@ impl CsvCollector for InspectorCollector {
                     if msg.contains("AccessDeniedException")
                         || msg.contains("ResourceNotFoundException")
                         || msg.contains("ValidationException")
+                        || msg.contains("BadRequestException")
                     {
                         eprintln!("  WARN: Inspector2 list_findings (not enabled?): {msg}");
                         return Ok(rows);

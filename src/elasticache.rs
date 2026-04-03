@@ -32,7 +32,7 @@ impl CsvCollector for ElastiCacheCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // --- Redis: use replication groups (logical cluster level) ----------
@@ -167,7 +167,7 @@ impl CsvCollector for ElastiCacheGlobalCollector {
         ]
     }
 
-    async fn collect_rows(&self, account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 

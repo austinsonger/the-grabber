@@ -66,7 +66,7 @@ impl CsvCollector for SecurityGroupCollector {
         &["Group ID", "Group Name", "Inbound Rules", "Outbound Rules", "VPC ID", "Region"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -116,7 +116,7 @@ impl CsvCollector for RouteTableCollector {
         &["Route Table ID", "Routes", "Subnet Associations", "VPC ID", "Region"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -192,7 +192,7 @@ impl CsvCollector for Ec2InstanceCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 

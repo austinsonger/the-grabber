@@ -29,7 +29,7 @@ impl CsvCollector for IamTrustsCollector {
         &["Role Name", "Trusted Entity", "Entity Type", "External ID", "Conditions", "Cross Account"]
     }
 
-    async fn collect_rows(&self, account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 

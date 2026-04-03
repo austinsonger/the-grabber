@@ -22,7 +22,7 @@ impl CsvCollector for AccessAnalyzerCollector {
         &["Analyzer Name", "Resource ARN", "Resource Type", "Finding Type", "Public Access", "Cross Account", "Status"]
     }
 
-    async fn collect_rows(&self, account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // List all analyzers

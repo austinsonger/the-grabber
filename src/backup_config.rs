@@ -27,7 +27,7 @@ impl CsvCollector for BackupPlanConfigCollector {
         &["Plan ID", "Plan Name", "Version ID", "Rules Count", "Rules Summary"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -106,7 +106,7 @@ impl CsvCollector for BackupVaultConfigCollector {
         &["Vault Name", "Vault ARN", "Encryption Key ARN", "Recovery Points", "Has Access Policy"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -172,7 +172,7 @@ impl CsvCollector for RdsBackupConfigCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 

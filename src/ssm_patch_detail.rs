@@ -32,7 +32,7 @@ impl CsvCollector for SsmPatchDetailCollector {
         &["Instance ID", "Patch ID", "Title", "Severity", "State", "Installed Time"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // Get all managed instance IDs first
@@ -114,7 +114,7 @@ impl CsvCollector for SsmPatchSummaryCollector {
           "Other Count", "Missing Count", "Installed Count", "Operation"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -184,7 +184,7 @@ impl CsvCollector for SsmPatchExecutionCollector {
         &["Command ID", "Instance ID", "Requested Date Time", "Completed Date Time", "Status"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         use aws_sdk_ssm::types::CommandFilterKey;
 
         let mut rows = Vec::new();
@@ -277,7 +277,7 @@ impl CsvCollector for SsmMaintenanceWindowCollector {
         &["Window ID", "Name", "Enabled", "Schedule", "Duration (hrs)", "Targets", "Tasks"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 

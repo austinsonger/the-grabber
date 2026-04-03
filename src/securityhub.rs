@@ -1,7 +1,8 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use aws_sdk_securityhub::Client as ShClient;
-use aws_sdk_securityhub::types::{AwsSecurityFindingFilters, StringFilter, StringFilterComparison};
+use aws_sdk_securityhub::types::{AwsSecurityFindingFilters, DateFilter,
+    StringFilter, StringFilterComparison};
 
 use crate::evidence::CsvCollector;
 
@@ -23,7 +24,7 @@ impl CsvCollector for SecurityHubCollector {
         &["Control ID", "Severity", "Compliance Status", "Resource ARN", "Region"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let compliance_filter = StringFilter::builder()
@@ -36,10 +37,26 @@ impl CsvCollector for SecurityHubCollector {
             .comparison(StringFilterComparison::Equals)
             .build();
 
-        let filters = AwsSecurityFindingFilters::builder()
+        let mut filters_builder = AwsSecurityFindingFilters::builder()
             .compliance_status(compliance_filter)
-            .record_state(record_filter)
-            .build();
+            .record_state(record_filter);
+
+        // Apply date filter when a window is provided.
+        if let Some((start, end)) = dates {
+            let start_str = chrono::DateTime::<chrono::Utc>::from_timestamp(start, 0)
+                .map(|d| d.to_rfc3339())
+                .unwrap_or_default();
+            let end_str = chrono::DateTime::<chrono::Utc>::from_timestamp(end, 0)
+                .map(|d| d.to_rfc3339())
+                .unwrap_or_default();
+            filters_builder = filters_builder.updated_at(
+                DateFilter::builder()
+                    .start(start_str)
+                    .end(end_str)
+                    .build()
+            );
+        }
+        let filters = filters_builder.build();
 
         const MAX_FINDINGS: usize = 1000;
         let mut next_token: Option<String> = None;

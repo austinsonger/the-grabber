@@ -31,7 +31,7 @@ impl CsvCollector for PublicResourceCollector {
         &["Resource ID", "Resource Type", "Public IP / DNS", "Port Exposure", "Notes"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // ── 1. EC2 instances with public IPs ────────────────────────────────

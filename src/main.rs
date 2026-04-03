@@ -252,6 +252,21 @@ struct Cli {
     /// Additional regions to scan in S3 logs (comma-separated)
     #[arg(long, value_delimiter = ',')]
     s3_regions: Option<Vec<String>>,
+
+    // ------- Multi-region options -------
+
+    /// Collect evidence from every enabled region (round-robin).
+    /// Global services (IAM, S3, Route53, CloudFront, etc.) run once;
+    /// regional services run once per region.
+    /// Output is written to <output>/<region>/ subdirectories.
+    #[arg(long, default_value_t = false)]
+    all_regions: bool,
+
+    /// Explicit list of regions to collect from (comma-separated).
+    /// Implies round-robin mode.  If omitted with --all-regions, regions
+    /// are auto-discovered via EC2 DescribeRegions.
+    #[arg(long, value_delimiter = ',')]
+    regions: Option<Vec<String>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -289,26 +304,6 @@ async fn async_main() -> Result<()> {
                     .context("invalid end date from TUI")?
                     .and_hms_opt(23, 59, 59).unwrap().and_utc();
 
-                let mut loader = aws_config::defaults(BehaviorVersion::latest())
-                    .region(Region::new(app.selected_region()));
-                let profile = app.selected_profile().to_string();
-                if !profile.is_empty() && profile != "default" {
-                    loader = loader.profile_name(&profile);
-                }
-                let config = loader.load().await;
-
-                // Use the TOML account name as the file prefix when available.
-                // Fall back to the real AWS account ID from STS otherwise.
-                let account_id = if let Some(idx) = app.selected_account {
-                    let raw = app.accounts[idx].name.clone();
-                    // Sanitize: replace spaces and slashes with underscores, keep alphanumeric/hyphens.
-                    raw.chars()
-                        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
-                        .collect::<String>()
-                } else {
-                    print_identity(&config).await
-                };
-
                 let params = CollectParams {
                     start_time: start,
                     end_time: end,
@@ -320,44 +315,274 @@ async fn async_main() -> Result<()> {
                     include_raw: app.include_raw,
                 };
 
-                let collectors = app.selected_collectors();
-                let output_path = if app.output_dir.value.is_empty() {
+                let base_output_path = if app.output_dir.value.is_empty() {
                     None
                 } else {
                     Some(PathBuf::from(&app.output_dir.value))
                 };
 
+                // Build the list of accounts to iterate over.
+                // Each entry: (profile, region, account_id, output_path, collector_keys)
+                let mut account_runs: Vec<(String, String, String, Option<PathBuf>, Vec<String>)> = Vec::new();
+
+                if app.selected_accounts.is_empty() {
+                    // Legacy single-account path (no TOML accounts or "Other" chosen).
+                    let profile = app.selected_profile().to_string();
+                    let region = app.selected_region();
+                    let mut loader = aws_config::defaults(BehaviorVersion::latest())
+                        .region(Region::new(region.clone()));
+                    if !profile.is_empty() && profile != "default" {
+                        loader = loader.profile_name(&profile);
+                    }
+                    let cfg = loader.load().await;
+                    let account_id = print_identity(&cfg).await;
+                    let collectors = app.selected_collectors();
+                    account_runs.push((profile, region, account_id, base_output_path.clone(), collectors));
+                } else {
+                    let mut sorted: Vec<usize> = app.selected_accounts.iter().copied().collect();
+                    sorted.sort();
+                    let multi = sorted.len() > 1;
+                    for &idx in &sorted {
+                        let (profile, region, acct_output_dir, collector_keys) =
+                            app.resolve_account_settings(idx);
+                        let raw_name = app.accounts[idx].name.clone();
+                        let sanitized: String = raw_name.chars()
+                            .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
+                            .collect();
+                        let output_path = if let Some(dir) = acct_output_dir {
+                            Some(PathBuf::from(dir))
+                        } else if multi {
+                            // Multi-account: isolate into subdirectory per account.
+                            Some(base_output_path.clone()
+                                .unwrap_or_else(|| PathBuf::from("."))
+                                .join(&sanitized))
+                        } else {
+                            base_output_path.clone()
+                        };
+                        account_runs.push((profile, region, sanitized, output_path, collector_keys));
+                    }
+                }
+
+                // Build AWS configs, SDK clients, and collectors BEFORE starting
+                // collection.  SSO credential resolution is lazy (reads cached token
+                // from ~/.aws/sso/cache), so we can safely be in TUI mode already.
+                let use_all_regions = app.all_regions;
+                let total_accounts = account_runs.len();
+
+                // Redirect stderr to a log file BEFORE entering TUI so that any
+                // AWS SDK warnings don't corrupt the alternate screen.
+                let log_path = {
+                    let dir = base_output_path.clone().unwrap_or_else(|| PathBuf::from("."));
+                    let _ = std::fs::create_dir_all(&dir);
+                    dir.join("evidence-collection.log")
+                };
+                let stderr_backup = redirect_stderr_to_file(&log_path);
+
+                // Enter the TUI immediately — show Preparing screen while we build.
+                app.screen = tui::Screen::Preparing;
+                app.prep_total = total_accounts;
+                app.prep_log.push(format!(
+                    "Building AWS SDK clients for {} account(s){}…",
+                    total_accounts,
+                    if use_all_regions { " across all enabled regions" } else { "" },
+                ));
+                let mut terminal = setup_terminal()?;
+                terminal.draw(|f| tui::ui::draw(f, &app))?;
+
+                let mut prepared: Vec<AccountCollectors> = Vec::with_capacity(account_runs.len());
+                for (acct_idx, (profile, region, account_id, output_path, collector_keys)) in account_runs.into_iter().enumerate() {
+                    app.prep_current = acct_idx + 1;
+                    app.prep_log.push(format!(
+                        "  [{}/{}] {}  (profile: {})",
+                        acct_idx + 1, total_accounts, account_id, profile,
+                    ));
+                    terminal.draw(|f| tui::ui::draw(f, &app))?;
+                    // Helper closure to build a fresh config loader for this account.
+                    // CRITICAL: Never reuse a config that has already been used for an
+                    // AWS API call (canary, region discovery, etc.) for building
+                    // collectors.  Calling an AWS API through a config "takes" the
+                    // credential provider's internal state, leaving it broken when the
+                    // collectors try to initialise credentials inside tokio::spawn.
+                    let make_cfg = || {
+                        let mut l = aws_config::defaults(BehaviorVersion::latest())
+                            .region(Region::new(region.clone()));
+                        if !profile.is_empty() && profile != "default" {
+                            l = l.profile_name(&profile);
+                        }
+                        l
+                    };
+
+                    // ── Probe config (disposable) ────────────────────────────────────
+                    // Used only for the canary STS check and region discovery.
+                    // Explicitly NOT used for building collectors.
+                    let probe_config = make_cfg().load().await;
+
+                    // Canary: verify credentials are valid.  If the canary fails
+                    // we skip this account entirely — its profile is not configured
+                    // (or SSO session is not logged in) and every collector would
+                    // fail anyway.
+                    let sts = aws_sdk_sts::Client::new(&probe_config);
+                    let canary_ok = match sts.get_caller_identity().send().await {
+                        Ok(resp) => {
+                            app.prep_log.push(format!(
+                                "  ✓ Credentials OK  account={}",
+                                resp.account().unwrap_or("?"),
+                            ));
+                            true
+                        }
+                        Err(e) => {
+                            app.prep_log.push(format!(
+                                "  ✗ Credentials FAILED — skipping. Run: aws sso login --profile {}",
+                                profile,
+                            ));
+                            app.prep_log.push(format!("    ({})", e));
+                            false
+                        }
+                    };
+                    terminal.draw(|f| tui::ui::draw(f, &app))?;
+
+                    if !canary_ok {
+                        // Don't build any collectors for this account — it has no
+                        // working credentials and every AWS API call would fail.
+                        app.prep_log.push("    ↷ Account skipped.".to_string());
+                        terminal.draw(|f| tui::ui::draw(f, &app))?;
+                        continue;
+                    }
+
+                    let names_ref: Vec<&str> = collector_keys.iter().map(|s| s.as_str()).collect();
+
+                    // Pre-discover regions using the probe config (OK to consume it).
+                    let mut discovered_regions: Vec<String> = Vec::new();
+                    let mut regional_collectors = Vec::new();
+                    if use_all_regions {
+                        app.prep_log.push("    Discovering enabled regions…".to_string());
+                        terminal.draw(|f| tui::ui::draw(f, &app))?;
+                        discovered_regions = discover_regions(&probe_config).await;
+                        if !discovered_regions.is_empty() {
+                            app.prep_log.push(format!(
+                                "    Found {} enabled regions.", discovered_regions.len()
+                            ));
+                            terminal.draw(|f| tui::ui::draw(f, &app))?;
+                            let global_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                            let regional_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                            let global_inv_keys: Vec<&str> = ["iam-roles","iam-role-policies","iam-user-policies"].iter().copied()
+                                .filter(|k| names_ref.contains(k) && GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                            let regional_inv_keys: Vec<&str> = ["eventbridge-rules","ct-config-changes","kms-config"].iter().copied()
+                                .filter(|k| names_ref.contains(k)).collect();
+                            let json_keys: Vec<&str> = ["cloudtrail","backup","rds"].iter().copied()
+                                .filter(|k| names_ref.contains(k)).collect();
+
+                            let out_base = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
+
+                            // Global collectors: fresh config (not the probe).
+                            if !global_csv_keys.is_empty() || !global_inv_keys.is_empty() {
+                                let gcfg = make_cfg().load().await;
+                                regional_collectors.push((
+                                    region.clone(),
+                                    out_base.clone(),
+                                    build_csv_collectors(&global_csv_keys, &gcfg),
+                                    build_json_inv_collectors(&global_inv_keys, &gcfg),
+                                    Vec::new(),
+                                ));
+                            }
+
+                            // Per-region collectors: each gets a fresh config.
+                            let region_total = discovered_regions.len();
+                            app.prep_log.push(format!("    Building collectors for {} regions…", region_total));
+                            terminal.draw(|f| tui::ui::draw(f, &app))?;
+                            for (ridx, region_name) in discovered_regions.iter().enumerate() {
+                                // Update the last log line in place to show region progress.
+                                if let Some(last) = app.prep_log.last_mut() {
+                                    *last = format!(
+                                        "    Region {:>2}/{}: {}",
+                                        ridx + 1, region_total, region_name,
+                                    );
+                                }
+                                terminal.draw(|f| tui::ui::draw(f, &app))?;
+                                let rcfg = aws_config::defaults(BehaviorVersion::latest())
+                                    .region(Region::new(region_name.clone()))
+                                    .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
+                                    .load().await;
+                                let rdir = out_base.join(region_name);
+                                regional_collectors.push((
+                                    region_name.clone(),
+                                    rdir,
+                                    build_csv_collectors(&regional_csv_keys, &rcfg),
+                                    build_json_inv_collectors(&regional_inv_keys, &rcfg),
+                                    build_json_collectors(&json_keys, &rcfg),
+                                ));
+                            }
+                            if let Some(last) = app.prep_log.last_mut() {
+                                *last = format!("    All {} regions ready.", region_total);
+                            }
+                            terminal.draw(|f| tui::ui::draw(f, &app))?;
+                        } else {
+                            app.prep_log.push(format!(
+                                "  ✗ Could not discover regions for {}, falling back to {}",
+                                account_id, region,
+                            ));
+                            terminal.draw(|f| tui::ui::draw(f, &app))?;
+                        }
+                    }
+
+                    // ── Work config (fresh, never used for API calls) ─────────────────
+                    // Build a brand-new config so its credential provider has never been
+                    // touched.  It will initialise correctly the first time it is used
+                    // inside tokio::spawn.
+                    let work_config = make_cfg().load().await;
+
+                    // Build single-region collectors from the fresh work config.
+                    let json_collectors     = build_json_collectors(&names_ref, &work_config);
+                    let json_inv_collectors = build_json_inv_collectors(&names_ref, &work_config);
+                    let csv_collectors      = build_csv_collectors(&names_ref, &work_config);
+
+                    let mut display_names: Vec<String> = json_collectors.iter().map(|c| c.name().to_string())
+                        .chain(json_inv_collectors.iter().map(|c| c.name().to_string()))
+                        .chain(csv_collectors.iter().map(|c| c.name().to_string()))
+                        .collect();
+
+                    // If all-regions, add regional collector names to the display list.
+                    for (rname, _, rcsv, rinv, rjson) in &regional_collectors {
+                        for c in rcsv { if !display_names.contains(&c.name().to_string()) { display_names.push(format!("{} ({})", c.name(), rname)); } }
+                        for c in rinv { if !display_names.contains(&c.name().to_string()) { display_names.push(format!("{} ({})", c.name(), rname)); } }
+                        for c in rjson { if !display_names.contains(&c.name().to_string()) { display_names.push(format!("{} ({})", c.name(), rname)); } }
+                    }
+
+                    prepared.push(AccountCollectors {
+                        account_id, profile, region, output_path, collector_keys,
+                        json_collectors, json_inv_collectors, csv_collectors, display_names,
+                        discovered_regions, regional_collectors,
+                    });
+                }
+
                 // Set up progress channel so the TUI running screen gets live updates.
                 let (tx, rx) = mpsc::unbounded_channel::<Progress>();
                 app.progress_rx = Some(rx);
 
-                // Initialise status entries.
-                app.collector_statuses = collectors
+                // Initialise status entries from the first account's collectors.
+                app.collector_statuses = prepared[0].display_names
                     .iter()
                     .map(|name| CollectorStatus {
                         name: name.clone(),
                         state: CollectorState::Waiting,
                     })
                     .collect();
+                app.total_account_count = prepared.len();
+                if prepared.len() > 1 {
+                    app.current_account_index = 1;
+                    app.current_account_label = Some(prepared[0].account_id.clone());
+                }
 
-                // Redirect stderr to a log file so collector WARNs don't corrupt the TUI.
-                let log_path = {
-                    let dir = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
-                    let _ = std::fs::create_dir_all(&dir);
-                    dir.join("evidence-collection.log")
-                };
-                let stderr_backup = redirect_stderr_to_file(&log_path);
+                app.prep_log.push("All accounts prepared — starting collection…".to_string());
+                app.screen = tui::Screen::Running;
+                terminal.draw(|f| tui::ui::draw(f, &app))?;
 
-                // Restart the TUI to show the Running screen.
-                let mut terminal = setup_terminal()?;
-                let run_result = run_tui_running(
+                // Transition directly to Running screen (terminal is already set up).
+                let run_result = run_tui_multi_account(
                     &mut terminal,
                     &mut app,
-                    &config,
                     &params,
-                    &collectors,
-                    output_path.clone(),
-                    account_id,
+                    prepared,
                     tx,
                 )
                 .await;
@@ -598,372 +823,372 @@ async fn async_main() -> Result<()> {
     // EventBridge change rules
     if wants("change-event-rules") { csv_collectors.push(Box::new(ChangeEventRulesCollector::new(&config))); }
 
-    if json_collectors.is_empty() && csv_collectors.is_empty() {
+    if json_collectors.is_empty() && csv_collectors.is_empty() && !cli.all_regions && cli.regions.is_none() {
         anyhow::bail!("No collectors selected.");
     }
 
     let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+
+    // ── Multi-region round-robin mode ────────────────────────────────────────
+    if cli.all_regions || cli.regions.is_some() {
+        // Determine the target region list.
+        let target_regions: Vec<String> = if let Some(explicit) = cli.regions.as_ref() {
+            explicit.clone()
+        } else {
+            let regions = discover_regions(&config).await;
+            if regions.is_empty() {
+                anyhow::bail!("--all-regions: could not discover any enabled regions");
+            }
+            regions
+        };
+
+        // Build the wanted name lists, honouring any --collectors filter.
+        let wanted_csv: Vec<&str> = {
+            // All keys that appear in both the full key space AND the wants() filter.
+            let full: &[&str] = &[
+                "vpc","nacl","waf","elasticache","elasticache-global","efs","dynamodb",
+                "ebs","rds-inventory","cloudtrail-config","sns","vpc-flow-logs",
+                "metric-filters","s3-logging","iam-certs","elb","elb-listeners","acm",
+                "iam-users","iam-policies","iam-access-keys","guardduty","securityhub",
+                "config-rules","security-groups","route-tables","ec2-instances","asg",
+                "kms","secrets","s3-config","cw-alarms","cw-log-groups","api-gateway",
+                "cloudfront","ecs","eks","iam-trusts","access-analyzer","scp",
+                "ct-selectors","ct-validation","ct-s3-policy","ct-changes","s3-data-events",
+                "guardduty-config","guardduty-rules","sh-standards","igw","nat-gateways",
+                "public-resources","ec2-detailed","ssm-instances","ssm-patches",
+                "kms-policies","ebs-encryption","rds-snapshots","s3-policies","macie",
+                "config-history","inspector","inspector-ecr","inspector-history","ecr-scan",
+                "waf-logging","alb-logs","iam-password-policy","ebs-config","s3-encryption",
+                "s3-bucket-policy","s3-public-access","s3-logging-config","sg-config",
+                "vpc-config","rt-config","ec2-config","ct-full-config","cw-log-config",
+                "metric-filter-config","gd-full-config","sh-config","config-recorder",
+                "launch-templates","vpc-endpoints","ssm-baselines","ssm-params","time-sync",
+                "inspector-config","waf-config","elb-full-config","org-config",
+                "account-contacts","saml-providers","iam-account-summary","sns-policies",
+                "backup-plans","backup-vaults","rds-backup-config","lambda-config",
+                "lambda-permissions","ecr-config","route53-zones","route53-resolver",
+                "resource-tags","secrets-policies","config-timeline","config-compliance",
+                "config-snapshot","ct-iam-changes","cfn-drift","ssm-patch-detail",
+                "ssm-patch-summary","ssm-patch-exec","ssm-maint-windows","cw-config-alarms",
+                "change-event-rules",
+            ];
+            full.iter().copied()
+                .filter(|k| wants(k))
+                .collect()
+        };
+        let wanted_json_inv: Vec<&str> = ["iam-roles","iam-role-policies","iam-user-policies",
+            "eventbridge-rules","ct-config-changes","kms-config"]
+            .iter().copied().filter(|k| wants(k)).collect();
+        let wanted_json: Vec<&str> = ["cloudtrail","backup","rds"]
+            .iter().copied().filter(|k| wants(k)).collect();
+
+        // Split into global (run once) and regional (run per region).
+        let global_csv: Vec<&str>      = wanted_csv.iter().copied().filter(|k| GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+        let regional_csv: Vec<&str>    = wanted_csv.iter().copied().filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+        let global_json_inv: Vec<&str> = wanted_json_inv.iter().copied()
+            .filter(|k| GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+        let regional_json_inv: Vec<&str> = wanted_json_inv.iter().copied()
+            .filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+        // JSON time-windowed collectors are all regional.
+
+        // ── Run global collectors once (into base output dir) ─────────────────
+        if !global_csv.is_empty() || !global_json_inv.is_empty() {
+            eprintln!("\n=== Global collectors (running once) ===");
+            let global_csv_v  = build_csv_collectors(&global_csv, &config);
+            let global_inv_v  = build_json_inv_collectors(&global_json_inv, &config);
+            run_csv_collectors(&global_csv_v, &account_id, &cli.region, &output_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await?;
+            run_json_inv_collectors(&global_inv_v, &account_id, &cli.region, &output_dir).await?;
+        }
+
+        // ── Loop through each region ──────────────────────────────────────────
+        for region_name in &target_regions {
+            eprintln!("\n=== Region: {} ===", region_name);
+
+            let region_config = {
+                let mut loader = aws_config::defaults(BehaviorVersion::latest())
+                    .region(Region::new(region_name.clone()));
+                if let Some(ref p) = cli.profile {
+                    loader = loader.profile_name(p);
+                }
+                loader.load().await
+            };
+
+            let region_dir = output_dir.join(region_name);
+
+            if !regional_csv.is_empty() {
+                let csv_v = build_csv_collectors(&regional_csv, &region_config);
+                run_csv_collectors(&csv_v, &account_id, region_name, &region_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await?;
+            }
+            if !regional_json_inv.is_empty() {
+                let inv_v = build_json_inv_collectors(&regional_json_inv, &region_config);
+                run_json_inv_collectors(&inv_v, &account_id, region_name, &region_dir).await?;
+            }
+            if !wanted_json.is_empty() {
+                let json_v = build_json_collectors(&wanted_json, &region_config);
+                run_json_collectors(&json_v, &params, region_name, &region_dir).await?;
+            }
+        }
+
+        return Ok(());
+    }
+
+    // ── Single-region path (existing behaviour) ──────────────────────────────
     run_json_collectors(&json_collectors, &params, &cli.region, &output_dir).await?;
     run_json_inv_collectors(&json_inv_collectors, &account_id, &cli.region, &output_dir).await?;
-    run_csv_collectors(&csv_collectors, &account_id, &cli.region, &output_dir).await
+    run_csv_collectors(&csv_collectors, &account_id, &cli.region, &output_dir, Some((params.start_time.timestamp(), params.end_time.timestamp()))).await
 }
 
 // ---------------------------------------------------------------------------
 // TUI running screen + async collection
 // ---------------------------------------------------------------------------
 
-async fn run_tui_running(
+// ---------------------------------------------------------------------------
+// Per-collector helpers used by the TUI background task
+// ---------------------------------------------------------------------------
+
+async fn run_tui_csv_collector(
+    collector: &Box<dyn CsvCollector>,
+    account_id: &str,
+    region: &str,
+    out_dir: &PathBuf,
+    timestamp: &str,
+    tx: &mpsc::UnboundedSender<Progress>,
+    timeout: std::time::Duration,
+    written: &mut Vec<String>,
+    dates: Option<(i64, i64)>,
+) {
+    let name = collector.name().to_string();
+    let _ = tx.send(Progress::Started { collector: name.clone() });
+    match tokio::time::timeout(timeout, collector.collect_rows(account_id, region, dates)).await {
+        Ok(Ok(rows)) => {
+            let count = rows.len();
+            let _ = tx.send(Progress::Done { collector: name.clone(), count });
+            if count == 0 { return; }
+            let filename = format!("{}_{}-{}.csv", account_id, collector.filename_prefix(), timestamp);
+            let path = out_dir.join(&filename);
+            if let Ok(bytes) = write_csv_bytes(collector.headers(), &rows) {
+                if std::fs::write(&path, bytes).is_ok() {
+                    written.push(path.display().to_string());
+                }
+            }
+        }
+        Ok(Err(e)) => {
+            eprintln!("  ERROR [csv] {}: {:#}", name, e);
+            let _ = tx.send(Progress::Error { collector: name, message: format!("{:#}", e) });
+        }
+        Err(_) => {
+            eprintln!("  ERROR [csv] {}: timed out after 3 minutes", name);
+            let _ = tx.send(Progress::Error { collector: name, message: "timed out after 3 minutes".to_string() });
+        }
+    }
+}
+
+async fn run_tui_inv_collector(
+    collector: &Box<dyn JsonCollector>,
+    account_id: &str,
+    region: &str,
+    out_dir: &PathBuf,
+    timestamp: &str,
+    tx: &mpsc::UnboundedSender<Progress>,
+    timeout: std::time::Duration,
+    written: &mut Vec<String>,
+) {
+    let name = collector.name().to_string();
+    let _ = tx.send(Progress::Started { collector: name.clone() });
+    match tokio::time::timeout(timeout, collector.collect_records(account_id, region)).await {
+        Ok(Ok(records)) => {
+            let count = records.len();
+            let _ = tx.send(Progress::Done { collector: name.clone(), count });
+            if count == 0 { return; }
+            let report = JsonInventoryReport {
+                collected_at: Utc::now().to_rfc3339(),
+                account_id: account_id.to_string(),
+                region: region.to_string(),
+                collector: name.clone(),
+                record_count: count,
+                records,
+            };
+            let filename = format!("{}_{}-{}.json", account_id, collector.filename_prefix(), timestamp);
+            let path = out_dir.join(&filename);
+            if let Ok(json) = serde_json::to_string_pretty(&report) {
+                if std::fs::write(&path, json).is_ok() {
+                    written.push(path.display().to_string());
+                }
+            }
+        }
+        Ok(Err(e)) => {
+            eprintln!("  ERROR [inv] {}: {:#}", name, e);
+            let _ = tx.send(Progress::Error { collector: name, message: format!("{:#}", e) });
+        }
+        Err(_) => {
+            eprintln!("  ERROR [inv] {}: timed out after 3 minutes", name);
+            let _ = tx.send(Progress::Error { collector: name, message: "timed out after 3 minutes".to_string() });
+        }
+    }
+}
+
+async fn run_tui_json_collector(
+    collector: &Box<dyn EvidenceCollector>,
+    params: &CollectParams,
+    region: &str,
+    account_id: &str,
+    out_dir: &PathBuf,
+    timestamp: &str,
+    tx: &mpsc::UnboundedSender<Progress>,
+    timeout: std::time::Duration,
+    written: &mut Vec<String>,
+) {
+    let name = collector.name().to_string();
+    let _ = tx.send(Progress::Started { collector: name.clone() });
+    match tokio::time::timeout(timeout, collector.collect(params)).await {
+        Ok(Ok(records)) => {
+            let count = records.len();
+            let _ = tx.send(Progress::Done { collector: name.clone(), count });
+            if count == 0 { return; }
+            let report = EvidenceReport {
+                metadata: ReportMetadata {
+                    collected_at: Utc::now().to_rfc3339(),
+                    region: region.to_string(),
+                    start_date: params.start_time.format("%Y-%m-%d").to_string(),
+                    end_date: params.end_time.format("%Y-%m-%d").to_string(),
+                    filter: params.filter.clone(),
+                },
+                collector: name.clone(),
+                record_count: count,
+                records,
+            };
+            let filename = format!("{}_{}-{}.json", account_id, collector.filename_prefix(), timestamp);
+            let path = out_dir.join(&filename);
+            if let Ok(json) = serde_json::to_string_pretty(&report) {
+                if std::fs::write(&path, json).is_ok() {
+                    written.push(path.display().to_string());
+                }
+            }
+        }
+        Ok(Err(e)) => {
+            eprintln!("  ERROR [json] {}: {:#}", name, e);
+            let _ = tx.send(Progress::Error { collector: name, message: format!("{:#}", e) });
+        }
+        Err(_) => {
+            eprintln!("  ERROR [json] {}: timed out after 3 minutes", name);
+            let _ = tx.send(Progress::Error { collector: name, message: "timed out after 3 minutes".to_string() });
+        }
+    }
+}
+
+/// Pre-built account data ready for the background collection task.
+/// AWS configs and SDK clients must be created on the main async task (not inside
+/// tokio::spawn) so that the HTTP/TLS connector initializes correctly.
+struct AccountCollectors {
+    account_id: String,
+    profile: String,
+    region: String,
+    output_path: Option<PathBuf>,
+    #[allow(dead_code)]
+    collector_keys: Vec<String>,
+    json_collectors: Vec<Box<dyn EvidenceCollector>>,
+    json_inv_collectors: Vec<Box<dyn JsonCollector>>,
+    csv_collectors: Vec<Box<dyn CsvCollector>>,
+    display_names: Vec<String>,
+    /// Pre-discovered regions (if all-regions was requested). Empty = use single-region path.
+    discovered_regions: Vec<String>,
+    /// Pre-built regional collectors for each discovered region.
+    /// Each entry: (region_name, csv_collectors, inv_collectors, json_collectors)
+    regional_collectors: Vec<(
+        String,
+        PathBuf,
+        Vec<Box<dyn CsvCollector>>,
+        Vec<Box<dyn JsonCollector>>,
+        Vec<Box<dyn EvidenceCollector>>,
+    )>,
+}
+
+/// Multi-account wrapper: iterates over all pre-built accounts, running the
+/// full collector set for each. Sends AccountStarted / AccountFinished progress
+/// events so the TUI shows which account is active.
+///
+/// IMPORTANT: `prepared` must be built BEFORE the terminal enters raw mode,
+/// because `aws_config::load()` needs a normal terminal for SSO credential
+/// resolution.
+async fn run_tui_multi_account(
     terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
     app: &mut App,
-    config: &aws_config::SdkConfig,
     params: &CollectParams,
-    collector_names: &[String],
-    output_path: Option<PathBuf>,
-    account_id: String,
+    prepared: Vec<AccountCollectors>,
     tx: mpsc::UnboundedSender<Progress>,
 ) -> Result<()> {
     use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
-    // Build the actual collectors (JSON + JSON-inventory + CSV).
-    let mut json_collectors:     Vec<Box<dyn EvidenceCollector>> = Vec::new();
-    let mut json_inv_collectors: Vec<Box<dyn JsonCollector>>     = Vec::new();
-    let mut csv_collectors:      Vec<Box<dyn CsvCollector>>      = Vec::new();
-    for name in collector_names {
-        match name.as_str() {
-            "cloudtrail"       => json_collectors.push(Box::new(CloudTrailCollector::new(config))),
-            "backup"           => json_collectors.push(Box::new(BackupCollector::new(config))),
-            "rds"              => json_collectors.push(Box::new(RdsCollector::new(config))),
-            "vpc"              => csv_collectors.push(Box::new(VpcCollector::new(config))),
-            "nacl"             => csv_collectors.push(Box::new(NetworkAclCollector::new(config))),
-            "waf"              => csv_collectors.push(Box::new(WafCollector::new(config))),
-            "elasticache"      => csv_collectors.push(Box::new(ElastiCacheCollector::new(config))),
-            "elasticache-global" => csv_collectors.push(Box::new(ElastiCacheGlobalCollector::new(config))),
-            "efs"              => csv_collectors.push(Box::new(EfsCollector::new(config))),
-            "dynamodb"         => csv_collectors.push(Box::new(DynamoDbCollector::new(config))),
-            "ebs"              => csv_collectors.push(Box::new(EbsCollector::new(config))),
-            "rds-inventory"    => csv_collectors.push(Box::new(RdsInventoryCollector::new(config))),
-            "cloudtrail-config" => csv_collectors.push(Box::new(CloudTrailInventoryCollector::new(config))),
-            "sns"              => csv_collectors.push(Box::new(SnsSubscriptionCollector::new(config))),
-            "vpc-flow-logs"    => csv_collectors.push(Box::new(VpcFlowLogCollector::new(config))),
-            "metric-filters"   => csv_collectors.push(Box::new(MetricFilterAlarmCollector::new(config))),
-            "s3-logging"       => csv_collectors.push(Box::new(S3BucketLoggingCollector::new(config))),
-            "iam-certs"        => csv_collectors.push(Box::new(IamCertCollector::new(config))),
-            "elb"              => csv_collectors.push(Box::new(LoadBalancerCollector::new(config))),
-            "elb-listeners"    => csv_collectors.push(Box::new(LoadBalancerListenerCollector::new(config))),
-            "acm"              => csv_collectors.push(Box::new(AcmCertCollector::new(config))),
-            "iam-users"        => csv_collectors.push(Box::new(IamUserCollector::new(config))),
-            "iam-roles"        => json_inv_collectors.push(Box::new(IamRoleCollector::new(config))),
-            "iam-policies"     => csv_collectors.push(Box::new(IamPolicyCollector::new(config))),
-            "iam-access-keys"  => csv_collectors.push(Box::new(IamAccessKeyCollector::new(config))),
-            "guardduty"        => csv_collectors.push(Box::new(GuardDutyCollector::new(config))),
-            "securityhub"      => csv_collectors.push(Box::new(SecurityHubCollector::new(config))),
-            "config-rules"     => csv_collectors.push(Box::new(ConfigRulesCollector::new(config))),
-            "security-groups"  => csv_collectors.push(Box::new(SecurityGroupCollector::new(config))),
-            "route-tables"     => csv_collectors.push(Box::new(RouteTableCollector::new(config))),
-            "ec2-instances"    => csv_collectors.push(Box::new(Ec2InstanceCollector::new(config))),
-            "asg"              => csv_collectors.push(Box::new(AutoScalingCollector::new(config))),
-            "kms"              => csv_collectors.push(Box::new(KmsKeyCollector::new(config))),
-            "secrets"          => csv_collectors.push(Box::new(SecretsManagerCollector::new(config))),
-            "s3-config"        => csv_collectors.push(Box::new(S3BucketConfigCollector::new(config))),
-            "cw-alarms"        => csv_collectors.push(Box::new(CloudWatchAlarmCollector::new(config))),
-            "cw-log-groups"    => csv_collectors.push(Box::new(CloudWatchLogGroupCollector::new(config))),
-            "api-gateway"      => csv_collectors.push(Box::new(ApiGatewayCollector::new(config))),
-            "cloudfront"       => csv_collectors.push(Box::new(CloudFrontCollector::new(config))),
-            "ecs"              => csv_collectors.push(Box::new(EcsClusterCollector::new(config))),
-            "eks"              => csv_collectors.push(Box::new(EksClusterCollector::new(config))),
-            // IAM extended
-            "iam-trusts"       => csv_collectors.push(Box::new(IamTrustsCollector::new(config))),
-            "access-analyzer"  => csv_collectors.push(Box::new(AccessAnalyzerCollector::new(config))),
-            "scp"              => csv_collectors.push(Box::new(OrganizationsSCPCollector::new(config))),
-            // CloudTrail extended
-            "ct-selectors"     => csv_collectors.push(Box::new(CloudTrailEventSelectorsCollector::new(config))),
-            "ct-validation"    => csv_collectors.push(Box::new(CloudTrailLogValidationCollector::new(config))),
-            "ct-s3-policy"     => csv_collectors.push(Box::new(CloudTrailS3PolicyCollector::new(config))),
-            "ct-changes"       => csv_collectors.push(Box::new(CloudTrailChangeEventsCollector::new(config))),
-            "s3-data-events"   => csv_collectors.push(Box::new(S3DataEventsCollector::new(config))),
-            // GuardDuty extended
-            "guardduty-config" => csv_collectors.push(Box::new(GuardDutyConfigCollector::new(config))),
-            "guardduty-rules"  => csv_collectors.push(Box::new(GuardDutySuppressionCollector::new(config))),
-            // Security Hub extended
-            "sh-standards"     => csv_collectors.push(Box::new(SecurityHubStandardsCollector::new(config))),
-            // Network
-            "igw"              => csv_collectors.push(Box::new(InternetGatewayCollector::new(config))),
-            "nat-gateways"     => csv_collectors.push(Box::new(NatGatewayCollector::new(config))),
-            "public-resources" => csv_collectors.push(Box::new(PublicResourceCollector::new(config))),
-            // EC2/SSM extended
-            "ec2-detailed"     => csv_collectors.push(Box::new(Ec2DetailedCollector::new(config))),
-            "ssm-instances"    => csv_collectors.push(Box::new(SsmManagedInstanceCollector::new(config))),
-            "ssm-patches"      => csv_collectors.push(Box::new(SsmPatchComplianceCollector::new(config))),
-            // Encryption extended
-            "kms-policies"     => csv_collectors.push(Box::new(KmsKeyPolicyCollector::new(config))),
-            "ebs-encryption"   => csv_collectors.push(Box::new(EbsDefaultEncryptionCollector::new(config))),
-            "rds-snapshots"    => csv_collectors.push(Box::new(RdsSnapshotCollector::new(config))),
-            "s3-policies"      => csv_collectors.push(Box::new(S3PoliciesCollector::new(config))),
-            // Other
-            "macie"            => csv_collectors.push(Box::new(MacieCollector::new(config))),
-            "config-history"   => csv_collectors.push(Box::new(ConfigHistoryCollector::new(config))),
-            "inspector"        => csv_collectors.push(Box::new(InspectorCollector::new(config))),
-            "ecr-scan"         => csv_collectors.push(Box::new(EcrScanCollector::new(config))),
-            "waf-logging"      => csv_collectors.push(Box::new(WafLoggingCollector::new(config))),
-            "alb-logs"          => csv_collectors.push(Box::new(AlbLogsCollector::new(config))),
-            // IAM config
-            "iam-role-policies"  => json_inv_collectors.push(Box::new(IamRolePoliciesCollector::new(config))),
-            "iam-user-policies"  => json_inv_collectors.push(Box::new(IamUserPoliciesCollector::new(config))),
-            "iam-password-policy"=> csv_collectors.push(Box::new(IamPasswordPolicyCollector::new(config))),
-            // KMS / EBS config
-            "kms-config"         => json_inv_collectors.push(Box::new(KmsKeyConfigCollector::new(config))),
-            "ebs-config"         => csv_collectors.push(Box::new(EbsEncryptionConfigCollector::new(config))),
-            // S3 detail
-            "s3-encryption"      => csv_collectors.push(Box::new(S3EncryptionConfigCollector::new(config))),
-            "s3-bucket-policy"   => csv_collectors.push(Box::new(S3BucketPolicyDetailCollector::new(config))),
-            "s3-public-access"   => csv_collectors.push(Box::new(S3PublicAccessBlockCollector::new(config))),
-            "s3-logging-config"  => csv_collectors.push(Box::new(S3LoggingConfigCollector::new(config))),
-            // EC2 config
-            "sg-config"          => csv_collectors.push(Box::new(SecurityGroupConfigCollector::new(config))),
-            "vpc-config"         => csv_collectors.push(Box::new(VpcConfigCollector::new(config))),
-            "rt-config"          => csv_collectors.push(Box::new(RouteTableConfigCollector::new(config))),
-            "ec2-config"         => csv_collectors.push(Box::new(Ec2InstanceConfigCollector::new(config))),
-            // CloudTrail config
-            "ct-full-config"     => csv_collectors.push(Box::new(CloudTrailFullConfigCollector::new(config))),
-            // CloudWatch config
-            "cw-log-config"      => csv_collectors.push(Box::new(CwLogGroupConfigCollector::new(config))),
-            "metric-filter-config"=> csv_collectors.push(Box::new(MetricFilterConfigCollector::new(config))),
-            // Security service config
-            "gd-full-config"     => csv_collectors.push(Box::new(GuardDutyFullConfigCollector::new(config))),
-            "sh-config"          => csv_collectors.push(Box::new(SecurityHubConfigCollector::new(config))),
-            "config-recorder"    => csv_collectors.push(Box::new(AwsConfigRecorderCollector::new(config))),
-            // EC2 extended
-            "launch-templates"   => csv_collectors.push(Box::new(LaunchTemplateCollector::new(config))),
-            "vpc-endpoints"      => csv_collectors.push(Box::new(VpcEndpointCollector::new(config))),
-            // SSM extended
-            "ssm-baselines"      => csv_collectors.push(Box::new(SsmPatchBaselineCollector::new(config))),
-            "ssm-params"         => csv_collectors.push(Box::new(SsmParameterConfigCollector::new(config))),
-            "time-sync"          => csv_collectors.push(Box::new(TimeSyncConfigCollector::new(config))),
-            // Inspector config
-            "inspector-config"   => csv_collectors.push(Box::new(InspectorConfigCollector::new(config))),
-            // WAF / ELB full config
-            "waf-config"         => csv_collectors.push(Box::new(WafFullConfigCollector::new(config))),
-            "elb-full-config"    => csv_collectors.push(Box::new(ElbFullConfigCollector::new(config))),
-            // Org + account
-            "org-config"         => csv_collectors.push(Box::new(OrgConfigCollector::new(config))),
-            "account-contacts"   => csv_collectors.push(Box::new(AccountContactsCollector::new(config))),
-            "saml-providers"     => csv_collectors.push(Box::new(SamlProviderCollector::new(config))),
-            "iam-account-summary"=> csv_collectors.push(Box::new(IamAccountSummaryCollector::new(config))),
-            // SNS / EventBridge
-            "sns-policies"       => csv_collectors.push(Box::new(SnsTopicPoliciesCollector::new(config))),
-            "eventbridge-rules"  => json_inv_collectors.push(Box::new(EventBridgeRulesCollector::new(config))),
-            // Backup
-            "backup-plans"       => csv_collectors.push(Box::new(BackupPlanConfigCollector::new(config))),
-            "backup-vaults"      => csv_collectors.push(Box::new(BackupVaultConfigCollector::new(config))),
-            "rds-backup-config"  => csv_collectors.push(Box::new(RdsBackupConfigCollector::new(config))),
-            // Lambda
-            "lambda-config"      => csv_collectors.push(Box::new(LambdaConfigCollector::new(config))),
-            "lambda-permissions" => csv_collectors.push(Box::new(LambdaPermissionsCollector::new(config))),
-            // ECR config
-            "ecr-config"         => csv_collectors.push(Box::new(EcrRepoConfigCollector::new(config))),
-            // Route53
-            "route53-zones"      => csv_collectors.push(Box::new(Route53ZonesCollector::new(config))),
-            "route53-resolver"   => csv_collectors.push(Box::new(Route53ResolverRulesCollector::new(config))),
-            // Tagging
-            "resource-tags"      => csv_collectors.push(Box::new(ResourceTaggingCollector::new(config))),
-            // Secrets extended
-            "secrets-policies"   => csv_collectors.push(Box::new(SecretsManagerPoliciesCollector::new(config))),
-            // Config timeline / compliance
-            "config-timeline"    => csv_collectors.push(Box::new(ConfigResourceTimelineCollector::new(config))),
-            "config-compliance"  => csv_collectors.push(Box::new(ConfigComplianceHistoryCollector::new(config))),
-            "config-snapshot"    => csv_collectors.push(Box::new(ConfigSnapshotCollector::new(config))),
-            // CloudTrail IAM / config changes
-            "ct-config-changes"  => json_inv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(config))),
-            "ct-iam-changes"     => csv_collectors.push(Box::new(CloudTrailIamChangesCollector::new(config))),
-            // CloudFormation drift
-            "cfn-drift"          => csv_collectors.push(Box::new(CloudFormationDriftCollector::new(config))),
-            // SSM patch detail
-            "ssm-patch-detail"   => csv_collectors.push(Box::new(SsmPatchDetailCollector::new(config))),
-            "ssm-patch-summary"  => csv_collectors.push(Box::new(SsmPatchSummaryCollector::new(config))),
-            "ssm-patch-exec"     => csv_collectors.push(Box::new(SsmPatchExecutionCollector::new(config))),
-            "ssm-maint-windows"  => csv_collectors.push(Box::new(SsmMaintenanceWindowCollector::new(config))),
-            // Inspector ECR findings
-            "inspector-ecr"      => csv_collectors.push(Box::new(InspectorEcrCollector::new(config))),
-            // Inspector findings history
-            "inspector-history"  => csv_collectors.push(Box::new(InspectorFindingsHistoryCollector::new(config))),
-            // CloudWatch alarms
-            "cw-config-alarms"   => csv_collectors.push(Box::new(CloudWatchConfigAlarmsCollector::new(config))),
-            // EventBridge change rules
-            "change-event-rules" => csv_collectors.push(Box::new(ChangeEventRulesCollector::new(config))),
-            _ => {}
-        }
-    }
-
-    // Re-key collector_statuses using display names so Progress messages match.
-    app.collector_statuses = json_collectors
-        .iter()
-        .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting })
-        .chain(json_inv_collectors
-            .iter()
-            .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting }))
-        .chain(csv_collectors
-            .iter()
-            .map(|c| CollectorStatus { name: c.name().to_string(), state: CollectorState::Waiting }))
-        .collect();
-
     let params_clone = params.clone();
-    let output_dir_clone = output_path.clone();
-    let tx_clone = tx.clone();
-    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
-    let account_id_clone = account_id.clone();
-    let region_clone = {
-        // Extract region string from config.
-        config.region().map(|r| r.to_string()).unwrap_or_else(|| "us-east-1".to_string())
-    };
+    let total_accounts = prepared.len();
 
-    // Spawn collection in background.
+    // Spawn background task that loops through all pre-built accounts.
+    // IMPORTANT: No AWS configs or SDK clients are created inside this spawn.
+    // All collectors and configs were built on the main async task before
+    // entering raw terminal mode.
     tokio::spawn(async move {
-        let mut written_files: Vec<String> = Vec::new();
-        let out_dir = output_dir_clone.unwrap_or_else(|| PathBuf::from("."));
+        let mut all_written_files: Vec<String> = Vec::new();
+        let collector_timeout = std::time::Duration::from_secs(600); // 10 minutes
+        let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+        let dates = Some((params_clone.start_time.timestamp(), params_clone.end_time.timestamp()));
 
-        // Ensure output directory exists before writing any files.
-        if let Err(e) = std::fs::create_dir_all(&out_dir) {
-            let _ = tx_clone.send(Progress::Finished { files: vec![
-                format!("ERROR: could not create output directory {}: {e}", out_dir.display())
-            ]});
-            return;
-        }
+        for (acct_idx, acct) in prepared.into_iter().enumerate() {
+            let out_dir = acct.output_path.unwrap_or_else(|| PathBuf::from("."));
+            if let Err(e) = std::fs::create_dir_all(&out_dir) {
+                let _ = tx.send(Progress::Error {
+                    collector: format!("output dir ({})", acct.account_id),
+                    message: format!("could not create {}: {e}", out_dir.display()),
+                });
+                let _ = tx.send(Progress::AccountFinished { name: acct.account_id.clone() });
+                continue;
+            }
 
-        let collector_timeout = std::time::Duration::from_secs(180); // 3 min per collector
+            eprintln!("=== Account {}/{}: {} (profile={}, region={}, out={}) ===",
+                acct_idx + 1, total_accounts, acct.account_id, acct.profile, acct.region, out_dir.display());
+            eprintln!("  collectors: json={}, inv={}, csv={}",
+                acct.json_collectors.len(), acct.json_inv_collectors.len(), acct.csv_collectors.len());
 
-        // --- JSON collectors ------------------------------------------------
-        for collector in &json_collectors {
-            let name = collector.name().to_string();
-            let _ = tx_clone.send(Progress::Started { collector: name.clone() });
+            // Notify TUI of new account.
+            let _ = tx.send(Progress::AccountStarted {
+                name: acct.account_id.clone(),
+                index: acct_idx + 1,
+                total: total_accounts,
+                collectors: acct.display_names,
+            });
 
-            match tokio::time::timeout(collector_timeout, collector.collect(&params_clone)).await {
-                Ok(Ok(records)) => {
-                    let count = records.len();
-                    let _ = tx_clone.send(Progress::Done { collector: name.clone(), count });
-
-                    let report = EvidenceReport {
-                        metadata: ReportMetadata {
-                            collected_at: Utc::now().to_rfc3339(),
-                            region: region_clone.clone(),
-                            start_date: params_clone.start_time.format("%Y-%m-%d").to_string(),
-                            end_date:   params_clone.end_time.format("%Y-%m-%d").to_string(),
-                            filter: params_clone.filter.clone(),
-                        },
-                        collector: name.clone(),
-                        record_count: count,
-                        records,
-                    };
-
-                    let filename = format!("{}_{}-{}.json", account_id_clone, collector.filename_prefix(), timestamp);
-                    let path = out_dir.join(&filename);
-
-                    if let Ok(json) = serde_json::to_string_pretty(&report) {
-                        if std::fs::write(&path, json).is_ok() {
-                            written_files.push(path.display().to_string());
-                        }
+            // ── All-regions path: use pre-built regional collectors ──
+            if !acct.discovered_regions.is_empty() {
+                eprintln!("  all-regions: {} regions pre-built", acct.discovered_regions.len());
+                for (region_name, rdir, rcsv, rinv, rjson) in &acct.regional_collectors {
+                    let _ = std::fs::create_dir_all(rdir);
+                    for collector in rcsv {
+                        run_tui_csv_collector(collector, &acct.account_id, region_name, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files, dates).await;
+                    }
+                    for collector in rinv {
+                        run_tui_inv_collector(collector, &acct.account_id, region_name, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
+                    }
+                    for collector in rjson {
+                        run_tui_json_collector(collector, &params_clone, region_name, &acct.account_id, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
                     }
                 }
-                Ok(Err(e)) => {
-                    let _ = tx_clone.send(Progress::Error { collector: name, message: e.to_string() });
+            } else {
+                // ── Single-region path (default) ──
+                for collector in &acct.json_collectors {
+                    run_tui_json_collector(collector, &params_clone, &acct.region, &acct.account_id, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
                 }
-                Err(_) => {
-                    let _ = tx_clone.send(Progress::Error {
-                        collector: name,
-                        message: "timed out after 3 minutes".to_string(),
-                    });
+                for collector in &acct.json_inv_collectors {
+                    run_tui_inv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files).await;
                 }
-            }
-        }
-
-        // --- JSON inventory collectors --------------------------------------
-        for collector in &json_inv_collectors {
-            let name = collector.name().to_string();
-            let _ = tx_clone.send(Progress::Started { collector: name.clone() });
-
-            match tokio::time::timeout(
-                collector_timeout,
-                collector.collect_records(&account_id_clone, &region_clone),
-            ).await {
-                Ok(Ok(records)) => {
-                    let count = records.len();
-                    let _ = tx_clone.send(Progress::Done { collector: name.clone(), count });
-
-                    let report = JsonInventoryReport {
-                        collected_at: Utc::now().to_rfc3339(),
-                        account_id: account_id_clone.clone(),
-                        region: region_clone.clone(),
-                        collector: name.clone(),
-                        record_count: count,
-                        records,
-                    };
-                    let filename = format!(
-                        "{}_{}-{}.json",
-                        account_id_clone,
-                        collector.filename_prefix(),
-                        timestamp
-                    );
-                    let path = out_dir.join(&filename);
-                    if let Ok(json) = serde_json::to_string_pretty(&report) {
-                        if std::fs::write(&path, json).is_ok() {
-                            written_files.push(path.display().to_string());
-                        }
-                    }
-                }
-                Ok(Err(e)) => {
-                    let _ = tx_clone.send(Progress::Error { collector: name, message: e.to_string() });
-                }
-                Err(_) => {
-                    let _ = tx_clone.send(Progress::Error {
-                        collector: name,
-                        message: "timed out after 3 minutes".to_string(),
-                    });
+                for collector in &acct.csv_collectors {
+                    run_tui_csv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, dates).await;
                 }
             }
+
+            let _ = tx.send(Progress::AccountFinished { name: acct.account_id });
         }
 
-        // --- CSV collectors -------------------------------------------------
-        for collector in &csv_collectors {
-            let name = collector.name().to_string();
-            let _ = tx_clone.send(Progress::Started { collector: name.clone() });
-
-            match tokio::time::timeout(
-                collector_timeout,
-                collector.collect_rows(&account_id_clone, &region_clone),
-            ).await {
-                Ok(Ok(rows)) => {
-                    let count = rows.len();
-                    let _ = tx_clone.send(Progress::Done { collector: name.clone(), count });
-
-                    let filename = format!(
-                        "{}_{}-{}.csv",
-                        account_id_clone,
-                        collector.filename_prefix(),
-                        timestamp
-                    );
-                    let path = out_dir.join(&filename);
-
-                    match write_csv_bytes(collector.headers(), &rows) {
-                        Ok(bytes) => {
-                            if std::fs::write(&path, bytes).is_ok() {
-                                written_files.push(path.display().to_string());
-                            }
-                        }
-                        Err(e) => eprintln!("  WARN: CSV write failed for {}: {e:#}", collector.name()),
-                    }
-                }
-                Ok(Err(e)) => {
-                    let _ = tx_clone.send(Progress::Error { collector: name, message: e.to_string() });
-                }
-                Err(_) => {
-                    let _ = tx_clone.send(Progress::Error {
-                        collector: name,
-                        message: "timed out after 3 minutes".to_string(),
-                    });
-                }
-            }
-        }
-
-        let _ = tx_clone.send(Progress::Finished { files: written_files });
+        eprintln!("=== All accounts done. {} files written. ===", all_written_files.len());
+        let _ = tx.send(Progress::Finished { files: all_written_files });
     });
 
     // Drive the TUI until Results screen.
@@ -974,7 +1199,6 @@ async fn run_tui_running(
         terminal.draw(|f| tui::ui::draw(f, app))?;
 
         if app.screen == tui::Screen::Results {
-            // Give user time to read, wait for q/Esc
             if event::poll(std::time::Duration::from_millis(100))? {
                 if let Event::Key(key) = event::read()? {
                     if key.kind == KeyEventKind::Press
@@ -1015,6 +1239,7 @@ async fn run_json_collectors(
             Ok(records) => {
                 let count = records.len();
                 eprintln!("  {} returned {} records", collector.name(), count);
+                if count == 0 { continue; }
 
                 let report = EvidenceReport {
                     metadata: ReportMetadata {
@@ -1048,15 +1273,17 @@ async fn run_csv_collectors(
     account_id: &str,
     region: &str,
     output_dir: &PathBuf,
+    dates: Option<(i64, i64)>,
 ) -> Result<()> {
     std::fs::create_dir_all(output_dir)
         .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
-        match collector.collect_rows(account_id, region).await {
+        match collector.collect_rows(account_id, region, dates).await {
             Ok(rows) => {
                 eprintln!("  {} returned {} rows", collector.name(), rows.len());
+                if rows.is_empty() { continue; }
                 let filename = format!(
                     "{}_{}-{}.csv",
                     account_id,
@@ -1089,6 +1316,7 @@ async fn run_json_inv_collectors(
         match collector.collect_records(account_id, region).await {
             Ok(records) => {
                 eprintln!("  {} returned {} records", collector.name(), records.len());
+                if records.is_empty() { continue; }
                 let report = JsonInventoryReport {
                     collected_at: Utc::now().to_rfc3339(),
                     account_id: account_id.to_string(),
@@ -1114,6 +1342,201 @@ async fn run_json_inv_collectors(
         }
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Multi-region helpers
+// ---------------------------------------------------------------------------
+
+/// Collectors that query account-global AWS services.  In all-regions mode
+/// these run once against the primary region rather than once per region.
+const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
+    // IAM (global)
+    "iam-users", "iam-roles", "iam-policies", "iam-access-keys", "iam-certs",
+    "iam-trusts", "iam-role-policies", "iam-user-policies",
+    "iam-password-policy", "iam-account-summary",
+    // S3 (bucket list is global)
+    "s3-config", "s3-logging", "s3-policies", "s3-encryption",
+    "s3-bucket-policy", "s3-public-access", "s3-logging-config", "s3-data-events",
+    // CloudFront (global)
+    "cloudfront",
+    // Route53 (global)
+    "route53-zones", "route53-resolver",
+    // Organizations / account (global)
+    "scp", "org-config", "account-contacts", "saml-providers",
+];
+
+/// Discover all opt-in and standard enabled regions via EC2 DescribeRegions.
+async fn discover_regions(config: &aws_config::SdkConfig) -> Vec<String> {
+    let ec2 = aws_sdk_ec2::Client::new(config);
+    let filter = aws_sdk_ec2::types::Filter::builder()
+        .name("opt-in-status")
+        .values("opt-in-not-required")
+        .values("opted-in")
+        .build();
+    match ec2.describe_regions().filters(filter).send().await {
+        Ok(r) => {
+            let mut regions: Vec<String> = r
+                .regions()
+                .iter()
+                .filter_map(|r| r.region_name().map(|s| s.to_string()))
+                .collect();
+            regions.sort();
+            eprintln!("Discovered {} enabled regions: {}", regions.len(), regions.join(", "));
+            regions
+        }
+        Err(e) => {
+            eprintln!("WARN: could not discover regions via EC2: {e:#}");
+            vec![]
+        }
+    }
+}
+
+/// Build CSV collectors for the given set of collector keys and AWS config.
+/// This is the single source of truth — both CLI and TUI call this.
+fn build_csv_collectors(names: &[&str], config: &aws_config::SdkConfig) -> Vec<Box<dyn CsvCollector>> {
+    let mut v: Vec<Box<dyn CsvCollector>> = Vec::new();
+    let has = |n: &str| names.contains(&n);
+    if has("vpc")               { v.push(Box::new(VpcCollector::new(config))); }
+    if has("nacl")              { v.push(Box::new(NetworkAclCollector::new(config))); }
+    if has("waf")               { v.push(Box::new(WafCollector::new(config))); }
+    if has("elasticache")       { v.push(Box::new(ElastiCacheCollector::new(config))); }
+    if has("elasticache-global"){ v.push(Box::new(ElastiCacheGlobalCollector::new(config))); }
+    if has("efs")               { v.push(Box::new(EfsCollector::new(config))); }
+    if has("dynamodb")          { v.push(Box::new(DynamoDbCollector::new(config))); }
+    if has("ebs")               { v.push(Box::new(EbsCollector::new(config))); }
+    if has("rds-inventory")     { v.push(Box::new(RdsInventoryCollector::new(config))); }
+    if has("cloudtrail-config") { v.push(Box::new(CloudTrailInventoryCollector::new(config))); }
+    if has("sns")               { v.push(Box::new(SnsSubscriptionCollector::new(config))); }
+    if has("vpc-flow-logs")     { v.push(Box::new(VpcFlowLogCollector::new(config))); }
+    if has("metric-filters")    { v.push(Box::new(MetricFilterAlarmCollector::new(config))); }
+    if has("s3-logging")        { v.push(Box::new(S3BucketLoggingCollector::new(config))); }
+    if has("iam-certs")         { v.push(Box::new(IamCertCollector::new(config))); }
+    if has("elb")               { v.push(Box::new(LoadBalancerCollector::new(config))); }
+    if has("elb-listeners")     { v.push(Box::new(LoadBalancerListenerCollector::new(config))); }
+    if has("acm")               { v.push(Box::new(AcmCertCollector::new(config))); }
+    if has("iam-users")         { v.push(Box::new(IamUserCollector::new(config))); }
+    if has("iam-policies")      { v.push(Box::new(IamPolicyCollector::new(config))); }
+    if has("iam-access-keys")   { v.push(Box::new(IamAccessKeyCollector::new(config))); }
+    if has("guardduty")         { v.push(Box::new(GuardDutyCollector::new(config))); }
+    if has("securityhub")       { v.push(Box::new(SecurityHubCollector::new(config))); }
+    if has("config-rules")      { v.push(Box::new(ConfigRulesCollector::new(config))); }
+    if has("security-groups")   { v.push(Box::new(SecurityGroupCollector::new(config))); }
+    if has("route-tables")      { v.push(Box::new(RouteTableCollector::new(config))); }
+    if has("ec2-instances")     { v.push(Box::new(Ec2InstanceCollector::new(config))); }
+    if has("asg")               { v.push(Box::new(AutoScalingCollector::new(config))); }
+    if has("kms")               { v.push(Box::new(KmsKeyCollector::new(config))); }
+    if has("secrets")           { v.push(Box::new(SecretsManagerCollector::new(config))); }
+    if has("s3-config")         { v.push(Box::new(S3BucketConfigCollector::new(config))); }
+    if has("cw-alarms")         { v.push(Box::new(CloudWatchAlarmCollector::new(config))); }
+    if has("cw-log-groups")     { v.push(Box::new(CloudWatchLogGroupCollector::new(config))); }
+    if has("api-gateway")       { v.push(Box::new(ApiGatewayCollector::new(config))); }
+    if has("cloudfront")        { v.push(Box::new(CloudFrontCollector::new(config))); }
+    if has("ecs")               { v.push(Box::new(EcsClusterCollector::new(config))); }
+    if has("eks")               { v.push(Box::new(EksClusterCollector::new(config))); }
+    if has("iam-trusts")        { v.push(Box::new(IamTrustsCollector::new(config))); }
+    if has("access-analyzer")   { v.push(Box::new(AccessAnalyzerCollector::new(config))); }
+    if has("scp")               { v.push(Box::new(OrganizationsSCPCollector::new(config))); }
+    if has("ct-selectors")      { v.push(Box::new(CloudTrailEventSelectorsCollector::new(config))); }
+    if has("ct-validation")     { v.push(Box::new(CloudTrailLogValidationCollector::new(config))); }
+    if has("ct-s3-policy")      { v.push(Box::new(CloudTrailS3PolicyCollector::new(config))); }
+    if has("ct-changes")        { v.push(Box::new(CloudTrailChangeEventsCollector::new(config))); }
+    if has("s3-data-events")    { v.push(Box::new(S3DataEventsCollector::new(config))); }
+    if has("guardduty-config")  { v.push(Box::new(GuardDutyConfigCollector::new(config))); }
+    if has("guardduty-rules")   { v.push(Box::new(GuardDutySuppressionCollector::new(config))); }
+    if has("sh-standards")      { v.push(Box::new(SecurityHubStandardsCollector::new(config))); }
+    if has("igw")               { v.push(Box::new(InternetGatewayCollector::new(config))); }
+    if has("nat-gateways")      { v.push(Box::new(NatGatewayCollector::new(config))); }
+    if has("public-resources")  { v.push(Box::new(PublicResourceCollector::new(config))); }
+    if has("ec2-detailed")      { v.push(Box::new(Ec2DetailedCollector::new(config))); }
+    if has("ssm-instances")     { v.push(Box::new(SsmManagedInstanceCollector::new(config))); }
+    if has("ssm-patches")       { v.push(Box::new(SsmPatchComplianceCollector::new(config))); }
+    if has("kms-policies")      { v.push(Box::new(KmsKeyPolicyCollector::new(config))); }
+    if has("ebs-encryption")    { v.push(Box::new(EbsDefaultEncryptionCollector::new(config))); }
+    if has("rds-snapshots")     { v.push(Box::new(RdsSnapshotCollector::new(config))); }
+    if has("s3-policies")       { v.push(Box::new(S3PoliciesCollector::new(config))); }
+    if has("macie")             { v.push(Box::new(MacieCollector::new(config))); }
+    if has("config-history")    { v.push(Box::new(ConfigHistoryCollector::new(config))); }
+    if has("inspector")         { v.push(Box::new(InspectorCollector::new(config))); }
+    if has("inspector-ecr")     { v.push(Box::new(InspectorEcrCollector::new(config))); }
+    if has("inspector-history") { v.push(Box::new(InspectorFindingsHistoryCollector::new(config))); }
+    if has("ecr-scan")          { v.push(Box::new(EcrScanCollector::new(config))); }
+    if has("waf-logging")       { v.push(Box::new(WafLoggingCollector::new(config))); }
+    if has("alb-logs")          { v.push(Box::new(AlbLogsCollector::new(config))); }
+    if has("iam-password-policy"){ v.push(Box::new(IamPasswordPolicyCollector::new(config))); }
+    if has("ebs-config")        { v.push(Box::new(EbsEncryptionConfigCollector::new(config))); }
+    if has("s3-encryption")     { v.push(Box::new(S3EncryptionConfigCollector::new(config))); }
+    if has("s3-bucket-policy")  { v.push(Box::new(S3BucketPolicyDetailCollector::new(config))); }
+    if has("s3-public-access")  { v.push(Box::new(S3PublicAccessBlockCollector::new(config))); }
+    if has("s3-logging-config") { v.push(Box::new(S3LoggingConfigCollector::new(config))); }
+    if has("sg-config")         { v.push(Box::new(SecurityGroupConfigCollector::new(config))); }
+    if has("vpc-config")        { v.push(Box::new(VpcConfigCollector::new(config))); }
+    if has("rt-config")         { v.push(Box::new(RouteTableConfigCollector::new(config))); }
+    if has("ec2-config")        { v.push(Box::new(Ec2InstanceConfigCollector::new(config))); }
+    if has("ct-full-config")    { v.push(Box::new(CloudTrailFullConfigCollector::new(config))); }
+    if has("cw-log-config")     { v.push(Box::new(CwLogGroupConfigCollector::new(config))); }
+    if has("metric-filter-config"){ v.push(Box::new(MetricFilterConfigCollector::new(config))); }
+    if has("gd-full-config")    { v.push(Box::new(GuardDutyFullConfigCollector::new(config))); }
+    if has("sh-config")         { v.push(Box::new(SecurityHubConfigCollector::new(config))); }
+    if has("config-recorder")   { v.push(Box::new(AwsConfigRecorderCollector::new(config))); }
+    if has("launch-templates")  { v.push(Box::new(LaunchTemplateCollector::new(config))); }
+    if has("vpc-endpoints")     { v.push(Box::new(VpcEndpointCollector::new(config))); }
+    if has("ssm-baselines")     { v.push(Box::new(SsmPatchBaselineCollector::new(config))); }
+    if has("ssm-params")        { v.push(Box::new(SsmParameterConfigCollector::new(config))); }
+    if has("time-sync")         { v.push(Box::new(TimeSyncConfigCollector::new(config))); }
+    if has("inspector-config")  { v.push(Box::new(InspectorConfigCollector::new(config))); }
+    if has("waf-config")        { v.push(Box::new(WafFullConfigCollector::new(config))); }
+    if has("elb-full-config")   { v.push(Box::new(ElbFullConfigCollector::new(config))); }
+    if has("org-config")        { v.push(Box::new(OrgConfigCollector::new(config))); }
+    if has("account-contacts")  { v.push(Box::new(AccountContactsCollector::new(config))); }
+    if has("saml-providers")    { v.push(Box::new(SamlProviderCollector::new(config))); }
+    if has("iam-account-summary"){ v.push(Box::new(IamAccountSummaryCollector::new(config))); }
+    if has("sns-policies")      { v.push(Box::new(SnsTopicPoliciesCollector::new(config))); }
+    if has("backup-plans")      { v.push(Box::new(BackupPlanConfigCollector::new(config))); }
+    if has("backup-vaults")     { v.push(Box::new(BackupVaultConfigCollector::new(config))); }
+    if has("rds-backup-config") { v.push(Box::new(RdsBackupConfigCollector::new(config))); }
+    if has("lambda-config")     { v.push(Box::new(LambdaConfigCollector::new(config))); }
+    if has("lambda-permissions"){ v.push(Box::new(LambdaPermissionsCollector::new(config))); }
+    if has("ecr-config")        { v.push(Box::new(EcrRepoConfigCollector::new(config))); }
+    if has("route53-zones")     { v.push(Box::new(Route53ZonesCollector::new(config))); }
+    if has("route53-resolver")  { v.push(Box::new(Route53ResolverRulesCollector::new(config))); }
+    if has("resource-tags")     { v.push(Box::new(ResourceTaggingCollector::new(config))); }
+    if has("secrets-policies")  { v.push(Box::new(SecretsManagerPoliciesCollector::new(config))); }
+    if has("config-timeline")   { v.push(Box::new(ConfigResourceTimelineCollector::new(config))); }
+    if has("config-compliance") { v.push(Box::new(ConfigComplianceHistoryCollector::new(config))); }
+    if has("config-snapshot")   { v.push(Box::new(ConfigSnapshotCollector::new(config))); }
+    if has("ct-iam-changes")    { v.push(Box::new(CloudTrailIamChangesCollector::new(config))); }
+    if has("cfn-drift")         { v.push(Box::new(CloudFormationDriftCollector::new(config))); }
+    if has("ssm-patch-detail")  { v.push(Box::new(SsmPatchDetailCollector::new(config))); }
+    if has("ssm-patch-summary") { v.push(Box::new(SsmPatchSummaryCollector::new(config))); }
+    if has("ssm-patch-exec")    { v.push(Box::new(SsmPatchExecutionCollector::new(config))); }
+    if has("ssm-maint-windows") { v.push(Box::new(SsmMaintenanceWindowCollector::new(config))); }
+    if has("cw-config-alarms")  { v.push(Box::new(CloudWatchConfigAlarmsCollector::new(config))); }
+    if has("change-event-rules"){ v.push(Box::new(ChangeEventRulesCollector::new(config))); }
+    v
+}
+
+/// Build JSON-inventory collectors for the given set of keys and AWS config.
+fn build_json_inv_collectors(names: &[&str], config: &aws_config::SdkConfig) -> Vec<Box<dyn JsonCollector>> {
+    let mut v: Vec<Box<dyn JsonCollector>> = Vec::new();
+    let has = |n: &str| names.contains(&n);
+    if has("iam-roles")          { v.push(Box::new(IamRoleCollector::new(config))); }
+    if has("iam-role-policies")  { v.push(Box::new(IamRolePoliciesCollector::new(config))); }
+    if has("iam-user-policies")  { v.push(Box::new(IamUserPoliciesCollector::new(config))); }
+    if has("eventbridge-rules")  { v.push(Box::new(EventBridgeRulesCollector::new(config))); }
+    if has("ct-config-changes")  { v.push(Box::new(CloudTrailConfigChangesCollector::new(config))); }
+    if has("kms-config")         { v.push(Box::new(KmsKeyConfigCollector::new(config))); }
+    v
+}
+
+/// Build time-windowed JSON collectors for the given set of keys and AWS config.
+fn build_json_collectors(names: &[&str], config: &aws_config::SdkConfig) -> Vec<Box<dyn EvidenceCollector>> {
+    let mut v: Vec<Box<dyn EvidenceCollector>> = Vec::new();
+    let has = |n: &str| names.contains(&n);
+    if has("cloudtrail") { v.push(Box::new(CloudTrailCollector::new(config))); }
+    if has("backup")     { v.push(Box::new(BackupCollector::new(config))); }
+    if has("rds")        { v.push(Box::new(RdsCollector::new(config))); }
+    v
 }
 
 fn write_csv_bytes(headers: &[&str], rows: &[Vec<String>]) -> Result<Vec<u8>> {

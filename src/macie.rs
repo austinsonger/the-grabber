@@ -1,6 +1,7 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use aws_sdk_macie2::Client as MacieClient;
+use aws_sdk_macie2::types::{CriterionAdditionalProperties, FindingCriteria};
 
 use crate::evidence::CsvCollector;
 
@@ -28,16 +29,35 @@ impl CsvCollector for MacieCollector {
         &["Finding ID", "Finding Type", "Resource ARN", "Severity", "Count", "Created At"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
         let mut all_finding_ids: Vec<String> = Vec::new();
+
+        // Build a date filter on createdAt when a window is provided.
+        // Macie uses epoch-millisecond integers in CriterionAdditionalProperties.
+        let finding_criteria = dates.map(|(start, end)| {
+            let mut criteria = std::collections::HashMap::new();
+            criteria.insert(
+                "createdAt".to_string(),
+                CriterionAdditionalProperties::builder()
+                    .gte(start * 1000)
+                    .lte(end * 1000)
+                    .build(),
+            );
+            FindingCriteria::builder()
+                .set_criterion(Some(criteria))
+                .build()
+        });
 
         // ── 1. Page through list_findings to collect IDs ──────────────────────
         loop {
             let mut req = self.client
                 .list_findings()
                 .max_results(50);
+            if let Some(ref fc) = finding_criteria {
+                req = req.finding_criteria(fc.clone());
+            }
             if let Some(ref t) = next_token {
                 req = req.next_token(t);
             }

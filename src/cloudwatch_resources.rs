@@ -30,7 +30,7 @@ impl CsvCollector for CloudWatchAlarmCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -88,7 +88,7 @@ impl CsvCollector for CloudWatchLogGroupCollector {
         &["Log Group Name", "Retention Days", "KMS Key ARN", "Stored Bytes", "Region"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 

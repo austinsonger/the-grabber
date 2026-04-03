@@ -29,7 +29,7 @@ impl CsvCollector for AccountContactsCollector {
         &["Contact Type", "Name", "Email", "Phone", "Title"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let types = [
             AlternateContactType::Security,
@@ -97,7 +97,7 @@ impl CsvCollector for SamlProviderCollector {
         &["Provider ARN", "Provider Name", "Created Date", "Valid Until", "Metadata Length (bytes)"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let list_resp = match self.client.list_saml_providers().send().await {
@@ -173,7 +173,7 @@ impl CsvCollector for IamAccountSummaryCollector {
         &["Key", "Value"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let resp = match self.client.get_account_summary().send().await {
             Ok(r) => r,
             Err(e) => {

@@ -22,7 +22,7 @@ impl CsvCollector for InspectorConfigCollector {
         &["Resource Type", "Scan Status", "Scan Type", "EC2 Status", "ECR Status", "Lambda Status"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let resp = match self.client.get_configuration().send().await {
             Ok(r) => r,
             Err(e) => {

@@ -28,7 +28,7 @@ impl CsvCollector for RdsSnapshotCollector {
         &["Snapshot ID", "DB Instance ID", "Snapshot Type", "Encrypted", "KMS Key ID", "Created Time", "Public Accessible"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -40,6 +40,14 @@ impl CsvCollector for RdsSnapshotCollector {
             let resp = req.send().await.context("RDS describe_db_snapshots")?;
 
             for snapshot in resp.db_snapshots() {
+                // Filter by creation time when a date window is provided.
+                if let Some((start, end)) = dates {
+                    let create_secs = snapshot.snapshot_create_time().map(|d| d.secs()).unwrap_or(0);
+                    if create_secs < start || create_secs > end {
+                        continue;
+                    }
+                }
+
                 let snapshot_id = snapshot.db_snapshot_identifier().unwrap_or("").to_string();
                 let db_instance_id = snapshot.db_instance_identifier().unwrap_or("").to_string();
                 let snapshot_type = snapshot.snapshot_type().unwrap_or("").to_string();

@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aws_sdk_guardduty::Client as GdClient;
+use aws_sdk_guardduty::types::{Condition, FindingCriteria};
 
 use crate::evidence::CsvCollector;
 
@@ -22,10 +23,9 @@ impl CsvCollector for GuardDutyCollector {
         &["Finding ID", "Type", "Severity", "Resource", "Region", "Created At", "Status"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
-        // GuardDuty needs a detector ID per region.
         let detectors = self.client
             .list_detectors()
             .send()
@@ -33,26 +33,34 @@ impl CsvCollector for GuardDutyCollector {
             .context("GuardDuty list_detectors")?;
 
         for detector_id in detectors.detector_ids() {
-            // List active (non-archived) findings — cap at 500 to avoid timeouts.
             const MAX_FINDINGS: usize = 500;
             let mut next_token: Option<String> = None;
             let mut all_finding_ids: Vec<String> = Vec::new();
 
             loop {
+                // Build criteria: non-archived, optionally date-filtered.
+                let mut criteria = FindingCriteria::builder()
+                    .criterion(
+                        "service.archived",
+                        Condition::builder().equals("false").build(),
+                    );
+                if let Some((start, end)) = dates {
+                    // GuardDuty createdAt is stored as epoch milliseconds in the criterion.
+                    criteria = criteria
+                        .criterion(
+                            "createdAt",
+                            Condition::builder()
+                                .greater_than_or_equal(start * 1000)
+                                .less_than_or_equal(end * 1000)
+                                .build(),
+                        );
+                }
+
                 let mut req = self.client
                     .list_findings()
                     .detector_id(detector_id)
                     .max_results(50)
-                    .finding_criteria(
-                        aws_sdk_guardduty::types::FindingCriteria::builder()
-                            .criterion(
-                                "service.archived",
-                                aws_sdk_guardduty::types::Condition::builder()
-                                    .equals("false")
-                                    .build(),
-                            )
-                            .build(),
-                    );
+                    .finding_criteria(criteria.build());
                 if let Some(ref t) = next_token {
                     req = req.next_token(t);
                 }
@@ -63,7 +71,6 @@ impl CsvCollector for GuardDutyCollector {
             }
             all_finding_ids.truncate(MAX_FINDINGS);
 
-            // Fetch findings in batches of 50 (API limit).
             for chunk in all_finding_ids.chunks(50) {
                 let resp = match self.client
                     .get_findings()

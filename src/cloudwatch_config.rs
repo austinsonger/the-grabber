@@ -26,7 +26,7 @@ impl CsvCollector for CwLogGroupConfigCollector {
         &["Log Group Name", "Retention In Days", "KMS Key ID", "Stored Bytes", "Created At"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -87,7 +87,7 @@ impl CsvCollector for MetricFilterConfigCollector {
         &["Filter Name", "Log Group Name", "Filter Pattern", "Metric Transformations"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 

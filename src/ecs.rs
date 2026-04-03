@@ -22,7 +22,7 @@ impl CsvCollector for EcsClusterCollector {
         &["Cluster Name", "Status", "Running Tasks", "Container Insights Enabled"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
         let mut all_arns: Vec<String> = Vec::new();

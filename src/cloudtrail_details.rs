@@ -35,7 +35,7 @@ impl CsvCollector for CloudTrailEventSelectorsCollector {
         &["Trail Name", "Trail ARN", "Management Events", "Read Write Type", "Data Events Enabled", "Data Resource Types"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let trails_resp = self.client
@@ -130,7 +130,7 @@ impl CsvCollector for CloudTrailLogValidationCollector {
         &["Trail Name", "S3 Bucket", "Log Validation Enabled", "Is Logging", "Latest Delivery", "Latest Digest"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let trails_resp = self.client
@@ -203,7 +203,7 @@ impl CsvCollector for CloudTrailS3PolicyCollector {
         &["Trail Name", "S3 Bucket", "Public Access Block", "Encryption Type", "Access Logging Enabled", "Policy Has Public Allow"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut seen_buckets: std::collections::HashSet<String> = std::collections::HashSet::new();
 
@@ -335,22 +335,17 @@ impl CsvCollector for CloudTrailChangeEventsCollector {
         &["Event Name", "Event Source", "Resource Type", "Resource Name", "User Identity", "Timestamp", "Source IP"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         use aws_sdk_cloudtrail::types::{LookupAttribute, LookupAttributeKey};
 
         let mut rows = Vec::new();
-        let now = aws_sdk_cloudtrail::primitives::DateTime::from_secs(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs() as i64,
-        );
-        let seven_days_ago = aws_sdk_cloudtrail::primitives::DateTime::from_secs(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs() as i64 - 7 * 24 * 3600,
-        );
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+        let (start_secs, end_secs) = dates.unwrap_or((now_secs - 7 * 24 * 3600, now_secs));
+        let start_dt = aws_sdk_cloudtrail::primitives::DateTime::from_secs(start_secs);
+        let end_dt   = aws_sdk_cloudtrail::primitives::DateTime::from_secs(end_secs);
 
         let lookup_attr = LookupAttribute::builder()
             .attribute_key(LookupAttributeKey::ReadOnly)
@@ -367,8 +362,8 @@ impl CsvCollector for CloudTrailChangeEventsCollector {
             let mut req = self.client
                 .lookup_events()
                 .lookup_attributes(lookup_attr.clone())
-                .start_time(seven_days_ago.clone())
-                .end_time(now.clone())
+                .start_time(start_dt.clone())
+                .end_time(end_dt.clone())
                 .max_results(50);
             if let Some(ref t) = next_token {
                 req = req.next_token(t);
@@ -449,7 +444,7 @@ impl CsvCollector for S3DataEventsCollector {
         &["Trail Name", "S3 Bucket/Prefix", "Read Events", "Write Events", "Advanced Selector"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let trails_resp = self.client

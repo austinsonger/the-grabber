@@ -34,7 +34,7 @@ impl CsvCollector for ConfigResourceTimelineCollector {
           "Configuration (excerpt)", "Change Type"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let key_types: &[&str] = &[
@@ -146,7 +146,7 @@ impl CsvCollector for ConfigComplianceHistoryCollector {
         &["Config Rule Name", "Resource ID", "Resource Type", "Compliance Type", "Ordering Timestamp"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // Collect all rule names first
@@ -248,7 +248,7 @@ impl CsvCollector for ConfigSnapshotCollector {
           "Configuration (excerpt)", "Relationships"]
     }
 
-    async fn collect_rows(&self, account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let expression =
             "SELECT resourceId, resourceType, resourceName, accountId, configuration, relationships \

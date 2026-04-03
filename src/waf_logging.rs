@@ -23,7 +23,7 @@ impl CsvCollector for WafLoggingCollector {
         &["Web ACL Name", "Web ACL ARN", "Logging Enabled", "Log Destination", "Sampled Requests Enabled"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_marker: Option<String> = None;
 

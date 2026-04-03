@@ -126,7 +126,7 @@ impl CsvCollector for EbsEncryptionConfigCollector {
         &["Region", "EBS Encryption By Default", "Default KMS Key ID"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let enabled = match self.client.get_ebs_encryption_by_default().send().await {
             Ok(r) => r.ebs_encryption_by_default().unwrap_or(false).to_string(),
             Err(e) => {

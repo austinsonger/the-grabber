@@ -26,7 +26,7 @@ impl CsvCollector for S3EncryptionConfigCollector {
         &["Bucket Name", "SSE Algorithm", "KMS Master Key ID", "Bucket Key Enabled"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let buckets = self.client.list_buckets().send().await
             .context("S3 list_buckets")?;
@@ -99,7 +99,7 @@ impl CsvCollector for S3BucketPolicyDetailCollector {
         &["Bucket Name", "Has Policy", "Policy Document"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let buckets = self.client.list_buckets().send().await
             .context("S3 list_buckets")?;
@@ -157,7 +157,7 @@ impl CsvCollector for S3PublicAccessBlockCollector {
         &["Bucket Name", "Block Public ACLs", "Ignore Public ACLs", "Block Public Policy", "Restrict Public Buckets"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let buckets = self.client.list_buckets().send().await
             .context("S3 list_buckets")?;
@@ -220,7 +220,7 @@ impl CsvCollector for S3LoggingConfigCollector {
         &["Bucket Name", "Logging Enabled", "Target Bucket", "Target Prefix"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let buckets = self.client.list_buckets().send().await
             .context("S3 list_buckets")?;

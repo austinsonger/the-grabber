@@ -22,7 +22,7 @@ impl CsvCollector for S3PoliciesCollector {
         &["Bucket Name", "Public Access Block All", "TLS Enforced", "Has Bucket Policy", "Policy Allows Public", "Default Encryption"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let buckets_resp = self.client

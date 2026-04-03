@@ -140,10 +140,12 @@ impl CsvCollector for CloudTrailIamChangesCollector {
         &["Event Name", "User Identity", "Event Time", "Request Parameters"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
-        let end_secs   = now_secs();
-        let start_secs = end_secs - 90 * 24 * 3600;
+        let (start_secs, end_secs) = dates.unwrap_or_else(|| {
+            let end = now_secs();
+            (end - 90 * 24 * 3600, end)
+        });
         let start_dt = aws_sdk_cloudtrail::primitives::DateTime::from_secs(start_secs);
         let end_dt   = aws_sdk_cloudtrail::primitives::DateTime::from_secs(end_secs);
 

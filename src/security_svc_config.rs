@@ -22,8 +22,8 @@ impl GuardDutyFullConfigCollector {
 
 #[async_trait]
 impl CsvCollector for GuardDutyFullConfigCollector {
-    fn name(&self) -> &str { "GuardDuty Configuration" }
-    fn filename_prefix(&self) -> &str { "GuardDuty_Config" }
+    fn name(&self) -> &str { "GuardDuty Full Configuration" }
+    fn filename_prefix(&self) -> &str { "GuardDuty_Full_Config" }
     fn headers(&self) -> &'static [&'static str] {
         &[
             "Detector ID", "Status", "Finding Publishing Frequency",
@@ -31,7 +31,7 @@ impl CsvCollector for GuardDutyFullConfigCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let detectors = self.client
@@ -123,7 +123,7 @@ impl CsvCollector for SecurityHubConfigCollector {
         &["Hub ARN", "Auto Enable Controls", "Subscribed Standards", "Subscribed At"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let hub_resp = match self.client.describe_hub().send().await {
             Ok(r) => r,
             Err(e) => {
@@ -180,7 +180,7 @@ impl CsvCollector for AwsConfigRecorderCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let recorders = match self.client

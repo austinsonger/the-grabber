@@ -23,7 +23,7 @@ impl CsvCollector for AlbLogsCollector {
         &["ALB Name", "ALB ARN", "Scheme", "Access Logs Enabled", "Access Logs S3 Bucket", "Access Logs S3 Prefix"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 

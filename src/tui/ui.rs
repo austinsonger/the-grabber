@@ -115,7 +115,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     let inner = outer_block.inner(area);
     f.render_widget(outer_block, area);
 
-    let show_steps = !matches!(app.screen, Screen::Welcome | Screen::Results);
+    let show_steps = !matches!(app.screen, Screen::Welcome | Screen::Preparing | Screen::Results);
     let step_height = if show_steps { 2 } else { 0 };
 
     let layout = Layout::vertical([
@@ -158,6 +158,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::SelectCollectors => draw_collectors(f, content, app),
         Screen::SetOptions       => draw_options(f, content, app),
         Screen::Confirm          => draw_confirm(f, content, app),
+        Screen::Preparing        => draw_preparing(f, content, app),
         Screen::Running          => draw_running(f, content, app),
         Screen::Results          => draw_results(f, content, app),
     }
@@ -307,13 +308,14 @@ fn draw_footer(f: &mut Frame, area: Rect, hints: &[(&str, &str)]) {
 fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
     match screen {
         Screen::Welcome => vec![("⏎", "Begin"), ("Esc", "Quit")],
-        Screen::SelectAccount => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Quit")],
+        Screen::SelectAccount => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "All"), ("d", "None"), ("⏎", "Confirm"), ("Esc", "Quit")],
         Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::SelectRegion => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SetDates => vec![("⇥", "Switch"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SetOptions => vec![("⇥", "Switch"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
+        Screen::Preparing => vec![],
         Screen::Running => vec![],
         Screen::Results => vec![("q", "Quit"), ("Esc", "Exit")],
     }
@@ -412,9 +414,14 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
     ])
     .split(content_inset(area));
 
+    let count_text = format!(
+        "Select AWS account(s) to collect evidence from:  ({} of {} selected)",
+        app.selected_accounts.len(),
+        app.accounts.len(),
+    );
     f.render_widget(
         Paragraph::new(Span::styled(
-            "Select the AWS account to collect evidence from:",
+            count_text,
             Style::default().fg(TEXT_DIM),
         )),
         chunks[0],
@@ -425,17 +432,25 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
     let mut items: Vec<ListItem> = Vec::with_capacity(total_entries);
 
     for (i, acct) in app.accounts.iter().enumerate() {
-        let selected = i == app.account_cursor;
-        let icon = if selected { "▸ " } else { "  " };
+        let at_cursor = i == app.account_cursor;
+        let checked = app.selected_accounts.contains(&i);
+        let cursor_icon = if at_cursor { "▸ " } else { "  " };
+        let checkbox = if checked { "[x] " } else { "[ ] " };
 
-        let name_style = if selected {
+        let name_style = if at_cursor {
             Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
         } else {
             Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD)
         };
 
+        let checkbox_style = if checked {
+            Style::default().fg(GREEN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+
         let detail = format!(
-            "    {} · {} · {}",
+            "      {} · {} · {}",
             acct.account_id.as_deref().unwrap_or(""),
             acct.profile,
             acct.region.as_deref().unwrap_or("us-east-1"),
@@ -443,7 +458,8 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
 
         items.push(ListItem::new(Text::from(vec![
             Line::from(vec![
-                Span::styled(icon, Style::default().fg(AMBER)),
+                Span::styled(cursor_icon, Style::default().fg(AMBER)),
+                Span::styled(checkbox, checkbox_style),
                 Span::styled(&acct.name, name_style),
             ]),
             Line::from(Span::styled(detail, Style::default().fg(TEXT_DIM))),
@@ -770,13 +786,14 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_options(f: &mut Frame, area: Rect, app: &App) {
-    // Output directory is always sourced from TOML config — not editable here.
-    // Two fields: 0 = filter, 1 = include_raw toggle.
+    // Three fields: 0 = filter, 1 = include_raw toggle, 2 = all_regions toggle.
     let chunks = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Length(3),
-        Constraint::Length(1),
-        Constraint::Length(3),
+        Constraint::Length(2), // heading
+        Constraint::Length(3), // filter
+        Constraint::Length(1), // spacer
+        Constraint::Length(3), // include raw
+        Constraint::Length(1), // spacer
+        Constraint::Length(3), // all regions
         Constraint::Fill(1),
     ])
     .split(content_inset(area));
@@ -791,43 +808,61 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
 
     draw_text_field(f, chunks[1], "Filter (optional)", &app.filter_input.value, app.options_field == 0);
 
-    // Include Raw JSON toggle
-    let toggle_focused = app.options_field == 1;
-    let border_style = if toggle_focused {
-        Style::default().fg(CYAN)
-    } else {
-        Style::default().fg(BORDER_SUBTLE)
-    };
-    let title_style = if toggle_focused {
-        Style::default().fg(CYAN)
-    } else {
-        Style::default().fg(TEXT_DIM)
-    };
+    // ── Include Raw JSON toggle (field 1) ─────────────────────────────────────
+    {
+        let focused = app.options_field == 1;
+        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
+        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
+        let (off_style, on_style) = if app.include_raw {
+            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        } else {
+            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+        };
+        let off_icon = if !app.include_raw { "●" } else { "○" };
+        let on_icon  = if  app.include_raw { "●" } else { "○" };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("   {} ", off_icon), off_style),
+                Span::styled("Disabled", off_style),
+                Span::styled("    ", Style::default()),
+                Span::styled(format!("{} ", on_icon), on_style),
+                Span::styled("Enabled", on_style),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Span::styled(" Include Raw JSON ", title_style))),
+            chunks[3],
+        );
+    }
 
-    let (off_style, on_style) = if app.include_raw {
-        (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
-    } else {
-        (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
-    };
-    let off_icon = if !app.include_raw { "●" } else { "○" };
-    let on_icon = if app.include_raw { "●" } else { "○" };
-
-    let toggle_block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(border_style)
-        .title(Span::styled(" Include Raw JSON ", title_style));
-
-    f.render_widget(
-        Paragraph::new(Line::from(vec![
-            Span::styled(format!("   {} ", off_icon), off_style),
-            Span::styled("Disabled", off_style),
-            Span::styled("    ", Style::default()),
-            Span::styled(format!("{} ", on_icon), on_style),
-            Span::styled("Enabled", on_style),
-        ]))
-        .block(toggle_block),
-        chunks[3],
-    );
+    // ── All Regions (round-robin) toggle (field 2) ────────────────────────────
+    {
+        let focused = app.options_field == 2;
+        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
+        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
+        let (off_style, on_style) = if app.all_regions {
+            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        } else {
+            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+        };
+        let off_icon = if !app.all_regions { "●" } else { "○" };
+        let on_icon  = if  app.all_regions { "●" } else { "○" };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("   {} ", off_icon), off_style),
+                Span::styled("Single Region", off_style),
+                Span::styled("    ", Style::default()),
+                Span::styled(format!("{} ", on_icon), on_style),
+                Span::styled("All Regions (round-robin)", on_style),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Span::styled(" All Regions ", title_style))),
+            chunks[5],
+        );
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -852,18 +887,43 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
     };
     let region = app.selected_region();
 
-    let rows: Vec<Line> = vec![
-        Line::raw(""),
-        kv_line("Profile", app.selected_profile()),
-        kv_line("Region", &region),
+    // Build account/profile lines depending on selection mode.
+    let sorted_accounts = app.selected_account_indices();
+    let account_display = if sorted_accounts.len() > 1 {
+        let names: Vec<&str> = sorted_accounts.iter()
+            .map(|&i| app.accounts[i].name.as_str())
+            .collect();
+        format!("{} selected ({})", sorted_accounts.len(), names.join(", "))
+    } else {
+        String::new()
+    };
+
+    let mut rows: Vec<Line> = vec![Line::raw("")];
+
+    if !sorted_accounts.is_empty() {
+        if sorted_accounts.len() == 1 {
+            let acct = &app.accounts[sorted_accounts[0]];
+            rows.push(kv_line("Account", &acct.name));
+            rows.push(kv_line("Profile", &acct.profile));
+            rows.push(kv_line("Region", acct.region.as_deref().unwrap_or(&region)));
+        } else {
+            rows.push(kv_line_colored("Accounts", &account_display, AMBER));
+        }
+    } else {
+        rows.push(kv_line("Profile", app.selected_profile()));
+        rows.push(kv_line("Region", &region));
+    }
+
+    rows.extend_from_slice(&[
         kv_line("Start Date", &app.start_date.value),
         kv_line("End Date", &app.end_date.value),
         kv_line_colored("Collectors", &collectors, AMBER),
         kv_line("Output Dir", &app.output_dir.value),
         kv_line("Filter", &filter_display),
         kv_line("Include Raw", if app.include_raw { "yes" } else { "no" }),
+        kv_line("All Regions", if app.all_regions { "yes — round-robin every enabled region" } else { "no — single region" }),
         Line::raw(""),
-    ];
+    ]);
 
     let summary_block = Block::bordered()
         .border_type(BorderType::Rounded)
@@ -895,19 +955,116 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Preparing
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn draw_preparing(f: &mut Frame, area: Rect, app: &App) {
+    let inset = content_inset(area);
+
+    let chunks = Layout::vertical([
+        Constraint::Length(3),  // title
+        Constraint::Fill(1),    // log lines
+    ])
+    .split(inset);
+
+    // Title / progress indicator
+    let title = if app.prep_total > 0 {
+        format!(
+            "  Preparing account {}/{}  —  building AWS SDK clients…",
+            app.prep_current.max(1),
+            app.prep_total,
+        )
+    } else {
+        "  Preparing AWS SDK clients…".to_string()
+    };
+
+    let progress_pct = if app.prep_total > 0 {
+        ((app.prep_current.saturating_sub(1)) as f64 / app.prep_total as f64 * 100.0) as u16
+    } else {
+        0
+    };
+
+    let gauge = Gauge::default()
+        .block(Block::default())
+        .gauge_style(Style::default().fg(CYAN).bg(BG_ELEVATED))
+        .percent(progress_pct)
+        .label(title);
+    f.render_widget(gauge, chunks[0]);
+
+    // Scrollable log — show the last N lines that fit in the area
+    let log_height = chunks[1].height as usize;
+    let lines: Vec<ListItem> = app
+        .prep_log
+        .iter()
+        .rev()
+        .take(log_height)
+        .rev()
+        .map(|line| {
+            let style = if line.starts_with("  ✓") {
+                Style::default().fg(GREEN)
+            } else if line.starts_with("  ✗") || line.starts_with("  ERROR") {
+                Style::default().fg(RED)
+            } else if line.starts_with("    Region") || line.starts_with("    All ") || line.starts_with("    Building") {
+                Style::default().fg(TEXT_DIM)
+            } else if line.starts_with("  [") {
+                Style::default().fg(CYAN).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+            ListItem::new(line.as_str()).style(style)
+        })
+        .collect();
+
+    let log_widget = List::new(lines)
+        .block(
+            Block::bordered()
+                .border_style(Style::default().fg(BORDER_SUBTLE))
+                .title(Span::styled(" Setup Log ", Style::default().fg(TEXT_DIM)))
+                .padding(Padding::horizontal(1)),
+        );
+    f.render_widget(log_widget, chunks[1]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Running
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_running(f: &mut Frame, area: Rect, app: &App) {
     let inset = content_inset(area);
 
-    if inset.width >= 90 {
+    // Show account header when running multi-account collection.
+    let multi_account = app.total_account_count > 1;
+    let (account_area, rest) = if multi_account {
+        let parts = Layout::vertical([
+            Constraint::Length(1), // account line
+            Constraint::Length(1), // blank
+            Constraint::Fill(1),  // rest
+        ])
+        .split(inset);
+        (Some(parts[0]), parts[2])
+    } else {
+        (None, inset)
+    };
+
+    if let Some(area) = account_area {
+        let label = app.current_account_label.as_deref().unwrap_or("…");
+        let text = format!(
+            "Account {} of {}: {}",
+            app.current_account_index, app.total_account_count, label
+        );
+        f.render_widget(
+            Paragraph::new(Span::styled(text, Style::default().fg(AMBER).add_modifier(Modifier::BOLD))),
+            area,
+        );
+    }
+
+    if rest.width >= 90 {
         // Two-column layout
         let columns = Layout::horizontal([
             Constraint::Percentage(60),
             Constraint::Percentage(40),
         ])
-        .split(inset);
+        .split(rest);
         draw_running_progress(f, columns[0], app);
         draw_running_stats(f, columns[1], app);
     } else {
@@ -919,7 +1076,7 @@ fn draw_running(f: &mut Frame, area: Rect, app: &App) {
             Constraint::Length(1), // blank
             Constraint::Fill(1),  // list
         ])
-        .split(inset);
+        .split(rest);
         draw_running_inline_stats(f, rows[0], app);
         draw_running_gauge(f, rows[2], app);
         draw_running_list(f, rows[4], app);
@@ -1201,23 +1358,38 @@ fn draw_running_inline_stats(f: &mut Frame, area: Rect, app: &App) {
 fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     let inset = content_inset(area);
 
+    let has_errors = !app.error_messages.is_empty();
+    let error_height = if has_errors {
+        // Show up to 8 error lines, plus border
+        (app.error_messages.len().min(8) as u16) + 2
+    } else {
+        0
+    };
+
     let chunks = Layout::vertical([
         Constraint::Length(3), // success banner
         Constraint::Length(1), // blank
         Constraint::Length(5), // stat cards
         Constraint::Length(1), // blank
         Constraint::Fill(1),  // file list
+        Constraint::Length(if has_errors { 1 } else { 0 }),  // blank before errors
+        Constraint::Length(error_height),  // error list
     ])
     .split(inset);
 
-    // Success banner
+    // Success banner — change color/text if there were errors
+    let (banner_text, banner_color) = if has_errors {
+        ("!  Collection Complete (with errors)", AMBER)
+    } else {
+        ("✓  Collection Complete", GREEN)
+    };
     let banner_block = Block::bordered()
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(GREEN));
+        .border_style(Style::default().fg(banner_color));
     f.render_widget(
         Paragraph::new(Span::styled(
-            "✓  Collection Complete",
-            Style::default().fg(GREEN).add_modifier(Modifier::BOLD),
+            banner_text,
+            Style::default().fg(banner_color).add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center)
         .block(banner_block),
@@ -1230,18 +1402,21 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
         .iter()
         .filter_map(|s| if let CollectorState::Done(n) = s.state { Some(n) } else { None })
         .sum();
-    let elapsed = format_duration(app.tick);
+    let elapsed = format_duration(app.finished_tick.unwrap_or(app.tick));
+    let error_count = app.error_messages.len();
 
     let cards = Layout::horizontal([
-        Constraint::Ratio(1, 3),
-        Constraint::Ratio(1, 3),
-        Constraint::Ratio(1, 3),
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
     ])
     .split(chunks[2]);
 
     draw_stat_card(f, cards[0], "Files", &app.result_files.len().to_string(), CYAN);
     draw_stat_card(f, cards[1], "Records", &format_number(total_records), AMBER);
-    draw_stat_card(f, cards[2], "Duration", &elapsed, PURPLE);
+    draw_stat_card(f, cards[2], "Errors", &error_count.to_string(), if error_count > 0 { RED } else { GREEN });
+    draw_stat_card(f, cards[3], "Duration", &elapsed, PURPLE);
 
     // File list
     let file_items: Vec<ListItem> = app
@@ -1273,6 +1448,34 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
         chunks[4],
         &mut state,
     );
+
+    // Error list (only shown if there are errors)
+    if has_errors {
+        let error_items: Vec<ListItem> = app
+            .error_messages
+            .iter()
+            .enumerate()
+            .map(|(i, (name, msg))| {
+                let bg = if i % 2 == 0 { BG_MAIN } else { RED_BG };
+                ListItem::new(Line::from(vec![
+                    Span::styled("  ✗ ", Style::default().fg(RED)),
+                    Span::styled(format!("{}: ", name), Style::default().fg(AMBER)),
+                    Span::styled(msg.as_str(), Style::default().fg(TEXT_DIM)),
+                ]))
+                .style(Style::default().bg(bg))
+            })
+            .collect();
+
+        let error_block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(RED))
+            .title(Span::styled(
+                format!(" Errors ({}) ", error_count),
+                Style::default().fg(RED),
+            ));
+
+        f.render_widget(List::new(error_items).block(error_block), chunks[6]);
+    }
 }
 
 fn draw_stat_card(f: &mut Frame, area: Rect, title: &str, value: &str, color: Color) {

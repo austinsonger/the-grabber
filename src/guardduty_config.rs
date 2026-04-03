@@ -26,7 +26,7 @@ impl CsvCollector for GuardDutyConfigCollector {
         &["Detector ID", "Status", "S3 Protection", "EKS Audit Logs", "Malware Protection", "Created At"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let detectors = self.client
@@ -114,7 +114,7 @@ impl CsvCollector for GuardDutySuppressionCollector {
         &["Detector ID", "Rule Name", "Action", "Description", "Filter Criteria Summary"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let detectors = self.client

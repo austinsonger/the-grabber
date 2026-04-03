@@ -228,7 +228,7 @@ impl CsvCollector for IamPasswordPolicyCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         match self.client.get_account_password_policy().send().await {
             Ok(resp) => {
                 let p = match resp.password_policy() {

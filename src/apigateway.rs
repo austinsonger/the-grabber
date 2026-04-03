@@ -22,7 +22,7 @@ impl CsvCollector for ApiGatewayCollector {
         &["API Name", "Endpoint Type", "Authorization Type", "Logging Enabled", "Region"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut position: Option<String> = None;
 

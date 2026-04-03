@@ -27,7 +27,7 @@ impl CsvCollector for KmsKeyPolicyCollector {
         &["Key ID", "Key ARN", "Key State", "Rotation Enabled", "Key Usage", "Policy Allows External Access"]
     }
 
-    async fn collect_rows(&self, account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_marker: Option<String> = None;
 
@@ -173,7 +173,7 @@ impl CsvCollector for EbsDefaultEncryptionCollector {
         &["Region", "Default Encryption Enabled", "KMS Key ID"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let enc_resp = match self.ec2_client
             .get_ebs_encryption_by_default()
             .send()

@@ -32,7 +32,7 @@ impl CsvCollector for SsmPatchBaselineCollector {
         &["Baseline ID", "Name", "Operating System", "Default Baseline", "Approved Patches", "Patch Rules Summary"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -120,7 +120,7 @@ impl CsvCollector for SsmParameterConfigCollector {
         &["Name", "Type", "KMS Key ID", "Last Modified", "Description", "Tier"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -178,7 +178,7 @@ impl CsvCollector for TimeSyncConfigCollector {
         &["Instance ID", "Computer Name", "Platform", "SSM Ping Status", "Time Source Note"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
