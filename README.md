@@ -1,6 +1,6 @@
 # The Grabber
 
-An AWS compliance evidence collector with an interactive TUI and CLI mode. Collects current-state snapshots and time-windowed audit records from 100+ AWS service APIs and writes them as CSV and JSON files — suitable for FedRAMP, SOC 2, HIPAA, or internal audit submissions.
+An AWS compliance evidence collector with an interactive TUI and CLI mode. Collects current-state snapshots and time-windowed audit records from 124 AWS service APIs and writes them as CSV and JSON files — suitable for FedRAMP, SOC 2, HIPAA, or internal audit submissions.
 
 ---
 
@@ -8,8 +8,12 @@ An AWS compliance evidence collector with an interactive TUI and CLI mode. Colle
 
 - **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
 - **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
-- **100+ collectors** — IAM, EC2, S3, RDS, CloudTrail, GuardDuty, SecurityHub, SSM, KMS, and more
+- **124 collectors** — IAM, EC2, S3, RDS, CloudTrail, GuardDuty, SecurityHub, SSM, KMS, WAF, and more
 - **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
+- **Chain-of-custody audit trail** — per-run `CHAIN-OF-CUSTODY-*.json` and an append-only `CHAIN-OF-CUSTODY.jsonl` log capture operator identity, hostname, AWS caller ARN, and the sanitized CLI invocation
+- **Run manifest** — `RUN-MANIFEST-*.json` records every collector's outcome (success/empty/error/timeout), record count, and file size
+- **Zip bundling** — `--zip` packages all output files into a single `Evidence-<timestamp>.zip`
+- **HMAC-SHA256 signing** — `--sign` generates a cryptographic manifest over every output file for tamper detection
 - **Per-collector timeouts** — collectors that hang are cancelled after 3 minutes and collection continues
 - **Clean TUI output** — all WARN messages are captured to `evidence-collection.log` so the terminal stays readable
 - **Non-interactive CLI** — pass flags directly for scripted/CI use
@@ -23,8 +27,6 @@ An AWS compliance evidence collector with an interactive TUI and CLI mode. Colle
 - IAM permissions for the services you want to collect (see [IAM Permissions](#iam-permissions))
 
 ---
-
-
 
 ## Configuration
 
@@ -73,6 +75,15 @@ enable_extra = ["scp", "org-config"]
 
 The `name` field becomes the prefix on every output file (e.g. `Production_IAM_Roles-2026-04-01-120000.json`).
 
+### Collector resolution order
+
+For each account, the active collector set is resolved as follows:
+
+1. If `enable` is set → run **only** those collectors (exclusive list)
+2. Otherwise: start with all defaults, remove any in `disable`, then add any in `enable_extra`
+
+This lets you lock an account to a minimal set, opt out of expensive collectors, or layer on org-level collectors without duplicating the full default list.
+
 Profile names must exactly match entries in `~/.aws/config`. To find your profile names:
 
 ```bash
@@ -112,15 +123,15 @@ region         = us-east-1
 The binary must be built before running. From the repo root:
 
 ```bash
-# Build once (output: target/release/evidence)
+# Build once (output: target/release/grabber)
 cargo build --release
 
 # Run directly
 ./target/release/grabber
 
-# Or install to PATH so `evidence` works from anywhere
+# Or install to PATH
 cargo install --path .
-evidence
+grabber
 ```
 
 
@@ -164,7 +175,7 @@ These dates bound all time-windowed collectors (CloudTrail events, Backup job hi
 
 ### Collectors
 
-A scrollable checklist of 90+ collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.).
+A scrollable checklist of 120+ collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.).
 
 - `Space` toggles the collector under the cursor.
 - The title shows **X of Y selected** as you make changes.
@@ -230,25 +241,36 @@ When all collectors finish, the **Results** screen shows a success banner, total
 ## Non-interactive CLI
 
 ```bash
-evidence \
+grabber \
   --start-date 2026-01-01 \
   --end-date   2026-04-01 \
   --region     us-east-1 \
-  --profile    ProdAdmin-123456789012 \
-  --output-dir ./evidence-output/production
+  --profile    ProdAdmin-123456789012
 ```
+
+Passing `--start-date` bypasses the TUI entirely. All other flags are optional and fall back to defaults.
 
 ## CLI Options
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--start-date` | *(required for CLI)* | Start of query window (YYYY-MM-DD) |
-| `--end-date` | *(required for CLI)* | End of query window (YYYY-MM-DD) |
+| `--start-date` | *(required for CLI)* | Start of collection window (YYYY-MM-DD). Omitting launches the TUI. |
+| `--end-date` | today | End of collection window (YYYY-MM-DD) |
 | `--region` | `us-east-1` | AWS region |
-| `--profile` | default | AWS CLI profile name |
-| `--output-dir` | `.` | Directory to write output files |
-| `--collectors` | all | Comma-separated list of collector keys to run |
-| `--include-raw` | off | Embed full raw JSON in evidence records |
+| `--profile` | default | AWS named profile |
+| `--collectors` | all defaults | Comma-separated collector keys to run |
+| `--include-raw` | off | Embed full raw AWS API response in each JSON record |
+| `--all-regions` | off | Collect from every enabled AWS region (round-robin) |
+| `--regions` | — | Explicit comma-separated region list |
+| `--s3-bucket` | — | S3 bucket containing CloudTrail logs |
+| `--s3-prefix` | `""` | Key prefix before `AWSLogs/` in the bucket |
+| `--s3-profile` | — | AWS profile for S3 access (cross-account CloudTrail) |
+| `--s3-accounts` | — | Additional account IDs for S3 log collection |
+| `--s3-regions` | — | Additional regions for S3 log collection |
+| `--zip` | off | Bundle all output files into `Evidence-<timestamp>.zip` |
+| `--sign` | off | HMAC-SHA256 sign all files; writes a manifest and key file |
+| `--signing-key` | auto-generated | 64-char hex key to use instead of auto-generating |
+| `--verify-manifest` | — | Verify a `SIGNING-MANIFEST-*.json` (runs verification only, no collection) |
 
 ---
 
@@ -268,8 +290,13 @@ evidence-output/production/
   Production_KMS_Key_Configuration-2026-04-01-120000.json
   Production_SecurityHub_Findings-2026-04-01-120000.csv
   ...
-  evidence-collection.log   ← WARN messages from all collectors
+  RUN-MANIFEST-<run_id>.json        ← per-run outcome record
+  CHAIN-OF-CUSTODY-<run_id>.json    ← immutable per-run audit entry
+  CHAIN-OF-CUSTODY.jsonl            ← append-only log of all runs
+  evidence-collection.log           ← WARN messages from all collectors
 ```
+
+### JSON envelope
 
 JSON files (inventory/policy data) include a metadata envelope:
 
@@ -284,6 +311,67 @@ JSON files (inventory/policy data) include a metadata envelope:
 }
 ```
 
+### Run manifest
+
+`RUN-MANIFEST-<run_id>.json` records the outcome of every collector in the run:
+
+```json
+{
+  "run_id": "abc123",
+  "tool_version": "0.1.0",
+  "account_id": "123456789012",
+  "region": "us-east-1",
+  "collection_window": { "start": "2026-01-01", "end": "2026-04-01" },
+  "summary": {
+    "succeeded": 118,
+    "empty": 4,
+    "failed": 1,
+    "timed_out": 1,
+    "total_files": 120,
+    "total_records": 84321
+  },
+  "collectors": [
+    {
+      "name": "IAM Roles",
+      "status": "Success",
+      "record_count": 42,
+      "filename": "Production_IAM_Roles-2026-04-01-120000.json",
+      "file_size_bytes": 15892
+    }
+  ]
+}
+```
+
+### Chain of custody
+
+`CHAIN-OF-CUSTODY-<run_id>.json` is written once per run and captures who ran it, from where, and with which AWS identity:
+
+```json
+{
+  "run_id": "abc123",
+  "operator": "jsmith",
+  "hostname": "laptop-001.example.com",
+  "local_ip": "10.0.1.50",
+  "aws_identity": {
+    "account_id": "123456789012",
+    "caller_arn": "arn:aws:sts::123456789012:assumed-role/AuditRole/jsmith",
+    "user_id": "AROA..."
+  },
+  "profile": "ProdAdmin-123456789012",
+  "region": "us-east-1",
+  "cli_invocation": "grabber --start-date 2026-01-01 --profile ProdAdmin-123456789012",
+  "started_at": "2026-04-01T12:00:00Z"
+}
+```
+
+`CHAIN-OF-CUSTODY.jsonl` accumulates one entry per run in NDJSON format, providing a persistent audit log across all collection runs against an output directory. Signing keys are automatically redacted from the stored CLI invocation.
+
+### Zip and signing
+
+When `--zip` is passed, all output files (evidence, manifest, chain-of-custody) are bundled into `Evidence-<timestamp>.zip` after collection completes.
+
+When `--sign` is passed, an HMAC-SHA256 digest is computed for every output file and written to `SIGNING-MANIFEST-<run_id>.json` alongside a `SIGNING-KEY-<run_id>.txt`. The manifest can be verified later with `--verify-manifest`.
+
 ---
 
 ## Collectors
@@ -292,7 +380,8 @@ JSON files (inventory/policy data) include a metadata envelope:
 
 | Key | Description |
 |-----|-------------|
-| `cloudtrail` | CloudTrail events |
+| `cloudtrail` | CloudTrail management events |
+| `s3` | CloudTrail S3 data events (requires `--s3-bucket`) |
 | `backup` | AWS Backup job records |
 | `rds` | RDS automated backup events |
 
@@ -567,4 +656,4 @@ disable = ["guardduty", "inspector"]
 The output directory may not exist — it is created automatically on first run. Check that `output_dir` in `config.toml` is a writable path.
 
 **Stack overflow at startup**
-The runtime uses 8MB thread stacks to accommodate the large number of async collectors. If you see stack overflows on a constrained system, reduce the number of selected collectors.
+The runtime uses 16MB thread stacks to accommodate the large number of concurrent async collectors. If you see stack overflows on a constrained system, reduce the number of selected collectors.
