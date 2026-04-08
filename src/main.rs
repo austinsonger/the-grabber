@@ -579,17 +579,21 @@ async fn async_main() -> Result<()> {
                             let json_keys: Vec<&str> = ["cloudtrail","backup","rds"].iter().copied()
                                 .filter(|k| names_ref.contains(k)).collect();
                             // Global collectors: run once from the account's base region.
+                            // Route into <out_base>/<base_region>/YYYY/##-MMM so the output
+                            // sits alongside per-region evidence in the date-based hierarchy.
                             if !global_csv_keys.is_empty() || !global_inv_keys.is_empty() {
                                 let gcfg = make_cfg().load().await;
+                                let gdir = out_base.join(&region).join(date_path_suffix());
                                 regional_collectors.push((
                                     region.clone(),
-                                    out_base.clone(),
+                                    gdir,
                                     build_csv_collectors(&global_csv_keys, &gcfg),
                                     build_json_inv_collectors(&global_inv_keys, &gcfg),
                                     Vec::new(),
                                 ));
                             }
                             // Per-region collectors: each gets a fresh config.
+                            // Route into <out_base>/<region>/YYYY/##-MMM.
                             let region_total = discovered_regions.len();
                             for (ridx, region_name) in discovered_regions.iter().enumerate() {
                                 if let Some(last) = app.prep_log.last_mut() {
@@ -603,7 +607,7 @@ async fn async_main() -> Result<()> {
                                     .region(Region::new(region_name.clone()))
                                     .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
                                     .load().await;
-                                let rdir = out_base.join(region_name);
+                                let rdir = out_base.join(region_name).join(date_path_suffix());
                                 regional_collectors.push((
                                     region_name.clone(),
                                     rdir,
@@ -721,6 +725,8 @@ async fn async_main() -> Result<()> {
                 let do_zip = app.zip;
                 let do_sign = app.sign;
                 let skip_inventory_csv = app.skip_inventory_csv;
+                let skip_run_manifest = app.skip_run_manifest;
+                let skip_chain_of_custody = app.skip_chain_of_custody;
                 let restart = run_tui_multi_account(
                     &mut terminal,
                     &mut app,
@@ -730,6 +736,8 @@ async fn async_main() -> Result<()> {
                     do_zip,
                     do_sign,
                     skip_inventory_csv,
+                    skip_run_manifest,
+                    skip_chain_of_custody,
                 )
                 .await?;
                 restore_terminal(&mut terminal)?;
@@ -1448,6 +1456,21 @@ struct AccountCollectors {
     inventory_multi_region: Vec<(String, Box<dyn CsvCollector>)>,
 }
 
+/// Returns a `PathBuf` representing the date-based sub-path `YYYY/##-MMM`
+/// (e.g. `2026/04-APR`) computed from the current local system time.
+fn date_path_suffix() -> PathBuf {
+    let now = Local::now();
+    let year = now.format("%Y").to_string();
+    let month_num = now.format("%m").to_string();
+    let month_abbr = match month_num.as_str() {
+        "01" => "JAN", "02" => "FEB", "03" => "MAR", "04" => "APR",
+        "05" => "MAY", "06" => "JUN", "07" => "JUL", "08" => "AUG",
+        "09" => "SEP", "10" => "OCT", "11" => "NOV", "12" => "DEC",
+        _ => "UNK",
+    };
+    PathBuf::from(&year).join(format!("{month_num}-{month_abbr}"))
+}
+
 /// Multi-account wrapper: iterates over all pre-built accounts, running the
 /// full collector set for each. Sends AccountStarted / AccountFinished progress
 /// events so the TUI shows which account is active.
@@ -1466,6 +1489,8 @@ async fn run_tui_multi_account(
     do_zip: bool,
     do_sign: bool,
     skip_inventory_csv: bool,
+    skip_run_manifest: bool,
+    skip_chain_of_custody: bool,
 ) -> Result<bool> {
     use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
@@ -1501,7 +1526,17 @@ async fn run_tui_multi_account(
         };
 
         for (acct_idx, acct) in prepared.into_iter().enumerate() {
-            let out_dir = acct.output_path.unwrap_or_else(|| PathBuf::from("."));
+            // For collectors mode (non-inventory) with a single region, route evidence
+            // into <account>/<region>/YYYY/##-MMM.  Multi-region evidence files already
+            // have the date suffix baked into their pre-built `rdir`.
+            let out_dir = {
+                let base = acct.output_path.clone().unwrap_or_else(|| PathBuf::from("."));
+                if !is_inventory_mode && acct.discovered_regions.is_empty() {
+                    base.join(&acct.region).join(date_path_suffix())
+                } else {
+                    base
+                }
+            };
             if let Err(e) = std::fs::create_dir_all(&out_dir) {
                 let _ = tx.send(Progress::Error {
                     collector: format!("output dir ({})", acct.account_id),
@@ -1640,38 +1675,42 @@ async fn run_tui_multi_account(
             }
 
             // ── Write run manifest ────────────────────────────────────────────
-            let manifest = audit_log::RunManifest::build(
-                &run_id,
-                &acct.account_id,
-                &acct.region,
-                &coll_start,
-                &coll_end,
-                acct_outcomes.clone(),
-            );
-            match audit_log::write_run_manifest(&out_dir, &manifest) {
-                Ok(p) => eprintln!("  Run manifest: {}", p.display()),
-                Err(e) => eprintln!("  WARN: could not write run manifest: {e}"),
+            if !is_inventory_mode && !skip_run_manifest {
+                let manifest = audit_log::RunManifest::build(
+                    &run_id,
+                    &acct.account_id,
+                    &acct.region,
+                    &coll_start,
+                    &coll_end,
+                    acct_outcomes.clone(),
+                );
+                match audit_log::write_run_manifest(&out_dir, &manifest) {
+                    Ok(p) => eprintln!("  Run manifest: {}", p.display()),
+                    Err(e) => eprintln!("  WARN: could not write run manifest: {e}"),
+                }
             }
 
             // ── Write chain-of-custody log ────────────────────────────────────
-            let identity = audit_log::AwsIdentity {
-                account_id: acct.account_id.clone(),
-                caller_arn: acct.aws_caller_arn.clone(),
-                user_id: acct.aws_user_id.clone(),
-            };
-            let entry = audit_log::CustodyEntry::new(
-                &run_id,
-                &started_at,
-                identity,
-                &acct.profile,
-                &acct.region,
-                &coll_start,
-                &coll_end,
-                acct_outcomes.len(),
-            );
-            match audit_log::write_chain_of_custody(&out_dir, &entry) {
-                Ok(p) => eprintln!("  Chain of custody: {}", p.display()),
-                Err(e) => eprintln!("  WARN: could not write chain of custody: {e}"),
+            if !is_inventory_mode && !skip_chain_of_custody {
+                let identity = audit_log::AwsIdentity {
+                    account_id: acct.account_id.clone(),
+                    caller_arn: acct.aws_caller_arn.clone(),
+                    user_id: acct.aws_user_id.clone(),
+                };
+                let entry = audit_log::CustodyEntry::new(
+                    &run_id,
+                    &started_at,
+                    identity,
+                    &acct.profile,
+                    &acct.region,
+                    &coll_start,
+                    &coll_end,
+                    acct_outcomes.len(),
+                );
+                match audit_log::write_chain_of_custody(&out_dir, &entry) {
+                    Ok(p) => eprintln!("  Chain of custody: {}", p.display()),
+                    Err(e) => eprintln!("  WARN: could not write chain of custody: {e}"),
+                }
             }
 
             let _ = tx.send(Progress::AccountFinished { name: acct.account_id });

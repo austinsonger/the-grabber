@@ -1005,7 +1005,11 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_options(f: &mut Frame, area: Rect, app: &App) {
-    // Seven fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=skip_inventory_csv 6=region list.
+    // Collectors: 8 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
+    //   5=skip_run_manifest 6=skip_chain_of_custody 7=region list)
+    // Inventory:  7 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
+    //   5=skip_inventory_csv 6=region list)
+    let is_inventory = matches!(app.selected_feature, Feature::Inventory);
     let chunks = Layout::vertical([
         Constraint::Length(2), // [0] heading
         Constraint::Length(3), // [1] filter
@@ -1018,9 +1022,15 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         Constraint::Length(1), // [8] spacer
         Constraint::Length(3), // [9] sign output toggle
         Constraint::Length(1), // [10] spacer
-        Constraint::Length(3), // [11] skip inventory CSV toggle
-        Constraint::Length(1), // [12] spacer
-        Constraint::Fill(1),   // [13] region list
+        // Collectors-only (collapsed to 0 in Inventory mode):
+        Constraint::Length(if is_inventory { 0 } else { 3 }), // [11] skip_run_manifest
+        Constraint::Length(if is_inventory { 0 } else { 1 }), // [12] spacer
+        Constraint::Length(if is_inventory { 0 } else { 3 }), // [13] skip_chain_of_custody
+        Constraint::Length(if is_inventory { 0 } else { 1 }), // [14] spacer
+        // Inventory-only (collapsed to 0 in Collectors mode):
+        Constraint::Length(if is_inventory { 3 } else { 0 }), // [15] skip_inventory_csv
+        Constraint::Length(if is_inventory { 1 } else { 0 }), // [16] spacer
+        Constraint::Fill(1),   // [17] region list
     ])
     .split(content_inset(area));
 
@@ -1146,8 +1156,64 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         );
     }
 
-    // ── Skip Inventory CSV toggle (field 5) ──────────────────────────────────
-    {
+    // ── Skip Run Manifest toggle (Collectors only, field 5) ──────────────────
+    if !is_inventory {
+        let focused = app.options_field == 5;
+        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
+        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
+        let (off_style, on_style) = if app.skip_run_manifest {
+            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        } else {
+            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+        };
+        let off_icon = if !app.skip_run_manifest { "●" } else { "○" };
+        let on_icon  = if  app.skip_run_manifest { "●" } else { "○" };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("   {} ", off_icon), off_style),
+                Span::styled("Enabled", off_style),
+                Span::styled("    ", Style::default()),
+                Span::styled(format!("{} ", on_icon), on_style),
+                Span::styled("Disabled — skip RUN-MANIFEST file", on_style),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Span::styled(" Run Manifest ", title_style))),
+            chunks[11],
+        );
+    }
+
+    // ── Skip Chain of Custody toggle (Collectors only, field 6) ──────────────
+    if !is_inventory {
+        let focused = app.options_field == 6;
+        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
+        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
+        let (off_style, on_style) = if app.skip_chain_of_custody {
+            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        } else {
+            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+        };
+        let off_icon = if !app.skip_chain_of_custody { "●" } else { "○" };
+        let on_icon  = if  app.skip_chain_of_custody { "●" } else { "○" };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("   {} ", off_icon), off_style),
+                Span::styled("Enabled", off_style),
+                Span::styled("    ", Style::default()),
+                Span::styled(format!("{} ", on_icon), on_style),
+                Span::styled("Disabled — skip CHAIN-OF-CUSTODY file", on_style),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Span::styled(" Chain of Custody ", title_style))),
+            chunks[13],
+        );
+    }
+
+    // ── Skip Inventory CSV toggle (Inventory only, field 5) ──────────────────
+    if is_inventory {
         let focused = app.options_field == 5;
         let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
         let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
@@ -1170,13 +1236,14 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 .border_type(BorderType::Rounded)
                 .border_style(border_style)
                 .title(Span::styled(" Inventory Output Format ", title_style))),
-            chunks[11],
+            chunks[15],
         );
     }
 
-    // ── Region multi-select list (field 6) ────────────────────────────────────
+    // ── Region multi-select list (field 6 for Inventory, 7 for Collectors) ───
     {
-        let focused = app.options_field == 6;
+        let region_field = if is_inventory { 6 } else { 7 };
+        let focused = app.options_field == region_field;
         let dimmed  = app.all_regions; // when all_regions is ON, list is informational only
 
         let border_style = if dimmed {
@@ -1242,7 +1309,7 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
 
         f.render_stateful_widget(
             List::new(items).block(block),
-            chunks[13],
+            chunks[17],
             &mut list_state,
         );
     }
@@ -1335,6 +1402,8 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
                 kv_line("Include Raw", if app.include_raw { "yes" } else { "no" }),
                 kv_line("Zip Package", if app.zip { "yes — bundle output into a dated .zip" } else { "no" }),
                 kv_line("Sign Output", if app.sign { "yes — HMAC-SHA256 manifest + key file" } else { "no" }),
+                kv_line("Run Manifest", if app.skip_run_manifest { "disabled" } else { "enabled" }),
+                kv_line("Chain of Custody", if app.skip_chain_of_custody { "disabled" } else { "enabled" }),
                 regions_line,
             ]);
         }

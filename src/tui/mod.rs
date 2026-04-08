@@ -203,6 +203,8 @@ pub struct App {
     pub zip: bool,
     pub sign: bool,
     pub skip_inventory_csv: bool,
+    pub skip_run_manifest: bool,
+    pub skip_chain_of_custody: bool,
 
     // Running / results
     pub collector_statuses: Vec<CollectorStatus>,
@@ -525,6 +527,8 @@ impl App {
             zip,
             sign,
             skip_inventory_csv: false,
+            skip_run_manifest: false,
+            skip_chain_of_custody: false,
             options_field: 0,
             options_region_cursor: 0,
             options_selected_regions: HashSet::new(),
@@ -1160,8 +1164,15 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SetOptions => match key {
-            // 7 fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=skip_inventory_csv 6=region list
-            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 7; }
+            // Collectors: 8 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
+            //   5=skip_run_manifest 6=skip_chain_of_custody 7=region list)
+            // Inventory:  7 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
+            //   5=skip_inventory_csv 6=region list)
+            KeyCode::Tab => {
+                let is_inventory = app.selected_feature == Feature::Inventory;
+                let total = if is_inventory { 7 } else { 8 };
+                app.options_field = (app.options_field + 1) % total;
+            }
             KeyCode::Char(' ') if app.options_field == 1 => {
                 app.include_raw = !app.include_raw;
             }
@@ -1179,20 +1190,38 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                 app.sign = !app.sign;
             }
             KeyCode::Char(' ') if app.options_field == 5 => {
-                app.skip_inventory_csv = !app.skip_inventory_csv;
+                if app.selected_feature == Feature::Inventory {
+                    app.skip_inventory_csv = !app.skip_inventory_csv;
+                } else {
+                    app.skip_run_manifest = !app.skip_run_manifest;
+                }
             }
-            // Region list navigation and toggle (field 6)
-            KeyCode::Up if app.options_field == 6 => {
+            KeyCode::Char(' ') if app.options_field == 6
+                && app.selected_feature == Feature::Collectors =>
+            {
+                app.skip_chain_of_custody = !app.skip_chain_of_custody;
+            }
+            // Region list navigation and toggle (field 6 for Inventory, 7 for Collectors)
+            KeyCode::Up if {
+                let rf = if app.selected_feature == Feature::Inventory { 6 } else { 7 };
+                app.options_field == rf
+            } => {
                 if app.options_region_cursor > 0 {
                     app.options_region_cursor -= 1;
                 }
             }
-            KeyCode::Down if app.options_field == 6 => {
+            KeyCode::Down if {
+                let rf = if app.selected_feature == Feature::Inventory { 6 } else { 7 };
+                app.options_field == rf
+            } => {
                 if app.options_region_cursor + 1 < app.regions.len() {
                     app.options_region_cursor += 1;
                 }
             }
-            KeyCode::Char(' ') if app.options_field == 6 => {
+            KeyCode::Char(' ') if {
+                let rf = if app.selected_feature == Feature::Inventory { 6 } else { 7 };
+                app.options_field == rf
+            } => {
                 let i = app.options_region_cursor;
                 if app.options_selected_regions.contains(&i) {
                     app.options_selected_regions.remove(&i);
