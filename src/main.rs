@@ -514,6 +514,7 @@ async fn async_main() -> Result<()> {
                     // Pre-discover or explicitly set the region list.
                     let mut discovered_regions: Vec<String> = Vec::new();
                     let mut regional_collectors = Vec::new();
+                    let mut inventory_multi_region: Vec<(String, Box<dyn CsvCollector>)> = Vec::new();
                     if use_all_regions {
                         app.prep_log.push("    Discovering enabled regions…".to_string());
                         terminal.draw(|f| tui::ui::draw(f, &app))?;
@@ -544,7 +545,8 @@ async fn async_main() -> Result<()> {
                         let out_base = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
 
                         if is_inventory {
-                            // Inventory mode: one InventoryCollector per region; no global pass.
+                            // Inventory mode: one InventoryCollector per region, all rows merged
+                            // into a single CSV at the end — no region subdirectories.
                             let region_total = discovered_regions.len();
                             for (ridx, region_name) in discovered_regions.iter().enumerate() {
                                 if let Some(last) = app.prep_log.last_mut() {
@@ -558,13 +560,9 @@ async fn async_main() -> Result<()> {
                                     .region(Region::new(region_name.clone()))
                                     .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
                                     .load().await;
-                                let rdir = out_base.join(region_name);
-                                regional_collectors.push((
+                                inventory_multi_region.push((
                                     region_name.clone(),
-                                    rdir,
-                                    vec![Box::new(InventoryCollector::new(&rcfg, inventory_types.clone())) as Box<dyn CsvCollector>],
-                                    Vec::new(),
-                                    Vec::new(),
+                                    Box::new(InventoryCollector::new(&rcfg, inventory_types.clone())) as Box<dyn CsvCollector>,
                                 ));
                             }
                             if let Some(last) = app.prep_log.last_mut() {
@@ -654,12 +652,20 @@ async fn async_main() -> Result<()> {
                         for c in rinv { if !display_names.contains(&c.name().to_string()) { display_names.push(format!("{} ({})", c.name(), rname)); } }
                         for c in rjson { if !display_names.contains(&c.name().to_string()) { display_names.push(format!("{} ({})", c.name(), rname)); } }
                     }
+                    // Inventory multi-region: show one entry in the display list (not one per region).
+                    if !inventory_multi_region.is_empty() {
+                        let inv_name = inventory_multi_region[0].1.name().to_string();
+                        let canonical = format!("{} ({} regions)", inv_name, inventory_multi_region.len());
+                        if !display_names.contains(&canonical) {
+                            display_names.push(canonical);
+                        }
+                    }
 
                     prepared.push(AccountCollectors {
                         account_id, aws_caller_arn, aws_user_id,
                         profile, region, output_path, collector_keys,
                         json_collectors, json_inv_collectors, csv_collectors, display_names,
-                        discovered_regions, regional_collectors,
+                        discovered_regions, regional_collectors, inventory_multi_region,
                     });
                 }
 
@@ -1434,6 +1440,9 @@ struct AccountCollectors {
         Vec<Box<dyn JsonCollector>>,
         Vec<Box<dyn EvidenceCollector>>,
     )>,
+    /// Inventory-mode multi-region collectors: one per region, all rows merged
+    /// into a single output CSV. Each entry: (region_name, collector).
+    inventory_multi_region: Vec<(String, Box<dyn CsvCollector>)>,
 }
 
 /// Multi-account wrapper: iterates over all pre-built accounts, running the
@@ -1473,6 +1482,20 @@ async fn run_tui_multi_account(
         let coll_start = params_clone.start_time.format("%Y-%m-%d").to_string();
         let coll_end   = params_clone.end_time.format("%Y-%m-%d").to_string();
 
+        // For inventory mode: accumulate all rows across every account + region into one buffer.
+        // The file is written once after all accounts complete.
+        let is_inventory_mode = prepared.iter().any(|a| !a.inventory_multi_region.is_empty());
+        let mut inventory_global_rows: Vec<Vec<String>> = Vec::new();
+        // Capture headers/prefix/output_dir from the first account that has inventory data.
+        let inventory_out_dir = prepared.iter().find(|a| !a.inventory_multi_region.is_empty())
+            .and_then(|a| a.output_path.clone())
+            .unwrap_or_else(|| PathBuf::from("."));
+        let inventory_headers: &'static [&'static str] = if is_inventory_mode {
+            crate::inventory_core::INVENTORY_CSV_HEADERS
+        } else {
+            &[]
+        };
+
         for (acct_idx, acct) in prepared.into_iter().enumerate() {
             let out_dir = acct.output_path.unwrap_or_else(|| PathBuf::from("."));
             if let Err(e) = std::fs::create_dir_all(&out_dir) {
@@ -1499,9 +1522,75 @@ async fn run_tui_multi_account(
             });
 
             let mut acct_outcomes: Vec<audit_log::CollectorOutcome> = Vec::new();
+            let has_inventory_multi_region = !acct.inventory_multi_region.is_empty();
+
+            // ── Inventory multi-region path: collect all regions in parallel; rows go to global buffer ──
+            if has_inventory_multi_region {
+                let collector_name = format!(
+                    "{} ({} regions)",
+                    acct.inventory_multi_region[0].1.name(),
+                    acct.inventory_multi_region.len(),
+                );
+                let total_regions = acct.inventory_multi_region.len();
+                let _ = tx.send(Progress::Started { collector: collector_name.clone() });
+
+                // Spawn all regions concurrently.
+                let mut join_set: tokio::task::JoinSet<(String, std::result::Result<Vec<Vec<String>>, anyhow::Error>)> =
+                    tokio::task::JoinSet::new();
+                let region_timeout = std::time::Duration::from_secs(300); // 5 min per region
+                for (region_name, collector) in acct.inventory_multi_region {
+                    let acct_id = acct.account_id.clone();
+                    let rname = region_name.clone();
+                    join_set.spawn(async move {
+                        let result = tokio::time::timeout(
+                            region_timeout,
+                            collector.collect_rows(&acct_id, &rname, dates),
+                        )
+                        .await
+                        .map_err(|_| anyhow::anyhow!("region timed out after 5 minutes"))
+                        .and_then(|r| r);
+                        (region_name, result)
+                    });
+                }
+
+                let mut acct_rows: Vec<Vec<String>> = Vec::new();
+                let mut completed = 0usize;
+                while let Some(task_result) = join_set.join_next().await {
+                    completed += 1;
+                    match task_result {
+                        Ok((region_name, Ok(rows))) => {
+                            let row_count = rows.len();
+                            eprintln!("  [inventory] region {}/{}: {} — {} rows", completed, total_regions, region_name, row_count);
+                            acct_rows.extend(rows);
+                            let _ = tx.send(Progress::Done {
+                                collector: format!("{} [{}/{}]", collector_name, completed, total_regions),
+                                count: acct_rows.len(),
+                            });
+                        }
+                        Ok((region_name, Err(e))) => {
+                            eprintln!("  ERROR [inventory] {}: {:#}", region_name, e);
+                            let _ = tx.send(Progress::Error {
+                                collector: format!("{} ({})", collector_name, region_name),
+                                message: format!("{:#}", e),
+                            });
+                        }
+                        Err(e) => {
+                            eprintln!("  ERROR [inventory] task panicked: {e}");
+                            let _ = tx.send(Progress::Error {
+                                collector: collector_name.clone(),
+                                message: format!("task panicked: {e}"),
+                            });
+                        }
+                    }
+                }
+
+                eprintln!("  [inventory] account {} done: {} rows this account", acct.account_id, acct_rows.len());
+                inventory_global_rows.extend(acct_rows);
+                // No per-account file write — the unified file is written after all accounts finish.
+            }
 
             // ── All-regions path: use pre-built regional collectors ──
-            if !acct.discovered_regions.is_empty() {
+            if !acct.discovered_regions.is_empty() && !has_inventory_multi_region {
                 eprintln!("  all-regions: {} regions pre-built", acct.discovered_regions.len());
                 for (region_name, rdir, rcsv, rinv, rjson) in &acct.regional_collectors {
                     let _ = tx.send(Progress::RegionStarted { region: region_name.clone() });
@@ -1516,7 +1605,7 @@ async fn run_tui_multi_account(
                         run_tui_json_collector(collector, &params_clone, region_name, &acct.account_id, rdir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes).await;
                     }
                 }
-            } else {
+            } else if acct.discovered_regions.is_empty() && !has_inventory_multi_region {
                 // ── Single-region path (default) ──
                 for collector in &acct.json_collectors {
                     run_tui_json_collector(collector, &params_clone, &acct.region, &acct.account_id, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes).await;
@@ -1524,8 +1613,25 @@ async fn run_tui_multi_account(
                 for collector in &acct.json_inv_collectors {
                     run_tui_inv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes).await;
                 }
-                for collector in &acct.csv_collectors {
-                    run_tui_csv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes, dates).await;
+                if is_inventory_mode {
+                    // Route inventory rows into the global buffer (written as one file after all accounts).
+                    for collector in &acct.csv_collectors {
+                        let name = collector.name().to_string();
+                        let _ = tx.send(Progress::Started { collector: name.clone() });
+                        match tokio::time::timeout(collector_timeout, collector.collect_rows(&acct.account_id, &acct.region, dates)).await {
+                            Ok(Ok(rows)) => {
+                                let count = rows.len();
+                                inventory_global_rows.extend(rows);
+                                let _ = tx.send(Progress::Done { collector: name, count });
+                            }
+                            Ok(Err(e)) => { let _ = tx.send(Progress::Error { collector: name, message: format!("{e:#}") }); }
+                            Err(_)     => { let _ = tx.send(Progress::Error { collector: name, message: "timed out".to_string() }); }
+                        }
+                    }
+                } else {
+                    for collector in &acct.csv_collectors {
+                        run_tui_csv_collector(collector, &acct.account_id, &acct.region, &out_dir, &timestamp, &tx, collector_timeout, &mut all_written_files, &mut acct_outcomes, dates).await;
+                    }
                 }
             }
 
@@ -1568,6 +1674,26 @@ async fn run_tui_multi_account(
         }
 
         eprintln!("=== All accounts done. {} files written. ===", all_written_files.len());
+
+        // ── Write single unified inventory CSV (all accounts + all regions) ──
+        if !inventory_global_rows.is_empty() {
+            let _ = std::fs::create_dir_all(&inventory_out_dir);
+            let filename = format!("AWS_Inventory-{}.csv", timestamp);
+            let path = inventory_out_dir.join(&filename);
+            match write_csv_bytes(inventory_headers, &inventory_global_rows) {
+                Ok(bytes) => {
+                    if std::fs::write(&path, bytes).is_ok() {
+                        eprintln!("=== Inventory CSV: {} ({} rows) ===", path.display(), inventory_global_rows.len());
+                        all_written_files.push(path.display().to_string());
+                    } else {
+                        eprintln!("=== ERROR: could not write inventory CSV to {} ===", path.display());
+                    }
+                }
+                Err(e) => eprintln!("=== ERROR: inventory CSV serialisation failed: {e:#} ==="),
+            }
+        } else if is_inventory_mode {
+            eprintln!("=== Inventory: no rows collected (all asset types empty) ===");
+        }
 
         let zip_path = if do_zip && !all_written_files.is_empty() {
             let zip_name = format!("Evidence-{}.zip", timestamp);

@@ -842,7 +842,7 @@ async fn collect_containers(
                 .to_string();
 
             // Fetch images for this repository
-            let images = match ecr
+            let mut images = match ecr
                 .describe_images()
                 .repository_name(&repo_name)
                 .send()
@@ -852,48 +852,19 @@ async fn collect_containers(
                 Err(_) => vec![],
             };
 
-            for img in &images {
-                let digest = img.image_digest().unwrap_or("").to_string();
-                let tags = img.image_tags().join(", ");
-                let unique_id = format!("{repo_uri}@{digest}");
+            let secs_to_rfc3339 = |secs: i64| -> String {
+                chrono::DateTime::<chrono::Utc>::from_timestamp(secs, 0)
+                    .map(|c| c.to_rfc3339())
+                    .unwrap_or_default()
+            };
 
-                let repo_comments = format!(
-                    "RepositoryArn: {repo_arn} | RegistryId: {registry_id} | \
-                     ImageTagMutability: {mutability} | ScanOnPush: {scan_on_push} | \
-                     EncryptionType: {enc_type} | EncryptionKMS: {enc_kms} | \
-                     ImageDigest: {digest} | ImageTags: {tags} | \
-                     ECSClusters: {} | EKSClusters: {}",
-                    ecs_cluster_names.join(", "),
-                    eks_cluster_names.join(", "),
-                );
-
-                let location = format!("{region} / ECR Repo: {repo_name}");
-
-                rows.push(
-                    RowBuilder::new()
-                        .unique_id(unique_id)
-                        .virtual_flag("Yes")
-                        .public("No")
-                        .location(location)
-                        .asset_type("Container Image")
-                        .sw_vendor(&repo_name)
-                        .sw_name_ver(format!(
-                            "{} | Tags: {}",
-                            repo_name,
-                            if tags.is_empty() { "none".to_string() } else { tags }
-                        ))
-                        .comments(repo_comments)
-                        .build(),
-                );
-            }
-
-            // If a repo has no images, still emit one row for the repo itself
             if images.is_empty() {
+                // No images — emit one row for the repo itself
                 let repo_comments = format!(
                     "RepositoryArn: {repo_arn} | RegistryId: {registry_id} | \
                      ImageTagMutability: {mutability} | ScanOnPush: {scan_on_push} | \
                      EncryptionType: {enc_type} | EncryptionKMS: {enc_kms} | \
-                     (No images)"
+                     ImageCount: 0"
                 );
                 rows.push(
                     RowBuilder::new()
@@ -904,6 +875,56 @@ async fn collect_containers(
                         .asset_type("Container Image")
                         .sw_vendor(&repo_name)
                         .sw_name_ver(repo_name.clone())
+                        .comments(repo_comments)
+                        .build(),
+                );
+            } else {
+                // Sort descending by pushed_at so index 0 is the newest image
+                images.sort_by(|a, b| {
+                    let pa = a.image_pushed_at().map(|d| d.secs()).unwrap_or(0);
+                    let pb = b.image_pushed_at().map(|d| d.secs()).unwrap_or(0);
+                    pb.cmp(&pa)
+                });
+
+                let image_count = images.len();
+                let newest_push = images.first()
+                    .and_then(|i| i.image_pushed_at())
+                    .map(|d| secs_to_rfc3339(d.secs()))
+                    .unwrap_or_default();
+                let oldest_push = images.last()
+                    .and_then(|i| i.image_pushed_at())
+                    .map(|d| secs_to_rfc3339(d.secs()))
+                    .unwrap_or_default();
+
+                // Representative row uses the newest image's digest and tags
+                let img = &images[0];
+                let digest = img.image_digest().unwrap_or("").to_string();
+                let tags = img.image_tags().join(", ");
+
+                let repo_comments = format!(
+                    "RepositoryArn: {repo_arn} | RegistryId: {registry_id} | \
+                     ImageTagMutability: {mutability} | ScanOnPush: {scan_on_push} | \
+                     EncryptionType: {enc_type} | EncryptionKMS: {enc_kms} | \
+                     ImageDigest: {digest} | ImageTags: {tags} | \
+                     ECSClusters: {} | EKSClusters: {} | \
+                     ImageCount: {image_count} | NewestPush: {newest_push} | OldestPush: {oldest_push}",
+                    ecs_cluster_names.join(", "),
+                    eks_cluster_names.join(", "),
+                );
+
+                rows.push(
+                    RowBuilder::new()
+                        .unique_id(&repo_uri)
+                        .virtual_flag("Yes")
+                        .public("No")
+                        .location(format!("{region} / ECR Repo: {repo_name}"))
+                        .asset_type("Container Image")
+                        .sw_vendor(&repo_name)
+                        .sw_name_ver(format!(
+                            "{} | Tags: {}",
+                            repo_name,
+                            if tags.is_empty() { "none".to_string() } else { tags }
+                        ))
                         .comments(repo_comments)
                         .build(),
                 );
