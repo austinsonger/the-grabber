@@ -39,6 +39,8 @@ pub enum Progress {
         signing_manifest: Option<String>,
         /// Path to the signing key file, if signing was enabled.
         signing_key_path: Option<String>,
+        /// POAM mode summary payload.
+        poam_summary: Option<PoamSummary>,
     },
 }
 
@@ -53,6 +55,8 @@ pub enum Feature {
     Collectors,
     /// New unified AWS asset-inventory flow.
     Inventory,
+    /// POA&M reconciliation flow.
+    Poam,
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +74,9 @@ pub enum Screen {
     SetDates,
     /// Multi-select AWS asset types (Inventory flow only).
     Inventory,
+    PoamRegion,
+    PoamYear,
+    PoamMonth,
     SelectCollectors,
     SetOptions,
     Confirm,
@@ -151,6 +158,18 @@ pub enum CollectorState {
     Failed(String),
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct PoamSummary {
+    pub region: String,
+    pub year: String,
+    pub month: String,
+    pub evidence_path: String,
+    pub csv_used: Option<String>,
+    pub added_open_count: usize,
+    pub moved_closed_count: usize,
+    pub warnings: Vec<String>,
+}
+
 // ---------------------------------------------------------------------------
 // Main App state
 // ---------------------------------------------------------------------------
@@ -227,6 +246,12 @@ pub struct App {
 
     // Feature selection
     pub selected_feature: Feature,
+
+    // POAM inputs/results
+    pub poam_region_cursor: usize,
+    pub poam_year: TextInput,
+    pub poam_month_cursor: usize,
+    pub poam_summary: Option<PoamSummary>,
 
     // Inventory asset-type selection (multi-select, Inventory flow only)
     pub inventory_items: Vec<(&'static str, &'static str)>, // (key, label)
@@ -547,6 +572,16 @@ impl App {
             prep_current: 0,
             prep_total: 0,
             selected_feature: Feature::Collectors,
+            poam_region_cursor: region_cursor,
+            poam_year: TextInput::new(&chrono::Local::now().format("%Y").to_string()),
+            poam_month_cursor: chrono::Local::now()
+                .format("%m")
+                .to_string()
+                .parse::<usize>()
+                .ok()
+                .and_then(|m| m.checked_sub(1))
+                .unwrap_or(0),
+            poam_summary: None,
             inventory_items: vec![
                 ("kms-key",             "KMS Key"),
                 ("s3-bucket",           "S3 Bucket"),
@@ -593,6 +628,52 @@ impl App {
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| "us-east-1".to_string())
         }
+    }
+
+    pub fn poam_selected_region(&self) -> String {
+        self.regions
+            .get(self.poam_region_cursor)
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "us-east-1".to_string())
+    }
+
+    pub fn poam_month_name(&self) -> &'static str {
+        const MONTHS: [&str; 12] = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        ];
+        MONTHS.get(self.poam_month_cursor).copied().unwrap_or("January")
+    }
+
+    pub fn poam_month_folder(&self) -> String {
+        const FOLDERS: [&str; 12] = [
+            "01-JAN", "02-FEB", "03-MAR", "04-APR", "05-MAY", "06-JUN",
+            "07-JUL", "08-AUG", "09-SEP", "10-OCT", "11-NOV", "12-DEC",
+        ];
+        FOLDERS
+            .get(self.poam_month_cursor)
+            .copied()
+            .unwrap_or("01-JAN")
+            .to_string()
+    }
+
+    pub fn poam_year_value(&self) -> String {
+        let trimmed = self.poam_year.value.trim();
+        if trimmed.is_empty() {
+            chrono::Local::now().format("%Y").to_string()
+        } else {
+            trimmed.to_string()
+        }
+    }
+
+    pub fn poam_evidence_path(&self) -> String {
+        std::path::PathBuf::from("evidence-output")
+            .join("security")
+            .join(self.poam_selected_region())
+            .join(self.poam_year_value())
+            .join(self.poam_month_folder())
+            .display()
+            .to_string()
     }
 
     pub fn selected_collectors(&self) -> Vec<String> {
@@ -698,10 +779,15 @@ impl App {
         self.screen = match self.screen {
             Screen::Welcome => Screen::FeatureSelection,
             Screen::FeatureSelection => {
-                if self.has_accounts() {
-                    Screen::SelectAccount
-                } else {
-                    Screen::SelectProfile
+                match self.selected_feature {
+                    Feature::Poam => Screen::PoamRegion,
+                    _ => {
+                        if self.has_accounts() {
+                            Screen::SelectAccount
+                        } else {
+                            Screen::SelectProfile
+                        }
+                    }
                 }
             }
             Screen::SelectAccount   => Screen::SetDates,
@@ -710,8 +796,12 @@ impl App {
             Screen::SetDates => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,
                 Feature::Inventory  => Screen::Inventory,
+                Feature::Poam       => Screen::PoamRegion,
             },
             Screen::Inventory        => Screen::SetOptions,
+            Screen::PoamRegion       => Screen::PoamYear,
+            Screen::PoamYear         => Screen::PoamMonth,
+            Screen::PoamMonth        => Screen::Confirm,
             Screen::SelectCollectors => Screen::SetOptions,
             Screen::SetOptions      => Screen::Confirm,
             Screen::Confirm         => Screen::Running,
@@ -742,12 +832,19 @@ impl App {
                 }
             }
             Screen::Inventory        => Screen::SetDates,
+            Screen::PoamRegion       => Screen::FeatureSelection,
+            Screen::PoamYear         => Screen::PoamRegion,
+            Screen::PoamMonth        => Screen::PoamYear,
             Screen::SelectCollectors => Screen::SetDates,
             Screen::SetOptions => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,
                 Feature::Inventory  => Screen::Inventory,
+                Feature::Poam       => Screen::PoamMonth,
             },
-            Screen::Confirm => Screen::SetOptions,
+            Screen::Confirm => match self.selected_feature {
+                Feature::Poam => Screen::PoamMonth,
+                _ => Screen::SetOptions,
+            },
             _ => return,
         };
     }
@@ -786,6 +883,14 @@ impl App {
                 }
                 true
             }
+            Screen::PoamYear => {
+                let year = self.poam_year.value.trim();
+                if year.len() != 4 || year.parse::<u32>().is_err() {
+                    self.error_msg = Some("Enter a 4-digit findings year (e.g., 2026)".into());
+                    return false;
+                }
+                true
+            }
             _ => true,
         }
     }
@@ -814,6 +919,7 @@ impl App {
         self.options_region_cursor = 0;
         self.inventory_cursor = 0;
         self.inventory_selected.clear();
+        self.poam_summary = None;
         self.selected_feature = Feature::Collectors;
         // Preserve options_selected_regions so the user's choices carry over.
     }
@@ -868,11 +974,12 @@ impl App {
                             s.state = CollectorState::Failed(message);
                         }
                     }
-                    Progress::Finished { files, zip_path, signing_manifest, signing_key_path } => {
+                    Progress::Finished { files, zip_path, signing_manifest, signing_key_path, poam_summary } => {
                         self.result_files = files;
                         self.result_zip = zip_path;
                         self.result_signing_manifest = signing_manifest;
                         self.result_signing_key_path = signing_key_path;
+                        self.poam_summary = poam_summary;
                         self.finished_tick = Some(self.tick);
                         self.screen = Screen::Results;
                     }
@@ -1017,10 +1124,18 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
 
         Screen::FeatureSelection => match key {
             KeyCode::Up | KeyCode::Left => {
-                app.selected_feature = Feature::Collectors;
+                app.selected_feature = match app.selected_feature {
+                    Feature::Collectors => Feature::Poam,
+                    Feature::Inventory => Feature::Collectors,
+                    Feature::Poam => Feature::Inventory,
+                };
             }
             KeyCode::Down | KeyCode::Right => {
-                app.selected_feature = Feature::Inventory;
+                app.selected_feature = match app.selected_feature {
+                    Feature::Collectors => Feature::Inventory,
+                    Feature::Inventory => Feature::Poam,
+                    Feature::Poam => Feature::Collectors,
+                };
             }
             KeyCode::Enter | KeyCode::Char(' ') => app.next_screen(),
             KeyCode::Esc => return Action::Quit,
@@ -1108,6 +1223,36 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             KeyCode::Down => { if app.time_frame_cursor < 11 { app.time_frame_cursor += 1; } }
             KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
             KeyCode::Esc   => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::PoamRegion => match key {
+            KeyCode::Up => { if app.poam_region_cursor > 0 { app.poam_region_cursor -= 1; } }
+            KeyCode::Down => {
+                if app.poam_region_cursor + 1 < app.regions.len() {
+                    app.poam_region_cursor += 1;
+                }
+            }
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::PoamYear => match key {
+            KeyCode::Char(c) if c.is_ascii_digit() => app.poam_year.insert(c),
+            KeyCode::Backspace => app.poam_year.backspace(),
+            KeyCode::Left => app.poam_year.move_left(),
+            KeyCode::Right => app.poam_year.move_right(),
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::PoamMonth => match key {
+            KeyCode::Up => { if app.poam_month_cursor > 0 { app.poam_month_cursor -= 1; } }
+            KeyCode::Down => { if app.poam_month_cursor < 11 { app.poam_month_cursor += 1; } }
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 

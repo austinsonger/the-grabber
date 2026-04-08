@@ -70,6 +70,7 @@ const STEPS_ACCOUNTS: &[&str] = &["Account", "Dates", "Collectors", "Options", "
 const STEPS_LEGACY:   &[&str] = &["Profile", "Region", "Dates", "Collectors", "Options", "Confirm", "Run"];
 const STEPS_INV_ACCOUNTS: &[&str] = &["Account", "Dates", "Inventory", "Options", "Confirm", "Run"];
 const STEPS_INV_LEGACY:   &[&str] = &["Profile", "Region", "Dates", "Inventory", "Options", "Confirm", "Run"];
+const STEPS_POAM: &[&str] = &["Region", "Year", "Month", "Confirm", "Run"];
 
 fn screen_to_step(screen: &Screen, has_accounts: bool, feature: &Feature) -> Option<usize> {
     match feature {
@@ -121,6 +122,14 @@ fn screen_to_step(screen: &Screen, has_accounts: bool, feature: &Feature) -> Opt
                 }
             }
         }
+        Feature::Poam => match screen {
+            Screen::PoamRegion => Some(0),
+            Screen::PoamYear => Some(1),
+            Screen::PoamMonth => Some(2),
+            Screen::Confirm => Some(3),
+            Screen::Running => Some(4),
+            _ => None,
+        },
     }
 }
 
@@ -173,6 +182,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Feature::Inventory => {
             if app.has_accounts() { STEPS_INV_ACCOUNTS } else { STEPS_INV_LEGACY }
         }
+        Feature::Poam => STEPS_POAM,
     };
     draw_header(f, layout[1], step_info.map(|s| (s + 1, steps.len())), &app.screen);
 
@@ -195,6 +205,9 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::SelectAccount    => draw_select_account(f, content, app),
         Screen::SelectProfile    => draw_profile(f, content, app),
         Screen::SelectRegion     => draw_region(f, content, app),
+        Screen::PoamRegion       => draw_poam_region(f, content, app),
+        Screen::PoamYear         => draw_poam_year(f, content, app),
+        Screen::PoamMonth        => draw_poam_month(f, content, app),
         Screen::SetDates         => draw_dates(f, content, app),
         Screen::Inventory        => draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => draw_collectors(f, content, app),
@@ -354,6 +367,9 @@ fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::SelectAccount    => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "All"), ("d", "None"), ("⏎", "Confirm"), ("Esc", "Quit")],
         Screen::SelectProfile    => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::SelectRegion     => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::PoamRegion       => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::PoamYear         => vec![("0-9", "Type Year"), ("⌫", "Delete"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::PoamMonth        => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SetDates         => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::Inventory        => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
@@ -460,6 +476,8 @@ fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
         Constraint::Length(5), // Collectors card
         Constraint::Length(1), // gap
         Constraint::Length(5), // Inventory card
+        Constraint::Length(1), // gap
+        Constraint::Length(5), // POAM card
         Constraint::Fill(1),
     ])
     .split(area);
@@ -492,9 +510,14 @@ fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
             "◆  Inventory",
             "Build a unified asset-inventory CSV across selected AWS resource types",
         ),
+        (
+            Feature::Poam,
+            "◆  POAM",
+            "Reconcile Inspector2 ECR findings into FedRAMP-POAM.xlsx (add new, close resolved)",
+        ),
     ];
 
-    let card_areas = [chunks[4], chunks[6]];
+    let card_areas = [chunks[4], chunks[6], chunks[8]];
     for (idx, (feature, label, desc)) in options.iter().enumerate() {
         let selected = app.selected_feature == *feature;
         let border_style = if selected {
@@ -819,6 +842,140 @@ fn draw_region(f: &mut Frame, area: Rect, app: &App) {
     // Custom region input
     let custom_focused = app.region_use_custom;
     draw_text_field(f, chunks[2], "Custom Region", &app.region_custom.value, custom_focused);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POAM Region / Year / Month
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn draw_poam_region(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::vertical([
+        Constraint::Length(2),
+        Constraint::Fill(1),
+    ])
+    .split(content_inset(area));
+
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            "Select the AWS region containing Inspector2 ECR findings:",
+            Style::default().fg(TEXT_DIM),
+        )),
+        chunks[0],
+    );
+
+    let items: Vec<ListItem> = app
+        .regions
+        .iter()
+        .enumerate()
+        .map(|(i, r)| {
+            let selected = i == app.poam_region_cursor;
+            let icon = if selected { "▸ " } else { "  " };
+            let style = if selected {
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+            ListItem::new(Line::from(vec![
+                Span::styled(icon, Style::default().fg(AMBER)),
+                Span::styled(*r, style),
+            ]))
+        })
+        .collect();
+
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .title(Span::styled(" Supported Regions ", Style::default().fg(CYAN_DIM)))
+        .padding(Padding::horizontal(1));
+
+    let mut state = ListState::default();
+    state.select(Some(app.poam_region_cursor));
+    f.render_stateful_widget(List::new(items).block(block), chunks[1], &mut state);
+}
+
+fn draw_poam_year(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::vertical([
+        Constraint::Length(2),
+        Constraint::Length(3),
+        Constraint::Length(2),
+        Constraint::Fill(1),
+    ])
+    .split(content_inset(area));
+
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            "Enter findings year (YYYY):",
+            Style::default().fg(TEXT_DIM),
+        )),
+        chunks[0],
+    );
+    draw_text_field(f, chunks[1], "Findings Year", &app.poam_year.value, true);
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            format!("Default: {}", chrono::Local::now().format("%Y")),
+            Style::default().fg(TEXT_DIM),
+        )),
+        chunks[2],
+    );
+}
+
+fn draw_poam_month(f: &mut Frame, area: Rect, app: &App) {
+    const MONTHS: [(&str, &str); 12] = [
+        ("January", "01-JAN"),
+        ("February", "02-FEB"),
+        ("March", "03-MAR"),
+        ("April", "04-APR"),
+        ("May", "05-MAY"),
+        ("June", "06-JUN"),
+        ("July", "07-JUL"),
+        ("August", "08-AUG"),
+        ("September", "09-SEP"),
+        ("October", "10-OCT"),
+        ("November", "11-NOV"),
+        ("December", "12-DEC"),
+    ];
+
+    let chunks = Layout::vertical([
+        Constraint::Length(2),
+        Constraint::Fill(1),
+    ])
+    .split(content_inset(area));
+
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            "Select findings month:",
+            Style::default().fg(TEXT_DIM),
+        )),
+        chunks[0],
+    );
+
+    let items: Vec<ListItem> = MONTHS
+        .iter()
+        .enumerate()
+        .map(|(i, (name, folder))| {
+            let selected = i == app.poam_month_cursor;
+            let icon = if selected { "▸ " } else { "  " };
+            let name_style = if selected {
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+            ListItem::new(Line::from(vec![
+                Span::styled(icon, Style::default().fg(AMBER)),
+                Span::styled(format!("{:<12}", name), name_style),
+                Span::styled(format!(" ({folder})"), Style::default().fg(TEXT_DIM)),
+            ]))
+        })
+        .collect();
+
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .padding(Padding::horizontal(1));
+
+    let mut state = ListState::default();
+    state.select(Some(app.poam_month_cursor));
+    f.render_stateful_widget(List::new(items).block(block), chunks[1], &mut state);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1328,6 +1485,51 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
     ])
     .split(content_inset(area));
 
+    if matches!(app.selected_feature, Feature::Poam) {
+        let poam_region = app.poam_selected_region();
+        let poam_year = app.poam_year_value();
+        let poam_month = app.poam_month_name().to_string();
+        let evidence_path = app.poam_evidence_path();
+        let workbook_path = "evidence-output/poam/FedRAMP-POAM.xlsx".to_string();
+
+        let rows = vec![
+            Line::raw(""),
+            kv_line_colored("Feature", "POAM Reconciliation", AMBER),
+            kv_line("Region", &poam_region),
+            kv_line("Year", &poam_year),
+            kv_line("Month", &poam_month),
+            kv_line("Evidence Path", &evidence_path),
+            kv_line("Workbook", &workbook_path),
+            Line::raw(""),
+        ];
+
+        let summary_block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(CYAN_DIM))
+            .title(Span::styled(
+                " Configuration Summary ",
+                Style::default().fg(CYAN_DIM),
+            ));
+        f.render_widget(
+            Paragraph::new(Text::from(rows)).block(summary_block),
+            chunks[1],
+        );
+
+        let button_block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(AMBER));
+        f.render_widget(
+            Paragraph::new(Span::styled(
+                "▸▸  Start POAM Run  ◂◂",
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            ))
+            .alignment(Alignment::Center)
+            .block(button_block),
+            chunks[2],
+        );
+        return;
+    }
+
     let region = app.selected_region();
 
     // Build account/profile lines depending on selection mode.
@@ -1415,6 +1617,7 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
                 kv_line("Output Format", if app.skip_inventory_csv { "Excel only (CSV skipped)" } else { "CSV + Excel" }),
             ]);
         }
+        Feature::Poam => {}
     }
     rows.push(Line::raw(""));
 
@@ -1439,6 +1642,7 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
     let button_label = match app.selected_feature {
         Feature::Collectors => "▸▸  Start Collection  ◂◂",
         Feature::Inventory  => "▸▸  Start Inventory   ◂◂",
+        Feature::Poam => "▸▸  Start POAM Run    ◂◂",
     };
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -1867,6 +2071,11 @@ fn draw_running_inline_stats(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_results(f: &mut Frame, area: Rect, app: &App) {
+    if matches!(app.selected_feature, Feature::Poam) {
+        draw_poam_results(f, area, app);
+        return;
+    }
+
     let inset = content_inset(area);
 
     let has_errors = !app.error_messages.is_empty();
@@ -2036,6 +2245,140 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
 
         f.render_widget(List::new(error_items).block(error_block), chunks[10]);
     }
+}
+
+fn draw_poam_results(f: &mut Frame, area: Rect, app: &App) {
+    let inset = content_inset(area);
+    let summary = app.poam_summary.as_ref();
+
+    let region = summary
+        .map(|s| s.region.clone())
+        .unwrap_or_else(|| app.poam_selected_region());
+    let year = summary
+        .map(|s| s.year.clone())
+        .unwrap_or_else(|| app.poam_year_value());
+    let month = summary
+        .map(|s| s.month.clone())
+        .unwrap_or_else(|| app.poam_month_name().to_string());
+    let evidence_path = summary
+        .map(|s| s.evidence_path.clone())
+        .unwrap_or_else(|| app.poam_evidence_path());
+    let csv_used = summary
+        .and_then(|s| s.csv_used.clone())
+        .unwrap_or_else(|| "none found".to_string());
+    let workbook_path = app
+        .result_files
+        .iter()
+        .find(|p| p.ends_with(".xlsx"))
+        .cloned()
+        .unwrap_or_else(|| "evidence-output/poam/FedRAMP-POAM.xlsx".to_string());
+    let added_open_count = summary.map(|s| s.added_open_count).unwrap_or(0);
+    let moved_closed_count = summary.map(|s| s.moved_closed_count).unwrap_or(0);
+    let warnings = summary.map(|s| s.warnings.clone()).unwrap_or_default();
+    let warning_count = warnings.len();
+    let error_count = app.error_messages.len();
+    let has_errors = error_count > 0;
+
+    let chunks = Layout::vertical([
+        Constraint::Length(3), // [0] banner
+        Constraint::Length(1), // [1] blank
+        Constraint::Length(10), // [2] summary
+        Constraint::Length(1), // [3] blank
+        Constraint::Length(5), // [4] stat cards
+        Constraint::Length(1), // [5] blank
+        Constraint::Fill(1), // [6] warnings/errors
+    ])
+    .split(inset);
+
+    let (banner_text, banner_color) = if has_errors {
+        ("!  POAM Run Complete (with errors)", AMBER)
+    } else {
+        ("✓  POAM Run Complete", GREEN)
+    };
+    let banner_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(banner_color));
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            banner_text,
+            Style::default().fg(banner_color).add_modifier(Modifier::BOLD),
+        ))
+        .alignment(Alignment::Center)
+        .block(banner_block),
+        chunks[0],
+    );
+
+    let summary_rows = vec![
+        Line::raw(""),
+        kv_line("Region", &region),
+        kv_line("Year", &year),
+        kv_line("Month", &month),
+        kv_line("Evidence Path", &evidence_path),
+        kv_line("CSV Used", &csv_used),
+        kv_line("Workbook", &workbook_path),
+        Line::raw(""),
+    ];
+    let summary_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(CYAN_DIM))
+        .title(Span::styled(" POAM Run Summary ", Style::default().fg(CYAN_DIM)));
+    f.render_widget(
+        Paragraph::new(Text::from(summary_rows)).block(summary_block),
+        chunks[2],
+    );
+
+    let cards = Layout::horizontal([
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
+        Constraint::Ratio(1, 4),
+    ])
+    .split(chunks[4]);
+    draw_stat_card(f, cards[0], "Added Open", &added_open_count.to_string(), CYAN);
+    draw_stat_card(f, cards[1], "Moved Closed", &moved_closed_count.to_string(), AMBER);
+    draw_stat_card(f, cards[2], "Warnings", &warning_count.to_string(), if warning_count > 0 { AMBER } else { GREEN });
+    draw_stat_card(f, cards[3], "Errors", &error_count.to_string(), if error_count > 0 { RED } else { GREEN });
+
+    let mut messages: Vec<ListItem> = Vec::new();
+    for warning in warnings {
+        messages.push(ListItem::new(Line::from(vec![
+            Span::styled("  ⚠ ", Style::default().fg(AMBER)),
+            Span::styled(warning, Style::default().fg(TEXT_NORMAL)),
+        ])));
+    }
+    for (name, msg) in &app.error_messages {
+        messages.push(ListItem::new(Line::from(vec![
+            Span::styled("  ✗ ", Style::default().fg(RED)),
+            Span::styled(format!("{name}: "), Style::default().fg(AMBER)),
+            Span::styled(msg.as_str(), Style::default().fg(TEXT_DIM)),
+        ])));
+    }
+    if messages.is_empty() {
+        messages.push(ListItem::new(Line::from(vec![
+            Span::styled("  ✓ ", Style::default().fg(GREEN)),
+            Span::styled("No warnings or errors.", Style::default().fg(TEXT_NORMAL)),
+        ])));
+    }
+
+    let message_border = if error_count > 0 {
+        RED
+    } else if warning_count > 0 {
+        AMBER
+    } else {
+        GREEN
+    };
+    let message_title = if error_count > 0 {
+        format!(" Warnings / Errors ({}/{}) ", warning_count, error_count)
+    } else if warning_count > 0 {
+        format!(" Warnings ({warning_count}) ")
+    } else {
+        " Status ".to_string()
+    };
+    let msg_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(message_border))
+        .title(Span::styled(message_title, Style::default().fg(message_border)));
+    f.render_widget(List::new(messages).block(msg_block), chunks[6]);
 }
 
 fn draw_stat_card(f: &mut Frame, area: Rect, title: &str, value: &str, color: Color) {

@@ -72,6 +72,7 @@ mod inspector_config;
 mod lambda_config;
 mod launch_templates;
 mod org_config;
+mod poam;
 mod route53_config;
 mod secrets_extended;
 mod sns_eventbridge;
@@ -338,6 +339,38 @@ async fn async_main() -> Result<()> {
             }
             Some(a) => a,
         };
+
+        if matches!(app.selected_feature, Feature::Poam) {
+            let region = app.poam_selected_region();
+            let year = app.poam_year_value();
+            let month_name = app.poam_month_name().to_string();
+
+            let (tx, rx) = mpsc::unbounded_channel::<Progress>();
+            app.progress_rx = Some(rx);
+            app.collector_statuses = vec![CollectorStatus {
+                name: "POA&M Reconciliation".to_string(),
+                state: CollectorState::Waiting,
+            }];
+            app.error_messages.clear();
+            app.result_files.clear();
+            app.result_zip = None;
+            app.result_signing_manifest = None;
+            app.result_signing_key_path = None;
+            app.poam_summary = None;
+            app.finished_tick = None;
+            app.screen = tui::Screen::Running;
+
+            let mut terminal = setup_terminal()?;
+            terminal.draw(|f| tui::ui::draw(f, &app))?;
+            let restart =
+                run_tui_poam(&mut terminal, &mut app, tx, region, year, month_name).await?;
+            restore_terminal(&mut terminal)?;
+
+            if !restart {
+                return Ok(());
+            }
+            continue;
+        }
         {
                 // Build params from what the user configured in the TUI.
                 let start = NaiveDate::parse_from_str(&app.start_date.value, "%Y-%m-%d")
@@ -1837,10 +1870,118 @@ async fn run_tui_multi_account(
             zip_path,
             signing_manifest,
             signing_key_path,
+            poam_summary: None,
         });
     });
 
     // Drive the TUI until the user exits or requests a new collection.
+    let restart = loop {
+        app.tick = app.tick.wrapping_add(1);
+        app.poll_progress();
+
+        terminal.draw(|f| tui::ui::draw(f, app))?;
+
+        if app.screen == tui::Screen::Results {
+            if event::poll(std::time::Duration::from_millis(100))? {
+                if let Event::Key(key) = event::read()? {
+                    if key.kind == KeyEventKind::Press {
+                        match key.code {
+                            KeyCode::Char('n') => {
+                                app.reset();
+                                break true;
+                            }
+                            KeyCode::Char('q') | KeyCode::Esc => break false,
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        } else if event::poll(std::time::Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                    break false;
+                }
+            }
+        }
+    };
+
+    Ok(restart)
+}
+
+async fn run_tui_poam(
+    terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
+    app: &mut App,
+    tx: mpsc::UnboundedSender<Progress>,
+    region: String,
+    year: String,
+    month_name: String,
+) -> Result<bool> {
+    use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+
+    tokio::spawn(async move {
+        let collector_name = "POA&M Reconciliation".to_string();
+        let _ = tx.send(Progress::Started {
+            collector: collector_name.clone(),
+        });
+
+        let evidence_path = poam::resolve_evidence_path(&region, &year, &month_name)
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| String::new());
+
+        match poam::run_poam(&region, &year, &month_name) {
+            Ok(result) => {
+                let mut files: Vec<String> = vec![result.workbook_path.display().to_string()];
+                if let Some(csv) = &result.selected_csv {
+                    files.push(result.evidence_path.join(csv).display().to_string());
+                }
+                let _ = tx.send(Progress::Done {
+                    collector: collector_name,
+                    count: result.added_open_count + result.moved_closed_count,
+                });
+                let summary = tui::PoamSummary {
+                    region: result.region,
+                    year: result.year,
+                    month: result.month_name,
+                    evidence_path: result.evidence_path.display().to_string(),
+                    csv_used: result.selected_csv,
+                    added_open_count: result.added_open_count,
+                    moved_closed_count: result.moved_closed_count,
+                    warnings: result.warnings,
+                };
+                let _ = tx.send(Progress::Finished {
+                    files,
+                    zip_path: None,
+                    signing_manifest: None,
+                    signing_key_path: None,
+                    poam_summary: Some(summary),
+                });
+            }
+            Err(e) => {
+                let _ = tx.send(Progress::Error {
+                    collector: collector_name.clone(),
+                    message: format!("{e:#}"),
+                });
+                let summary = tui::PoamSummary {
+                    region,
+                    year,
+                    month: month_name,
+                    evidence_path,
+                    csv_used: None,
+                    added_open_count: 0,
+                    moved_closed_count: 0,
+                    warnings: Vec::new(),
+                };
+                let _ = tx.send(Progress::Finished {
+                    files: Vec::new(),
+                    zip_path: None,
+                    signing_manifest: None,
+                    signing_key_path: None,
+                    poam_summary: Some(summary),
+                });
+            }
+        }
+    });
+
     let restart = loop {
         app.tick = app.tick.wrapping_add(1);
         app.poll_progress();
