@@ -195,13 +195,14 @@ pub struct App {
     pub output_dir: TextInput,
     pub filter_input: TextInput,
     pub include_raw: bool,
-    pub options_field: usize, // 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=region list
+    pub options_field: usize, // 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=skip_inventory_csv 6=region list
     pub options_region_cursor: usize,
     pub options_selected_regions: HashSet<usize>, // indices into self.regions
 
     // Options
     pub zip: bool,
     pub sign: bool,
+    pub skip_inventory_csv: bool,
 
     // Running / results
     pub collector_statuses: Vec<CollectorStatus>,
@@ -523,6 +524,7 @@ impl App {
             include_raw,
             zip,
             sign,
+            skip_inventory_csv: false,
             options_field: 0,
             options_region_cursor: 0,
             options_selected_regions: HashSet::new(),
@@ -1158,8 +1160,8 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SetOptions => match key {
-            // 6 fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=region list
-            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 6; }
+            // 7 fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=skip_inventory_csv 6=region list
+            KeyCode::Tab => { app.options_field = (app.options_field + 1) % 7; }
             KeyCode::Char(' ') if app.options_field == 1 => {
                 app.include_raw = !app.include_raw;
             }
@@ -1176,18 +1178,21 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             KeyCode::Char(' ') if app.options_field == 4 => {
                 app.sign = !app.sign;
             }
-            // Region list navigation and toggle (field 5)
-            KeyCode::Up if app.options_field == 5 => {
+            KeyCode::Char(' ') if app.options_field == 5 => {
+                app.skip_inventory_csv = !app.skip_inventory_csv;
+            }
+            // Region list navigation and toggle (field 6)
+            KeyCode::Up if app.options_field == 6 => {
                 if app.options_region_cursor > 0 {
                     app.options_region_cursor -= 1;
                 }
             }
-            KeyCode::Down if app.options_field == 5 => {
+            KeyCode::Down if app.options_field == 6 => {
                 if app.options_region_cursor + 1 < app.regions.len() {
                     app.options_region_cursor += 1;
                 }
             }
-            KeyCode::Char(' ') if app.options_field == 5 => {
+            KeyCode::Char(' ') if app.options_field == 6 => {
                 let i = app.options_region_cursor;
                 if app.options_selected_regions.contains(&i) {
                     app.options_selected_regions.remove(&i);

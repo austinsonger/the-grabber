@@ -36,6 +36,7 @@ mod iam_trusts;
 mod inspector;
 mod inventory_core;
 mod inventory_orchestrator;
+mod inventory_xlsx;
 mod kms;
 mod kms_config;
 mod kms_policies;
@@ -95,7 +96,7 @@ use std::os::unix::io::IntoRawFd;
 use anyhow::{Context, Result};
 use aws_config::BehaviorVersion;
 use aws_config::Region;
-use chrono::{NaiveDate, Utc};
+use chrono::{Local, NaiveDate, Utc};
 use clap::Parser;
 use tokio::sync::mpsc;
 
@@ -719,6 +720,7 @@ async fn async_main() -> Result<()> {
                 // Transition directly to Running screen (terminal is already set up).
                 let do_zip = app.zip;
                 let do_sign = app.sign;
+                let skip_inventory_csv = app.skip_inventory_csv;
                 let restart = run_tui_multi_account(
                     &mut terminal,
                     &mut app,
@@ -727,6 +729,7 @@ async fn async_main() -> Result<()> {
                     tx,
                     do_zip,
                     do_sign,
+                    skip_inventory_csv,
                 )
                 .await?;
                 restore_terminal(&mut terminal)?;
@@ -1462,6 +1465,7 @@ async fn run_tui_multi_account(
     tx: mpsc::UnboundedSender<Progress>,
     do_zip: bool,
     do_sign: bool,
+    skip_inventory_csv: bool,
 ) -> Result<bool> {
     use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
@@ -1677,19 +1681,65 @@ async fn run_tui_multi_account(
 
         // ── Write single unified inventory CSV (all accounts + all regions) ──
         if !inventory_global_rows.is_empty() {
-            let _ = std::fs::create_dir_all(&inventory_out_dir);
-            let filename = format!("AWS_Inventory-{}.csv", timestamp);
-            let path = inventory_out_dir.join(&filename);
-            match write_csv_bytes(inventory_headers, &inventory_global_rows) {
-                Ok(bytes) => {
-                    if std::fs::write(&path, bytes).is_ok() {
-                        eprintln!("=== Inventory CSV: {} ({} rows) ===", path.display(), inventory_global_rows.len());
-                        all_written_files.push(path.display().to_string());
-                    } else {
-                        eprintln!("=== ERROR: could not write inventory CSV to {} ===", path.display());
+            if !skip_inventory_csv {
+                let _ = std::fs::create_dir_all(&inventory_out_dir);
+                let filename = format!("AWS_Inventory-{}.csv", timestamp);
+                let path = inventory_out_dir.join(&filename);
+                match write_csv_bytes(inventory_headers, &inventory_global_rows) {
+                    Ok(bytes) => {
+                        if std::fs::write(&path, bytes).is_ok() {
+                            eprintln!("=== Inventory CSV: {} ({} rows) ===", path.display(), inventory_global_rows.len());
+                            all_written_files.push(path.display().to_string());
+                        } else {
+                            eprintln!("=== ERROR: could not write inventory CSV to {} ===", path.display());
+                        }
                     }
+                    Err(e) => eprintln!("=== ERROR: inventory CSV serialisation failed: {e:#} ==="),
                 }
-                Err(e) => eprintln!("=== ERROR: inventory CSV serialisation failed: {e:#} ==="),
+            }
+
+            // ── Write inventory Excel workbook from template ──────────────────
+            // Use local system time for the date-based directory hierarchy so
+            // the folder reflects the user's calendar date, not UTC.
+            let now_local   = Local::now();
+            let year        = now_local.format("%Y").to_string();
+            let month_num   = now_local.format("%m").to_string(); // "04"
+            let month_abbr  = match month_num.as_str() {
+                "01" => "JAN", "02" => "FEB", "03" => "MAR", "04" => "APR",
+                "05" => "MAY", "06" => "JUN", "07" => "JUL", "08" => "AUG",
+                "09" => "SEP", "10" => "OCT", "11" => "NOV", "12" => "DEC",
+                other => {
+                    eprintln!("=== WARN: unexpected month '{other}', using 'UNK' in path ===");
+                    "UNK"
+                }
+            };
+            let xlsx_filename = now_local.format("%Y-%m-%d_Inventory_%H-%M-%S.xlsx").to_string();
+            let xlsx_path = std::path::PathBuf::from("inventory")
+                .join(&year)
+                .join(format!("{month_num}-{month_abbr}"))
+                .join(&xlsx_filename);
+            let template_path = std::path::Path::new("assets/Inventory.xlsx");
+            if template_path.exists() {
+                match crate::inventory_xlsx::write_inventory_xlsx(
+                    &inventory_global_rows,
+                    template_path,
+                    &xlsx_path,
+                ) {
+                    Ok(()) => {
+                        eprintln!(
+                            "=== Inventory XLSX: {} ({} rows) ===",
+                            xlsx_path.display(),
+                            inventory_global_rows.len()
+                        );
+                        all_written_files.push(xlsx_path.display().to_string());
+                    }
+                    Err(e) => eprintln!("=== ERROR: inventory XLSX generation failed: {e:#} ==="),
+                }
+            } else {
+                eprintln!(
+                    "=== WARN: inventory XLSX skipped — template not found at '{}' ===",
+                    template_path.display()
+                );
             }
         } else if is_inventory_mode {
             eprintln!("=== Inventory: no rows collected (all asset types empty) ===");

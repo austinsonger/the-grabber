@@ -199,7 +199,7 @@ async fn collect_kms_keys(client: &KmsClient, region: &str) -> Result<Vec<Vec<St
 
             rows.push(
                 RowBuilder::new()
-                    .unique_id(&key_id)
+                    .unique_id(&arn)
                     .virtual_flag("Yes")
                     .public("No")
                     .location(region)

@@ -1005,7 +1005,7 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_options(f: &mut Frame, area: Rect, app: &App) {
-    // Six fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=region list.
+    // Seven fields: 0=filter 1=include_raw 2=all_regions 3=zip 4=sign 5=skip_inventory_csv 6=region list.
     let chunks = Layout::vertical([
         Constraint::Length(2), // [0] heading
         Constraint::Length(3), // [1] filter
@@ -1018,7 +1018,9 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         Constraint::Length(1), // [8] spacer
         Constraint::Length(3), // [9] sign output toggle
         Constraint::Length(1), // [10] spacer
-        Constraint::Fill(1),   // [11] region list
+        Constraint::Length(3), // [11] skip inventory CSV toggle
+        Constraint::Length(1), // [12] spacer
+        Constraint::Fill(1),   // [13] region list
     ])
     .split(content_inset(area));
 
@@ -1144,9 +1146,37 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         );
     }
 
-    // ── Region multi-select list (field 5) ────────────────────────────────────
+    // ── Skip Inventory CSV toggle (field 5) ──────────────────────────────────
     {
         let focused = app.options_field == 5;
+        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
+        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
+        let (off_style, on_style) = if app.skip_inventory_csv {
+            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        } else {
+            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+        };
+        let off_icon = if !app.skip_inventory_csv { "●" } else { "○" };
+        let on_icon  = if  app.skip_inventory_csv { "●" } else { "○" };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(format!("   {} ", off_icon), off_style),
+                Span::styled("CSV + Excel", off_style),
+                Span::styled("    ", Style::default()),
+                Span::styled(format!("{} ", on_icon), on_style),
+                Span::styled("Excel only — skip intermediate CSV", on_style),
+            ]))
+            .block(Block::bordered()
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Span::styled(" Inventory Output Format ", title_style))),
+            chunks[11],
+        );
+    }
+
+    // ── Region multi-select list (field 6) ────────────────────────────────────
+    {
+        let focused = app.options_field == 6;
         let dimmed  = app.all_regions; // when all_regions is ON, list is informational only
 
         let border_style = if dimmed {
@@ -1212,7 +1242,7 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
 
         f.render_stateful_widget(
             List::new(items).block(block),
-            chunks[11],
+            chunks[13],
             &mut list_state,
         );
     }
@@ -1313,7 +1343,7 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
                 kv_line("Feature", "Inventory"),
                 kv_line_colored("Asset Types", &assets_display, AMBER),
                 kv_line("Output Dir", &app.output_dir.value),
-                kv_line("Output Format", "Unified CSV (14-column canonical schema)"),
+                kv_line("Output Format", if app.skip_inventory_csv { "Excel only (CSV skipped)" } else { "CSV + Excel" }),
             ]);
         }
     }

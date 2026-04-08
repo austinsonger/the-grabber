@@ -66,6 +66,7 @@ ratatui = "0.29"
 crossterm = "0.28"
 dirs-next = "2"
 libc = "0.2"
+calamine = "0.26"
 
 [dev-dependencies]
 tempfile = "3"
