@@ -43,16 +43,33 @@ pub enum Progress {
 }
 
 // ---------------------------------------------------------------------------
+// Feature selection
+// ---------------------------------------------------------------------------
+
+/// Which top-level feature the user chose on the Feature Selection screen.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Feature {
+    /// Traditional evidence-collector flow.
+    Collectors,
+    /// New unified AWS asset-inventory flow.
+    Inventory,
+}
+
+// ---------------------------------------------------------------------------
 // Wizard screens
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Screen {
     Welcome,
+    /// Choose between Collectors and Inventory.
+    FeatureSelection,
     SelectAccount,   // shown when TOML accounts are configured
     SelectProfile,   // legacy: pick from ~/.aws/config profiles
     SelectRegion,    // legacy: pick region
     SetDates,
+    /// Multi-select AWS asset types (Inventory flow only).
+    Inventory,
     SelectCollectors,
     SetOptions,
     Confirm,
@@ -204,6 +221,14 @@ pub struct App {
 
     // Scrollable results
     pub result_scroll: usize,
+
+    // Feature selection
+    pub selected_feature: Feature,
+
+    // Inventory asset-type selection (multi-select, Inventory flow only)
+    pub inventory_items: Vec<(&'static str, &'static str)>, // (key, label)
+    pub inventory_cursor: usize,
+    pub inventory_selected: HashSet<usize>,
 
     // Preparing screen state (set by main before entering the setup loop)
     pub prep_log: Vec<String>,
@@ -515,6 +540,19 @@ impl App {
             prep_log: Vec::new(),
             prep_current: 0,
             prep_total: 0,
+            selected_feature: Feature::Collectors,
+            inventory_items: vec![
+                ("kms-key",             "KMS Key"),
+                ("s3-bucket",           "S3 Bucket"),
+                ("lambda-function",     "Lambda Function"),
+                ("ec2-instance",        "EC2 Instance"),
+                ("alb",                 "Application Load Balancer (ALB)"),
+                ("rds-db-instance",     "RDS DB Instance"),
+                ("elasticache-cluster", "ElastiCache Cluster"),
+                ("container",           "Container (ECR/ECS/EKS)"),
+            ],
+            inventory_cursor: 0,
+            inventory_selected: HashSet::new(),
         }
     }
 
@@ -555,6 +593,16 @@ impl App {
         self.collector_selected
             .iter()
             .filter_map(|&i| self.collector_items.get(i).map(|(k, _)| k.to_string()))
+            .collect()
+    }
+
+    /// Returns the selected inventory asset-type keys in index order.
+    pub fn selected_inventory_types(&self) -> Vec<String> {
+        let mut indices: Vec<usize> = self.inventory_selected.iter().copied().collect();
+        indices.sort_unstable();
+        indices
+            .iter()
+            .filter_map(|&i| self.inventory_items.get(i).map(|(k, _)| k.to_string()))
             .collect()
     }
 
@@ -642,7 +690,8 @@ impl App {
     pub fn next_screen(&mut self) {
         self.error_msg = None;
         self.screen = match self.screen {
-            Screen::Welcome => {
+            Screen::Welcome => Screen::FeatureSelection,
+            Screen::FeatureSelection => {
                 if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
@@ -652,7 +701,11 @@ impl App {
             Screen::SelectAccount   => Screen::SetDates,
             Screen::SelectProfile   => Screen::SelectRegion,
             Screen::SelectRegion    => Screen::SetDates,
-            Screen::SetDates        => Screen::SelectCollectors,
+            Screen::SetDates => match self.selected_feature {
+                Feature::Collectors => Screen::SelectCollectors,
+                Feature::Inventory  => Screen::Inventory,
+            },
+            Screen::Inventory        => Screen::SetOptions,
             Screen::SelectCollectors => Screen::SetOptions,
             Screen::SetOptions      => Screen::Confirm,
             Screen::Confirm         => Screen::Running,
@@ -665,12 +718,13 @@ impl App {
     pub fn prev_screen(&mut self) {
         self.error_msg = None;
         self.screen = match self.screen {
-            Screen::SelectAccount   => Screen::Welcome,
+            Screen::FeatureSelection => Screen::Welcome,
+            Screen::SelectAccount   => Screen::FeatureSelection,
             Screen::SelectProfile => {
                 if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
-                    Screen::Welcome
+                    Screen::FeatureSelection
                 }
             }
             Screen::SelectRegion    => Screen::SelectProfile,
@@ -681,9 +735,13 @@ impl App {
                     Screen::SelectRegion
                 }
             }
+            Screen::Inventory        => Screen::SetDates,
             Screen::SelectCollectors => Screen::SetDates,
-            Screen::SetOptions      => Screen::SelectCollectors,
-            Screen::Confirm         => Screen::SetOptions,
+            Screen::SetOptions => match self.selected_feature {
+                Feature::Collectors => Screen::SelectCollectors,
+                Feature::Inventory  => Screen::Inventory,
+            },
+            Screen::Confirm => Screen::SetOptions,
             _ => return,
         };
     }
@@ -715,6 +773,13 @@ impl App {
                 }
                 true
             }
+            Screen::Inventory => {
+                if self.inventory_selected.is_empty() {
+                    self.error_msg = Some("Select at least one asset type (Space to toggle)".into());
+                    return false;
+                }
+                true
+            }
             _ => true,
         }
     }
@@ -741,6 +806,9 @@ impl App {
         self.prep_current = 0;
         self.prep_total = 0;
         self.options_region_cursor = 0;
+        self.inventory_cursor = 0;
+        self.inventory_selected.clear();
+        self.selected_feature = Feature::Collectors;
         // Preserve options_selected_regions so the user's choices carry over.
     }
 
@@ -941,6 +1009,18 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             _ => {}
         },
 
+        Screen::FeatureSelection => match key {
+            KeyCode::Up | KeyCode::Left => {
+                app.selected_feature = Feature::Collectors;
+            }
+            KeyCode::Down | KeyCode::Right => {
+                app.selected_feature = Feature::Inventory;
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => app.next_screen(),
+            KeyCode::Esc => return Action::Quit,
+            _ => {}
+        },
+
         Screen::SelectAccount => match key {
             KeyCode::Up   => { if app.account_cursor > 0 { app.account_cursor -= 1; } }
             KeyCode::Down => {
@@ -1043,6 +1123,34 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             }
             KeyCode::Char('d') => {
                 app.collector_selected.clear();
+            }
+            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Esc   => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::Inventory => match key {
+            KeyCode::Up   => { if app.inventory_cursor > 0 { app.inventory_cursor -= 1; } }
+            KeyCode::Down => {
+                if app.inventory_cursor + 1 < app.inventory_items.len() {
+                    app.inventory_cursor += 1;
+                }
+            }
+            KeyCode::Char(' ') => {
+                let i = app.inventory_cursor;
+                if app.inventory_selected.contains(&i) {
+                    app.inventory_selected.remove(&i);
+                } else {
+                    app.inventory_selected.insert(i);
+                }
+            }
+            KeyCode::Char('a') => {
+                for i in 0..app.inventory_items.len() {
+                    app.inventory_selected.insert(i);
+                }
+            }
+            KeyCode::Char('d') => {
+                app.inventory_selected.clear();
             }
             KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
             KeyCode::Esc   => app.prev_screen(),

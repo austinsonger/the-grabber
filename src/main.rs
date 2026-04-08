@@ -34,6 +34,8 @@ mod iam_inventory;
 mod iam_policies;
 mod iam_trusts;
 mod inspector;
+mod inventory_core;
+mod inventory_orchestrator;
 mod kms;
 mod kms_config;
 mod kms_policies;
@@ -184,8 +186,9 @@ use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, JsonCollector,
     JsonInventoryReport, ReportMetadata,
 };
+use crate::inventory_orchestrator::InventoryCollector;
 use crate::tui::{
-    App, CollectorState, CollectorStatus, Progress,
+    App, CollectorState, CollectorStatus, Feature, Progress,
     read_aws_profiles, restore_terminal, run as run_tui, setup_terminal,
 };
 use crate::vpc::{NetworkAclCollector, VpcCollector};
@@ -364,6 +367,10 @@ async fn async_main() -> Result<()> {
                 // Each entry: (profile, region, account_id, output_path, collector_keys)
                 let mut account_runs: Vec<(String, String, String, Option<PathBuf>, Vec<String>)> = Vec::new();
 
+                // For Inventory mode we use a sentinel key; the actual types are stored on app.
+                let inventory_collector_keys = vec!["inventory".to_string()];
+                let is_inventory = matches!(app.selected_feature, Feature::Inventory);
+
                 if app.selected_accounts.is_empty() {
                     // Legacy single-account path (no TOML accounts or "Other" chosen).
                     let profile = app.selected_profile().to_string();
@@ -375,15 +382,24 @@ async fn async_main() -> Result<()> {
                     }
                     let cfg = loader.load().await;
                     let account_id = print_identity(&cfg).await;
-                    let collectors = app.selected_collectors();
+                    let collectors = if is_inventory {
+                        inventory_collector_keys.clone()
+                    } else {
+                        app.selected_collectors()
+                    };
                     account_runs.push((profile, region, account_id, base_output_path.clone(), collectors));
                 } else {
                     let mut sorted: Vec<usize> = app.selected_accounts.iter().copied().collect();
                     sorted.sort();
                     let multi = sorted.len() > 1;
                     for &idx in &sorted {
-                        let (profile, region, acct_output_dir, collector_keys) =
+                        let (profile, region, acct_output_dir, collector_keys_from_toml) =
                             app.resolve_account_settings(idx);
+                        let collector_keys = if is_inventory {
+                            inventory_collector_keys.clone()
+                        } else {
+                            collector_keys_from_toml
+                        };
                         let raw_name = app.accounts[idx].name.clone();
                         let sanitized: String = raw_name.chars()
                             .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '_' })
@@ -408,6 +424,8 @@ async fn async_main() -> Result<()> {
                 let use_all_regions = app.all_regions;
                 let explicit_regions = app.explicit_regions(); // empty = use account default
                 let total_accounts = account_runs.len();
+                // Capture inventory asset type selection before entering the prep loop.
+                let inventory_types = app.selected_inventory_types();
 
                 // Redirect stderr to a log file BEFORE entering TUI so that any
                 // AWS SDK warnings don't corrupt the alternate screen.
@@ -523,51 +541,81 @@ async fn async_main() -> Result<()> {
                             "    Building collectors for {} region(s)…", discovered_regions.len()
                         ));
                         terminal.draw(|f| tui::ui::draw(f, &app))?;
-                        let global_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
-                        let regional_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
-                        let global_inv_keys: Vec<&str> = ["iam-roles","iam-role-policies","iam-user-policies"].iter().copied()
-                            .filter(|k| names_ref.contains(k) && GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
-                        let regional_inv_keys: Vec<&str> = ["eventbridge-rules","ct-config-changes","kms-config"].iter().copied()
-                            .filter(|k| names_ref.contains(k)).collect();
-                        let json_keys: Vec<&str> = ["cloudtrail","backup","rds"].iter().copied()
-                            .filter(|k| names_ref.contains(k)).collect();
                         let out_base = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
-                        // Global collectors: run once from the account's base region.
-                        if !global_csv_keys.is_empty() || !global_inv_keys.is_empty() {
-                            let gcfg = make_cfg().load().await;
-                            regional_collectors.push((
-                                region.clone(),
-                                out_base.clone(),
-                                build_csv_collectors(&global_csv_keys, &gcfg),
-                                build_json_inv_collectors(&global_inv_keys, &gcfg),
-                                Vec::new(),
-                            ));
-                        }
-                        // Per-region collectors: each gets a fresh config.
-                        let region_total = discovered_regions.len();
-                        for (ridx, region_name) in discovered_regions.iter().enumerate() {
-                            if let Some(last) = app.prep_log.last_mut() {
-                                *last = format!(
-                                    "    Region {:>2}/{}: {}",
-                                    ridx + 1, region_total, region_name,
-                                );
+
+                        if is_inventory {
+                            // Inventory mode: one InventoryCollector per region; no global pass.
+                            let region_total = discovered_regions.len();
+                            for (ridx, region_name) in discovered_regions.iter().enumerate() {
+                                if let Some(last) = app.prep_log.last_mut() {
+                                    *last = format!(
+                                        "    Region {:>2}/{}: {}",
+                                        ridx + 1, region_total, region_name,
+                                    );
+                                }
+                                terminal.draw(|f| tui::ui::draw(f, &app))?;
+                                let rcfg = aws_config::defaults(BehaviorVersion::latest())
+                                    .region(Region::new(region_name.clone()))
+                                    .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
+                                    .load().await;
+                                let rdir = out_base.join(region_name);
+                                regional_collectors.push((
+                                    region_name.clone(),
+                                    rdir,
+                                    vec![Box::new(InventoryCollector::new(&rcfg, inventory_types.clone())) as Box<dyn CsvCollector>],
+                                    Vec::new(),
+                                    Vec::new(),
+                                ));
                             }
-                            terminal.draw(|f| tui::ui::draw(f, &app))?;
-                            let rcfg = aws_config::defaults(BehaviorVersion::latest())
-                                .region(Region::new(region_name.clone()))
-                                .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
-                                .load().await;
-                            let rdir = out_base.join(region_name);
-                            regional_collectors.push((
-                                region_name.clone(),
-                                rdir,
-                                build_csv_collectors(&regional_csv_keys, &rcfg),
-                                build_json_inv_collectors(&regional_inv_keys, &rcfg),
-                                build_json_collectors(&json_keys, &rcfg),
-                            ));
-                        }
-                        if let Some(last) = app.prep_log.last_mut() {
-                            *last = format!("    All {} regions ready.", region_total);
+                            if let Some(last) = app.prep_log.last_mut() {
+                                *last = format!("    All {} regions ready.", region_total);
+                            }
+                        } else {
+                            let global_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                            let regional_csv_keys: Vec<&str> = names_ref.iter().copied().filter(|k| !GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                            let global_inv_keys: Vec<&str> = ["iam-roles","iam-role-policies","iam-user-policies"].iter().copied()
+                                .filter(|k| names_ref.contains(k) && GLOBAL_COLLECTOR_KEYS.contains(k)).collect();
+                            let regional_inv_keys: Vec<&str> = ["eventbridge-rules","ct-config-changes","kms-config"].iter().copied()
+                                .filter(|k| names_ref.contains(k)).collect();
+                            let json_keys: Vec<&str> = ["cloudtrail","backup","rds"].iter().copied()
+                                .filter(|k| names_ref.contains(k)).collect();
+                            // Global collectors: run once from the account's base region.
+                            if !global_csv_keys.is_empty() || !global_inv_keys.is_empty() {
+                                let gcfg = make_cfg().load().await;
+                                regional_collectors.push((
+                                    region.clone(),
+                                    out_base.clone(),
+                                    build_csv_collectors(&global_csv_keys, &gcfg),
+                                    build_json_inv_collectors(&global_inv_keys, &gcfg),
+                                    Vec::new(),
+                                ));
+                            }
+                            // Per-region collectors: each gets a fresh config.
+                            let region_total = discovered_regions.len();
+                            for (ridx, region_name) in discovered_regions.iter().enumerate() {
+                                if let Some(last) = app.prep_log.last_mut() {
+                                    *last = format!(
+                                        "    Region {:>2}/{}: {}",
+                                        ridx + 1, region_total, region_name,
+                                    );
+                                }
+                                terminal.draw(|f| tui::ui::draw(f, &app))?;
+                                let rcfg = aws_config::defaults(BehaviorVersion::latest())
+                                    .region(Region::new(region_name.clone()))
+                                    .profile_name(if profile.is_empty() || profile == "default" { "default" } else { &profile })
+                                    .load().await;
+                                let rdir = out_base.join(region_name);
+                                regional_collectors.push((
+                                    region_name.clone(),
+                                    rdir,
+                                    build_csv_collectors(&regional_csv_keys, &rcfg),
+                                    build_json_inv_collectors(&regional_inv_keys, &rcfg),
+                                    build_json_collectors(&json_keys, &rcfg),
+                                ));
+                            }
+                            if let Some(last) = app.prep_log.last_mut() {
+                                *last = format!("    All {} regions ready.", region_total);
+                            }
                         }
                         terminal.draw(|f| tui::ui::draw(f, &app))?;
                     }
@@ -579,9 +627,21 @@ async fn async_main() -> Result<()> {
                     let work_config = make_cfg().load().await;
 
                     // Build single-region collectors from the fresh work config.
+                    // For inventory mode with multi-region, all collection is in regional_collectors;
+                    // only build a base InventoryCollector when no regions were discovered (single-region path).
                     let json_collectors     = build_json_collectors(&names_ref, &work_config);
                     let json_inv_collectors = build_json_inv_collectors(&names_ref, &work_config);
-                    let csv_collectors      = build_csv_collectors(&names_ref, &work_config);
+                    let csv_collectors = if is_inventory {
+                        if discovered_regions.is_empty() {
+                            // Single-region fallback (SetOptions left all-regions and explicit-regions blank).
+                            vec![Box::new(InventoryCollector::new(&work_config, inventory_types.clone())) as Box<dyn CsvCollector>]
+                        } else {
+                            // Regional collectors were built above; nothing needed here.
+                            Vec::new()
+                        }
+                    } else {
+                        build_csv_collectors(&names_ref, &work_config)
+                    };
 
                     let mut display_names: Vec<String> = json_collectors.iter().map(|c| c.name().to_string())
                         .chain(json_inv_collectors.iter().map(|c| c.name().to_string()))

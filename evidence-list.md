@@ -240,13 +240,54 @@ These collectors query the current configuration of AWS resources and write CSV 
 
 ---
 
+## Asset Inventory (Unified CSV — Inventory Feature)
+
+The **Inventory** feature is a separate TUI flow (Welcome → Feature Selection → … → Inventory → Options → Confirm → Run). It queries selected AWS asset types in parallel and writes a **single unified CSV** using the 14-column canonical schema below. Available via the "Inventory" option on the Feature Selection screen.
+
+### Canonical 14-Column Schema
+
+| Column | Description |
+|--------|-------------|
+| `UNIQUE ASSET IDENTIFIER` | Primary identifier for the asset (ARN, ID, name) |
+| `IPv4 or IPv6 Address` | IP address (where applicable) |
+| `Virtual` | Always "Yes" for cloud-managed services |
+| `Public` | "Yes" if publicly reachable, "No" otherwise |
+| `DNS Name or URL` | Public endpoint or DNS name |
+| `MAC Address` | MAC address (EC2 ENI only) |
+| `Location` | AWS region and/or AZ |
+| `Asset Type` | Human-readable asset type label |
+| `Hardware Make/Model` | Instance type or service tier |
+| `Software/ Database Vendor` | Vendor (Amazon Web Services, PostgreSQL, etc.) |
+| `Software/ Database Name & Version` | Service name and version/runtime |
+| `Function` | Description or purpose (from tags or metadata) |
+| `VLAN/ Network ID` | VPC and Subnet identifiers |
+| `Comments` | Free-text summary of key configuration details |
+
+### Supported Asset Types
+
+| Asset Type Key | Label | Output File Prefix | Notes |
+|---------------|-------|--------------------|-------|
+| `kms-key` | KMS Key | `AWS_Inventory` | Customer-managed keys only (skips AWS-managed) |
+| `s3-bucket` | S3 Bucket | `AWS_Inventory` | Includes public-access status, encryption, versioning, logging |
+| `lambda-function` | Lambda Function | `AWS_Inventory` | Includes runtime, VPC config, role, layers |
+| `ec2-instance` | EC2 Instance | `AWS_Inventory` | Includes IPs, ENI MACs, VPC/subnet, instance type |
+| `alb` | Application Load Balancer | `AWS_Inventory` | Includes scheme, listeners, security groups |
+| `rds-db-instance` | RDS DB Instance | `AWS_Inventory` | Includes engine, version, endpoint, subnet group |
+| `elasticache-cluster` | ElastiCache Cluster | `AWS_Inventory` | Includes engine, endpoints, node type |
+| `container` | Container (ECR/ECS/EKS) | `AWS_Inventory` | One row per ECR image digest; cross-references ECS/EKS |
+
+All selected asset types are queried in parallel. Output is a single CSV with empty strings for columns not applicable to a given asset type. When multiple regions are selected via Options, one file is written per region in a per-region subdirectory.
+
+---
+
 ## Summary
 
 | Category | Count |
 |----------|-------|
 | JSON evidence collectors (time-windowed) | 4 |
 | CSV evidence collectors (current-state snapshots) | 120 |
-| **Total** | **124** |
+| Asset Inventory asset types (Inventory feature) | 8 |
+| **Total evidence collectors** | **124** |
 
 ### AWS Services Covered
 

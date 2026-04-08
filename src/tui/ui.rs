@@ -7,7 +7,7 @@ use ratatui::widgets::{
 };
 use ratatui::Frame;
 
-use super::{App, CollectorState, Screen};
+use super::{App, CollectorState, Feature, Screen};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Color palette — RGB true color
@@ -67,29 +67,59 @@ const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦
 // ═══════════════════════════════════════════════════════════════════════════
 
 const STEPS_ACCOUNTS: &[&str] = &["Account", "Dates", "Collectors", "Options", "Confirm", "Run"];
-const STEPS_LEGACY: &[&str]   = &["Profile", "Region", "Dates", "Collectors", "Options", "Confirm", "Run"];
+const STEPS_LEGACY:   &[&str] = &["Profile", "Region", "Dates", "Collectors", "Options", "Confirm", "Run"];
+const STEPS_INV_ACCOUNTS: &[&str] = &["Account", "Dates", "Inventory", "Options", "Confirm", "Run"];
+const STEPS_INV_LEGACY:   &[&str] = &["Profile", "Region", "Dates", "Inventory", "Options", "Confirm", "Run"];
 
-fn screen_to_step(screen: &Screen, has_accounts: bool) -> Option<usize> {
-    if has_accounts {
-        match screen {
-            Screen::SelectAccount    => Some(0),
-            Screen::SetDates         => Some(1),
-            Screen::SelectCollectors => Some(2),
-            Screen::SetOptions       => Some(3),
-            Screen::Confirm          => Some(4),
-            Screen::Running          => Some(5),
-            _ => None,
+fn screen_to_step(screen: &Screen, has_accounts: bool, feature: &Feature) -> Option<usize> {
+    match feature {
+        Feature::Collectors => {
+            if has_accounts {
+                match screen {
+                    Screen::SelectAccount    => Some(0),
+                    Screen::SetDates         => Some(1),
+                    Screen::SelectCollectors => Some(2),
+                    Screen::SetOptions       => Some(3),
+                    Screen::Confirm          => Some(4),
+                    Screen::Running          => Some(5),
+                    _ => None,
+                }
+            } else {
+                match screen {
+                    Screen::SelectProfile    => Some(0),
+                    Screen::SelectRegion     => Some(1),
+                    Screen::SetDates         => Some(2),
+                    Screen::SelectCollectors => Some(3),
+                    Screen::SetOptions       => Some(4),
+                    Screen::Confirm          => Some(5),
+                    Screen::Running          => Some(6),
+                    _ => None,
+                }
+            }
         }
-    } else {
-        match screen {
-            Screen::SelectProfile    => Some(0),
-            Screen::SelectRegion     => Some(1),
-            Screen::SetDates         => Some(2),
-            Screen::SelectCollectors => Some(3),
-            Screen::SetOptions       => Some(4),
-            Screen::Confirm          => Some(5),
-            Screen::Running          => Some(6),
-            _ => None,
+        Feature::Inventory => {
+            if has_accounts {
+                match screen {
+                    Screen::SelectAccount => Some(0),
+                    Screen::SetDates      => Some(1),
+                    Screen::Inventory     => Some(2),
+                    Screen::SetOptions    => Some(3),
+                    Screen::Confirm       => Some(4),
+                    Screen::Running       => Some(5),
+                    _ => None,
+                }
+            } else {
+                match screen {
+                    Screen::SelectProfile => Some(0),
+                    Screen::SelectRegion  => Some(1),
+                    Screen::SetDates      => Some(2),
+                    Screen::Inventory     => Some(3),
+                    Screen::SetOptions    => Some(4),
+                    Screen::Confirm       => Some(5),
+                    Screen::Running       => Some(6),
+                    _ => None,
+                }
+            }
         }
     }
 }
@@ -115,7 +145,10 @@ pub fn draw(f: &mut Frame, app: &App) {
     let inner = outer_block.inner(area);
     f.render_widget(outer_block, area);
 
-    let show_steps = !matches!(app.screen, Screen::Welcome | Screen::Preparing | Screen::Results);
+    let show_steps = !matches!(
+        app.screen,
+        Screen::Welcome | Screen::FeatureSelection | Screen::Preparing | Screen::Results
+    );
     let step_height = if show_steps { 2 } else { 0 };
 
     let layout = Layout::vertical([
@@ -132,8 +165,15 @@ pub fn draw(f: &mut Frame, app: &App) {
     .split(inner);
 
     // Header
-    let step_info = screen_to_step(&app.screen, app.has_accounts());
-    let steps = if app.has_accounts() { STEPS_ACCOUNTS } else { STEPS_LEGACY };
+    let step_info = screen_to_step(&app.screen, app.has_accounts(), &app.selected_feature);
+    let steps = match app.selected_feature {
+        Feature::Collectors => {
+            if app.has_accounts() { STEPS_ACCOUNTS } else { STEPS_LEGACY }
+        }
+        Feature::Inventory => {
+            if app.has_accounts() { STEPS_INV_ACCOUNTS } else { STEPS_INV_LEGACY }
+        }
+    };
     draw_header(f, layout[1], step_info.map(|s| (s + 1, steps.len())), &app.screen);
 
     // Separator
@@ -151,10 +191,12 @@ pub fn draw(f: &mut Frame, app: &App) {
     let content = layout[5];
     match app.screen {
         Screen::Welcome          => draw_welcome(f, content),
+        Screen::FeatureSelection => draw_feature_selection(f, content, app),
         Screen::SelectAccount    => draw_select_account(f, content, app),
         Screen::SelectProfile    => draw_profile(f, content, app),
         Screen::SelectRegion     => draw_region(f, content, app),
         Screen::SetDates         => draw_dates(f, content, app),
+        Screen::Inventory        => draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => draw_collectors(f, content, app),
         Screen::SetOptions       => draw_options(f, content, app),
         Screen::Confirm          => draw_confirm(f, content, app),
@@ -307,17 +349,19 @@ fn draw_footer(f: &mut Frame, area: Rect, hints: &[(&str, &str)]) {
 
 fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
     match screen {
-        Screen::Welcome => vec![("⏎", "Begin"), ("Esc", "Quit")],
-        Screen::SelectAccount => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "All"), ("d", "None"), ("⏎", "Confirm"), ("Esc", "Quit")],
-        Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
-        Screen::SelectRegion => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SetDates => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::Welcome          => vec![("⏎", "Begin"), ("Esc", "Quit")],
+        Screen::FeatureSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Quit")],
+        Screen::SelectAccount    => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "All"), ("d", "None"), ("⏎", "Confirm"), ("Esc", "Quit")],
+        Screen::SelectProfile    => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
+        Screen::SelectRegion     => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SetDates         => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::Inventory        => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SetOptions => vec![("⇥", "Switch Field"), ("↑↓", "Navigate Regions"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
-        Screen::Preparing => vec![],
-        Screen::Running => vec![],
-        Screen::Results => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
+        Screen::SetOptions       => vec![("⇥", "Switch Field"), ("↑↓", "Navigate Regions"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::Confirm          => vec![("⏎", "Start"), ("Esc", "Back")],
+        Screen::Preparing        => vec![],
+        Screen::Running          => vec![],
+        Screen::Results          => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
     }
 }
 
@@ -401,6 +445,153 @@ fn draw_welcome(f: &mut Frame, area: Rect) {
         .alignment(Alignment::Center),
         chunks[9],
     );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Feature Selection
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::vertical([
+        Constraint::Fill(1),
+        Constraint::Length(1), // title
+        Constraint::Length(1), // subtitle
+        Constraint::Length(2), // blank
+        Constraint::Length(5), // Collectors card
+        Constraint::Length(1), // gap
+        Constraint::Length(5), // Inventory card
+        Constraint::Fill(1),
+    ])
+    .split(area);
+
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            "What would you like to do?",
+            Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD),
+        ))
+        .alignment(Alignment::Center),
+        chunks[1],
+    );
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            "Use ↑↓ to select a feature, then press Enter",
+            Style::default().fg(TEXT_DIM),
+        ))
+        .alignment(Alignment::Center),
+        chunks[2],
+    );
+
+    let options = [
+        (
+            Feature::Collectors,
+            "◆  Collectors",
+            "Run 100+ compliance evidence collectors (CloudTrail, S3, IAM, RDS, …)",
+        ),
+        (
+            Feature::Inventory,
+            "◆  Inventory",
+            "Build a unified asset-inventory CSV across selected AWS resource types",
+        ),
+    ];
+
+    let card_areas = [chunks[4], chunks[6]];
+    for (idx, (feature, label, desc)) in options.iter().enumerate() {
+        let selected = app.selected_feature == *feature;
+        let border_style = if selected {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(BORDER_SUBTLE)
+        };
+        let label_style = if selected {
+            Style::default().fg(CYAN).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(TEXT_NORMAL)
+        };
+
+        let card_block = Block::bordered()
+            .border_type(if selected { BorderType::Thick } else { BorderType::Plain })
+            .border_style(border_style)
+            .style(Style::default().bg(if selected { BG_ELEVATED } else { BG_MAIN }));
+        let inner = card_block.inner(card_areas[idx]);
+        f.render_widget(card_block, card_areas[idx]);
+
+        let inner_layout = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .split(inner);
+
+        let indicator = if selected { " ▶ " } else { "   " };
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(indicator, Style::default().fg(AMBER)),
+                Span::styled(*label, label_style),
+            ])),
+            inner_layout[0],
+        );
+        f.render_widget(
+            Paragraph::new(Span::styled(*desc, Style::default().fg(TEXT_DIM))),
+            inner_layout[2],
+        );
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Inventory Asset-Type Selection
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn draw_inventory_selection(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::vertical([
+        Constraint::Length(2),
+        Constraint::Fill(1),
+    ])
+    .split(content_inset(area));
+
+    let count_text = format!(
+        "Select AWS asset type(s) for the inventory CSV:  ({} of {} selected)",
+        app.inventory_selected.len(),
+        app.inventory_items.len(),
+    );
+    f.render_widget(
+        Paragraph::new(Span::styled(count_text, Style::default().fg(TEXT_DIM))),
+        chunks[0],
+    );
+
+    let items: Vec<ListItem> = app
+        .inventory_items
+        .iter()
+        .enumerate()
+        .map(|(i, (_, label))| {
+            let is_cursor = i == app.inventory_cursor;
+            let is_selected = app.inventory_selected.contains(&i);
+
+            let checkbox = if is_selected { "[✓]" } else { "[ ]" };
+            let check_style = if is_selected {
+                Style::default().fg(GREEN).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(TEXT_DIM)
+            };
+            let label_style = if is_cursor {
+                Style::default().fg(CYAN).add_modifier(Modifier::BOLD)
+            } else if is_selected {
+                Style::default().fg(TEXT_BRIGHT)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+            let cursor_indicator = if is_cursor { " ▶ " } else { "   " };
+            let line = Line::from(vec![
+                Span::styled(cursor_indicator, Style::default().fg(AMBER)),
+                Span::styled(checkbox, check_style),
+                Span::raw(" "),
+                Span::styled(*label, label_style),
+            ]);
+            ListItem::new(line)
+        })
+        .collect();
+
+    let list = List::new(items).block(Block::default());
+    f.render_widget(list, chunks[1]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1040,13 +1231,6 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
     ])
     .split(content_inset(area));
 
-    // Summary card
-    let collectors = format!("{} selected", app.collector_selected.len());
-    let filter_display = if app.filter_input.value.is_empty() {
-        "none".to_string()
-    } else {
-        app.filter_input.value.clone()
-    };
     let region = app.selected_region();
 
     // Build account/profile lines depending on selection mode.
@@ -1085,26 +1269,55 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         kv_line("Time Frame", &time_frame_label),
         kv_line("Start Date", &app.start_date.value),
         kv_line("End Date", &app.end_date.value),
-        kv_line_colored("Collectors", &collectors, AMBER),
-        kv_line("Output Dir", &app.output_dir.value),
-        kv_line("Filter", &filter_display),
-        kv_line("Include Raw", if app.include_raw { "yes" } else { "no" }),
-        kv_line("Zip Package", if app.zip { "yes — bundle output into a dated .zip" } else { "no" }),
-        kv_line("Sign Output", if app.sign { "yes — HMAC-SHA256 manifest + key file" } else { "no" }),
     ]);
+
+    // Pre-compute display strings so they outlive the match arms below.
+    let collectors_display = format!("{} selected", app.collector_selected.len());
+    let filter_display = if app.filter_input.value.is_empty() {
+        "none".to_string()
+    } else {
+        app.filter_input.value.clone()
+    };
     let explicit_regions = app.explicit_regions();
     let explicit_regions_display = explicit_regions.join(", ");
-    let regions_line = if app.all_regions {
-        kv_line("Regions", "all — round-robin every enabled region")
-    } else if explicit_regions.is_empty() {
-        kv_line("Regions", "account default (single region)")
-    } else {
-        kv_line_colored("Regions", &explicit_regions_display, CYAN)
-    };
-    rows.extend_from_slice(&[
-        regions_line,
-        Line::raw(""),
-    ]);
+
+    let mut inv_indices: Vec<usize> = app.inventory_selected.iter().copied().collect();
+    inv_indices.sort_unstable();
+    let inv_labels: Vec<&str> = inv_indices
+        .iter()
+        .filter_map(|&i| app.inventory_items.get(i).map(|(_, label)| *label))
+        .collect();
+    let assets_display = format!("{} selected ({})", inv_indices.len(), inv_labels.join(", "));
+
+    match app.selected_feature {
+        Feature::Collectors => {
+            let regions_line = if app.all_regions {
+                kv_line("Regions", "all — round-robin every enabled region")
+            } else if explicit_regions.is_empty() {
+                kv_line("Regions", "account default (single region)")
+            } else {
+                kv_line_colored("Regions", &explicit_regions_display, CYAN)
+            };
+            rows.extend_from_slice(&[
+                kv_line_colored("Collectors", &collectors_display, AMBER),
+                kv_line("Output Dir", &app.output_dir.value),
+                kv_line("Filter", &filter_display),
+                kv_line("Include Raw", if app.include_raw { "yes" } else { "no" }),
+                kv_line("Zip Package", if app.zip { "yes — bundle output into a dated .zip" } else { "no" }),
+                kv_line("Sign Output", if app.sign { "yes — HMAC-SHA256 manifest + key file" } else { "no" }),
+                regions_line,
+            ]);
+        }
+        Feature::Inventory => {
+            rows.extend_from_slice(&[
+                kv_line("Feature", "Inventory"),
+                kv_line_colored("Asset Types", &assets_display, AMBER),
+                kv_line("Output Dir", &app.output_dir.value),
+                kv_line("Output Format", "Unified CSV (14-column canonical schema)"),
+            ]);
+        }
+    }
+    rows.push(Line::raw(""));
 
     let summary_block = Block::bordered()
         .border_type(BorderType::Rounded)
@@ -1124,9 +1337,13 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(AMBER));
 
+    let button_label = match app.selected_feature {
+        Feature::Collectors => "▸▸  Start Collection  ◂◂",
+        Feature::Inventory  => "▸▸  Start Inventory   ◂◂",
+    };
     f.render_widget(
         Paragraph::new(Span::styled(
-            "▸▸  Start Collection  ◂◂",
+            button_label,
             Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center)
