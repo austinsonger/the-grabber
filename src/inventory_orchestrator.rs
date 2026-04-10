@@ -138,11 +138,18 @@ impl CsvCollector for InventoryCollector {
         let mut all_rows: Vec<Vec<String>> = Vec::new();
         while let Some(result) = set.join_next().await {
             match result {
-                Ok(Ok(rows)) => all_rows.extend(rows),
+                Ok(Ok(rows)) => {
+                    let row_count = rows.len();
+                    if row_count == 0 {
+                        eprintln!("    [inventory] asset type returned 0 rows");
+                    }
+                    all_rows.extend(rows);
+                },
                 Ok(Err(e)) => eprintln!("WARN: inventory collection error: {e:#}"),
                 Err(e) => eprintln!("WARN: inventory task panicked: {e}"),
             }
         }
+        eprintln!("    [inventory] total for all types: {} rows", all_rows.len());
 
         Ok(all_rows)
     }
