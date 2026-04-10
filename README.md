@@ -241,25 +241,42 @@ When all collectors finish, the **Results** screen shows a success banner, total
 ## Non-interactive CLI
 
 ```bash
-grabber \
+./target/release/grabber \
   --start-date 2026-01-01 \
   --end-date   2026-04-01 \
   --region     us-east-1 \
   --profile    ProdAdmin-123456789012
 ```
 
-Passing `--start-date` bypasses the TUI entirely. All other flags are optional and fall back to defaults.
+Passing `--start-date` bypasses the TUI entirely and runs a collection non-interactively. Verification-only mode is also available with `--verify-manifest`.
+
+```bash
+# From a local checkout without installing to PATH
+cargo run -- --help
+
+# Or, after cargo build --release
+./target/release/grabber --help
+
+# Or, if you already installed it with cargo install --path .
+grabber --help
+```
+
+Use the help output from the binary you are actually invoking as the source-of-truth flag list. The summary below explains the current flags and how they behave today.
+
+For copy-paste command examples, see [cli-examples.md](cli-examples.md).
 
 ## CLI Options
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--start-date` | *(required for CLI)* | Start of collection window (YYYY-MM-DD). Omitting launches the TUI. |
-| `--end-date` | today | End of collection window (YYYY-MM-DD) |
+| `--end-date` | *(required with `--start-date`)* | End of collection window (YYYY-MM-DD) |
 | `--region` | `us-east-1` | AWS region |
 | `--profile` | default | AWS named profile |
-| `--collectors` | all defaults | Comma-separated collector keys to run |
-| `--include-raw` | off | Embed full raw AWS API response in each JSON record |
+| `-o`, `--output` | current working directory | Output directory for collected evidence |
+| `--filter` | — | Optional filter string passed to supported time-windowed collectors |
+| `--include-raw` | off | Embed raw event JSON in each JSON record |
+| `--collectors` | full configured collector set | Comma-separated collector keys to run. See `evidence-list.md` for the current key list. |
 | `--all-regions` | off | Collect from every enabled AWS region (round-robin) |
 | `--regions` | — | Explicit comma-separated region list |
 | `--s3-bucket` | — | S3 bucket containing CloudTrail logs |
@@ -271,6 +288,12 @@ Passing `--start-date` bypasses the TUI entirely. All other flags are optional a
 | `--sign` | off | HMAC-SHA256 sign all files; writes a manifest and key file |
 | `--signing-key` | auto-generated | 64-char hex key to use instead of auto-generating |
 | `--verify-manifest` | — | Verify a `SIGNING-MANIFEST-*.json` (runs verification only, no collection) |
+
+### CLI mode notes
+
+1. `--start-date` is the switch that turns on non-interactive collection mode.
+2. `--verify-manifest` is a standalone verification path and requires `--signing-key`.
+3. `--collectors` now covers the broader collector catalog; the maintained key list lives in `evidence-list.md`.
 
 ---
 

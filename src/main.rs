@@ -206,11 +206,13 @@ use crate::waf::WafCollector;
     about = "Collect AWS compliance evidence — run with no args for interactive TUI"
 )]
 struct Cli {
-    /// Start date (inclusive), YYYY-MM-DD.  Omit to launch the interactive TUI.
+    /// Start date (inclusive), YYYY-MM-DD.
+    /// Providing this flag enables non-interactive CLI mode; omit it to launch the TUI.
     #[arg(long)]
     start_date: Option<String>,
 
-    /// End date (inclusive), YYYY-MM-DD
+    /// End date (inclusive), YYYY-MM-DD.
+    /// Required when --start-date is provided.
     #[arg(long)]
     end_date: Option<String>,
 
@@ -222,11 +224,11 @@ struct Cli {
     #[arg(long)]
     profile: Option<String>,
 
-    /// Output file path (default: stdout)
+    /// Output directory for collected evidence (default: current working directory)
     #[arg(long, short)]
     output: Option<PathBuf>,
 
-    /// Optional filter
+    /// Optional collector filter string for supported time-windowed collectors
     #[arg(long)]
     filter: Option<String>,
 
@@ -234,8 +236,8 @@ struct Cli {
     #[arg(long, default_value_t = false)]
     include_raw: bool,
 
-    /// Collectors to run (default: cloudtrail,backup,rds). Comma-separated.
-    /// Available: cloudtrail, backup, rds, s3
+    /// Collectors to run (comma-separated).
+    /// Omit to run the tool's full configured collector set; see evidence-list.md for keys.
     #[arg(long, value_delimiter = ',')]
     collectors: Option<Vec<String>>,
 
