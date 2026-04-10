@@ -495,7 +495,14 @@ fn set_first(row: &mut [String], map: &HashMap<String, usize>, names: &[&str], v
 fn header_index_map(headers: &[String]) -> HashMap<String, usize> {
     let mut out = HashMap::new();
     for (i, header) in headers.iter().enumerate() {
-        out.insert(normalize(header), i);
+        let normalized_full = normalize(header);
+        if !normalized_full.is_empty() {
+            out.insert(normalized_full, i);
+        }
+        let normalized_label = normalize_header_label(header);
+        if !normalized_label.is_empty() {
+            out.insert(normalized_label, i);
+        }
     }
     out
 }
@@ -515,6 +522,21 @@ fn normalize(input: &str) -> String {
         .filter(|c| c.is_ascii_alphanumeric())
         .map(|c| c.to_ascii_lowercase())
         .collect()
+}
+
+fn normalize_header_label(input: &str) -> String {
+    let first_non_empty_line = input
+        .lines()
+        .map(|line| line.trim())
+        .find(|line| !line.is_empty())
+        .unwrap_or("")
+        .trim_matches('"');
+    let candidate = first_non_empty_line
+        .split(" (")
+        .next()
+        .unwrap_or(first_non_empty_line)
+        .trim();
+    normalize(candidate)
 }
 
 fn is_newer_finding(new: &CsvFinding, old: &CsvFinding) -> bool {
@@ -678,6 +700,9 @@ fn read_sheet_rows(
                 non_empty = true;
             }
         }
+        if sheet_name == OPEN_SHEET && is_open_template_metadata_row(&out_row) {
+            continue;
+        }
         if non_empty {
             data_rows.push(out_row);
         }
@@ -685,10 +710,44 @@ fn read_sheet_rows(
     Ok((headers, data_rows))
 }
 
+fn is_open_template_metadata_row(row: &[String]) -> bool {
+    if row.len() < 4 {
+        return false;
+    }
+
+    if row.iter().skip(4).any(|v| !v.trim().is_empty()) {
+        return false;
+    }
+
+    let a = normalize(row.first().map(String::as_str).unwrap_or(""));
+    let b = normalize(row.get(1).map(String::as_str).unwrap_or(""));
+    let c = normalize(row.get(2).map(String::as_str).unwrap_or(""));
+    let d = normalize(row.get(3).map(String::as_str).unwrap_or(""));
+
+    let metadata_labels = a == "cloudserviceprovider"
+        && b == "cloudserviceoffering"
+        && c == "impactlevel"
+        && d == "poamdate";
+
+    let metadata_instructions = a.starts_with("enterthenameofthecsp")
+        && b.starts_with("enterthenameofthecso")
+        && c.starts_with("enterthecsosimpactlevel")
+        && d.starts_with("enterthedateofthispoamsubmission");
+
+    metadata_labels || metadata_instructions
+}
+
 fn looks_like_header(row: &[String]) -> bool {
     let mut keys: HashSet<String> = HashSet::new();
     for value in row {
-        keys.insert(normalize(value));
+        let full = normalize(value);
+        if !full.is_empty() {
+            keys.insert(full);
+        }
+        let label = normalize_header_label(value);
+        if !label.is_empty() {
+            keys.insert(label);
+        }
     }
     keys.contains(&normalize("Weakness Source Identifier"))
         || keys.contains(&normalize("Weakness Name"))
@@ -839,9 +898,14 @@ fn inject_rows(sheet_xml: &str, header_rows_to_keep: u32, rows: &[Vec<String>]) 
 
     let kept = extract_rows_up_to(existing, header_rows_to_keep);
     let mut data = String::new();
-    for (idx, row) in rows.iter().enumerate() {
-        let excel_row = header_rows_to_keep + 1 + (idx as u32);
+    let mut written_rows = 0u32;
+    for row in rows {
+        if row.iter().all(|v| v.trim().is_empty()) {
+            continue;
+        }
+        let excel_row = header_rows_to_keep + 1 + written_rows;
         data.push_str(&build_row_xml(excel_row, row));
+        written_rows += 1;
     }
     format!("{before}{kept}{data}{after}")
 }
@@ -977,5 +1041,57 @@ mod tests {
         write_poam_workbook(&workbook_copy, &result.open_rows, &result.closed_rows)
             .expect("write workbook copy");
         assert!(workbook_copy.exists());
+    }
+
+    #[test]
+    fn header_index_map_uses_leading_label_from_verbose_poam_headers() {
+        let verbose = "Weakness Source Identifier\n\n(\n\ninstruction text here\n)";
+        let headers = vec![verbose.to_string()];
+        let map = header_index_map(&headers);
+        let idx = header_idx(&map, &["Weakness Source Identifier"]);
+        assert_eq!(idx, Some(0));
+    }
+
+    #[test]
+    fn looks_like_header_accepts_verbose_open_poam_header_row() {
+        let row = vec![
+            "POAM ID\n\n(\n\nexplanatory text\n)".to_string(),
+            "Weakness Name\n\n(\n\nscanner title\n)".to_string(),
+            "Weakness Source Identifier\n\n(\n\nplugin id\n)".to_string(),
+        ];
+        assert!(looks_like_header(&row));
+    }
+
+    #[test]
+    fn is_open_template_metadata_row_detects_template_rows() {
+        let labels = vec![
+            "Cloud Service Provider".to_string(),
+            "Cloud Service Offering".to_string(),
+            "Impact Level".to_string(),
+            "POA&M Date".to_string(),
+            "".to_string(),
+        ];
+        assert!(is_open_template_metadata_row(&labels));
+
+        let instructions = vec![
+            "Enter the name of the CSP as it appears in the SSP and on the FedRAMP Marketplace"
+                .to_string(),
+            "Enter the name of the CSO as it appears in the SSP and on the FedRAMP Marketplace"
+                .to_string(),
+            "Enter the CSO's impact level (LI-SaaS, Low, Moderate or High)".to_string(),
+            "Enter the date of this POA&M submission. At a minimum, the POA&M must be updated monthly."
+                .to_string(),
+        ];
+        assert!(is_open_template_metadata_row(&instructions));
+
+        let real_item = vec![
+            "INS2-ECR-12345678".to_string(),
+            "".to_string(),
+            "CVE-2026-0001".to_string(),
+            "Real vulnerability".to_string(),
+            "AWS Inspector2 - ECR".to_string(),
+            "arn:aws:inspector2:us-east-1:123456789012:finding/abc".to_string(),
+        ];
+        assert!(!is_open_template_metadata_row(&real_item));
     }
 }
