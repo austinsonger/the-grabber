@@ -80,73 +80,49 @@ impl CsvCollector for InventoryCollector {
         region: &str,
         _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        use tokio::task::JoinSet;
-
-        let mut set: JoinSet<Result<Vec<Vec<String>>>> = JoinSet::new();
         let region = region.to_string();
+        let mut all_rows: Vec<Vec<String>> = Vec::new();
 
         for type_key in &self.selected_types {
-            match type_key.as_str() {
+            let result = match type_key.as_str() {
                 ASSET_KEY_KMS_KEY => {
-                    let c = self.kms.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_kms_keys(&c, &r).await });
+                    collect_kms_keys(&self.kms, &region).await
                 }
                 ASSET_KEY_S3_BUCKET => {
-                    let c = self.s3.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_s3_buckets(&c, &r).await });
+                    collect_s3_buckets(&self.s3, &region).await
                 }
                 ASSET_KEY_LAMBDA_FUNCTION => {
-                    let c = self.lambda.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_lambda_functions(&c, &r).await });
+                    collect_lambda_functions(&self.lambda, &region).await
                 }
                 ASSET_KEY_EC2_INSTANCE => {
-                    let c = self.ec2.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_ec2_instances(&c, &r).await });
+                    collect_ec2_instances(&self.ec2, &region).await
                 }
                 ASSET_KEY_ALB => {
-                    let c = self.elb.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_albs(&c, &r).await });
+                    collect_albs(&self.elb, &region).await
                 }
                 ASSET_KEY_RDS_DB_INSTANCE => {
-                    let c = self.rds.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_rds_instances(&c, &r).await });
+                    collect_rds_instances(&self.rds, &region).await
                 }
                 ASSET_KEY_ELASTICACHE_CLUSTER => {
-                    let c = self.elasticache.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_elasticache_clusters(&c, &r).await });
+                    collect_elasticache_clusters(&self.elasticache, &region).await
                 }
                 ASSET_KEY_CONTAINER => {
-                    let ecr = self.ecr.clone();
-                    let ecs = self.ecs.clone();
-                    let eks = self.eks.clone();
-                    let r = region.clone();
-                    set.spawn(async move { collect_containers(&ecr, &ecs, &eks, &r).await });
+                    collect_containers(&self.ecr, &self.ecs, &self.eks, &region).await
                 }
                 other => {
                     eprintln!("WARN: inventory: unknown asset type key '{other}' — skipped");
+                    continue;
                 }
-            }
-        }
-
-        let mut all_rows: Vec<Vec<String>> = Vec::new();
-        while let Some(result) = set.join_next().await {
+            };
             match result {
-                Ok(Ok(rows)) => {
+                Ok(rows) => {
                     let row_count = rows.len();
                     if row_count == 0 {
-                        eprintln!("    [inventory] asset type returned 0 rows");
+                        eprintln!("    [inventory] {type_key} returned 0 rows");
                     }
                     all_rows.extend(rows);
-                },
-                Ok(Err(e)) => eprintln!("WARN: inventory collection error: {e:#}"),
-                Err(e) => eprintln!("WARN: inventory task panicked: {e}"),
+                }
+                Err(e) => eprintln!("WARN: inventory collection error ({type_key}): {e:#}"),
             }
         }
         eprintln!("    [inventory] total for all types: {} rows", all_rows.len());

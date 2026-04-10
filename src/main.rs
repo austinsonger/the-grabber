@@ -1306,11 +1306,165 @@ async fn load_cli_config(region: &str, profile: Option<&str>) -> aws_config::Sdk
     let mut loader = aws_config::defaults(BehaviorVersion::latest())
         .region(Region::new(region.to_string()));
     if let Some(profile_name) = profile {
-        loader = loader.profile_name(profile_name);
+        if !profile_name.is_empty() && profile_name != "default" {
+            loader = loader.profile_name(profile_name);
+        }
     }
     loader.load().await
 }
 
+async fn load_cli_probe_and_work_configs(
+    region: &str,
+    profile: Option<&str>,
+) -> (aws_config::SdkConfig, aws_config::SdkConfig, bool) {
+    let probe = load_cli_config(region, profile).await;
+    let probe_identity = audit_log::resolve_aws_identity(&probe).await;
+    if probe_identity.is_some() {
+        let work = load_cli_config(region, profile).await;
+        return (probe, work, false);
+    }
+
+    if let Some(profile_name) = profile {
+        if !profile_name.is_empty() && profile_name != "default" {
+            eprintln!(
+                "WARNING: Could not resolve AWS identity with explicit profile '{}'; trying ambient AWS credentials from the current shell.",
+                profile_name
+            );
+            let ambient_probe = load_cli_config(region, None).await;
+            let ambient_identity = audit_log::resolve_aws_identity(&ambient_probe).await;
+            if ambient_identity.is_some() {
+                let ambient_work = load_cli_config(region, None).await;
+                return (ambient_probe, ambient_work, true);
+            }
+        }
+    }
+
+    let work = load_cli_config(region, profile).await;
+    (probe, work, false)
+}
+
+fn print_cli_identity(identity: &Option<audit_log::AwsIdentity>) -> String {
+    let account_id = identity
+        .as_ref()
+        .map(|id| id.account_id.clone())
+        .unwrap_or_else(|| "unknown".to_string());
+    eprintln!(
+        "Identity: account={} arn={}",
+        account_id,
+        identity
+            .as_ref()
+            .map(|id| id.caller_arn.as_str())
+            .unwrap_or("unknown"),
+    );
+    account_id
+}
+
+fn cli_profile_label(profile: Option<&str>) -> &str {
+    match profile {
+        Some(p) if !p.is_empty() => p,
+        _ => "default",
+    }
+}
+
+async fn run_inventory_cli(cli: &Cli) -> Result<()> {
+    if cli.collectors.is_some() {
+        anyhow::bail!("--collectors cannot be used with --inventory");
+    }
+    if cli.start_date.is_some() || cli.end_date.is_some() {
+        anyhow::bail!("--start-date/--end-date are not used with --inventory");
+    }
+    if cli.filter.is_some() {
+        anyhow::bail!("--filter is not supported with --inventory");
+    }
+    if cli.include_raw {
+        anyhow::bail!("--include-raw is not supported with --inventory");
+    }
+    if cli.s3_bucket.is_some()
+        || !cli.s3_prefix.is_empty()
+        || cli.s3_profile.is_some()
+        || cli.s3_accounts.is_some()
+        || cli.s3_regions.is_some()
+    {
+        anyhow::bail!("S3 CloudTrail flags are not supported with --inventory");
+    }
+
+    let inventory_types = all_inventory_type_keys();
+    let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+    let (probe_config, work_config, using_ambient_credentials) =
+        load_cli_probe_and_work_configs(&cli.region, cli.profile.as_deref()).await;
+    let cli_identity = audit_log::resolve_aws_identity(&probe_config).await;
+    if cli_identity.is_none() {
+        anyhow::bail!(
+            "Failed to resolve AWS identity for profile '{}'. Re-authenticate and verify the profile before running inventory CLI.",
+            cli_profile_label(cli.profile.as_deref())
+        );
+    }
+    let account_id = print_cli_identity(&cli_identity);
+
+    eprintln!("Inventory asset types: {}", inventory_types.join(", "));
+
+    let target_regions = if let Some(explicit) = cli.regions.as_ref() {
+        explicit.clone()
+    } else if cli.all_regions {
+        let regions = discover_regions(&probe_config).await;
+        if regions.is_empty() {
+            anyhow::bail!("--all-regions: could not discover any enabled regions");
+        }
+        regions
+    } else {
+        vec![cli.region.clone()]
+    };
+
+    let mut inventory_rows: Vec<Vec<String>> = Vec::new();
+    for region_name in &target_regions {
+        let region_work_config = if region_name == &cli.region {
+            work_config.clone()
+        } else {
+            let region_profile = if using_ambient_credentials {
+                None
+            } else {
+                cli.profile.as_deref()
+            };
+            load_cli_config(region_name, region_profile).await
+        };
+        let collector = InventoryCollector::new(&region_work_config, inventory_types.clone());
+        eprintln!("Collecting inventory from {}...", region_name);
+        let rows = collector.collect_rows(&account_id, region_name, None).await?;
+        eprintln!("  {} returned {} rows", region_name, rows.len());
+        inventory_rows.extend(rows);
+    }
+
+    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let written_files = write_inventory_outputs(&output_dir, &timestamp, &inventory_rows, false)?;
+
+    if cli.zip && !written_files.is_empty() {
+        let zip_name = format!("Evidence-{}.zip", timestamp);
+        let zip_path = PathBuf::from(&zip_name);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match zip_bundle::bundle_files(&written_files, &cwd, &zip_path) {
+            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
+            Err(e) => eprintln!("Zip bundle failed: {e}"),
+        }
+    }
+
+    if cli.sign && !written_files.is_empty() {
+        let key = match &cli.signing_key {
+            Some(hex) => signing::SigningKey::from_hex(hex)?,
+            None => signing::SigningKey::generate()?,
+        };
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match signing::sign_files(&written_files, &timestamp, &key, &cwd) {
+            Ok((manifest_path, key_path)) => {
+                eprintln!("Signing manifest: {}", manifest_path.display());
+                eprintln!("Signing key file: {} (move to secure storage)", key_path.display());
+                eprintln!("Signing key (hex): {}", key.to_hex());
+            }
+            Err(e) => eprintln!("Signing failed: {e}"),
+        }
+    }
+
+    Ok(())
+}
 fn write_inventory_outputs(
     output_dir: &PathBuf,
     timestamp: &str,
@@ -1369,104 +1523,6 @@ fn write_inventory_outputs(
     Ok(written_files)
 }
 
-async fn run_inventory_cli(cli: &Cli) -> Result<()> {
-    if cli.collectors.is_some() {
-        anyhow::bail!("--collectors cannot be used with --inventory; use --inventory-types instead");
-    }
-    if cli.start_date.is_some() || cli.end_date.is_some() {
-        anyhow::bail!("--start-date/--end-date are not used with --inventory");
-    }
-    if cli.filter.is_some() {
-        anyhow::bail!("--filter is not supported with --inventory");
-    }
-    if cli.include_raw {
-        anyhow::bail!("--include-raw is not supported with --inventory");
-    }
-    if cli.s3_bucket.is_some()
-        || !cli.s3_prefix.is_empty()
-        || cli.s3_profile.is_some()
-        || cli.s3_accounts.is_some()
-        || cli.s3_regions.is_some()
-    {
-        anyhow::bail!("S3 CloudTrail flags are not supported with --inventory");
-    }
-
-    let inventory_types = all_inventory_type_keys();
-    let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
-    let base_config = load_cli_config(&cli.region, cli.profile.as_deref()).await;
-    let cli_identity = audit_log::resolve_aws_identity(&base_config).await;
-    let account_id = cli_identity
-        .as_ref()
-        .map(|id| id.account_id.clone())
-        .unwrap_or_else(|| "unknown".to_string());
-
-    eprintln!("Inventory asset types: {}", inventory_types.join(", "));
-    eprintln!(
-        "Identity: account={} arn={}",
-        account_id,
-        cli_identity
-            .as_ref()
-            .map(|id| id.caller_arn.as_str())
-            .unwrap_or("unknown"),
-    );
-
-    let target_regions = if let Some(explicit) = cli.regions.as_ref() {
-        explicit.clone()
-    } else if cli.all_regions {
-        let regions = discover_regions(&base_config).await;
-        if regions.is_empty() {
-            anyhow::bail!("--all-regions: could not discover any enabled regions");
-        }
-        regions
-    } else {
-        vec![cli.region.clone()]
-    };
-
-    let mut inventory_rows: Vec<Vec<String>> = Vec::new();
-    for region_name in &target_regions {
-        let region_config = if region_name == &cli.region {
-            base_config.clone()
-        } else {
-            load_cli_config(region_name, cli.profile.as_deref()).await
-        };
-        let collector = InventoryCollector::new(&region_config, inventory_types.clone());
-        eprintln!("Collecting inventory from {}...", region_name);
-        let rows = collector.collect_rows(&account_id, region_name, None).await?;
-        eprintln!("  {} returned {} rows", region_name, rows.len());
-        inventory_rows.extend(rows);
-    }
-
-    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
-    let written_files = write_inventory_outputs(&output_dir, &timestamp, &inventory_rows, false)?;
-
-    if cli.zip && !written_files.is_empty() {
-        let zip_name = format!("Evidence-{}.zip", timestamp);
-        let zip_path = PathBuf::from(&zip_name);
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        match zip_bundle::bundle_files(&written_files, &cwd, &zip_path) {
-            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
-            Err(e) => eprintln!("Zip bundle failed: {e}"),
-        }
-    }
-
-    if cli.sign && !written_files.is_empty() {
-        let key = match &cli.signing_key {
-            Some(hex) => signing::SigningKey::from_hex(hex)?,
-            None => signing::SigningKey::generate()?,
-        };
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        match signing::sign_files(&written_files, &timestamp, &key, &cwd) {
-            Ok((manifest_path, key_path)) => {
-                eprintln!("Signing manifest: {}", manifest_path.display());
-                eprintln!("Signing key file: {} (move to secure storage)", key_path.display());
-                eprintln!("Signing key (hex): {}", key.to_hex());
-            }
-            Err(e) => eprintln!("Signing failed: {e}"),
-        }
-    }
-
-    Ok(())
-}
 
 // ---------------------------------------------------------------------------
 // TUI running screen + async collection
