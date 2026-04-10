@@ -80,6 +80,72 @@ grabber --help
 
 Collector keys are maintained in `evidence-list.md`. Use that file as the reference for the current catalog.
 
+## Inventory functionality
+
+The dedicated **Inventory** feature is the unified asset inventory workflow, and it is now exposed through the CLI with `--inventory`.
+
+Its selectable asset types are exactly:
+
+1. `kms-key` — KMS Key
+2. `s3-bucket` — S3 Bucket
+3. `lambda-function` — Lambda Function
+4. `ec2-instance` — EC2 Instance
+5. `alb` — Application Load Balancer (ALB)
+6. `rds-db-instance` — RDS DB Instance
+7. `elasticache-cluster` — ElastiCache Cluster
+8. `container` — Container (ECR/ECS/EKS)
+
+That inventory flow produces a unified `AWS_Inventory-<timestamp>.csv` and, when the template exists, an Excel workbook based on `assets/Inventory.xlsx`.
+
+Use `--inventory` to run the unified inventory mode. It always includes all eight asset types above.
+
+### Collect all inventory asset types
+
+```bash
+./target/release/grabber \
+  --inventory \
+  --profile ProdAdmin-123456789012
+```
+
+### Collect inventory across multiple regions
+
+```bash
+./target/release/grabber \
+  --inventory \
+  --regions us-east-1,us-east-2,us-west-2 \
+  --profile ProdAdmin-123456789012
+```
+
+### Auto-discover enabled regions for inventory
+
+```bash
+./target/release/grabber \
+  --inventory \
+  --all-regions \
+  --profile ProdAdmin-123456789012
+```
+
+### Write inventory output to a specific directory
+
+```bash
+./target/release/grabber \
+  --inventory \
+  --output ./evidence-output/inventory \
+  --profile ProdAdmin-123456789012
+```
+
+### Package and sign inventory output
+
+```bash
+./target/release/grabber \
+  --inventory \
+  --profile ProdAdmin-123456789012 \
+  --zip \
+  --sign
+```
+
+Inventory mode writes a unified `AWS_Inventory-<timestamp>.csv` and, when `assets/Inventory.xlsx` exists, also writes the inventory Excel workbook.
+
 ## Multi-region runs
 
 ### Auto-discover enabled regions

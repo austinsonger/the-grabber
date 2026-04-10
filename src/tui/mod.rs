@@ -14,6 +14,7 @@ use ratatui::Terminal;
 use tokio::sync::mpsc;
 
 use crate::app_config::{self, Account};
+use crate::inventory_core::INVENTORY_ITEMS;
 
 // ---------------------------------------------------------------------------
 // Progress events sent from collector tasks → TUI
@@ -582,16 +583,7 @@ impl App {
                 .and_then(|m| m.checked_sub(1))
                 .unwrap_or(0),
             poam_summary: None,
-            inventory_items: vec![
-                ("kms-key",             "KMS Key"),
-                ("s3-bucket",           "S3 Bucket"),
-                ("lambda-function",     "Lambda Function"),
-                ("ec2-instance",        "EC2 Instance"),
-                ("alb",                 "Application Load Balancer (ALB)"),
-                ("rds-db-instance",     "RDS DB Instance"),
-                ("elasticache-cluster", "ElastiCache Cluster"),
-                ("container",           "Container (ECR/ECS/EKS)"),
-            ],
+            inventory_items: INVENTORY_ITEMS.to_vec(),
             inventory_cursor: 0,
             inventory_selected: HashSet::new(),
         }

@@ -240,6 +240,8 @@ When all collectors finish, the **Results** screen shows a success banner, total
 
 ## Non-interactive CLI
 
+### Evidence collection mode
+
 ```bash
 ./target/release/grabber \
   --start-date 2026-01-01 \
@@ -248,7 +250,17 @@ When all collectors finish, the **Results** screen shows a success banner, total
   --profile    ProdAdmin-123456789012
 ```
 
-Passing `--start-date` bypasses the TUI entirely and runs a collection non-interactively. Verification-only mode is also available with `--verify-manifest`.
+Passing `--start-date` bypasses the TUI entirely and runs an evidence collection non-interactively.
+
+### Inventory mode
+
+```bash
+./target/release/grabber \
+  --inventory \
+  --profile ProdAdmin-123456789012
+```
+
+Inventory mode runs the unified asset inventory workflow from the CLI and does not use `--start-date` or `--end-date`. Verification-only mode is also available with `--verify-manifest`.
 
 ```bash
 # From a local checkout without installing to PATH
@@ -263,7 +275,7 @@ grabber --help
 
 Use the help output from the binary you are actually invoking as the source-of-truth flag list. The summary below explains the current flags and how they behave today.
 
-For copy-paste command examples, see [cli-examples.md](cli-examples.md).
+For copy-paste CLI and inventory examples, see [cli-examples.md](cli-examples.md).
 
 ## CLI Options
 
@@ -285,6 +297,7 @@ For copy-paste command examples, see [cli-examples.md](cli-examples.md).
 | `--s3-accounts` | — | Additional account IDs for S3 log collection |
 | `--s3-regions` | — | Additional regions for S3 log collection |
 | `--zip` | off | Bundle all output files into `Evidence-<timestamp>.zip` |
+| `--inventory` | off | Run the unified inventory workflow from the CLI |
 | `--sign` | off | HMAC-SHA256 sign all files; writes a manifest and key file |
 | `--signing-key` | auto-generated | 64-char hex key to use instead of auto-generating |
 | `--verify-manifest` | — | Verify a `SIGNING-MANIFEST-*.json` (runs verification only, no collection) |
@@ -294,6 +307,7 @@ For copy-paste command examples, see [cli-examples.md](cli-examples.md).
 1. `--start-date` is the switch that turns on non-interactive collection mode.
 2. `--verify-manifest` is a standalone verification path and requires `--signing-key`.
 3. `--collectors` now covers the broader collector catalog; the maintained key list lives in `evidence-list.md`.
+4. `--inventory` is a separate CLI mode that always collects the full built-in inventory set.
 
 ---
 

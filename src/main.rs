@@ -188,6 +188,7 @@ use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, JsonCollector,
     JsonInventoryReport, ReportMetadata,
 };
+use crate::inventory_core::INVENTORY_ITEMS;
 use crate::inventory_orchestrator::InventoryCollector;
 use crate::tui::{
     App, CollectorState, CollectorStatus, Feature, Progress,
@@ -283,6 +284,11 @@ struct Cli {
     #[arg(long, default_value_t = false)]
     zip: bool,
 
+    /// Run the unified Inventory workflow from the CLI.
+    /// This current-state asset inventory mode does not use --start-date/--end-date.
+    #[arg(long, default_value_t = false)]
+    inventory: bool,
+
     // ------- Signing options -------
 
     /// HMAC-SHA256-sign all output files after collection.
@@ -325,6 +331,10 @@ async fn async_main() -> Result<()> {
         let report = signing::verify_manifest(std::path::Path::new(manifest_path), &key)?;
         report.print();
         return Ok(());
+    }
+
+    if cli.inventory {
+        return run_inventory_cli(&cli).await;
     }
 
     if cli.start_date.is_none() {
@@ -1282,6 +1292,179 @@ async fn async_main() -> Result<()> {
             Err(e) => eprintln!("Signing failed: {e}"),
         }
     }
+    Ok(())
+}
+
+fn all_inventory_type_keys() -> Vec<String> {
+    INVENTORY_ITEMS
+        .iter()
+        .map(|(key, _)| (*key).to_string())
+        .collect()
+}
+
+async fn load_cli_config(region: &str, profile: Option<&str>) -> aws_config::SdkConfig {
+    let mut loader = aws_config::defaults(BehaviorVersion::latest())
+        .region(Region::new(region.to_string()));
+    if let Some(profile_name) = profile {
+        loader = loader.profile_name(profile_name);
+    }
+    loader.load().await
+}
+
+fn write_inventory_outputs(
+    output_dir: &PathBuf,
+    timestamp: &str,
+    inventory_rows: &[Vec<String>],
+    skip_inventory_csv: bool,
+) -> Result<Vec<String>> {
+    let mut written_files = Vec::new();
+
+    if inventory_rows.is_empty() {
+        eprintln!("=== Inventory: no rows collected (all asset types empty) ===");
+        return Ok(written_files);
+    }
+
+    if !skip_inventory_csv {
+        std::fs::create_dir_all(output_dir)
+            .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
+        let filename = format!("AWS_Inventory-{}.csv", timestamp);
+        let path = output_dir.join(&filename);
+        let bytes = write_csv_bytes(crate::inventory_core::INVENTORY_CSV_HEADERS, inventory_rows)?;
+        std::fs::write(&path, bytes)
+            .with_context(|| format!("Failed to write {}", path.display()))?;
+        eprintln!("=== Inventory CSV: {} ({} rows) ===", path.display(), inventory_rows.len());
+        written_files.push(path.display().to_string());
+    }
+
+    let now_local = Local::now();
+    let year = now_local.format("%Y").to_string();
+    let month_num = now_local.format("%m").to_string();
+    let month_abbr = match month_num.as_str() {
+        "01" => "JAN", "02" => "FEB", "03" => "MAR", "04" => "APR",
+        "05" => "MAY", "06" => "JUN", "07" => "JUL", "08" => "AUG",
+        "09" => "SEP", "10" => "OCT", "11" => "NOV", "12" => "DEC",
+        other => {
+            eprintln!("=== WARN: unexpected month '{other}', using 'UNK' in path ===");
+            "UNK"
+        }
+    };
+
+    let xlsx_filename = now_local.format("%Y-%m-%d_Inventory_%H-%M-%S.xlsx").to_string();
+    let xlsx_path = PathBuf::from("inventory")
+        .join(&year)
+        .join(format!("{month_num}-{month_abbr}"))
+        .join(&xlsx_filename);
+    let template_path = std::path::Path::new("assets/Inventory.xlsx");
+    if template_path.exists() {
+        crate::inventory_xlsx::write_inventory_xlsx(inventory_rows, template_path, &xlsx_path)?;
+        eprintln!("=== Inventory XLSX: {} ({} rows) ===", xlsx_path.display(), inventory_rows.len());
+        written_files.push(xlsx_path.display().to_string());
+    } else {
+        eprintln!(
+            "=== WARN: inventory XLSX skipped — template not found at '{}' ===",
+            template_path.display()
+        );
+    }
+
+    Ok(written_files)
+}
+
+async fn run_inventory_cli(cli: &Cli) -> Result<()> {
+    if cli.collectors.is_some() {
+        anyhow::bail!("--collectors cannot be used with --inventory; use --inventory-types instead");
+    }
+    if cli.start_date.is_some() || cli.end_date.is_some() {
+        anyhow::bail!("--start-date/--end-date are not used with --inventory");
+    }
+    if cli.filter.is_some() {
+        anyhow::bail!("--filter is not supported with --inventory");
+    }
+    if cli.include_raw {
+        anyhow::bail!("--include-raw is not supported with --inventory");
+    }
+    if cli.s3_bucket.is_some()
+        || !cli.s3_prefix.is_empty()
+        || cli.s3_profile.is_some()
+        || cli.s3_accounts.is_some()
+        || cli.s3_regions.is_some()
+    {
+        anyhow::bail!("S3 CloudTrail flags are not supported with --inventory");
+    }
+
+    let inventory_types = all_inventory_type_keys();
+    let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+    let base_config = load_cli_config(&cli.region, cli.profile.as_deref()).await;
+    let cli_identity = audit_log::resolve_aws_identity(&base_config).await;
+    let account_id = cli_identity
+        .as_ref()
+        .map(|id| id.account_id.clone())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    eprintln!("Inventory asset types: {}", inventory_types.join(", "));
+    eprintln!(
+        "Identity: account={} arn={}",
+        account_id,
+        cli_identity
+            .as_ref()
+            .map(|id| id.caller_arn.as_str())
+            .unwrap_or("unknown"),
+    );
+
+    let target_regions = if let Some(explicit) = cli.regions.as_ref() {
+        explicit.clone()
+    } else if cli.all_regions {
+        let regions = discover_regions(&base_config).await;
+        if regions.is_empty() {
+            anyhow::bail!("--all-regions: could not discover any enabled regions");
+        }
+        regions
+    } else {
+        vec![cli.region.clone()]
+    };
+
+    let mut inventory_rows: Vec<Vec<String>> = Vec::new();
+    for region_name in &target_regions {
+        let region_config = if region_name == &cli.region {
+            base_config.clone()
+        } else {
+            load_cli_config(region_name, cli.profile.as_deref()).await
+        };
+        let collector = InventoryCollector::new(&region_config, inventory_types.clone());
+        eprintln!("Collecting inventory from {}...", region_name);
+        let rows = collector.collect_rows(&account_id, region_name, None).await?;
+        eprintln!("  {} returned {} rows", region_name, rows.len());
+        inventory_rows.extend(rows);
+    }
+
+    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let written_files = write_inventory_outputs(&output_dir, &timestamp, &inventory_rows, false)?;
+
+    if cli.zip && !written_files.is_empty() {
+        let zip_name = format!("Evidence-{}.zip", timestamp);
+        let zip_path = PathBuf::from(&zip_name);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match zip_bundle::bundle_files(&written_files, &cwd, &zip_path) {
+            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
+            Err(e) => eprintln!("Zip bundle failed: {e}"),
+        }
+    }
+
+    if cli.sign && !written_files.is_empty() {
+        let key = match &cli.signing_key {
+            Some(hex) => signing::SigningKey::from_hex(hex)?,
+            None => signing::SigningKey::generate()?,
+        };
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match signing::sign_files(&written_files, &timestamp, &key, &cwd) {
+            Ok((manifest_path, key_path)) => {
+                eprintln!("Signing manifest: {}", manifest_path.display());
+                eprintln!("Signing key file: {} (move to secure storage)", key_path.display());
+                eprintln!("Signing key (hex): {}", key.to_hex());
+            }
+            Err(e) => eprintln!("Signing failed: {e}"),
+        }
+    }
+
     Ok(())
 }
 

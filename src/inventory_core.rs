@@ -30,6 +30,17 @@ pub const ASSET_KEY_RDS_DB_INSTANCE:     &str = "rds-db-instance";
 pub const ASSET_KEY_ELASTICACHE_CLUSTER: &str = "elasticache-cluster";
 pub const ASSET_KEY_CONTAINER:           &str = "container";
 
+pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
+    (ASSET_KEY_KMS_KEY, "KMS Key"),
+    (ASSET_KEY_S3_BUCKET, "S3 Bucket"),
+    (ASSET_KEY_LAMBDA_FUNCTION, "Lambda Function"),
+    (ASSET_KEY_EC2_INSTANCE, "EC2 Instance"),
+    (ASSET_KEY_ALB, "Application Load Balancer (ALB)"),
+    (ASSET_KEY_RDS_DB_INSTANCE, "RDS DB Instance"),
+    (ASSET_KEY_ELASTICACHE_CLUSTER, "ElastiCache Cluster"),
+    (ASSET_KEY_CONTAINER, "Container (ECR/ECS/EKS)"),
+];
+
 /// Build a 14-element all-empty row.
 pub fn empty_row() -> Vec<String> {
     vec![String::new(); INVENTORY_CSV_HEADERS.len()]
