@@ -1,6 +1,6 @@
 # The Grabber
 
-An AWS compliance evidence collector with an interactive TUI and CLI mode. Collects current-state snapshots and time-windowed audit records from 124 AWS service APIs and writes them as CSV and JSON files — suitable for FedRAMP, SOC 2, HIPAA, or internal audit submissions.
+The Grabber. Collects current-state snapshots and time-windowed audit records from 100+ AWS service APIs and writes them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
 ---
 
