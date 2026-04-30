@@ -2,8 +2,7 @@ use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{
-    Block, BorderType, Clear, Gauge, List, ListItem, ListState, Padding,
-    Paragraph,
+    Block, BorderType, Clear, Gauge, List, ListItem, ListState, Padding, Paragraph,
 };
 use ratatui::Frame;
 
@@ -14,29 +13,29 @@ use super::{App, CollectorState, Feature, Screen};
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Background layers
-const BG_DARK:      Color = Color::Rgb(15, 17, 26);
-const BG_MAIN:      Color = Color::Rgb(24, 28, 39);
-const BG_ELEVATED:  Color = Color::Rgb(35, 40, 55);
-const BG_SELECTED:  Color = Color::Rgb(45, 52, 70);
+const BG_DARK: Color = Color::Rgb(15, 17, 26);
+const BG_MAIN: Color = Color::Rgb(24, 28, 39);
+const BG_ELEVATED: Color = Color::Rgb(35, 40, 55);
+const BG_SELECTED: Color = Color::Rgb(45, 52, 70);
 
 // Primary accent — teal / sky
-const CYAN:         Color = Color::Rgb(80, 200, 255);
-const CYAN_DIM:     Color = Color::Rgb(40, 100, 140);
+const CYAN: Color = Color::Rgb(80, 200, 255);
+const CYAN_DIM: Color = Color::Rgb(40, 100, 140);
 
 // Secondary accent — warm amber
-const AMBER:        Color = Color::Rgb(255, 195, 55);
+const AMBER: Color = Color::Rgb(255, 195, 55);
 
 // Semantic
-const GREEN:        Color = Color::Rgb(72, 213, 150);
-const RED:          Color = Color::Rgb(245, 108, 108);
-const RED_BG:       Color = Color::Rgb(60, 30, 30);
-const PURPLE:       Color = Color::Rgb(160, 140, 245);
-const TEAL:         Color = Color::Rgb(50, 180, 200);
+const GREEN: Color = Color::Rgb(72, 213, 150);
+const RED: Color = Color::Rgb(245, 108, 108);
+const RED_BG: Color = Color::Rgb(60, 30, 30);
+const PURPLE: Color = Color::Rgb(160, 140, 245);
+const TEAL: Color = Color::Rgb(50, 180, 200);
 
 // Text hierarchy
-const TEXT_BRIGHT:   Color = Color::Rgb(234, 238, 245);
-const TEXT_NORMAL:   Color = Color::Rgb(169, 177, 190);
-const TEXT_DIM:      Color = Color::Rgb(90, 98, 112);
+const TEXT_BRIGHT: Color = Color::Rgb(234, 238, 245);
+const TEXT_NORMAL: Color = Color::Rgb(169, 177, 190);
+const TEXT_DIM: Color = Color::Rgb(90, 98, 112);
 
 // Borders
 const BORDER_SUBTLE: Color = Color::Rgb(50, 56, 72);
@@ -66,34 +65,58 @@ const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦
 // Step definitions
 // ═══════════════════════════════════════════════════════════════════════════
 
-const STEPS_ACCOUNTS: &[&str] = &["Account", "Dates", "Collectors", "Options", "Confirm", "Run"];
-const STEPS_LEGACY:   &[&str] = &["Profile", "Region", "Dates", "Collectors", "Options", "Confirm", "Run"];
+const STEPS_ACCOUNTS: &[&str] = &[
+    "Account",
+    "Dates",
+    "Collectors",
+    "Options",
+    "Confirm",
+    "Run",
+];
+const STEPS_LEGACY: &[&str] = &[
+    "Profile",
+    "Region",
+    "Dates",
+    "Collectors",
+    "Options",
+    "Confirm",
+    "Run",
+];
 const STEPS_INV_ACCOUNTS: &[&str] = &["Account", "Dates", "Inventory", "Options", "Confirm", "Run"];
-const STEPS_INV_LEGACY:   &[&str] = &["Profile", "Region", "Dates", "Inventory", "Options", "Confirm", "Run"];
-const STEPS_POAM: &[&str] = &["Region", "Year", "Month", "Confirm", "Run"];
+const STEPS_INV_LEGACY: &[&str] = &[
+    "Profile",
+    "Region",
+    "Dates",
+    "Inventory",
+    "Options",
+    "Confirm",
+    "Run",
+];
+const STEPS_POAM: &[&str] = &["Account", "Region", "Year", "Month", "Confirm", "Run"];
+const STEPS_POAM_NO_ACCOUNTS: &[&str] = &["Region", "Year", "Month", "Confirm", "Run"];
 
 fn screen_to_step(screen: &Screen, has_accounts: bool, feature: &Feature) -> Option<usize> {
     match feature {
         Feature::Collectors => {
             if has_accounts {
                 match screen {
-                    Screen::SelectAccount    => Some(0),
-                    Screen::SetDates         => Some(1),
+                    Screen::SelectAccount => Some(0),
+                    Screen::SetDates => Some(1),
                     Screen::SelectCollectors => Some(2),
-                    Screen::SetOptions       => Some(3),
-                    Screen::Confirm          => Some(4),
-                    Screen::Running          => Some(5),
+                    Screen::SetOptions => Some(3),
+                    Screen::Confirm => Some(4),
+                    Screen::Running => Some(5),
                     _ => None,
                 }
             } else {
                 match screen {
-                    Screen::SelectProfile    => Some(0),
-                    Screen::SelectRegion     => Some(1),
-                    Screen::SetDates         => Some(2),
+                    Screen::SelectProfile => Some(0),
+                    Screen::SelectRegion => Some(1),
+                    Screen::SetDates => Some(2),
                     Screen::SelectCollectors => Some(3),
-                    Screen::SetOptions       => Some(4),
-                    Screen::Confirm          => Some(5),
-                    Screen::Running          => Some(6),
+                    Screen::SetOptions => Some(4),
+                    Screen::Confirm => Some(5),
+                    Screen::Running => Some(6),
                     _ => None,
                 }
             }
@@ -102,34 +125,48 @@ fn screen_to_step(screen: &Screen, has_accounts: bool, feature: &Feature) -> Opt
             if has_accounts {
                 match screen {
                     Screen::SelectAccount => Some(0),
-                    Screen::SetDates      => Some(1),
-                    Screen::Inventory     => Some(2),
-                    Screen::SetOptions    => Some(3),
-                    Screen::Confirm       => Some(4),
-                    Screen::Running       => Some(5),
+                    Screen::SetDates => Some(1),
+                    Screen::Inventory => Some(2),
+                    Screen::SetOptions => Some(3),
+                    Screen::Confirm => Some(4),
+                    Screen::Running => Some(5),
                     _ => None,
                 }
             } else {
                 match screen {
                     Screen::SelectProfile => Some(0),
-                    Screen::SelectRegion  => Some(1),
-                    Screen::SetDates      => Some(2),
-                    Screen::Inventory     => Some(3),
-                    Screen::SetOptions    => Some(4),
-                    Screen::Confirm       => Some(5),
-                    Screen::Running       => Some(6),
+                    Screen::SelectRegion => Some(1),
+                    Screen::SetDates => Some(2),
+                    Screen::Inventory => Some(3),
+                    Screen::SetOptions => Some(4),
+                    Screen::Confirm => Some(5),
+                    Screen::Running => Some(6),
                     _ => None,
                 }
             }
         }
-        Feature::Poam => match screen {
-            Screen::PoamRegion => Some(0),
-            Screen::PoamYear => Some(1),
-            Screen::PoamMonth => Some(2),
-            Screen::Confirm => Some(3),
-            Screen::Running => Some(4),
-            _ => None,
-        },
+        Feature::Poam => {
+            if has_accounts {
+                match screen {
+                    Screen::PoamAccount => Some(0),
+                    Screen::PoamRegion => Some(1),
+                    Screen::PoamYear => Some(2),
+                    Screen::PoamMonth => Some(3),
+                    Screen::Confirm => Some(4),
+                    Screen::Running => Some(5),
+                    _ => None,
+                }
+            } else {
+                match screen {
+                    Screen::PoamRegion => Some(0),
+                    Screen::PoamYear => Some(1),
+                    Screen::PoamMonth => Some(2),
+                    Screen::Confirm => Some(3),
+                    Screen::Running => Some(4),
+                    _ => None,
+                }
+            }
+        }
     }
 }
 
@@ -141,10 +178,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     let area = f.area();
 
     // Deep background fill
-    f.render_widget(
-        Block::default().style(Style::default().bg(BG_DARK)),
-        area,
-    );
+    f.render_widget(Block::default().style(Style::default().bg(BG_DARK)), area);
 
     // Outer double-border frame
     let outer_block = Block::bordered()
@@ -161,15 +195,15 @@ pub fn draw(f: &mut Frame, app: &App) {
     let step_height = if show_steps { 2 } else { 0 };
 
     let layout = Layout::vertical([
-        Constraint::Length(1),           // top padding
-        Constraint::Length(1),           // header
-        Constraint::Length(1),           // separator
-        Constraint::Length(step_height), // step indicator
+        Constraint::Length(1),                              // top padding
+        Constraint::Length(1),                              // header
+        Constraint::Length(1),                              // separator
+        Constraint::Length(step_height),                    // step indicator
         Constraint::Length(if show_steps { 1 } else { 0 }), // content separator
-        Constraint::Fill(1),            // content
-        Constraint::Length(1),           // content separator
-        Constraint::Length(1),           // footer
-        Constraint::Length(1),           // bottom padding
+        Constraint::Fill(1),                                // content
+        Constraint::Length(1),                              // content separator
+        Constraint::Length(1),                              // footer
+        Constraint::Length(1),                              // bottom padding
     ])
     .split(inner);
 
@@ -177,14 +211,33 @@ pub fn draw(f: &mut Frame, app: &App) {
     let step_info = screen_to_step(&app.screen, app.has_accounts(), &app.selected_feature);
     let steps = match app.selected_feature {
         Feature::Collectors => {
-            if app.has_accounts() { STEPS_ACCOUNTS } else { STEPS_LEGACY }
+            if app.has_accounts() {
+                STEPS_ACCOUNTS
+            } else {
+                STEPS_LEGACY
+            }
         }
         Feature::Inventory => {
-            if app.has_accounts() { STEPS_INV_ACCOUNTS } else { STEPS_INV_LEGACY }
+            if app.has_accounts() {
+                STEPS_INV_ACCOUNTS
+            } else {
+                STEPS_INV_LEGACY
+            }
         }
-        Feature::Poam => STEPS_POAM,
+        Feature::Poam => {
+            if app.has_accounts() {
+                STEPS_POAM
+            } else {
+                STEPS_POAM_NO_ACCOUNTS
+            }
+        }
     };
-    draw_header(f, layout[1], step_info.map(|s| (s + 1, steps.len())), &app.screen);
+    draw_header(
+        f,
+        layout[1],
+        step_info.map(|s| (s + 1, steps.len())),
+        &app.screen,
+    );
 
     // Separator
     draw_separator(f, layout[2]);
@@ -200,22 +253,23 @@ pub fn draw(f: &mut Frame, app: &App) {
     // Content
     let content = layout[5];
     match app.screen {
-        Screen::Welcome          => draw_welcome(f, content),
+        Screen::Welcome => draw_welcome(f, content),
         Screen::FeatureSelection => draw_feature_selection(f, content, app),
-        Screen::SelectAccount    => draw_select_account(f, content, app),
-        Screen::SelectProfile    => draw_profile(f, content, app),
-        Screen::SelectRegion     => draw_region(f, content, app),
-        Screen::PoamRegion       => draw_poam_region(f, content, app),
-        Screen::PoamYear         => draw_poam_year(f, content, app),
-        Screen::PoamMonth        => draw_poam_month(f, content, app),
-        Screen::SetDates         => draw_dates(f, content, app),
-        Screen::Inventory        => draw_inventory_selection(f, content, app),
+        Screen::SelectAccount => draw_select_account(f, content, app),
+        Screen::SelectProfile => draw_profile(f, content, app),
+        Screen::SelectRegion => draw_region(f, content, app),
+        Screen::PoamAccount => draw_poam_account(f, content, app),
+        Screen::PoamRegion => draw_poam_region(f, content, app),
+        Screen::PoamYear => draw_poam_year(f, content, app),
+        Screen::PoamMonth => draw_poam_month(f, content, app),
+        Screen::SetDates => draw_dates(f, content, app),
+        Screen::Inventory => draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => draw_collectors(f, content, app),
-        Screen::SetOptions       => draw_options(f, content, app),
-        Screen::Confirm          => draw_confirm(f, content, app),
-        Screen::Preparing        => draw_preparing(f, content, app),
-        Screen::Running          => draw_running(f, content, app),
-        Screen::Results          => draw_results(f, content, app),
+        Screen::SetOptions => draw_options(f, content, app),
+        Screen::Confirm => draw_confirm(f, content, app),
+        Screen::Preparing => draw_preparing(f, content, app),
+        Screen::Running => draw_running(f, content, app),
+        Screen::Results => draw_results(f, content, app),
     }
 
     // Bottom separator + footer
@@ -235,7 +289,10 @@ pub fn draw(f: &mut Frame, app: &App) {
 fn draw_header(f: &mut Frame, area: Rect, step: Option<(usize, usize)>, screen: &Screen) {
     let left = vec![
         Span::styled(" ◆ ", Style::default().fg(CYAN)),
-        Span::styled("THE GRABBER", Style::default().fg(CYAN).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "THE GRABBER",
+            Style::default().fg(CYAN).add_modifier(Modifier::BOLD),
+        ),
         Span::styled("   ", Style::default()),
         Span::styled(
             "AWS Compliance Evidence Collector",
@@ -245,12 +302,18 @@ fn draw_header(f: &mut Frame, area: Rect, step: Option<(usize, usize)>, screen: 
 
     let right = match screen {
         Screen::Running => vec![
-            Span::styled("Collecting...", Style::default().fg(AMBER).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Collecting...",
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            ),
             Span::raw("  "),
         ],
         Screen::Results => vec![
             Span::styled("✓ ", Style::default().fg(GREEN)),
-            Span::styled("Complete", Style::default().fg(GREEN).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Complete",
+                Style::default().fg(GREEN).add_modifier(Modifier::BOLD),
+            ),
             Span::raw("  "),
         ],
         _ => {
@@ -286,7 +349,10 @@ fn draw_step_indicator(f: &mut Frame, area: Rect, current: usize, steps: &[&str]
         let (icon, style) = if i < current {
             ("● ", Style::default().fg(GREEN))
         } else if i == current {
-            ("◉ ", Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+            (
+                "◉ ",
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            )
         } else {
             ("○ ", Style::default().fg(TEXT_DIM))
         };
@@ -310,9 +376,9 @@ fn draw_step_indicator(f: &mut Frame, area: Rect, current: usize, steps: &[&str]
             let segment = bar_width / steps.len();
             let filled = segment * current + segment / 2;
             let mut bar_spans = vec![Span::raw("   ")];
-            let bar_str: String = (0..bar_width).map(|i| {
-                if i == filled { '●' } else { '━' }
-            }).collect();
+            let bar_str: String = (0..bar_width)
+                .map(|i| if i == filled { '●' } else { '━' })
+                .collect();
             // Color the bar: green for completed, amber for current pos, dim for future
             for (i, ch) in bar_str.chars().enumerate() {
                 let color = if ch == '●' {
@@ -346,9 +412,15 @@ fn draw_footer(f: &mut Frame, area: Rect, hints: &[(&str, &str)]) {
     for (key, desc) in hints {
         spans.push(Span::styled(
             format!(" {key} "),
-            Style::default().fg(TEXT_BRIGHT).bg(BG_ELEVATED).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(TEXT_BRIGHT)
+                .bg(BG_ELEVATED)
+                .add_modifier(Modifier::BOLD),
         ));
-        spans.push(Span::styled(format!(" {desc}  "), Style::default().fg(TEXT_DIM)));
+        spans.push(Span::styled(
+            format!(" {desc}  "),
+            Style::default().fg(TEXT_DIM),
+        ));
     }
 
     let cols = Layout::horizontal([Constraint::Fill(1), Constraint::Min(12)]).split(area);
@@ -362,22 +434,60 @@ fn draw_footer(f: &mut Frame, area: Rect, hints: &[(&str, &str)]) {
 
 fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
     match screen {
-        Screen::Welcome          => vec![("⏎", "Begin"), ("Esc", "Quit")],
+        Screen::Welcome => vec![("⏎", "Begin"), ("Esc", "Quit")],
         Screen::FeatureSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Quit")],
-        Screen::SelectAccount    => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "All"), ("d", "None"), ("⏎", "Confirm"), ("Esc", "Quit")],
-        Screen::SelectProfile    => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
-        Screen::SelectRegion     => vec![("↑↓", "Navigate"), ("↓", "Custom"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::PoamRegion       => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::PoamYear         => vec![("0-9", "Type Year"), ("⌫", "Delete"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::PoamMonth        => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SetDates         => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::Inventory        => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SelectCollectors => vec![("↑↓", "Navigate"), ("␣", "Toggle"), ("a", "Select All"), ("d", "Deselect All"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::SetOptions       => vec![("⇥", "Switch Field"), ("↑↓", "Navigate Regions"), ("␣", "Toggle"), ("⏎", "Confirm"), ("Esc", "Back")],
-        Screen::Confirm          => vec![("⏎", "Start"), ("Esc", "Back")],
-        Screen::Preparing        => vec![],
-        Screen::Running          => vec![],
-        Screen::Results          => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
+        Screen::SelectAccount => vec![
+            ("↑↓", "Navigate"),
+            ("␣", "Toggle"),
+            ("a", "All"),
+            ("d", "None"),
+            ("⏎", "Confirm"),
+            ("Esc", "Quit"),
+        ],
+        Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
+        Screen::SelectRegion => vec![
+            ("↑↓", "Navigate"),
+            ("↓", "Custom"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
+        Screen::PoamAccount => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::PoamRegion => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::PoamYear => vec![
+            ("0-9", "Type Year"),
+            ("⌫", "Delete"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
+        Screen::PoamMonth => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::SetDates => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
+        Screen::Inventory => vec![
+            ("↑↓", "Navigate"),
+            ("␣", "Toggle"),
+            ("a", "Select All"),
+            ("d", "Deselect All"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
+        Screen::SelectCollectors => vec![
+            ("↑↓", "Navigate"),
+            ("␣", "Toggle"),
+            ("a", "Select All"),
+            ("d", "Deselect All"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
+        Screen::SetOptions => vec![
+            ("⇥", "Switch Field"),
+            ("↑↓", "Navigate Regions"),
+            ("␣", "Toggle"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
+        Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
+        Screen::Preparing => vec![],
+        Screen::Running => vec![],
+        Screen::Results => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
     }
 }
 
@@ -388,15 +498,15 @@ fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
 fn draw_welcome(f: &mut Frame, area: Rect) {
     let chunks = Layout::vertical([
         Constraint::Fill(1),
-        Constraint::Length(6),  // logo
-        Constraint::Length(1),  // blank
-        Constraint::Length(1),  // decorative divider
-        Constraint::Length(1),  // blank
-        Constraint::Length(1),  // title
-        Constraint::Length(1),  // blank
-        Constraint::Length(2),  // description
-        Constraint::Length(2),  // blank
-        Constraint::Length(1),  // CTA
+        Constraint::Length(6), // logo
+        Constraint::Length(1), // blank
+        Constraint::Length(1), // decorative divider
+        Constraint::Length(1), // blank
+        Constraint::Length(1), // title
+        Constraint::Length(1), // blank
+        Constraint::Length(2), // description
+        Constraint::Length(2), // blank
+        Constraint::Length(1), // CTA
         Constraint::Fill(1),
     ])
     .split(area);
@@ -430,7 +540,9 @@ fn draw_welcome(f: &mut Frame, area: Rect) {
     f.render_widget(
         Paragraph::new(Span::styled(
             "The Grabber",
-            Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(TEXT_BRIGHT)
+                .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center),
         chunks[5],
@@ -485,7 +597,9 @@ fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(
         Paragraph::new(Span::styled(
             "What would you like to do?",
-            Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(TEXT_BRIGHT)
+                .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center),
         chunks[1],
@@ -532,7 +646,11 @@ fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
         };
 
         let card_block = Block::bordered()
-            .border_type(if selected { BorderType::Thick } else { BorderType::Plain })
+            .border_type(if selected {
+                BorderType::Thick
+            } else {
+                BorderType::Plain
+            })
             .border_style(border_style)
             .style(Style::default().bg(if selected { BG_ELEVATED } else { BG_MAIN }));
         let inner = card_block.inner(card_areas[idx]);
@@ -565,11 +683,8 @@ fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_inventory_selection(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Fill(1),
-    ])
-    .split(content_inset(area));
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
 
     let count_text = format!(
         "Select AWS asset type(s) for the inventory CSV:  ({} of {} selected)",
@@ -622,11 +737,8 @@ fn draw_inventory_selection(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Fill(1),
-    ])
-    .split(content_inset(area));
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
 
     let count_text = format!(
         "Select AWS account(s) to collect evidence from:  ({} of {} selected)",
@@ -634,10 +746,7 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
         app.accounts.len(),
     );
     f.render_widget(
-        Paragraph::new(Span::styled(
-            count_text,
-            Style::default().fg(TEXT_DIM),
-        )),
+        Paragraph::new(Span::styled(count_text, Style::default().fg(TEXT_DIM))),
         chunks[0],
     );
 
@@ -652,9 +761,14 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
         let checkbox = if checked { "[x] " } else { "[ ] " };
 
         let name_style = if at_cursor {
-            Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+            Style::default()
+                .fg(AMBER)
+                .add_modifier(Modifier::BOLD)
+                .bg(BG_SELECTED)
         } else {
-            Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(TEXT_BRIGHT)
+                .add_modifier(Modifier::BOLD)
         };
 
         let checkbox_style = if checked {
@@ -692,7 +806,10 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
     let other_selected = app.account_cursor == app.accounts.len();
     let other_icon = if other_selected { "▸ " } else { "  " };
     let other_style = if other_selected {
-        Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+        Style::default()
+            .fg(AMBER)
+            .add_modifier(Modifier::BOLD)
+            .bg(BG_SELECTED)
     } else {
         Style::default().fg(TEXT_NORMAL)
     };
@@ -720,11 +837,8 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_profile(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Fill(1),
-    ])
-    .split(content_inset(area));
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
 
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -742,7 +856,10 @@ fn draw_profile(f: &mut Frame, area: Rect, app: &App) {
             let selected = i == app.profile_cursor;
             let icon = if selected { "▸ " } else { "  " };
             let style = if selected {
-                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
             } else {
                 Style::default().fg(TEXT_NORMAL)
             };
@@ -777,12 +894,12 @@ fn draw_profile(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_region(f: &mut Frame, area: Rect, app: &App) {
     let region_names: &[(&str, &str)] = &[
-        ("us-east-1",      "N. Virginia"),
-        ("us-east-2",      "Ohio"),
-        ("us-west-1",      "N. California"),
-        ("us-west-2",      "Oregon"),
-        ("eu-west-1",      "Ireland"),
-        ("eu-central-1",   "Frankfurt"),
+        ("us-east-1", "N. Virginia"),
+        ("us-east-2", "Ohio"),
+        ("us-west-1", "N. California"),
+        ("us-west-2", "Oregon"),
+        ("eu-west-1", "Ireland"),
+        ("eu-central-1", "Frankfurt"),
         ("ap-southeast-1", "Singapore"),
         ("ap-northeast-1", "Tokyo"),
     ];
@@ -809,12 +926,16 @@ fn draw_region(f: &mut Frame, area: Rect, app: &App) {
         .map(|(i, r)| {
             let selected = !app.region_use_custom && i == app.region_cursor;
             let icon = if selected { "▸ " } else { "  " };
-            let friendly = region_names.iter()
+            let friendly = region_names
+                .iter()
                 .find(|(code, _)| code == r)
                 .map(|(_, name)| *name)
                 .unwrap_or("");
             let style = if selected {
-                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
             } else {
                 Style::default().fg(TEXT_NORMAL)
             };
@@ -834,26 +955,86 @@ fn draw_region(f: &mut Frame, area: Rect, app: &App) {
     let list_block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(BORDER_SUBTLE))
-        .title(Span::styled(" Available Regions ", Style::default().fg(CYAN_DIM)))
+        .title(Span::styled(
+            " Available Regions ",
+            Style::default().fg(CYAN_DIM),
+        ))
         .padding(Padding::horizontal(1));
 
     f.render_stateful_widget(List::new(items).block(list_block), chunks[1], &mut state);
 
     // Custom region input
     let custom_focused = app.region_use_custom;
-    draw_text_field(f, chunks[2], "Custom Region", &app.region_custom.value, custom_focused);
+    draw_text_field(
+        f,
+        chunks[2],
+        "Custom Region",
+        &app.region_custom.value,
+        custom_focused,
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POAM Region / Year / Month
+// POAM Account / Region / Year / Month
 // ═══════════════════════════════════════════════════════════════════════════
 
+fn draw_poam_account(f: &mut Frame, area: Rect, app: &App) {
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
+
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            "Select the account whose evidence directory contains Inspector2 ECR findings:",
+            Style::default().fg(TEXT_DIM),
+        )),
+        chunks[0],
+    );
+
+    let items: Vec<ListItem> = app
+        .accounts
+        .iter()
+        .enumerate()
+        .map(|(i, acct)| {
+            let selected = i == app.poam_account_cursor;
+            let icon = if selected { "▸ " } else { "  " };
+            let name_style = if selected {
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+            let base = acct
+                .output_dir
+                .as_deref()
+                .unwrap_or("")
+                .trim_start_matches("./");
+            ListItem::new(Line::from(vec![
+                Span::styled(icon, Style::default().fg(AMBER)),
+                Span::styled(format!("{:<32}", acct.name), name_style),
+                Span::styled(format!("  {base}"), Style::default().fg(TEXT_DIM)),
+            ]))
+        })
+        .collect();
+
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .title(Span::styled(
+            " Configured Accounts ",
+            Style::default().fg(CYAN_DIM),
+        ))
+        .padding(Padding::horizontal(1));
+
+    let mut state = ListState::default();
+    state.select(Some(app.poam_account_cursor));
+    f.render_stateful_widget(List::new(items).block(block), chunks[1], &mut state);
+}
+
 fn draw_poam_region(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Fill(1),
-    ])
-    .split(content_inset(area));
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
 
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -871,7 +1052,10 @@ fn draw_poam_region(f: &mut Frame, area: Rect, app: &App) {
             let selected = i == app.poam_region_cursor;
             let icon = if selected { "▸ " } else { "  " };
             let style = if selected {
-                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
             } else {
                 Style::default().fg(TEXT_NORMAL)
             };
@@ -885,7 +1069,10 @@ fn draw_poam_region(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(BORDER_SUBTLE))
-        .title(Span::styled(" Supported Regions ", Style::default().fg(CYAN_DIM)))
+        .title(Span::styled(
+            " Supported Regions ",
+            Style::default().fg(CYAN_DIM),
+        ))
         .padding(Padding::horizontal(1));
 
     let mut state = ListState::default();
@@ -935,11 +1122,8 @@ fn draw_poam_month(f: &mut Frame, area: Rect, app: &App) {
         ("December", "12-DEC"),
     ];
 
-    let chunks = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Fill(1),
-    ])
-    .split(content_inset(area));
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
 
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -956,7 +1140,10 @@ fn draw_poam_month(f: &mut Frame, area: Rect, app: &App) {
             let selected = i == app.poam_month_cursor;
             let icon = if selected { "▸ " } else { "  " };
             let name_style = if selected {
-                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
             } else {
                 Style::default().fg(TEXT_NORMAL)
             };
@@ -983,11 +1170,8 @@ fn draw_poam_month(f: &mut Frame, area: Rect, app: &App) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([
-        Constraint::Length(2),
-        Constraint::Fill(1),
-    ])
-    .split(content_inset(area));
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
 
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -998,9 +1182,18 @@ fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
     );
 
     const MONTH_LABELS: [&str; 12] = [
-        "1 Month", "2 Months", "3 Months", "4 Months",
-        "5 Months", "6 Months", "7 Months", "8 Months",
-        "9 Months", "10 Months", "11 Months", "12 Months",
+        "1 Month",
+        "2 Months",
+        "3 Months",
+        "4 Months",
+        "5 Months",
+        "6 Months",
+        "7 Months",
+        "8 Months",
+        "9 Months",
+        "10 Months",
+        "11 Months",
+        "12 Months",
     ];
 
     let items: Vec<ListItem> = MONTH_LABELS
@@ -1010,7 +1203,10 @@ fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
             let selected = i == app.time_frame_cursor;
             let icon = if selected { "▸ " } else { "  " };
             let style = if selected {
-                Style::default().fg(AMBER).add_modifier(Modifier::BOLD).bg(BG_SELECTED)
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
             } else {
                 Style::default().fg(TEXT_NORMAL)
             };
@@ -1046,16 +1242,16 @@ fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
 
 /// Category boundaries for section headers.
 const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
-    (0,   "App Layer & DNS"),
-    (6,   "Audit Trail"),
-    (23,  "Compute"),
-    (37,  "Containers"),
-    (41,  "Database & Backup"),
-    (48,  "Encryption & Secrets"),
-    (55,  "Identity & Access"),
-    (67,  "Monitoring & Events"),
-    (77,  "Network"),
-    (97,  "Organization & Account"),
+    (0, "App Layer & DNS"),
+    (6, "Audit Trail"),
+    (23, "Compute"),
+    (37, "Containers"),
+    (41, "Database & Backup"),
+    (48, "Encryption & Secrets"),
+    (55, "Identity & Access"),
+    (67, "Monitoring & Events"),
+    (77, "Network"),
+    (97, "Organization & Account"),
     (101, "Security Detection"),
     (113, "Storage"),
 ];
@@ -1078,7 +1274,11 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         // Check if we need a section header before this item
         if let Some((_, cat_name)) = COLLECTOR_CATEGORIES.iter().find(|(idx, _)| *idx == i) {
             let sep_width = area.width.saturating_sub(12) as usize;
-            let header_line = format!("── {} {}", cat_name, "─".repeat(sep_width.saturating_sub(cat_name.len() + 4)));
+            let header_line = format!(
+                "── {} {}",
+                cat_name,
+                "─".repeat(sep_width.saturating_sub(cat_name.len() + 4))
+            );
             let max_chars = (area.width as usize).saturating_sub(6);
             let truncated: String = header_line.chars().take(max_chars).collect();
             items.push(ListItem::new(Line::from(Span::styled(
@@ -1109,7 +1309,7 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         let parts: Vec<&str> = label.splitn(2, '(').collect();
         let name = parts[0].trim();
         let desc = if parts.len() > 1 {
-            format!("({}",  parts[1])
+            format!("({}", parts[1])
         } else {
             String::new()
         };
@@ -1135,9 +1335,10 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(BORDER_SUBTLE))
-        .title(Line::from(vec![
-            Span::styled(&title, Style::default().fg(CYAN_DIM)),
-        ]));
+        .title(Line::from(vec![Span::styled(
+            &title,
+            Style::default().fg(CYAN_DIM),
+        )]));
 
     // We need to calculate the offset to account for section headers
     // above the current cursor position
@@ -1187,7 +1388,7 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         // Inventory-only (collapsed to 0 in Collectors mode):
         Constraint::Length(if is_inventory { 3 } else { 0 }), // [15] skip_inventory_csv
         Constraint::Length(if is_inventory { 1 } else { 0 }), // [16] spacer
-        Constraint::Fill(1),   // [17] region list
+        Constraint::Fill(1),                                  // [17] region list
     ])
     .split(content_inset(area));
 
@@ -1199,20 +1400,40 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         chunks[0],
     );
 
-    draw_text_field(f, chunks[1], "Filter (optional)", &app.filter_input.value, app.options_field == 0);
+    draw_text_field(
+        f,
+        chunks[1],
+        "Filter (optional)",
+        &app.filter_input.value,
+        app.options_field == 0,
+    );
 
     // ── Include Raw JSON toggle (field 1) ─────────────────────────────────────
     {
         let focused = app.options_field == 1;
-        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
-        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
-        let (off_style, on_style) = if app.include_raw {
-            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        let border_style = if focused {
+            Style::default().fg(CYAN)
         } else {
-            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+            Style::default().fg(BORDER_SUBTLE)
+        };
+        let title_style = if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+        let (off_style, on_style) = if app.include_raw {
+            (
+                Style::default().fg(TEXT_DIM),
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+                Style::default().fg(TEXT_DIM),
+            )
         };
         let off_icon = if !app.include_raw { "●" } else { "○" };
-        let on_icon  = if  app.include_raw { "●" } else { "○" };
+        let on_icon = if app.include_raw { "●" } else { "○" };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
@@ -1221,10 +1442,12 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(format!("{} ", on_icon), on_style),
                 Span::styled("Enabled", on_style),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(border_style)
-                .title(Span::styled(" Include Raw JSON ", title_style))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(border_style)
+                    .title(Span::styled(" Include Raw JSON ", title_style)),
+            ),
             chunks[3],
         );
     }
@@ -1232,15 +1455,29 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // ── All Regions (round-robin) toggle (field 2) ────────────────────────────
     {
         let focused = app.options_field == 2;
-        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
-        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
-        let (off_style, on_style) = if app.all_regions {
-            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        let border_style = if focused {
+            Style::default().fg(CYAN)
         } else {
-            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+            Style::default().fg(BORDER_SUBTLE)
+        };
+        let title_style = if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+        let (off_style, on_style) = if app.all_regions {
+            (
+                Style::default().fg(TEXT_DIM),
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+                Style::default().fg(TEXT_DIM),
+            )
         };
         let off_icon = if !app.all_regions { "●" } else { "○" };
-        let on_icon  = if  app.all_regions { "●" } else { "○" };
+        let on_icon = if app.all_regions { "●" } else { "○" };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
@@ -1249,10 +1486,12 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(format!("{} ", on_icon), on_style),
                 Span::styled("All Regions (round-robin discovery)", on_style),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(border_style)
-                .title(Span::styled(" All Regions ", title_style))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(border_style)
+                    .title(Span::styled(" All Regions ", title_style)),
+            ),
             chunks[5],
         );
     }
@@ -1260,15 +1499,29 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // ── Zip Bundle toggle (field 3) ───────────────────────────────────────────
     {
         let focused = app.options_field == 3;
-        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
-        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
-        let (off_style, on_style) = if app.zip {
-            (Style::default().fg(TEXT_DIM), Style::default().fg(GREEN).add_modifier(Modifier::BOLD))
+        let border_style = if focused {
+            Style::default().fg(CYAN)
         } else {
-            (Style::default().fg(GREEN).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+            Style::default().fg(BORDER_SUBTLE)
+        };
+        let title_style = if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+        let (off_style, on_style) = if app.zip {
+            (
+                Style::default().fg(TEXT_DIM),
+                Style::default().fg(GREEN).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(GREEN).add_modifier(Modifier::BOLD),
+                Style::default().fg(TEXT_DIM),
+            )
         };
         let off_icon = if !app.zip { "●" } else { "○" };
-        let on_icon  = if  app.zip { "●" } else { "○" };
+        let on_icon = if app.zip { "●" } else { "○" };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
@@ -1277,10 +1530,12 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(format!("{} ", on_icon), on_style),
                 Span::styled("Enabled — bundle output into a dated .zip", on_style),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(border_style)
-                .title(Span::styled(" Zip Package ", title_style))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(border_style)
+                    .title(Span::styled(" Zip Package ", title_style)),
+            ),
             chunks[7],
         );
     }
@@ -1288,15 +1543,29 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // ── Sign Output toggle (field 4) ──────────────────────────────────────────
     {
         let focused = app.options_field == 4;
-        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
-        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
-        let (off_style, on_style) = if app.sign {
-            (Style::default().fg(TEXT_DIM), Style::default().fg(PURPLE).add_modifier(Modifier::BOLD))
+        let border_style = if focused {
+            Style::default().fg(CYAN)
         } else {
-            (Style::default().fg(PURPLE).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+            Style::default().fg(BORDER_SUBTLE)
+        };
+        let title_style = if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+        let (off_style, on_style) = if app.sign {
+            (
+                Style::default().fg(TEXT_DIM),
+                Style::default().fg(PURPLE).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(PURPLE).add_modifier(Modifier::BOLD),
+                Style::default().fg(TEXT_DIM),
+            )
         };
         let off_icon = if !app.sign { "●" } else { "○" };
-        let on_icon  = if  app.sign { "●" } else { "○" };
+        let on_icon = if app.sign { "●" } else { "○" };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
@@ -1305,10 +1574,12 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(format!("{} ", on_icon), on_style),
                 Span::styled("Enabled — HMAC-SHA256 sign all output files", on_style),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(border_style)
-                .title(Span::styled(" Sign Output ", title_style))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(border_style)
+                    .title(Span::styled(" Sign Output ", title_style)),
+            ),
             chunks[9],
         );
     }
@@ -1316,15 +1587,29 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // ── Skip Run Manifest toggle (Collectors only, field 5) ──────────────────
     if !is_inventory {
         let focused = app.options_field == 5;
-        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
-        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
-        let (off_style, on_style) = if app.skip_run_manifest {
-            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        let border_style = if focused {
+            Style::default().fg(CYAN)
         } else {
-            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+            Style::default().fg(BORDER_SUBTLE)
+        };
+        let title_style = if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+        let (off_style, on_style) = if app.skip_run_manifest {
+            (
+                Style::default().fg(TEXT_DIM),
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+                Style::default().fg(TEXT_DIM),
+            )
         };
         let off_icon = if !app.skip_run_manifest { "●" } else { "○" };
-        let on_icon  = if  app.skip_run_manifest { "●" } else { "○" };
+        let on_icon = if app.skip_run_manifest { "●" } else { "○" };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
@@ -1333,10 +1618,12 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(format!("{} ", on_icon), on_style),
                 Span::styled("Disabled — skip RUN-MANIFEST file", on_style),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(border_style)
-                .title(Span::styled(" Run Manifest ", title_style))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(border_style)
+                    .title(Span::styled(" Run Manifest ", title_style)),
+            ),
             chunks[11],
         );
     }
@@ -1344,15 +1631,37 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // ── Skip Chain of Custody toggle (Collectors only, field 6) ──────────────
     if !is_inventory {
         let focused = app.options_field == 6;
-        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
-        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
-        let (off_style, on_style) = if app.skip_chain_of_custody {
-            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        let border_style = if focused {
+            Style::default().fg(CYAN)
         } else {
-            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+            Style::default().fg(BORDER_SUBTLE)
         };
-        let off_icon = if !app.skip_chain_of_custody { "●" } else { "○" };
-        let on_icon  = if  app.skip_chain_of_custody { "●" } else { "○" };
+        let title_style = if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+        let (off_style, on_style) = if app.skip_chain_of_custody {
+            (
+                Style::default().fg(TEXT_DIM),
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+                Style::default().fg(TEXT_DIM),
+            )
+        };
+        let off_icon = if !app.skip_chain_of_custody {
+            "●"
+        } else {
+            "○"
+        };
+        let on_icon = if app.skip_chain_of_custody {
+            "●"
+        } else {
+            "○"
+        };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
@@ -1361,10 +1670,12 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(format!("{} ", on_icon), on_style),
                 Span::styled("Disabled — skip CHAIN-OF-CUSTODY file", on_style),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(border_style)
-                .title(Span::styled(" Chain of Custody ", title_style))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(border_style)
+                    .title(Span::styled(" Chain of Custody ", title_style)),
+            ),
             chunks[13],
         );
     }
@@ -1372,15 +1683,33 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // ── Skip Inventory CSV toggle (Inventory only, field 5) ──────────────────
     if is_inventory {
         let focused = app.options_field == 5;
-        let border_style = if focused { Style::default().fg(CYAN) } else { Style::default().fg(BORDER_SUBTLE) };
-        let title_style  = if focused { Style::default().fg(CYAN) } else { Style::default().fg(TEXT_DIM) };
-        let (off_style, on_style) = if app.skip_inventory_csv {
-            (Style::default().fg(TEXT_DIM), Style::default().fg(AMBER).add_modifier(Modifier::BOLD))
+        let border_style = if focused {
+            Style::default().fg(CYAN)
         } else {
-            (Style::default().fg(AMBER).add_modifier(Modifier::BOLD), Style::default().fg(TEXT_DIM))
+            Style::default().fg(BORDER_SUBTLE)
         };
-        let off_icon = if !app.skip_inventory_csv { "●" } else { "○" };
-        let on_icon  = if  app.skip_inventory_csv { "●" } else { "○" };
+        let title_style = if focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(TEXT_DIM)
+        };
+        let (off_style, on_style) = if app.skip_inventory_csv {
+            (
+                Style::default().fg(TEXT_DIM),
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+            )
+        } else {
+            (
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+                Style::default().fg(TEXT_DIM),
+            )
+        };
+        let off_icon = if !app.skip_inventory_csv {
+            "●"
+        } else {
+            "○"
+        };
+        let on_icon = if app.skip_inventory_csv { "●" } else { "○" };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
@@ -1389,10 +1718,12 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled(format!("{} ", on_icon), on_style),
                 Span::styled("Excel only — skip intermediate CSV", on_style),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(border_style)
-                .title(Span::styled(" Inventory Output Format ", title_style))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(border_style)
+                    .title(Span::styled(" Inventory Output Format ", title_style)),
+            ),
             chunks[15],
         );
     }
@@ -1401,7 +1732,7 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     {
         let region_field = if is_inventory { 6 } else { 7 };
         let focused = app.options_field == region_field;
-        let dimmed  = app.all_regions; // when all_regions is ON, list is informational only
+        let dimmed = app.all_regions; // when all_regions is ON, list is informational only
 
         let border_style = if dimmed {
             Style::default().fg(BORDER_SUBTLE)
@@ -1425,34 +1756,41 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
             format!(" Specific Regions — {} selected ", selected_count)
         };
 
-        let items: Vec<ListItem> = app.regions.iter().enumerate().map(|(i, region)| {
-            let is_selected = app.options_selected_regions.contains(&i);
-            let is_cursor   = focused && i == app.options_region_cursor;
+        let items: Vec<ListItem> = app
+            .regions
+            .iter()
+            .enumerate()
+            .map(|(i, region)| {
+                let is_selected = app.options_selected_regions.contains(&i);
+                let is_cursor = focused && i == app.options_region_cursor;
 
-            let check_style = if dimmed {
-                Style::default().fg(TEXT_DIM)
-            } else if is_selected {
-                Style::default().fg(GREEN).add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(TEXT_DIM)
-            };
-            let name_style = if dimmed {
-                Style::default().fg(TEXT_DIM)
-            } else if is_selected {
-                Style::default().fg(TEXT_NORMAL).add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(TEXT_NORMAL)
-            };
+                let check_style = if dimmed {
+                    Style::default().fg(TEXT_DIM)
+                } else if is_selected {
+                    Style::default().fg(GREEN).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(TEXT_DIM)
+                };
+                let name_style = if dimmed {
+                    Style::default().fg(TEXT_DIM)
+                } else if is_selected {
+                    Style::default()
+                        .fg(TEXT_NORMAL)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(TEXT_NORMAL)
+                };
 
-            let check = if is_selected { "[✓]" } else { "[ ]" };
-            let prefix = if is_cursor && !dimmed { " ▶ " } else { "   " };
+                let check = if is_selected { "[✓]" } else { "[ ]" };
+                let prefix = if is_cursor && !dimmed { " ▶ " } else { "   " };
 
-            ListItem::new(Line::from(vec![
-                Span::styled(prefix, Style::default().fg(CYAN)),
-                Span::styled(check, check_style),
-                Span::styled(format!("  {}", region), name_style),
-            ]))
-        }).collect();
+                ListItem::new(Line::from(vec![
+                    Span::styled(prefix, Style::default().fg(CYAN)),
+                    Span::styled(check, check_style),
+                    Span::styled(format!("  {}", region), name_style),
+                ]))
+            })
+            .collect();
 
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
@@ -1464,11 +1802,7 @@ fn draw_options(f: &mut Frame, area: Rect, app: &App) {
             list_state.select(Some(app.options_region_cursor));
         }
 
-        f.render_stateful_widget(
-            List::new(items).block(block),
-            chunks[17],
-            &mut list_state,
-        );
+        f.render_stateful_widget(List::new(items).block(block), chunks[17], &mut list_state);
     }
 }
 
@@ -1486,22 +1820,36 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
     .split(content_inset(area));
 
     if matches!(app.selected_feature, Feature::Poam) {
+        let poam_account = if app.has_accounts() {
+            app.accounts
+                .get(app.poam_account_cursor)
+                .map(|a| a.name.as_str())
+                .unwrap_or("(none)")
+                .to_string()
+        } else {
+            String::new()
+        };
         let poam_region = app.poam_selected_region();
         let poam_year = app.poam_year_value();
         let poam_month = app.poam_month_name().to_string();
         let evidence_path = app.poam_evidence_path();
         let workbook_path = "evidence-output/poam/FedRAMP-POAM.xlsx".to_string();
 
-        let rows = vec![
+        let mut rows = vec![
             Line::raw(""),
             kv_line_colored("Feature", "POAM Reconciliation", AMBER),
+        ];
+        if !poam_account.is_empty() {
+            rows.push(kv_line("Account", &poam_account));
+        }
+        rows.extend([
             kv_line("Region", &poam_region),
             kv_line("Year", &poam_year),
             kv_line("Month", &poam_month),
             kv_line("Evidence Path", &evidence_path),
             kv_line("Workbook", &workbook_path),
             Line::raw(""),
-        ];
+        ]);
 
         let summary_block = Block::bordered()
             .border_type(BorderType::Rounded)
@@ -1535,7 +1883,8 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
     // Build account/profile lines depending on selection mode.
     let sorted_accounts = app.selected_account_indices();
     let account_display = if sorted_accounts.len() > 1 {
-        let names: Vec<&str> = sorted_accounts.iter()
+        let names: Vec<&str> = sorted_accounts
+            .iter()
             .map(|&i| app.accounts[i].name.as_str())
             .collect();
         format!("{} selected ({})", sorted_accounts.len(), names.join(", "))
@@ -1562,7 +1911,11 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
     let time_frame_label = format!(
         "{} Month{}",
         app.time_frame_months(),
-        if app.time_frame_months() == 1 { "" } else { "s" },
+        if app.time_frame_months() == 1 {
+            ""
+        } else {
+            "s"
+        },
     );
     rows.extend_from_slice(&[
         kv_line("Time Frame", &time_frame_label),
@@ -1602,10 +1955,38 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
                 kv_line("Output Dir", &app.output_dir.value),
                 kv_line("Filter", &filter_display),
                 kv_line("Include Raw", if app.include_raw { "yes" } else { "no" }),
-                kv_line("Zip Package", if app.zip { "yes — bundle output into a dated .zip" } else { "no" }),
-                kv_line("Sign Output", if app.sign { "yes — HMAC-SHA256 manifest + key file" } else { "no" }),
-                kv_line("Run Manifest", if app.skip_run_manifest { "disabled" } else { "enabled" }),
-                kv_line("Chain of Custody", if app.skip_chain_of_custody { "disabled" } else { "enabled" }),
+                kv_line(
+                    "Zip Package",
+                    if app.zip {
+                        "yes — bundle output into a dated .zip"
+                    } else {
+                        "no"
+                    },
+                ),
+                kv_line(
+                    "Sign Output",
+                    if app.sign {
+                        "yes — HMAC-SHA256 manifest + key file"
+                    } else {
+                        "no"
+                    },
+                ),
+                kv_line(
+                    "Run Manifest",
+                    if app.skip_run_manifest {
+                        "disabled"
+                    } else {
+                        "enabled"
+                    },
+                ),
+                kv_line(
+                    "Chain of Custody",
+                    if app.skip_chain_of_custody {
+                        "disabled"
+                    } else {
+                        "enabled"
+                    },
+                ),
                 regions_line,
             ]);
         }
@@ -1614,7 +1995,14 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
                 kv_line("Feature", "Inventory"),
                 kv_line_colored("Asset Types", &assets_display, AMBER),
                 kv_line("Output Dir", &app.output_dir.value),
-                kv_line("Output Format", if app.skip_inventory_csv { "Excel only (CSV skipped)" } else { "CSV + Excel" }),
+                kv_line(
+                    "Output Format",
+                    if app.skip_inventory_csv {
+                        "Excel only (CSV skipped)"
+                    } else {
+                        "CSV + Excel"
+                    },
+                ),
             ]);
         }
         Feature::Poam => {}
@@ -1641,7 +2029,7 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
 
     let button_label = match app.selected_feature {
         Feature::Collectors => "▸▸  Start Collection  ◂◂",
-        Feature::Inventory  => "▸▸  Start Inventory   ◂◂",
+        Feature::Inventory => "▸▸  Start Inventory   ◂◂",
         Feature::Poam => "▸▸  Start POAM Run    ◂◂",
     };
     f.render_widget(
@@ -1663,8 +2051,8 @@ fn draw_preparing(f: &mut Frame, area: Rect, app: &App) {
     let inset = content_inset(area);
 
     let chunks = Layout::vertical([
-        Constraint::Length(3),  // title
-        Constraint::Fill(1),    // log lines
+        Constraint::Length(3), // title
+        Constraint::Fill(1),   // log lines
     ])
     .split(inset);
 
@@ -1705,7 +2093,10 @@ fn draw_preparing(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(GREEN)
             } else if line.starts_with("  ✗") || line.starts_with("  ERROR") {
                 Style::default().fg(RED)
-            } else if line.starts_with("    Region") || line.starts_with("    All ") || line.starts_with("    Building") {
+            } else if line.starts_with("    Region")
+                || line.starts_with("    All ")
+                || line.starts_with("    Building")
+            {
                 Style::default().fg(TEXT_DIM)
             } else if line.starts_with("  [") {
                 Style::default().fg(CYAN).add_modifier(Modifier::BOLD)
@@ -1716,13 +2107,12 @@ fn draw_preparing(f: &mut Frame, area: Rect, app: &App) {
         })
         .collect();
 
-    let log_widget = List::new(lines)
-        .block(
-            Block::bordered()
-                .border_style(Style::default().fg(BORDER_SUBTLE))
-                .title(Span::styled(" Setup Log ", Style::default().fg(TEXT_DIM)))
-                .padding(Padding::horizontal(1)),
-        );
+    let log_widget = List::new(lines).block(
+        Block::bordered()
+            .border_style(Style::default().fg(BORDER_SUBTLE))
+            .title(Span::styled(" Setup Log ", Style::default().fg(TEXT_DIM)))
+            .padding(Padding::horizontal(1)),
+    );
     f.render_widget(log_widget, chunks[1]);
 }
 
@@ -1740,7 +2130,7 @@ fn draw_running(f: &mut Frame, area: Rect, app: &App) {
         let parts = Layout::vertical([
             Constraint::Length(1), // status line
             Constraint::Length(1), // blank
-            Constraint::Fill(1),  // rest
+            Constraint::Fill(1),   // rest
         ])
         .split(inset);
         (Some(parts[0]), parts[2])
@@ -1754,7 +2144,10 @@ fn draw_running(f: &mut Frame, area: Rect, app: &App) {
         if multi_account {
             let label = app.current_account_label.as_deref().unwrap_or("…");
             spans.push(Span::styled(
-                format!("Account {} of {}: {}", app.current_account_index, app.total_account_count, label),
+                format!(
+                    "Account {} of {}: {}",
+                    app.current_account_index, app.total_account_count, label
+                ),
                 Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
             ));
         }
@@ -1775,11 +2168,8 @@ fn draw_running(f: &mut Frame, area: Rect, app: &App) {
 
     if rest.width >= 90 {
         // Two-column layout
-        let columns = Layout::horizontal([
-            Constraint::Percentage(60),
-            Constraint::Percentage(40),
-        ])
-        .split(rest);
+        let columns = Layout::horizontal([Constraint::Percentage(60), Constraint::Percentage(40)])
+            .split(rest);
         draw_running_progress(f, columns[0], app);
         draw_running_stats(f, columns[1], app);
     } else {
@@ -1789,7 +2179,7 @@ fn draw_running(f: &mut Frame, area: Rect, app: &App) {
             Constraint::Length(1), // blank
             Constraint::Length(1), // gauge
             Constraint::Length(1), // blank
-            Constraint::Fill(1),  // list
+            Constraint::Fill(1),   // list
         ])
         .split(rest);
         draw_running_inline_stats(f, rows[0], app);
@@ -1802,7 +2192,7 @@ fn draw_running_progress(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::vertical([
         Constraint::Length(3), // gauge
         Constraint::Length(1), // blank
-        Constraint::Fill(1),  // list
+        Constraint::Fill(1),   // list
     ])
     .split(area);
 
@@ -1831,7 +2221,12 @@ fn draw_running_gauge(f: &mut Frame, area: Rect, app: &App) {
             .block(gauge_block)
             .gauge_style(Style::default().fg(CYAN).bg(BG_ELEVATED))
             .ratio(ratio.min(1.0))
-            .label(Span::styled(label, Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD))),
+            .label(Span::styled(
+                label,
+                Style::default()
+                    .fg(TEXT_BRIGHT)
+                    .add_modifier(Modifier::BOLD),
+            )),
         area,
     );
 }
@@ -1913,11 +2308,7 @@ fn draw_running_list(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_running_stats(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([
-        Constraint::Length(8),
-        Constraint::Fill(1),
-    ])
-    .split(area);
+    let chunks = Layout::vertical([Constraint::Length(8), Constraint::Fill(1)]).split(area);
 
     // Statistics card
     let completed = app
@@ -1929,7 +2320,13 @@ fn draw_running_stats(f: &mut Frame, area: Rect, app: &App) {
     let total_records: usize = app
         .collector_statuses
         .iter()
-        .filter_map(|s| if let CollectorState::Done(n) = s.state { Some(n) } else { None })
+        .filter_map(|s| {
+            if let CollectorState::Done(n) = s.state {
+                Some(n)
+            } else {
+                None
+            }
+        })
         .sum();
     let errors = app
         .collector_statuses
@@ -1941,7 +2338,9 @@ fn draw_running_stats(f: &mut Frame, area: Rect, app: &App) {
     let error_style = if errors > 0 {
         Style::default().fg(RED).add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(TEXT_BRIGHT)
+            .add_modifier(Modifier::BOLD)
     };
 
     let completed_str = format!("{} / {}", completed, total);
@@ -1986,19 +2385,13 @@ fn draw_running_stats(f: &mut Frame, area: Rect, app: &App) {
             CollectorState::Failed(m) => {
                 log_lines.push(Line::from(vec![
                     Span::styled("  ✗ ", Style::default().fg(RED)),
-                    Span::styled(
-                        format!("{}: {}", s.name, m),
-                        Style::default().fg(RED),
-                    ),
+                    Span::styled(format!("{}: {}", s.name, m), Style::default().fg(RED)),
                 ]));
             }
             CollectorState::Running => {
                 log_lines.push(Line::from(vec![
                     Span::styled("  ▸ ", Style::default().fg(AMBER)),
-                    Span::styled(
-                        format!("{} started", s.name),
-                        Style::default().fg(AMBER),
-                    ),
+                    Span::styled(format!("{} started", s.name), Style::default().fg(AMBER)),
                 ]));
             }
             _ => {}
@@ -2029,7 +2422,13 @@ fn draw_running_inline_stats(f: &mut Frame, area: Rect, app: &App) {
     let total_records: usize = app
         .collector_statuses
         .iter()
-        .filter_map(|s| if let CollectorState::Done(n) = s.state { Some(n) } else { None })
+        .filter_map(|s| {
+            if let CollectorState::Done(n) = s.state {
+                Some(n)
+            } else {
+                None
+            }
+        })
         .sum();
     let errors = app
         .collector_statuses
@@ -2041,16 +2440,25 @@ fn draw_running_inline_stats(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled("  Elapsed ", Style::default().fg(TEXT_DIM)),
-            Span::styled(&elapsed, Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                &elapsed,
+                Style::default()
+                    .fg(TEXT_BRIGHT)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled("   Done ", Style::default().fg(TEXT_DIM)),
             Span::styled(
                 format!("{}/{}", completed, total),
-                Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(TEXT_BRIGHT)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled("   Records ", Style::default().fg(TEXT_DIM)),
             Span::styled(
                 format_number(total_records),
-                Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(TEXT_BRIGHT)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled("   Errors ", Style::default().fg(TEXT_DIM)),
             Span::styled(
@@ -2058,7 +2466,9 @@ fn draw_running_inline_stats(f: &mut Frame, area: Rect, app: &App) {
                 if errors > 0 {
                     Style::default().fg(RED).add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD)
+                    Style::default()
+                        .fg(TEXT_BRIGHT)
+                        .add_modifier(Modifier::BOLD)
                 },
             ),
         ])),
@@ -2089,17 +2499,17 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     };
 
     let chunks = Layout::vertical([
-        Constraint::Length(3),                                  // [0] success banner
-        Constraint::Length(1),                                  // [1] blank
-        Constraint::Length(5),                                  // [2] stat cards
-        Constraint::Length(1),                                  // [3] blank
-        Constraint::Fill(1),                                    // [4] file list
-        Constraint::Length(if has_zip { 1 } else { 0 }),       // [5] blank before zip
-        Constraint::Length(if has_zip { 3 } else { 0 }),       // [6] zip path banner
-        Constraint::Length(if has_sign { 1 } else { 0 }),      // [7] blank before sign
-        Constraint::Length(if has_sign { 4 } else { 0 }),      // [8] sign manifest+key banner
-        Constraint::Length(if has_errors { 1 } else { 0 }),    // [9] blank before errors
-        Constraint::Length(error_height),                       // [10] error list
+        Constraint::Length(3),                              // [0] success banner
+        Constraint::Length(1),                              // [1] blank
+        Constraint::Length(5),                              // [2] stat cards
+        Constraint::Length(1),                              // [3] blank
+        Constraint::Fill(1),                                // [4] file list
+        Constraint::Length(if has_zip { 1 } else { 0 }),    // [5] blank before zip
+        Constraint::Length(if has_zip { 3 } else { 0 }),    // [6] zip path banner
+        Constraint::Length(if has_sign { 1 } else { 0 }),   // [7] blank before sign
+        Constraint::Length(if has_sign { 4 } else { 0 }),   // [8] sign manifest+key banner
+        Constraint::Length(if has_errors { 1 } else { 0 }), // [9] blank before errors
+        Constraint::Length(error_height),                   // [10] error list
     ])
     .split(inset);
 
@@ -2115,7 +2525,9 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(
         Paragraph::new(Span::styled(
             banner_text,
-            Style::default().fg(banner_color).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(banner_color)
+                .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center)
         .block(banner_block),
@@ -2126,7 +2538,13 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     let total_records: usize = app
         .collector_statuses
         .iter()
-        .filter_map(|s| if let CollectorState::Done(n) = s.state { Some(n) } else { None })
+        .filter_map(|s| {
+            if let CollectorState::Done(n) = s.state {
+                Some(n)
+            } else {
+                None
+            }
+        })
         .sum();
     let elapsed = format_duration(app.finished_tick.unwrap_or(app.tick));
     let error_count = app.error_messages.len();
@@ -2139,9 +2557,21 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     ])
     .split(chunks[2]);
 
-    draw_stat_card(f, cards[0], "Files", &app.result_files.len().to_string(), CYAN);
+    draw_stat_card(
+        f,
+        cards[0],
+        "Files",
+        &app.result_files.len().to_string(),
+        CYAN,
+    );
     draw_stat_card(f, cards[1], "Records", &format_number(total_records), AMBER);
-    draw_stat_card(f, cards[2], "Errors", &error_count.to_string(), if error_count > 0 { RED } else { GREEN });
+    draw_stat_card(
+        f,
+        cards[2],
+        "Errors",
+        &error_count.to_string(),
+        if error_count > 0 { RED } else { GREEN },
+    );
     draw_stat_card(f, cards[3], "Duration", &elapsed, PURPLE);
 
     // File list
@@ -2162,7 +2592,10 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     let file_block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(BORDER_SUBTLE))
-        .title(Span::styled(" Output Files ", Style::default().fg(CYAN_DIM)));
+        .title(Span::styled(
+            " Output Files ",
+            Style::default().fg(CYAN_DIM),
+        ));
 
     let mut state = ListState::default();
     if !app.result_files.is_empty() {
@@ -2181,19 +2614,28 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
             Paragraph::new(Line::from(vec![
                 Span::styled("  ⬇ ", Style::default().fg(GREEN)),
                 Span::styled("Zip bundle: ", Style::default().fg(TEXT_DIM)),
-                Span::styled(zip.as_str(), Style::default().fg(GREEN).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    zip.as_str(),
+                    Style::default().fg(GREEN).add_modifier(Modifier::BOLD),
+                ),
             ]))
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(GREEN))
-                .title(Span::styled(" Zip Package Ready ", Style::default().fg(GREEN)))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(Style::default().fg(GREEN))
+                    .title(Span::styled(
+                        " Zip Package Ready ",
+                        Style::default().fg(GREEN),
+                    )),
+            ),
             chunks[6],
         );
     }
 
     // Signing banner (only shown when signing was performed)
     if let Some(manifest) = &app.result_signing_manifest {
-        let key_line = app.result_signing_key_path
+        let key_line = app
+            .result_signing_key_path
             .as_deref()
             .unwrap_or("(see stderr log)");
         f.render_widget(
@@ -2201,19 +2643,33 @@ fn draw_results(f: &mut Frame, area: Rect, app: &App) {
                 Line::from(vec![
                     Span::styled("  ✎ ", Style::default().fg(PURPLE)),
                     Span::styled("Manifest:  ", Style::default().fg(TEXT_DIM)),
-                    Span::styled(manifest.as_str(), Style::default().fg(PURPLE).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        manifest.as_str(),
+                        Style::default().fg(PURPLE).add_modifier(Modifier::BOLD),
+                    ),
                 ]),
                 Line::from(vec![
                     Span::styled("  ⚠ ", Style::default().fg(AMBER)),
                     Span::styled("Key file:  ", Style::default().fg(TEXT_DIM)),
-                    Span::styled(key_line, Style::default().fg(AMBER).add_modifier(Modifier::BOLD)),
-                    Span::styled("  ← store securely, separate from evidence", Style::default().fg(TEXT_DIM)),
+                    Span::styled(
+                        key_line,
+                        Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        "  ← store securely, separate from evidence",
+                        Style::default().fg(TEXT_DIM),
+                    ),
                 ]),
             ])
-            .block(Block::bordered()
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(PURPLE))
-                .title(Span::styled(" Signing Manifest Ready ", Style::default().fg(PURPLE)))),
+            .block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .border_style(Style::default().fg(PURPLE))
+                    .title(Span::styled(
+                        " Signing Manifest Ready ",
+                        Style::default().fg(PURPLE),
+                    )),
+            ),
             chunks[8],
         );
     }
@@ -2280,13 +2736,13 @@ fn draw_poam_results(f: &mut Frame, area: Rect, app: &App) {
     let has_errors = error_count > 0;
 
     let chunks = Layout::vertical([
-        Constraint::Length(3), // [0] banner
-        Constraint::Length(1), // [1] blank
+        Constraint::Length(3),  // [0] banner
+        Constraint::Length(1),  // [1] blank
         Constraint::Length(10), // [2] summary
-        Constraint::Length(1), // [3] blank
-        Constraint::Length(5), // [4] stat cards
-        Constraint::Length(1), // [5] blank
-        Constraint::Fill(1), // [6] warnings/errors
+        Constraint::Length(1),  // [3] blank
+        Constraint::Length(5),  // [4] stat cards
+        Constraint::Length(1),  // [5] blank
+        Constraint::Fill(1),    // [6] warnings/errors
     ])
     .split(inset);
 
@@ -2301,7 +2757,9 @@ fn draw_poam_results(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(
         Paragraph::new(Span::styled(
             banner_text,
-            Style::default().fg(banner_color).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(banner_color)
+                .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center)
         .block(banner_block),
@@ -2321,7 +2779,10 @@ fn draw_poam_results(f: &mut Frame, area: Rect, app: &App) {
     let summary_block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(CYAN_DIM))
-        .title(Span::styled(" POAM Run Summary ", Style::default().fg(CYAN_DIM)));
+        .title(Span::styled(
+            " POAM Run Summary ",
+            Style::default().fg(CYAN_DIM),
+        ));
     f.render_widget(
         Paragraph::new(Text::from(summary_rows)).block(summary_block),
         chunks[2],
@@ -2334,10 +2795,34 @@ fn draw_poam_results(f: &mut Frame, area: Rect, app: &App) {
         Constraint::Ratio(1, 4),
     ])
     .split(chunks[4]);
-    draw_stat_card(f, cards[0], "Added Open", &added_open_count.to_string(), CYAN);
-    draw_stat_card(f, cards[1], "Moved Closed", &moved_closed_count.to_string(), AMBER);
-    draw_stat_card(f, cards[2], "Warnings", &warning_count.to_string(), if warning_count > 0 { AMBER } else { GREEN });
-    draw_stat_card(f, cards[3], "Errors", &error_count.to_string(), if error_count > 0 { RED } else { GREEN });
+    draw_stat_card(
+        f,
+        cards[0],
+        "Added Open",
+        &added_open_count.to_string(),
+        CYAN,
+    );
+    draw_stat_card(
+        f,
+        cards[1],
+        "Moved Closed",
+        &moved_closed_count.to_string(),
+        AMBER,
+    );
+    draw_stat_card(
+        f,
+        cards[2],
+        "Warnings",
+        &warning_count.to_string(),
+        if warning_count > 0 { AMBER } else { GREEN },
+    );
+    draw_stat_card(
+        f,
+        cards[3],
+        "Errors",
+        &error_count.to_string(),
+        if error_count > 0 { RED } else { GREEN },
+    );
 
     let mut messages: Vec<ListItem> = Vec::new();
     for warning in warnings {
@@ -2377,7 +2862,10 @@ fn draw_poam_results(f: &mut Frame, area: Rect, app: &App) {
     let msg_block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(message_border))
-        .title(Span::styled(message_title, Style::default().fg(message_border)));
+        .title(Span::styled(
+            message_title,
+            Style::default().fg(message_border),
+        ));
     f.render_widget(List::new(messages).block(msg_block), chunks[6]);
 }
 
@@ -2385,7 +2873,10 @@ fn draw_stat_card(f: &mut Frame, area: Rect, title: &str, value: &str, color: Co
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(BORDER_SUBTLE))
-        .title(Span::styled(format!(" {title} "), Style::default().fg(TEXT_DIM)));
+        .title(Span::styled(
+            format!(" {title} "),
+            Style::default().fg(TEXT_DIM),
+        ));
 
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -2427,10 +2918,7 @@ fn draw_text_field(f: &mut Frame, area: Rect, label: &str, value: &str, focused:
 
     if focused {
         // Cursor position: border(1) + padding(1) + value length
-        f.set_cursor_position((
-            area.x + 2 + value.len() as u16,
-            area.y + 1,
-        ));
+        f.set_cursor_position((area.x + 2 + value.len() as u16, area.y + 1));
     }
 }
 
@@ -2454,22 +2942,41 @@ fn draw_error_banner(f: &mut Frame, area: Rect, msg: &str) {
 
 fn kv_line<'a>(key: &'a str, value: &'a str) -> Line<'a> {
     Line::from(vec![
-        Span::styled(format!("   {:>14}     ", key), Style::default().fg(TEXT_DIM)),
-        Span::styled(value, Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format!("   {:>14}     ", key),
+            Style::default().fg(TEXT_DIM),
+        ),
+        Span::styled(
+            value,
+            Style::default()
+                .fg(TEXT_BRIGHT)
+                .add_modifier(Modifier::BOLD),
+        ),
     ])
 }
 
 fn kv_line_colored<'a>(key: &'a str, value: &'a str, color: Color) -> Line<'a> {
     Line::from(vec![
-        Span::styled(format!("   {:>14}     ", key), Style::default().fg(TEXT_DIM)),
-        Span::styled(value, Style::default().fg(color).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format!("   {:>14}     ", key),
+            Style::default().fg(TEXT_DIM),
+        ),
+        Span::styled(
+            value,
+            Style::default().fg(color).add_modifier(Modifier::BOLD),
+        ),
     ])
 }
 
 fn stat_line<'a>(key: &'a str, value: &'a str) -> Line<'a> {
     Line::from(vec![
         Span::styled(format!("    {:<13}", key), Style::default().fg(TEXT_DIM)),
-        Span::styled(value, Style::default().fg(TEXT_BRIGHT).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            value,
+            Style::default()
+                .fg(TEXT_BRIGHT)
+                .add_modifier(Modifier::BOLD),
+        ),
     ])
 }
 

@@ -12,8 +12,8 @@ use crate::evidence::{CollectParams, EvidenceCollector, EvidenceRecord, Evidence
 // Events we care about.  Add any new event names here.
 // ---------------------------------------------------------------------------
 const WATCHED_EVENTS: &[(&str, &str)] = &[
-    ("rds.amazonaws.com",    "CreateDBClusterSnapshot"),
-    ("rds.amazonaws.com",    "CreateDBSnapshot"),
+    ("rds.amazonaws.com", "CreateDBClusterSnapshot"),
+    ("rds.amazonaws.com", "CreateDBSnapshot"),
     ("backup.amazonaws.com", "StartBackupJob"),
     ("backup.amazonaws.com", "BackupJobCompleted"),
 ];
@@ -174,7 +174,9 @@ impl CloudTrailS3Collector {
                 req = req.continuation_token(token);
             }
 
-            let resp = req.send().await
+            let resp = req
+                .send()
+                .await
                 .with_context(|| format!("s3:ListObjectsV2 on prefix {prefix}"))?;
 
             for obj in resp.contents() {
@@ -226,7 +228,9 @@ async fn download_and_parse(
     let json_bytes = tokio::task::spawn_blocking(move || -> Result<Vec<u8>> {
         let mut decoder = GzDecoder::new(compressed.as_ref());
         let mut out = Vec::new();
-        decoder.read_to_end(&mut out).context("gzip decompression")?;
+        decoder
+            .read_to_end(&mut out)
+            .context("gzip decompression")?;
         Ok(out)
     })
     .await
@@ -243,11 +247,20 @@ async fn download_and_parse(
     let mut out = Vec::new();
 
     for record in records_arr {
-        let event_source = record.get("eventSource").and_then(|v| v.as_str()).unwrap_or("");
-        let event_name   = record.get("eventName").and_then(|v| v.as_str()).unwrap_or("");
+        let event_source = record
+            .get("eventSource")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let event_name = record
+            .get("eventName")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
 
         // Only keep events we care about.
-        if !WATCHED_EVENTS.iter().any(|(src, name)| *src == event_source && *name == event_name) {
+        if !WATCHED_EVENTS
+            .iter()
+            .any(|(src, name)| *src == event_source && *name == event_name)
+        {
             continue;
         }
 
@@ -298,7 +311,11 @@ async fn download_and_parse(
             }
         }
 
-        let raw = if include_raw { Some(record.clone()) } else { None };
+        let raw = if include_raw {
+            Some(record.clone())
+        } else {
+            None
+        };
 
         out.push(EvidenceRecord {
             source: EvidenceSource::CloudTrailS3,

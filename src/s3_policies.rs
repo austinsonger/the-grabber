@@ -10,22 +10,41 @@ pub struct S3PoliciesCollector {
 
 impl S3PoliciesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: S3Client::new(config) }
+        Self {
+            client: S3Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for S3PoliciesCollector {
-    fn name(&self) -> &str { "S3 Bucket Policies" }
-    fn filename_prefix(&self) -> &str { "S3_Policies" }
+    fn name(&self) -> &str {
+        "S3 Bucket Policies"
+    }
+    fn filename_prefix(&self) -> &str {
+        "S3_Policies"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Bucket Name", "Public Access Block All", "TLS Enforced", "Has Bucket Policy", "Policy Allows Public", "Default Encryption"]
+        &[
+            "Bucket Name",
+            "Public Access Block All",
+            "TLS Enforced",
+            "Has Bucket Policy",
+            "Policy Allows Public",
+            "Default Encryption",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
-        let buckets_resp = self.client
+        let buckets_resp = self
+            .client
             .list_buckets()
             .send()
             .await
@@ -35,7 +54,8 @@ impl CsvCollector for S3PoliciesCollector {
             let bucket_name = bucket.name().unwrap_or("").to_string();
 
             // ── Public access block ───────────────────────────────────────────
-            let public_access_block = match self.client
+            let public_access_block = match self
+                .client
                 .get_public_access_block()
                 .bucket(&bucket_name)
                 .send()
@@ -43,25 +63,37 @@ impl CsvCollector for S3PoliciesCollector {
             {
                 Ok(resp) => {
                     let cfg = resp.public_access_block_configuration();
-                    let all_blocked = cfg.map(|c| {
-                        c.block_public_acls().unwrap_or(false)
-                            && c.ignore_public_acls().unwrap_or(false)
-                            && c.block_public_policy().unwrap_or(false)
-                            && c.restrict_public_buckets().unwrap_or(false)
-                    }).unwrap_or(false);
-                    let some_blocked = cfg.map(|c| {
-                        c.block_public_acls().unwrap_or(false)
-                            || c.ignore_public_acls().unwrap_or(false)
-                            || c.block_public_policy().unwrap_or(false)
-                            || c.restrict_public_buckets().unwrap_or(false)
-                    }).unwrap_or(false);
-                    if all_blocked { "All Blocked" } else if some_blocked { "Partial" } else { "None" }.to_string()
+                    let all_blocked = cfg
+                        .map(|c| {
+                            c.block_public_acls().unwrap_or(false)
+                                && c.ignore_public_acls().unwrap_or(false)
+                                && c.block_public_policy().unwrap_or(false)
+                                && c.restrict_public_buckets().unwrap_or(false)
+                        })
+                        .unwrap_or(false);
+                    let some_blocked = cfg
+                        .map(|c| {
+                            c.block_public_acls().unwrap_or(false)
+                                || c.ignore_public_acls().unwrap_or(false)
+                                || c.block_public_policy().unwrap_or(false)
+                                || c.restrict_public_buckets().unwrap_or(false)
+                        })
+                        .unwrap_or(false);
+                    if all_blocked {
+                        "All Blocked"
+                    } else if some_blocked {
+                        "Partial"
+                    } else {
+                        "None"
+                    }
+                    .to_string()
                 }
                 Err(_) => "Not Configured".to_string(),
             };
 
             // ── Bucket policy ─────────────────────────────────────────────────
-            let (has_policy, policy_allows_public, tls_enforced) = match self.client
+            let (has_policy, policy_allows_public, tls_enforced) = match self
+                .client
                 .get_bucket_policy()
                 .bucket(&bucket_name)
                 .send()
@@ -92,25 +124,29 @@ impl CsvCollector for S3PoliciesCollector {
                         ("No".to_string(), "No".to_string(), "No".to_string())
                     } else {
                         eprintln!("  WARN: S3 get_bucket_policy {bucket_name}: {e:#}");
-                        ("Unknown".to_string(), "Unknown".to_string(), "Unknown".to_string())
+                        (
+                            "Unknown".to_string(),
+                            "Unknown".to_string(),
+                            "Unknown".to_string(),
+                        )
                     }
                 }
             };
 
             // ── Default encryption ────────────────────────────────────────────
-            let encryption = match self.client
+            let encryption = match self
+                .client
                 .get_bucket_encryption()
                 .bucket(&bucket_name)
                 .send()
                 .await
             {
-                Ok(resp) => {
-                    resp.server_side_encryption_configuration()
-                        .and_then(|c| c.rules().first())
-                        .and_then(|r| r.apply_server_side_encryption_by_default())
-                        .map(|d| d.sse_algorithm().as_str().to_string())
-                        .unwrap_or_else(|| "None".to_string())
-                }
+                Ok(resp) => resp
+                    .server_side_encryption_configuration()
+                    .and_then(|c| c.rules().first())
+                    .and_then(|r| r.apply_server_side_encryption_by_default())
+                    .map(|d| d.sse_algorithm().as_str().to_string())
+                    .unwrap_or_else(|| "None".to_string()),
                 Err(_) => "None".to_string(),
             };
 
@@ -145,9 +181,13 @@ fn check_tls_enforced(policy: &str) -> String {
             }
             // Look for aws:SecureTransport: false in conditions
             if let Some(cond) = stmt.get("Condition") {
-                let secure_transport = cond.get("Bool")
+                let secure_transport = cond
+                    .get("Bool")
                     .and_then(|b| b.get("aws:SecureTransport"))
-                    .or_else(|| cond.get("StringEquals").and_then(|s| s.get("aws:SecureTransport")));
+                    .or_else(|| {
+                        cond.get("StringEquals")
+                            .and_then(|s| s.get("aws:SecureTransport"))
+                    });
 
                 if let Some(val) = secure_transport {
                     let val_str = val.as_str().unwrap_or("");

@@ -10,22 +10,37 @@ pub struct DynamoDbCollector {
 
 impl DynamoDbCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: DynamoClient::new(config) }
+        Self {
+            client: DynamoClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for DynamoDbCollector {
-    fn name(&self) -> &str { "DynamoDB Tables" }
-    fn filename_prefix(&self) -> &str { "DynamoDB" }
+    fn name(&self) -> &str {
+        "DynamoDB Tables"
+    }
+    fn filename_prefix(&self) -> &str {
+        "DynamoDB"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "Table ARN", "Table Name",
-            "Encryption Status", "Encryption Type", "KMS Key ARN", "Region",
+            "Table ARN",
+            "Table Name",
+            "Encryption Status",
+            "Encryption Type",
+            "KMS Key ARN",
+            "Region",
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // List all table names (paginated).
@@ -44,12 +59,15 @@ impl CsvCollector for DynamoDbCollector {
             }
 
             last_name = resp.last_evaluated_table_name().map(|s| s.to_string());
-            if last_name.is_none() { break; }
+            if last_name.is_none() {
+                break;
+            }
         }
 
         // Describe each table for encryption details.
         for table_name in &table_names {
-            let resp = match self.client
+            let resp = match self
+                .client
                 .describe_table()
                 .table_name(table_name)
                 .send()
@@ -64,22 +82,33 @@ impl CsvCollector for DynamoDbCollector {
 
             let table = match resp.table() {
                 Some(t) => t,
-                None    => continue,
+                None => continue,
             };
 
-            let arn  = table.table_arn().unwrap_or("").to_string();
+            let arn = table.table_arn().unwrap_or("").to_string();
             let name = table.table_name().unwrap_or("").to_string();
 
             let (enc_status, enc_type, kms_key) = match table.sse_description() {
                 Some(sse) => (
-                    sse.status().map(|s| s.as_str().to_string()).unwrap_or_default(),
-                    sse.sse_type().map(|s| s.as_str().to_string()).unwrap_or_default(),
+                    sse.status()
+                        .map(|s| s.as_str().to_string())
+                        .unwrap_or_default(),
+                    sse.sse_type()
+                        .map(|s| s.as_str().to_string())
+                        .unwrap_or_default(),
                     sse.kms_master_key_arn().unwrap_or("").to_string(),
                 ),
                 None => ("DISABLED".to_string(), "".to_string(), "".to_string()),
             };
 
-            rows.push(vec![arn, name, enc_status, enc_type, kms_key, region.to_string()]);
+            rows.push(vec![
+                arn,
+                name,
+                enc_status,
+                enc_type,
+                kms_key,
+                region.to_string(),
+            ]);
         }
 
         Ok(rows)

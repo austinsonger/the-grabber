@@ -10,24 +10,42 @@ pub struct AcmCertCollector {
 
 impl AcmCertCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: AcmClient::new(config) }
+        Self {
+            client: AcmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for AcmCertCollector {
-    fn name(&self) -> &str { "Certificate Manager Certificates" }
-    fn filename_prefix(&self) -> &str { "Certificate_Manager_Certificates" }
+    fn name(&self) -> &str {
+        "Certificate Manager Certificates"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Certificate_Manager_Certificates"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "Certificate ARN", "Domain Name", "Expires",
-            "In Use By", "Issued On", "Issuer",
-            "Key Algorithm", "Renewal Eligibility",
-            "Signature Algorithm", "Status", "Cert Type",
+            "Certificate ARN",
+            "Domain Name",
+            "Expires",
+            "In Use By",
+            "Issued On",
+            "Issuer",
+            "Key Algorithm",
+            "Renewal Eligibility",
+            "Signature Algorithm",
+            "Status",
+            "Cert Type",
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -47,12 +65,15 @@ impl CsvCollector for AcmCertCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         // Describe each certificate for full details.
         for cert_arn in &cert_arns {
-            let resp = match self.client
+            let resp = match self
+                .client
                 .describe_certificate()
                 .certificate_arn(cert_arn)
                 .send()
@@ -67,36 +88,36 @@ impl CsvCollector for AcmCertCollector {
 
             let cert = match resp.certificate() {
                 Some(c) => c,
-                None    => continue,
+                None => continue,
             };
 
-            let arn         = cert.certificate_arn().unwrap_or("").to_string();
-            let domain      = cert.domain_name().unwrap_or("").to_string();
-            let expires     = cert.not_after()
-                .map(|d| fmt_aws_dt(d))
-                .unwrap_or_default();
-            let in_use_by   = cert.in_use_by().join(", ");
-            let issued_on   = cert.issued_at()
-                .map(|d| fmt_aws_dt(d))
-                .unwrap_or_default();
-            let issuer      = cert.issuer().unwrap_or("").to_string();
-            let key_algo    = cert.key_algorithm()
+            let arn = cert.certificate_arn().unwrap_or("").to_string();
+            let domain = cert.domain_name().unwrap_or("").to_string();
+            let expires = cert.not_after().map(|d| fmt_aws_dt(d)).unwrap_or_default();
+            let in_use_by = cert.in_use_by().join(", ");
+            let issued_on = cert.issued_at().map(|d| fmt_aws_dt(d)).unwrap_or_default();
+            let issuer = cert.issuer().unwrap_or("").to_string();
+            let key_algo = cert
+                .key_algorithm()
                 .map(|a| a.as_str().to_string())
                 .unwrap_or_default();
-            let renewal     = cert.renewal_eligibility()
+            let renewal = cert
+                .renewal_eligibility()
                 .map(|r| r.as_str().to_string())
                 .unwrap_or_default();
-            let sig_algo    = cert.signature_algorithm().unwrap_or("").to_string();
-            let status      = cert.status()
+            let sig_algo = cert.signature_algorithm().unwrap_or("").to_string();
+            let status = cert
+                .status()
                 .map(|s| s.as_str().to_string())
                 .unwrap_or_default();
-            let cert_type   = cert.r#type()
+            let cert_type = cert
+                .r#type()
                 .map(|t| t.as_str().to_string())
                 .unwrap_or_default();
 
             rows.push(vec![
-                arn, domain, expires, in_use_by, issued_on, issuer,
-                key_algo, renewal, sig_algo, status, cert_type,
+                arn, domain, expires, in_use_by, issued_on, issuer, key_algo, renewal, sig_algo,
+                status, cert_type,
             ]);
         }
 

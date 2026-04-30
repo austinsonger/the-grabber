@@ -10,14 +10,20 @@ pub struct CloudTrailInventoryCollector {
 
 impl CloudTrailInventoryCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: CtClient::new(config) }
+        Self {
+            client: CtClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for CloudTrailInventoryCollector {
-    fn name(&self) -> &str { "CloudTrail Logs" }
-    fn filename_prefix(&self) -> &str { "CloudTrail_Logs" }
+    fn name(&self) -> &str {
+        "CloudTrail Logs"
+    }
+    fn filename_prefix(&self) -> &str {
+        "CloudTrail_Logs"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
             "Cloud Trail Name",
@@ -31,10 +37,17 @@ impl CsvCollector for CloudTrailInventoryCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
-        let resp = self.client.describe_trails()
+        let resp = self
+            .client
+            .describe_trails()
             .include_shadow_trails(false)
             .send()
             .await
@@ -43,23 +56,22 @@ impl CsvCollector for CloudTrailInventoryCollector {
         for trail in resp.trail_list() {
             let name = trail.name().unwrap_or("").to_string();
             let multi_region = bool_yn(trail.is_multi_region_trail());
-            let validation    = bool_yn(trail.log_file_validation_enabled());
-            let s3_bucket     = trail.s3_bucket_name().unwrap_or("").to_string();
-            let cw_log_group  = trail.cloud_watch_logs_log_group_arn().unwrap_or("").to_string();
+            let validation = bool_yn(trail.log_file_validation_enabled());
+            let s3_bucket = trail.s3_bucket_name().unwrap_or("").to_string();
+            let cw_log_group = trail
+                .cloud_watch_logs_log_group_arn()
+                .unwrap_or("")
+                .to_string();
 
             // Fetch logging status.
-            let is_logging = match self.client
-                .get_trail_status()
-                .name(&name)
-                .send()
-                .await
-            {
+            let is_logging = match self.client.get_trail_status().name(&name).send().await {
                 Ok(s) => bool_yn(s.is_logging()),
                 Err(_) => "".to_string(),
             };
 
             // Fetch event selectors for management events + read/write type.
-            let (include_mgmt, rw_type) = match self.client
+            let (include_mgmt, rw_type) = match self
+                .client
                 .get_event_selectors()
                 .trail_name(&name)
                 .send()
@@ -67,12 +79,14 @@ impl CsvCollector for CloudTrailInventoryCollector {
             {
                 Ok(es) => {
                     let sel = es.event_selectors();
-                    let mgmt = sel.first()
+                    let mgmt = sel
+                        .first()
                         .and_then(|s| s.include_management_events())
                         .map(|b| if b { "Yes" } else { "No" })
                         .unwrap_or("")
                         .to_string();
-                    let rw = sel.first()
+                    let rw = sel
+                        .first()
                         .and_then(|s| s.read_write_type())
                         .map(|t| t.as_str().to_string())
                         .unwrap_or_default();
@@ -82,8 +96,14 @@ impl CsvCollector for CloudTrailInventoryCollector {
             };
 
             rows.push(vec![
-                name, multi_region, validation, s3_bucket,
-                cw_log_group, is_logging, include_mgmt, rw_type,
+                name,
+                multi_region,
+                validation,
+                s3_bucket,
+                cw_log_group,
+                is_logging,
+                include_mgmt,
+                rw_type,
             ]);
         }
 
@@ -93,8 +113,8 @@ impl CsvCollector for CloudTrailInventoryCollector {
 
 fn bool_yn(val: Option<bool>) -> String {
     match val {
-        Some(true)  => "Yes".to_string(),
+        Some(true) => "Yes".to_string(),
         Some(false) => "No".to_string(),
-        None        => "".to_string(),
+        None => "".to_string(),
     }
 }

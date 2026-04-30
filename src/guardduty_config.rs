@@ -14,29 +14,49 @@ pub struct GuardDutyConfigCollector {
 
 impl GuardDutyConfigCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: GdClient::new(config) }
+        Self {
+            client: GdClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for GuardDutyConfigCollector {
-    fn name(&self) -> &str { "GuardDuty Configuration" }
-    fn filename_prefix(&self) -> &str { "GuardDuty_Config" }
+    fn name(&self) -> &str {
+        "GuardDuty Configuration"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GuardDuty_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Detector ID", "Status", "S3 Protection", "EKS Audit Logs", "Malware Protection", "Created At"]
+        &[
+            "Detector ID",
+            "Status",
+            "S3 Protection",
+            "EKS Audit Logs",
+            "Malware Protection",
+            "Created At",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
-        let detectors = self.client
+        let detectors = self
+            .client
             .list_detectors()
             .send()
             .await
             .context("GuardDuty list_detectors")?;
 
         for detector_id in detectors.detector_ids() {
-            let resp = match self.client
+            let resp = match self
+                .client
                 .get_detector()
                 .detector_id(detector_id)
                 .send()
@@ -49,7 +69,8 @@ impl CsvCollector for GuardDutyConfigCollector {
                 }
             };
 
-            let status = resp.status()
+            let status = resp
+                .status()
                 .map(|s| s.as_str().to_string())
                 .unwrap_or_default();
 
@@ -102,29 +123,48 @@ pub struct GuardDutySuppressionCollector {
 
 impl GuardDutySuppressionCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: GdClient::new(config) }
+        Self {
+            client: GdClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for GuardDutySuppressionCollector {
-    fn name(&self) -> &str { "GuardDuty Suppression Rules" }
-    fn filename_prefix(&self) -> &str { "GuardDuty_Suppression" }
+    fn name(&self) -> &str {
+        "GuardDuty Suppression Rules"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GuardDuty_Suppression"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Detector ID", "Rule Name", "Action", "Description", "Filter Criteria Summary"]
+        &[
+            "Detector ID",
+            "Rule Name",
+            "Action",
+            "Description",
+            "Filter Criteria Summary",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
-        let detectors = self.client
+        let detectors = self
+            .client
             .list_detectors()
             .send()
             .await
             .context("GuardDuty list_detectors")?;
 
         for detector_id in detectors.detector_ids() {
-            let filters_resp = match self.client
+            let filters_resp = match self
+                .client
                 .list_filters()
                 .detector_id(detector_id)
                 .send()
@@ -138,7 +178,8 @@ impl CsvCollector for GuardDutySuppressionCollector {
             };
 
             for filter_name in filters_resp.filter_names() {
-                let filter_resp = match self.client
+                let filter_resp = match self
+                    .client
                     .get_filter()
                     .detector_id(detector_id)
                     .filter_name(filter_name)
@@ -152,15 +193,15 @@ impl CsvCollector for GuardDutySuppressionCollector {
                     }
                 };
 
-                let action = filter_resp.action()
+                let action = filter_resp
+                    .action()
                     .map(|a| a.as_str().to_string())
                     .unwrap_or_default();
 
-                let description = filter_resp.description()
-                    .unwrap_or("")
-                    .to_string();
+                let description = filter_resp.description().unwrap_or("").to_string();
 
-                let criteria_summary = filter_resp.finding_criteria()
+                let criteria_summary = filter_resp
+                    .finding_criteria()
                     .map(|fc| {
                         fc.criterion()
                             .map(|c| c.keys().cloned().collect::<Vec<_>>().join(", "))

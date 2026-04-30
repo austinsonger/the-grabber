@@ -14,23 +14,40 @@ pub struct LambdaConfigCollector {
 
 impl LambdaConfigCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: LambdaClient::new(config) }
+        Self {
+            client: LambdaClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for LambdaConfigCollector {
-    fn name(&self) -> &str { "Lambda Function Configuration" }
-    fn filename_prefix(&self) -> &str { "Lambda_Config" }
+    fn name(&self) -> &str {
+        "Lambda Function Configuration"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Lambda_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "Function Name", "Runtime", "Role ARN", "Handler",
-            "Timeout (s)", "Memory (MB)", "VPC ID", "Env Vars (count, redacted)",
+            "Function Name",
+            "Runtime",
+            "Role ARN",
+            "Handler",
+            "Timeout (s)",
+            "Memory (MB)",
+            "VPC ID",
+            "Env Vars (count, redacted)",
             "Dead Letter Config",
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -42,42 +59,56 @@ impl CsvCollector for LambdaConfigCollector {
             let resp = req.send().await.context("Lambda list_functions")?;
 
             for func in resp.functions() {
-                let name    = func.function_name().unwrap_or("").to_string();
-                let runtime = func.runtime()
+                let name = func.function_name().unwrap_or("").to_string();
+                let runtime = func
+                    .runtime()
                     .map(|r| r.as_str().to_string())
                     .unwrap_or_else(|| "custom".to_string());
-                let role    = func.role().unwrap_or("").to_string();
+                let role = func.role().unwrap_or("").to_string();
                 let handler = func.handler().unwrap_or("").to_string();
                 let timeout = func.timeout().map(|n| n.to_string()).unwrap_or_default();
-                let memory  = func.memory_size().map(|n| n.to_string()).unwrap_or_default();
+                let memory = func
+                    .memory_size()
+                    .map(|n| n.to_string())
+                    .unwrap_or_default();
 
-                let vpc_id  = func.vpc_config()
+                let vpc_id = func
+                    .vpc_config()
                     .and_then(|v| v.vpc_id())
                     .unwrap_or("")
                     .to_string();
 
                 // Count env vars but DO NOT include their values (potentially sensitive)
-                let env_count = func.environment()
+                let env_count = func
+                    .environment()
                     .and_then(|e| e.variables())
                     .map(|v| v.len())
                     .unwrap_or(0)
                     .to_string();
 
-                let dlq = func.dead_letter_config()
+                let dlq = func
+                    .dead_letter_config()
                     .and_then(|d| d.target_arn())
                     .unwrap_or("")
                     .to_string();
 
                 rows.push(vec![
-                    name, runtime, role, handler,
-                    timeout, memory, vpc_id,
+                    name,
+                    runtime,
+                    role,
+                    handler,
+                    timeout,
+                    memory,
+                    vpc_id,
                     format!("{env_count} vars (redacted)"),
                     dlq,
                 ]);
             }
 
             marker = resp.next_marker().map(|s| s.to_string());
-            if marker.is_none() { break; }
+            if marker.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -94,19 +125,37 @@ pub struct LambdaPermissionsCollector {
 
 impl LambdaPermissionsCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: LambdaClient::new(config) }
+        Self {
+            client: LambdaClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for LambdaPermissionsCollector {
-    fn name(&self) -> &str { "Lambda Function Permissions" }
-    fn filename_prefix(&self) -> &str { "Lambda_Permissions_Config" }
+    fn name(&self) -> &str {
+        "Lambda Function Permissions"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Lambda_Permissions_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Function Name", "Statement ID", "Principal", "Action", "Source ARN", "Effect"]
+        &[
+            "Function Name",
+            "Statement ID",
+            "Principal",
+            "Action",
+            "Source ARN",
+            "Effect",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -117,18 +166,24 @@ impl CsvCollector for LambdaPermissionsCollector {
             if let Some(ref m) = marker {
                 req = req.marker(m);
             }
-            let resp = req.send().await.context("Lambda list_functions (permissions)")?;
+            let resp = req
+                .send()
+                .await
+                .context("Lambda list_functions (permissions)")?;
             for func in resp.functions() {
                 if let Some(name) = func.function_name() {
                     function_names.push(name.to_string());
                 }
             }
             marker = resp.next_marker().map(|s| s.to_string());
-            if marker.is_none() { break; }
+            if marker.is_none() {
+                break;
+            }
         }
 
         for function_name in &function_names {
-            let policy_str = match self.client
+            let policy_str = match self
+                .client
                 .get_policy()
                 .function_name(function_name)
                 .send()
@@ -150,11 +205,12 @@ impl CsvCollector for LambdaPermissionsCollector {
             if let Ok(policy) = serde_json::from_str::<serde_json::Value>(&policy_str) {
                 if let Some(stmts) = policy["Statement"].as_array() {
                     for stmt in stmts {
-                        let sid       = stmt["Sid"].as_str().unwrap_or("").to_string();
-                        let effect    = stmt["Effect"].as_str().unwrap_or("").to_string();
-                        let action    = match &stmt["Action"] {
+                        let sid = stmt["Sid"].as_str().unwrap_or("").to_string();
+                        let effect = stmt["Effect"].as_str().unwrap_or("").to_string();
+                        let action = match &stmt["Action"] {
                             serde_json::Value::String(s) => s.clone(),
-                            serde_json::Value::Array(a) => a.iter()
+                            serde_json::Value::Array(a) => a
+                                .iter()
                                 .filter_map(|v| v.as_str())
                                 .collect::<Vec<_>>()
                                 .join(", "),
@@ -162,7 +218,8 @@ impl CsvCollector for LambdaPermissionsCollector {
                         };
                         let principal = match &stmt["Principal"] {
                             serde_json::Value::String(s) => s.clone(),
-                            serde_json::Value::Object(m) => m.values()
+                            serde_json::Value::Object(m) => m
+                                .values()
                                 .filter_map(|v| v.as_str())
                                 .collect::<Vec<_>>()
                                 .join(", "),

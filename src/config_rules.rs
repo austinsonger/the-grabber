@@ -12,19 +12,35 @@ pub struct ConfigRulesCollector {
 
 impl ConfigRulesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: ConfigClient::new(config) }
+        Self {
+            client: ConfigClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for ConfigRulesCollector {
-    fn name(&self) -> &str { "AWS Config Rules" }
-    fn filename_prefix(&self) -> &str { "AWS_Config_Rules" }
+    fn name(&self) -> &str {
+        "AWS Config Rules"
+    }
+    fn filename_prefix(&self) -> &str {
+        "AWS_Config_Rules"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Rule Name", "Compliance Status", "Resource Type", "Last Evaluated"]
+        &[
+            "Rule Name",
+            "Compliance Status",
+            "Resource Type",
+            "Last Evaluated",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // Collect all rule names.
@@ -41,7 +57,8 @@ impl CsvCollector for ConfigRulesCollector {
 
             for rule in resp.config_rules() {
                 let name = rule.config_rule_name().unwrap_or("").to_string();
-                let types = rule.scope()
+                let types = rule
+                    .scope()
                     .map(|s| s.compliance_resource_types().join(", "))
                     .unwrap_or_default();
                 resource_types.insert(name.clone(), types);
@@ -49,7 +66,9 @@ impl CsvCollector for ConfigRulesCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         // Get compliance status — batch in groups of 25.
@@ -62,7 +81,8 @@ impl CsvCollector for ConfigRulesCollector {
             if let Ok(resp) = req.send().await {
                 for c in resp.compliance_by_config_rules() {
                     let name = c.config_rule_name().unwrap_or("").to_string();
-                    let status = c.compliance()
+                    let status = c
+                        .compliance()
                         .and_then(|c| c.compliance_type())
                         .map(|t| t.as_str().to_string())
                         .unwrap_or_default();
@@ -81,11 +101,15 @@ impl CsvCollector for ConfigRulesCollector {
             if let Ok(resp) = req.send().await {
                 for s in resp.config_rules_evaluation_status() {
                     let name = s.config_rule_name().unwrap_or("").to_string();
-                    let last_eval = s.last_successful_evaluation_time()
+                    let last_eval = s
+                        .last_successful_evaluation_time()
                         .map(|d| {
-                            chrono::DateTime::<chrono::Utc>::from_timestamp(d.secs(), d.subsec_nanos())
-                                .map(|c| c.to_rfc3339())
-                                .unwrap_or_default()
+                            chrono::DateTime::<chrono::Utc>::from_timestamp(
+                                d.secs(),
+                                d.subsec_nanos(),
+                            )
+                            .map(|c| c.to_rfc3339())
+                            .unwrap_or_default()
                         })
                         .unwrap_or_default();
                     eval_map.insert(name, last_eval);
@@ -95,8 +119,8 @@ impl CsvCollector for ConfigRulesCollector {
 
         for name in &rule_names {
             let compliance = compliance_map.get(name).cloned().unwrap_or_default();
-            let res_type   = resource_types.get(name).cloned().unwrap_or_default();
-            let last_eval  = eval_map.get(name).cloned().unwrap_or_default();
+            let res_type = resource_types.get(name).cloned().unwrap_or_default();
+            let last_eval = eval_map.get(name).cloned().unwrap_or_default();
             rows.push(vec![name.clone(), compliance, res_type, last_eval]);
         }
 

@@ -173,8 +173,20 @@ fn extract_fields(val: Option<&serde_json::Value>, event_name: &str) -> Extracte
 
     // job_id: snapshot identifier for RDS, backup job ID for Backup
     let job_id = if is_rds {
-        try_str(val, &["responseElements", "dbClusterSnapshot", "dbClusterSnapshotIdentifier"])
-            .or_else(|| try_str(val, &["responseElements", "dbSnapshot", "dbSnapshotIdentifier"]))
+        try_str(
+            val,
+            &[
+                "responseElements",
+                "dbClusterSnapshot",
+                "dbClusterSnapshotIdentifier",
+            ],
+        )
+        .or_else(|| {
+            try_str(
+                val,
+                &["responseElements", "dbSnapshot", "dbSnapshotIdentifier"],
+            )
+        })
     } else {
         try_str(val, &["responseElements", "backupJobId"])
             .or_else(|| try_str(val, &["requestParameters", "backupJobId"]))
@@ -191,8 +203,15 @@ fn extract_fields(val: Option<&serde_json::Value>, event_name: &str) -> Extracte
 
     // resource_arn
     let resource_arn = if is_rds {
-        try_str(val, &["responseElements", "dbClusterSnapshot", "dbClusterSnapshotArn"])
-            .or_else(|| try_str(val, &["responseElements", "dbSnapshot", "dbSnapshotArn"]))
+        try_str(
+            val,
+            &[
+                "responseElements",
+                "dbClusterSnapshot",
+                "dbClusterSnapshotArn",
+            ],
+        )
+        .or_else(|| try_str(val, &["responseElements", "dbSnapshot", "dbSnapshotArn"]))
     } else {
         try_str(val, &["requestParameters", "resourceArn"])
             .or_else(|| try_str(val, &["resources", "0", "ARN"]))

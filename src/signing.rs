@@ -119,9 +119,9 @@ fn sha256_file(path: &Path) -> Result<(String, u64)> {
     let mut buf = [0u8; 65536];
     let mut size = 0u64;
     loop {
-        let n = file.read(&mut buf).with_context(|| {
-            format!("read error on {} during signing", path.display())
-        })?;
+        let n = file
+            .read(&mut buf)
+            .with_context(|| format!("read error on {} during signing", path.display()))?;
         if n == 0 {
             break;
         }
@@ -284,7 +284,10 @@ impl VerifyReport {
             }
         }
         if self.all_ok() {
-            eprintln!("\n✓  All {} evidence files verified successfully.", self.file_count);
+            eprintln!(
+                "\n✓  All {} evidence files verified successfully.",
+                self.file_count
+            );
         } else {
             eprintln!("\n✗  Verification FAILED.");
             std::process::exit(1);
@@ -404,8 +407,7 @@ mod tests {
             .collect();
 
         let key = SigningKey([0x11u8; 32]);
-        let (manifest_path, _key_path) =
-            sign_files(&files, "test-ts", &key, dir.path()).unwrap();
+        let (manifest_path, _key_path) = sign_files(&files, "test-ts", &key, dir.path()).unwrap();
 
         let report = verify_manifest(&manifest_path, &key).unwrap();
         assert!(report.all_ok());
@@ -425,7 +427,7 @@ mod tests {
         std::fs::write(&path, b"tampered content").unwrap();
 
         let report = verify_manifest(&manifest_path, &key).unwrap();
-        assert!(report.hmac_ok);           // manifest itself is fine
+        assert!(report.hmac_ok); // manifest itself is fine
         assert_eq!(report.tampered_count, 1);
         assert!(!report.all_ok());
     }

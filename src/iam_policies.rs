@@ -5,10 +5,17 @@ use aws_sdk_iam::Client as IamClient;
 use crate::evidence::{CsvCollector, JsonCollector};
 
 fn url_decode(s: &str) -> String {
-    s.replace("%22", "\"").replace("%7B", "{").replace("%7D", "}")
-     .replace("%5B", "[").replace("%5D", "]").replace("%3A", ":")
-     .replace("%2F", "/").replace("%2C", ",").replace("%20", " ")
-     .replace("%0A", " ").replace("+", " ")
+    s.replace("%22", "\"")
+        .replace("%7B", "{")
+        .replace("%7D", "}")
+        .replace("%5B", "[")
+        .replace("%5D", "]")
+        .replace("%3A", ":")
+        .replace("%2F", "/")
+        .replace("%2C", ",")
+        .replace("%20", " ")
+        .replace("%0A", " ")
+        .replace("+", " ")
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -21,16 +28,26 @@ pub struct IamRolePoliciesCollector {
 
 impl IamRolePoliciesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: IamClient::new(config) }
+        Self {
+            client: IamClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for IamRolePoliciesCollector {
-    fn name(&self) -> &str { "IAM Role Policies" }
-    fn filename_prefix(&self) -> &str { "IAM_Role_Policies" }
+    fn name(&self) -> &str {
+        "IAM Role Policies"
+    }
+    fn filename_prefix(&self) -> &str {
+        "IAM_Role_Policies"
+    }
 
-    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+    async fn collect_records(
+        &self,
+        _account_id: &str,
+        _region: &str,
+    ) -> Result<Vec<serde_json::Value>> {
         let mut records = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -44,12 +61,14 @@ impl JsonCollector for IamRolePoliciesCollector {
             for role in resp.roles() {
                 let role_name = role.role_name().to_string();
 
-                let trust_policy: serde_json::Value = serde_json::from_str(
-                    &url_decode(role.assume_role_policy_document().unwrap_or("{}"))
-                ).unwrap_or(serde_json::Value::Null);
+                let trust_policy: serde_json::Value = serde_json::from_str(&url_decode(
+                    role.assume_role_policy_document().unwrap_or("{}"),
+                ))
+                .unwrap_or(serde_json::Value::Null);
 
                 // Inline policies → array of {name, document}
-                let inline_policies: Vec<serde_json::Value> = match self.client
+                let inline_policies: Vec<serde_json::Value> = match self
+                    .client
                     .list_role_policies()
                     .role_name(&role_name)
                     .send()
@@ -58,7 +77,8 @@ impl JsonCollector for IamRolePoliciesCollector {
                     Ok(r) => {
                         let mut out = Vec::new();
                         for policy_name in r.policy_names() {
-                            let doc: serde_json::Value = match self.client
+                            let doc: serde_json::Value = match self
+                                .client
                                 .get_role_policy()
                                 .role_name(&role_name)
                                 .policy_name(policy_name)
@@ -77,13 +97,15 @@ impl JsonCollector for IamRolePoliciesCollector {
                 };
 
                 // Attached managed policies → array of names
-                let attached: Vec<String> = match self.client
+                let attached: Vec<String> = match self
+                    .client
                     .list_attached_role_policies()
                     .role_name(&role_name)
                     .send()
                     .await
                 {
-                    Ok(r) => r.attached_policies()
+                    Ok(r) => r
+                        .attached_policies()
                         .iter()
                         .filter_map(|p| p.policy_name().map(|s| s.to_string()))
                         .collect(),
@@ -98,8 +120,14 @@ impl JsonCollector for IamRolePoliciesCollector {
                 }));
             }
 
-            marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
-            if marker.is_none() { break; }
+            marker = if resp.is_truncated() {
+                resp.marker().map(|s| s.to_string())
+            } else {
+                None
+            };
+            if marker.is_none() {
+                break;
+            }
         }
 
         Ok(records)
@@ -116,16 +144,26 @@ pub struct IamUserPoliciesCollector {
 
 impl IamUserPoliciesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: IamClient::new(config) }
+        Self {
+            client: IamClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for IamUserPoliciesCollector {
-    fn name(&self) -> &str { "IAM User Policies" }
-    fn filename_prefix(&self) -> &str { "IAM_User_Policies" }
+    fn name(&self) -> &str {
+        "IAM User Policies"
+    }
+    fn filename_prefix(&self) -> &str {
+        "IAM_User_Policies"
+    }
 
-    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+    async fn collect_records(
+        &self,
+        _account_id: &str,
+        _region: &str,
+    ) -> Result<Vec<serde_json::Value>> {
         let mut records = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -140,7 +178,8 @@ impl JsonCollector for IamUserPoliciesCollector {
                 let user_name = user.user_name().to_string();
 
                 // Inline policies → array of {name, document}
-                let inline_policies: Vec<serde_json::Value> = match self.client
+                let inline_policies: Vec<serde_json::Value> = match self
+                    .client
                     .list_user_policies()
                     .user_name(&user_name)
                     .send()
@@ -149,7 +188,8 @@ impl JsonCollector for IamUserPoliciesCollector {
                     Ok(r) => {
                         let mut out = Vec::new();
                         for policy_name in r.policy_names() {
-                            let doc: serde_json::Value = match self.client
+                            let doc: serde_json::Value = match self
+                                .client
                                 .get_user_policy()
                                 .user_name(&user_name)
                                 .policy_name(policy_name)
@@ -168,20 +208,23 @@ impl JsonCollector for IamUserPoliciesCollector {
                 };
 
                 // Attached managed policies → array of names
-                let attached: Vec<String> = match self.client
+                let attached: Vec<String> = match self
+                    .client
                     .list_attached_user_policies()
                     .user_name(&user_name)
                     .send()
                     .await
                 {
-                    Ok(r) => r.attached_policies()
+                    Ok(r) => r
+                        .attached_policies()
                         .iter()
                         .filter_map(|p| p.policy_name().map(|s| s.to_string()))
                         .collect(),
                     Err(_) => vec![],
                 };
 
-                let boundary = user.permissions_boundary()
+                let boundary = user
+                    .permissions_boundary()
                     .and_then(|b| b.permissions_boundary_arn())
                     .map(|s| serde_json::Value::String(s.to_string()))
                     .unwrap_or(serde_json::Value::Null);
@@ -194,8 +237,14 @@ impl JsonCollector for IamUserPoliciesCollector {
                 }));
             }
 
-            marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
-            if marker.is_none() { break; }
+            marker = if resp.is_truncated() {
+                resp.marker().map(|s| s.to_string())
+            } else {
+                None
+            };
+            if marker.is_none() {
+                break;
+            }
         }
 
         Ok(records)
@@ -212,23 +261,41 @@ pub struct IamPasswordPolicyCollector {
 
 impl IamPasswordPolicyCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: IamClient::new(config) }
+        Self {
+            client: IamClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for IamPasswordPolicyCollector {
-    fn name(&self) -> &str { "IAM Account Password Policy" }
-    fn filename_prefix(&self) -> &str { "IAM_Password_Policy" }
+    fn name(&self) -> &str {
+        "IAM Account Password Policy"
+    }
+    fn filename_prefix(&self) -> &str {
+        "IAM_Password_Policy"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "Minimum Password Length", "Require Symbols", "Require Numbers",
-            "Require Uppercase", "Require Lowercase", "Allow Users To Change",
-            "Expire Passwords", "Max Password Age", "Password Reuse Prevention", "Hard Expiry",
+            "Minimum Password Length",
+            "Require Symbols",
+            "Require Numbers",
+            "Require Uppercase",
+            "Require Lowercase",
+            "Allow Users To Change",
+            "Expire Passwords",
+            "Max Password Age",
+            "Password Reuse Prevention",
+            "Hard Expiry",
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         match self.client.get_account_password_policy().send().await {
             Ok(resp) => {
                 let p = match resp.password_policy() {
@@ -238,15 +305,21 @@ impl CsvCollector for IamPasswordPolicyCollector {
                     }
                 };
                 Ok(vec![vec![
-                    p.minimum_password_length().map(|n| n.to_string()).unwrap_or_else(|| "8".to_string()),
+                    p.minimum_password_length()
+                        .map(|n| n.to_string())
+                        .unwrap_or_else(|| "8".to_string()),
                     p.require_symbols().to_string(),
                     p.require_numbers().to_string(),
                     p.require_uppercase_characters().to_string(),
                     p.require_lowercase_characters().to_string(),
                     p.allow_users_to_change_password().to_string(),
                     p.expire_passwords().to_string(),
-                    p.max_password_age().map(|n| n.to_string()).unwrap_or_else(|| "None".to_string()),
-                    p.password_reuse_prevention().map(|n| n.to_string()).unwrap_or_else(|| "None".to_string()),
+                    p.max_password_age()
+                        .map(|n| n.to_string())
+                        .unwrap_or_else(|| "None".to_string()),
+                    p.password_reuse_prevention()
+                        .map(|n| n.to_string())
+                        .unwrap_or_else(|| "None".to_string()),
                     p.hard_expiry().unwrap_or(false).to_string(),
                 ]])
             }

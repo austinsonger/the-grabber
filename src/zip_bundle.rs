@@ -11,11 +11,7 @@ fn zip_options() -> SimpleFileOptions {
         .unix_permissions(0o644)
 }
 
-fn add_file_to_zip(
-    zip: &mut zip::ZipWriter<BufWriter<File>>,
-    arc_name: &str,
-    path: &Path,
-) {
+fn add_file_to_zip(zip: &mut zip::ZipWriter<BufWriter<File>>, arc_name: &str, path: &Path) {
     let opts = zip_options();
     if zip.start_file(arc_name, opts).is_ok() {
         if let Ok(data) = std::fs::read(path) {
@@ -36,7 +32,9 @@ pub fn bundle_files(files: &[String], base_dir: &Path, zip_path: &Path) -> Resul
         .with_context(|| format!("cannot create zip at {}", zip_path.display()))?;
     let mut zip = zip::ZipWriter::new(BufWriter::new(file));
 
-    let base_canon = base_dir.canonicalize().unwrap_or_else(|_| base_dir.to_path_buf());
+    let base_canon = base_dir
+        .canonicalize()
+        .unwrap_or_else(|_| base_dir.to_path_buf());
 
     for path_str in files {
         let path = Path::new(path_str);
@@ -70,7 +68,9 @@ pub fn bundle_dir(dir: &Path, zip_path: &Path) -> Result<()> {
         .with_context(|| format!("cannot create zip at {}", zip_path.display()))?;
     let mut zip = zip::ZipWriter::new(BufWriter::new(file));
 
-    let zip_canon = zip_path.canonicalize().unwrap_or_else(|_| zip_path.to_path_buf());
+    let zip_canon = zip_path
+        .canonicalize()
+        .unwrap_or_else(|_| zip_path.to_path_buf());
 
     let mut stack: Vec<PathBuf> = vec![dir.to_path_buf()];
     while let Some(current) = stack.pop() {

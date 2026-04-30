@@ -10,19 +10,35 @@ pub struct EksClusterCollector {
 
 impl EksClusterCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: EksClient::new(config) }
+        Self {
+            client: EksClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for EksClusterCollector {
-    fn name(&self) -> &str { "EKS Clusters" }
-    fn filename_prefix(&self) -> &str { "EKS_Clusters" }
+    fn name(&self) -> &str {
+        "EKS Clusters"
+    }
+    fn filename_prefix(&self) -> &str {
+        "EKS_Clusters"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Cluster Name", "Version", "Endpoint Public Access", "Logging Enabled"]
+        &[
+            "Cluster Name",
+            "Version",
+            "Endpoint Public Access",
+            "Logging Enabled",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
         let mut all_names: Vec<String> = Vec::new();
@@ -35,11 +51,14 @@ impl CsvCollector for EksClusterCollector {
             let resp = req.send().await.context("EKS list_clusters")?;
             all_names.extend(resp.clusters().iter().map(|s| s.to_string()));
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         for cluster_name in &all_names {
-            let resp = match self.client
+            let resp = match self
+                .client
                 .describe_cluster()
                 .name(cluster_name)
                 .send()
@@ -54,16 +73,24 @@ impl CsvCollector for EksClusterCollector {
 
             let cluster = match resp.cluster() {
                 Some(c) => c,
-                None    => continue,
+                None => continue,
             };
 
-            let version        = cluster.version().unwrap_or("").to_string();
-            let public_access  = cluster.resources_vpc_config()
-                .map(|v| if v.endpoint_public_access() { "Yes" } else { "No" })
+            let version = cluster.version().unwrap_or("").to_string();
+            let public_access = cluster
+                .resources_vpc_config()
+                .map(|v| {
+                    if v.endpoint_public_access() {
+                        "Yes"
+                    } else {
+                        "No"
+                    }
+                })
                 .unwrap_or("")
                 .to_string();
 
-            let logging_types: Vec<String> = cluster.logging()
+            let logging_types: Vec<String> = cluster
+                .logging()
                 .map(|l| l.cluster_logging())
                 .unwrap_or_default()
                 .iter()

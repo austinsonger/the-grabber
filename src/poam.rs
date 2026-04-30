@@ -11,8 +11,9 @@ const OPEN_SHEET: &str = "Open POA&M Items";
 const CLOSED_SHEET: &str = "Closed POA&M Items";
 const OPEN_HEADER_ROW: u32 = 5;
 const CLOSED_HEADER_ROW: u32 = 2;
-const ECR_PREFIX: &str = "Corporate_Security_Inspector2_ECR_Findings-";
+const ECR_MARKER: &str = "_Inspector2_ECR_Image_Findings-";
 const WORKBOOK_PATH: &str = "evidence-output/poam/FedRAMP-POAM.xlsx";
+const DEFAULT_EVIDENCE_BASE: &str = "evidence-output/security";
 
 #[derive(Debug, Clone, Default)]
 pub struct PoamRunResult {
@@ -31,6 +32,7 @@ pub struct PoamRunResult {
 #[derive(Debug, Clone)]
 struct CsvFinding {
     arn: String,
+    stable_key: String,              // CVE ID|Package Name — stable across rescans
     values: HashMap<String, String>, // normalized header -> value
 }
 
@@ -77,20 +79,34 @@ pub fn month_name_to_folder(month_name: &str) -> Option<String> {
     }
 }
 
-pub fn resolve_evidence_path(region: &str, year: &str, month_name: &str) -> Result<PathBuf> {
+pub fn resolve_evidence_path(
+    evidence_base: &str,
+    region: &str,
+    year: &str,
+    month_name: &str,
+) -> Result<PathBuf> {
     let month_folder = month_name_to_folder(month_name)
         .with_context(|| format!("unsupported month '{month_name}'"))?;
-    Ok(PathBuf::from("evidence-output")
-        .join("security")
+    let base = if evidence_base.is_empty() {
+        DEFAULT_EVIDENCE_BASE
+    } else {
+        evidence_base
+    };
+    Ok(PathBuf::from(base)
         .join(region)
         .join(year)
         .join(month_folder))
 }
 
-pub fn run_poam(region: &str, year: &str, month_name: &str) -> Result<PoamRunResult> {
+pub fn run_poam(
+    evidence_base: &str,
+    region: &str,
+    year: &str,
+    month_name: &str,
+) -> Result<PoamRunResult> {
     let month_folder = month_name_to_folder(month_name)
         .with_context(|| format!("unsupported month '{month_name}'"))?;
-    let evidence_path = resolve_evidence_path(region, year, month_name)?;
+    let evidence_path = resolve_evidence_path(evidence_base, region, year, month_name)?;
     let (selected_csv_name, selected_csv_path) = select_latest_ecr_csv(&evidence_path)
         .with_context(|| format!("no Inspector2 ECR CSV found in {}", evidence_path.display()))?;
 
@@ -152,21 +168,21 @@ fn reconcile_workbook(
         ],
     );
 
-    let mut current_by_arn: HashMap<String, CsvFinding> = HashMap::new();
+    let mut current_by_key: HashMap<String, CsvFinding> = HashMap::new();
     for finding in csv_findings {
-        match current_by_arn.get(&finding.arn) {
+        match current_by_key.get(&finding.stable_key) {
             None => {
-                current_by_arn.insert(finding.arn.clone(), finding);
+                current_by_key.insert(finding.stable_key.clone(), finding);
             }
             Some(existing) => {
                 if is_newer_finding(&finding, existing) {
-                    current_by_arn.insert(finding.arn.clone(), finding);
+                    current_by_key.insert(finding.stable_key.clone(), finding);
                 }
             }
         }
     }
 
-    let current_arns: HashSet<String> = current_by_arn.keys().cloned().collect();
+    let current_keys: HashSet<String> = current_by_key.keys().cloned().collect();
     let mut closed_set: HashSet<String> = HashSet::new();
     if let Some(idx) = closed_key_idx {
         for row in &workbook.closed_rows {
@@ -182,7 +198,7 @@ fn reconcile_workbook(
     if let Some(idx) = open_key_idx {
         for row in workbook.open_rows {
             let key = row.get(idx).cloned().unwrap_or_default().trim().to_string();
-            if !key.is_empty() && !current_arns.contains(&key) {
+            if !key.is_empty() && !current_keys.contains(&key) {
                 moved_to_closed.push(row);
             } else {
                 kept_open.push(row);
@@ -204,22 +220,22 @@ fn reconcile_workbook(
     }
 
     let mut added_open_count = 0usize;
-    let mut arns: Vec<String> = current_arns.into_iter().collect();
-    arns.sort();
-    for arn in arns {
-        if open_set.contains(&arn) {
+    let mut keys: Vec<String> = current_keys.into_iter().collect();
+    keys.sort();
+    for key in keys {
+        if open_set.contains(&key) {
             continue;
         }
-        if closed_set.contains(&arn) {
+        if closed_set.contains(&key) {
             warnings.push(format!(
-                "Finding ARN already exists in Closed sheet and reappeared: {arn}; treating as new Open item"
+                "Finding key already in Closed sheet and reappeared: {key}; treating as new Open item"
             ));
         }
-        if let Some(finding) = current_by_arn.get(&arn) {
+        if let Some(finding) = current_by_key.get(&key) {
             let row =
                 build_new_open_row(&workbook.open_headers, finding, selected_csv_name, warnings);
             kept_open.push(row);
-            open_set.insert(arn);
+            open_set.insert(key);
             added_open_count += 1;
         }
     }
@@ -272,7 +288,7 @@ fn build_new_open_row(
         title.clone()
     };
     if weakness_name.trim().is_empty() {
-        warnings.push(format!("Missing Title for finding {}", finding.arn));
+        warnings.push(format!("Missing Title for finding {}", finding.stable_key));
     }
 
     let mut weakness_desc = description;
@@ -292,9 +308,7 @@ fn build_new_open_row(
     let remediation_plan = compose_remediation_plan(finding);
     let risk = map_risk_rating(&finding.get("Severity"));
     let original_detection = poam_date(&finding.get("First Observed At")).unwrap_or_default();
-    let status_date = poam_date(&finding.get("Updated At"))
-        .or_else(|| poam_date(&finding.get("Last Observed At")))
-        .unwrap_or_default();
+    let status_date = poam_date(&finding.get("First Observed At")).unwrap_or_default();
     let scheduled_completion = if original_detection.is_empty() {
         String::new()
     } else {
@@ -307,26 +321,15 @@ fn build_new_open_row(
         &finding.get("Package Remediation"),
     );
 
-    let asset_identifier = {
-        let resource_id = finding.get("Resource ID");
-        if !resource_id.is_empty() {
-            resource_id
-        } else {
-            let registry = finding.get("Registry");
-            let repo = finding.get("Repository Name");
-            let tags = finding.get("Image Tags");
-            if registry.is_empty() && repo.is_empty() {
-                String::new()
-            } else if tags.is_empty() {
-                format!("{registry}/{repo}")
-            } else {
-                format!("{registry}/{repo}:{tags}")
-            }
-        }
-    };
+    let asset_identifier = finding.get("Asset Identifier");
 
     let comments = compose_comments(finding);
-    let poam_id = format!("INS2-ECR-{}", last_n_chars(&finding.arn, 8));
+    let cve_slug = cve.replace(['/', ':'], "-").to_ascii_uppercase();
+    let poam_id = if !cve_slug.is_empty() {
+        format!("INS2-ECR-{cve_slug}")
+    } else {
+        format!("INS2-ECR-{}", last_n_chars(&finding.arn, 8))
+    };
 
     set_first(&mut row, &map, &["POAM ID", "POA&M ID"], poam_id);
     set_first(&mut row, &map, &["Weakness Name"], weakness_name);
@@ -341,7 +344,7 @@ fn build_new_open_row(
         &mut row,
         &map,
         &["Weakness Source Identifier"],
-        finding.arn.clone(),
+        finding.stable_key.clone(),
     );
     set_first(&mut row, &map, &["Asset Identifier"], asset_identifier);
     set_first(&mut row, &map, &["Remediation Plan"], remediation_plan);
@@ -383,7 +386,6 @@ fn compose_remediation_plan(finding: &CsvFinding) -> String {
     let rem_text = finding.get("Remediation Text");
     let pkg_rem = finding.get("Package Remediation");
     let fixed_in = finding.get("Fixed In Version");
-    let rem_url = finding.get("Remediation URL");
 
     if !rem_text.is_empty() {
         parts.push(rem_text);
@@ -394,9 +396,6 @@ fn compose_remediation_plan(finding: &CsvFinding) -> String {
     if !fixed_in.is_empty() {
         parts.push(format!("Fixed In Version: {fixed_in}"));
     }
-    if !rem_url.is_empty() {
-        parts.push(format!("Reference: {rem_url}"));
-    }
     parts.join("; ")
 }
 
@@ -404,7 +403,11 @@ fn compose_comments(finding: &CsvFinding) -> String {
     let fields = [
         ("Inspector Score", finding.get("Inspector Score")),
         ("EPSS Score", finding.get("EPSS Score")),
+        ("CVSS Version", finding.get("CVSS Version")),
+        ("Scan Type", finding.get("Scan Type")),
+        ("Currently In Use", finding.get("Currently In Use")),
         ("In Use Count", finding.get("In Use Count")),
+        ("Days Open", finding.get("Days Open")),
         ("Affected Image Count", finding.get("Affected Image Count")),
         ("Oldest Push Date", finding.get("Oldest Push Date")),
         ("Newest Push Date", finding.get("Newest Push Date")),
@@ -540,13 +543,13 @@ fn normalize_header_label(input: &str) -> String {
 }
 
 fn is_newer_finding(new: &CsvFinding, old: &CsvFinding) -> bool {
-    let new_updated = new.get("Updated At");
-    let old_updated = old.get("Updated At");
-    let new_date = chrono::DateTime::parse_from_rfc3339(&new_updated).ok();
-    let old_date = chrono::DateTime::parse_from_rfc3339(&old_updated).ok();
+    let new_observed = new.get("First Observed At");
+    let old_observed = old.get("First Observed At");
+    let new_date = chrono::DateTime::parse_from_rfc3339(&new_observed).ok();
+    let old_date = chrono::DateTime::parse_from_rfc3339(&old_observed).ok();
     match (new_date, old_date) {
         (Some(a), Some(b)) => a > b,
-        _ => new_updated > old_updated,
+        _ => new_observed > old_observed,
     }
 }
 
@@ -565,6 +568,12 @@ fn read_ecr_csv(path: &Path) -> Result<(Vec<CsvFinding>, Vec<String>)> {
         .iter()
         .position(|h| h == &normalize("Finding ARN"))
         .context("CSV missing required 'Finding ARN' column")?;
+    let cve_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("CVE ID"));
+    let pkg_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("Package Name"));
 
     let mut findings = Vec::new();
     let mut warnings = Vec::new();
@@ -575,11 +584,32 @@ fn read_ecr_csv(path: &Path) -> Result<(Vec<CsvFinding>, Vec<String>)> {
             warnings.push(format!("Row {} skipped: missing Finding ARN", row_idx + 2));
             continue;
         }
+        let cve_id = cve_idx
+            .and_then(|i| record.get(i))
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let pkg_name = pkg_idx
+            .and_then(|i| record.get(i))
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let stable_key = if !cve_id.is_empty() && !pkg_name.is_empty() {
+            format!("{cve_id}|{pkg_name}")
+        } else if !cve_id.is_empty() {
+            cve_id.clone()
+        } else {
+            arn.clone()
+        };
         let mut values = HashMap::new();
         for (i, header_key) in normalized_headers.iter().enumerate() {
             values.insert(header_key.clone(), record.get(i).unwrap_or("").to_string());
         }
-        findings.push(CsvFinding { arn, values });
+        findings.push(CsvFinding {
+            arn,
+            stable_key,
+            values,
+        });
     }
 
     Ok((findings, warnings))
@@ -616,19 +646,21 @@ pub fn select_latest_ecr_csv(dir: &Path) -> Result<(String, PathBuf)> {
     match best {
         Some((_, name, path)) => Ok((name, path)),
         None => bail!(
-            "no files matching '{}YYYY-MM-DD-######.csv' in {}",
-            ECR_PREFIX,
+            "no files matching '*{}YYYY-MM-DD-######.csv' in {}",
+            ECR_MARKER,
             dir.display()
         ),
     }
 }
 
 fn parse_ecr_csv_key(filename: &str) -> Option<CsvKey> {
-    if !filename.starts_with(ECR_PREFIX) || !filename.ends_with(".csv") {
+    if !filename.ends_with(".csv") {
         return None;
     }
     let stem = filename.strip_suffix(".csv")?;
-    let tail = stem.strip_prefix(ECR_PREFIX)?;
+    // Accept any prefix — match on the shared marker segment.
+    let marker_pos = stem.find(ECR_MARKER)?;
+    let tail = &stem[marker_pos + ECR_MARKER.len()..];
     let parts: Vec<&str> = tail.split('-').collect();
     if parts.len() != 4 {
         return None;
@@ -944,8 +976,9 @@ fn build_row_xml(row_num: u32, cells: &[String]) -> String {
         }
         let cell_ref = format!("{}{row_num}", col_letter(col));
         let escaped = escape_xml(value);
+        // xml:space="preserve" is required for Excel to retain newlines and leading/trailing spaces
         xml.push_str(&format!(
-            "<c r=\"{cell_ref}\" t=\"inlineStr\"><is><t>{escaped}</t></is></c>"
+            "<c r=\"{cell_ref}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">{escaped}</t></is></c>"
         ));
     }
     xml.push_str("</row>");
@@ -965,7 +998,13 @@ fn col_letter(mut col: usize) -> String {
 }
 
 fn escape_xml(input: &str) -> String {
-    input
+    // Strip characters that are illegal in XML 1.0 (U+0000–U+0008, U+000B, U+000C, U+000E–U+001F).
+    // Tab (U+0009), LF (U+000A), and CR (U+000D) are valid and preserved.
+    let cleaned: String = input
+        .chars()
+        .filter(|&c| c >= '\u{0020}' || c == '\t' || c == '\n' || c == '\r')
+        .collect();
+    cleaned
         .replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
@@ -987,9 +1026,10 @@ mod tests {
 
     #[test]
     fn parse_ecr_csv_key_parses_expected_pattern() {
-        let key =
-            parse_ecr_csv_key("Corporate_Security_Inspector2_ECR_Findings-2026-04-08-214017.csv")
-                .expect("key");
+        let key = parse_ecr_csv_key(
+            "Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214017.csv",
+        )
+        .expect("key");
         assert_eq!(key.year, 2026);
         assert_eq!(key.month, 4);
         assert_eq!(key.day, 8);
@@ -997,12 +1037,24 @@ mod tests {
     }
 
     #[test]
+    fn parse_ecr_csv_key_parses_federal_prefix() {
+        let key = parse_ecr_csv_key(
+            "Federal_Operations_Inspector2_ECR_Image_Findings-2026-04-24-204228.csv",
+        )
+        .expect("key");
+        assert_eq!(key.year, 2026);
+        assert_eq!(key.month, 4);
+        assert_eq!(key.day, 24);
+        assert_eq!(key.sequence, 204228);
+    }
+
+    #[test]
     fn select_latest_ecr_csv_picks_newest_by_date_and_sequence() {
         let dir = tempdir().expect("tempdir");
         let files = [
-            "Corporate_Security_Inspector2_ECR_Findings-2026-04-08-214017.csv",
-            "Corporate_Security_Inspector2_ECR_Findings-2026-04-08-214116.csv",
-            "Corporate_Security_Inspector2_ECR_Findings-2026-03-31-235959.csv",
+            "Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214017.csv",
+            "Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214116.csv",
+            "Corporate_Security_Inspector2_ECR_Image_Findings-2026-03-31-235959.csv",
         ];
         for name in files {
             std::fs::write(dir.path().join(name), "Finding ARN,Title\narn:1,test\n")
@@ -1012,14 +1064,14 @@ mod tests {
         let (name, _) = select_latest_ecr_csv(dir.path()).expect("select latest");
         assert_eq!(
             name,
-            "Corporate_Security_Inspector2_ECR_Findings-2026-04-08-214116.csv"
+            "Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214116.csv"
         );
     }
 
     #[test]
     fn reconcile_and_write_workbook_smoke_test_with_local_fixtures() {
         let csv_path = Path::new(
-            "evidence-output/security/us-east-1/2026/04-APR/Corporate_Security_Inspector2_ECR_Findings-2026-04-08-214017.csv",
+            "evidence-output/security/us-east-1/2026/04-APR/Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214017.csv",
         );
         let workbook_path = Path::new("evidence-output/poam/FedRAMP-POAM.xlsx");
         if !csv_path.exists() || !workbook_path.exists() {
@@ -1031,7 +1083,7 @@ mod tests {
         let result = reconcile_workbook(
             workbook,
             findings,
-            "Corporate_Security_Inspector2_ECR_Findings-2026-04-08-214017.csv",
+            "Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214017.csv",
             &mut warnings,
         );
 

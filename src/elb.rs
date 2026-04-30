@@ -16,19 +16,30 @@ pub struct LoadBalancerCollector {
 
 impl LoadBalancerCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: ElbClient::new(config) }
+        Self {
+            client: ElbClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for LoadBalancerCollector {
-    fn name(&self) -> &str { "Load Balancers" }
-    fn filename_prefix(&self) -> &str { "Load_Balancers" }
+    fn name(&self) -> &str {
+        "Load Balancers"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Load_Balancers"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &["Name", "Balancer Type", "ARN", "Region"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -40,14 +51,19 @@ impl CsvCollector for LoadBalancerCollector {
             let resp = req.send().await.context("ELBv2 describe_load_balancers")?;
 
             for lb in resp.load_balancers() {
-                let name      = lb.load_balancer_name().unwrap_or("").to_string();
-                let lb_type   = lb.r#type().map(|t| t.as_str().to_string()).unwrap_or_default();
-                let arn       = lb.load_balancer_arn().unwrap_or("").to_string();
+                let name = lb.load_balancer_name().unwrap_or("").to_string();
+                let lb_type = lb
+                    .r#type()
+                    .map(|t| t.as_str().to_string())
+                    .unwrap_or_default();
+                let arn = lb.load_balancer_arn().unwrap_or("").to_string();
                 rows.push(vec![name, lb_type, arn, region.to_string()]);
             }
 
             marker = resp.next_marker().map(|s| s.to_string());
-            if marker.is_none() { break; }
+            if marker.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -64,19 +80,36 @@ pub struct LoadBalancerListenerCollector {
 
 impl LoadBalancerListenerCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: ElbClient::new(config) }
+        Self {
+            client: ElbClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for LoadBalancerListenerCollector {
-    fn name(&self) -> &str { "Load Balancer Listeners" }
-    fn filename_prefix(&self) -> &str { "Load_Balancer_Listeners" }
+    fn name(&self) -> &str {
+        "Load Balancer Listeners"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Load_Balancer_Listeners"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Balancer Name", "ARN", "Certificate ID", "Protocol", "Region"]
+        &[
+            "Balancer Name",
+            "ARN",
+            "Certificate ID",
+            "Protocol",
+            "Region",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         // First build a map from LB ARN → LB name.
         let mut lb_names: HashMap<String, String> = HashMap::new();
         let mut marker: Option<String> = None;
@@ -92,7 +125,9 @@ impl CsvCollector for LoadBalancerListenerCollector {
                 }
             }
             marker = resp.next_marker().map(|s| s.to_string());
-            if marker.is_none() { break; }
+            if marker.is_none() {
+                break;
+            }
         }
 
         let mut rows = Vec::new();
@@ -101,9 +136,7 @@ impl CsvCollector for LoadBalancerListenerCollector {
         for (lb_arn, lb_name) in &lb_names {
             let mut l_marker: Option<String> = None;
             loop {
-                let mut req = self.client
-                    .describe_listeners()
-                    .load_balancer_arn(lb_arn);
+                let mut req = self.client.describe_listeners().load_balancer_arn(lb_arn);
                 if let Some(ref m) = l_marker {
                     req = req.marker(m);
                 }
@@ -117,23 +150,30 @@ impl CsvCollector for LoadBalancerListenerCollector {
 
                 for listener in resp.listeners() {
                     let listener_arn = listener.listener_arn().unwrap_or("").to_string();
-                    let protocol     = listener.protocol()
+                    let protocol = listener
+                        .protocol()
                         .map(|p| p.as_str().to_string())
                         .unwrap_or_default();
-                    let cert_id      = listener.certificates()
+                    let cert_id = listener
+                        .certificates()
                         .first()
                         .and_then(|c| c.certificate_arn())
                         .unwrap_or("")
                         .to_string();
 
                     rows.push(vec![
-                        lb_name.clone(), listener_arn, cert_id,
-                        protocol, region.to_string(),
+                        lb_name.clone(),
+                        listener_arn,
+                        cert_id,
+                        protocol,
+                        region.to_string(),
                     ]);
                 }
 
                 l_marker = resp.next_marker().map(|s| s.to_string());
-                if l_marker.is_none() { break; }
+                if l_marker.is_none() {
+                    break;
+                }
             }
         }
 

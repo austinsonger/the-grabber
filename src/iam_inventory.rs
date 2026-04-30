@@ -17,11 +17,16 @@ fn fmt_iam_dt(dt: &aws_sdk_iam::primitives::DateTime) -> String {
 /// Minimal URL-decode for IAM policy documents (handles the characters AWS encodes).
 fn url_decode(s: &str) -> String {
     s.replace("%22", "\"")
-     .replace("%7B", "{").replace("%7D", "}")
-     .replace("%5B", "[").replace("%5D", "]")
-     .replace("%3A", ":").replace("%2F", "/")
-     .replace("%2C", ",").replace("%20", " ")
-     .replace("%0A", " ").replace("+", " ")
+        .replace("%7B", "{")
+        .replace("%7D", "}")
+        .replace("%5B", "[")
+        .replace("%5D", "]")
+        .replace("%3A", ":")
+        .replace("%2F", "/")
+        .replace("%2C", ",")
+        .replace("%20", " ")
+        .replace("%0A", " ")
+        .replace("+", " ")
 }
 
 /// Summarize principals from a URL-encoded trust policy JSON.
@@ -47,22 +52,37 @@ pub struct IamUserCollector {
 
 impl IamUserCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: IamClient::new(config) }
+        Self {
+            client: IamClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for IamUserCollector {
-    fn name(&self) -> &str { "IAM Users" }
-    fn filename_prefix(&self) -> &str { "IAM_Users" }
+    fn name(&self) -> &str {
+        "IAM Users"
+    }
+    fn filename_prefix(&self) -> &str {
+        "IAM_Users"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "User Name", "ARN", "MFA Enabled",
-            "Password Last Used", "Access Key Status", "Created Date",
+            "User Name",
+            "ARN",
+            "MFA Enabled",
+            "Password Last Used",
+            "Access Key Status",
+            "Created Date",
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -74,31 +94,30 @@ impl CsvCollector for IamUserCollector {
             let resp = req.send().await.context("IAM list_users")?;
 
             for user in resp.users() {
-                let name    = user.user_name().to_string();
-                let arn     = user.arn().to_string();
+                let name = user.user_name().to_string();
+                let arn = user.arn().to_string();
                 let created = fmt_iam_dt(user.create_date());
-                let pw_last = user.password_last_used()
+                let pw_last = user
+                    .password_last_used()
                     .map(|d| fmt_iam_dt(d))
                     .unwrap_or_else(|| "Never".to_string());
 
-                let mfa_enabled = match self.client
-                    .list_mfa_devices()
-                    .user_name(&name)
-                    .send()
-                    .await
+                let mfa_enabled = match self.client.list_mfa_devices().user_name(&name).send().await
                 {
-                    Ok(r) => if r.mfa_devices().is_empty() { "No" } else { "Yes" }.to_string(),
+                    Ok(r) => if r.mfa_devices().is_empty() {
+                        "No"
+                    } else {
+                        "Yes"
+                    }
+                    .to_string(),
                     Err(_) => "".to_string(),
                 };
 
-                let key_status = match self.client
-                    .list_access_keys()
-                    .user_name(&name)
-                    .send()
-                    .await
+                let key_status = match self.client.list_access_keys().user_name(&name).send().await
                 {
                     Ok(r) => {
-                        let statuses: Vec<String> = r.access_key_metadata()
+                        let statuses: Vec<String> = r
+                            .access_key_metadata()
                             .iter()
                             .map(|k| k.status().map(|s| s.as_str()).unwrap_or("").to_string())
                             .collect();
@@ -110,8 +129,14 @@ impl CsvCollector for IamUserCollector {
                 rows.push(vec![name, arn, mfa_enabled, pw_last, key_status, created]);
             }
 
-            marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
-            if marker.is_none() { break; }
+            marker = if resp.is_truncated() {
+                resp.marker().map(|s| s.to_string())
+            } else {
+                None
+            };
+            if marker.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -128,16 +153,26 @@ pub struct IamRoleCollector {
 
 impl IamRoleCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: IamClient::new(config) }
+        Self {
+            client: IamClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for IamRoleCollector {
-    fn name(&self) -> &str { "IAM Roles" }
-    fn filename_prefix(&self) -> &str { "IAM_Roles" }
+    fn name(&self) -> &str {
+        "IAM Roles"
+    }
+    fn filename_prefix(&self) -> &str {
+        "IAM_Roles"
+    }
 
-    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+    async fn collect_records(
+        &self,
+        _account_id: &str,
+        _region: &str,
+    ) -> Result<Vec<serde_json::Value>> {
         let mut records = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -150,28 +185,33 @@ impl JsonCollector for IamRoleCollector {
 
             for role in resp.roles() {
                 let name = role.role_name().to_string();
-                let arn  = role.arn().to_string();
+                let arn = role.arn().to_string();
 
-                let trust_policy: serde_json::Value = serde_json::from_str(
-                    &url_decode(role.assume_role_policy_document().unwrap_or("{}"))
-                ).unwrap_or(serde_json::Value::Null);
+                let trust_policy: serde_json::Value = serde_json::from_str(&url_decode(
+                    role.assume_role_policy_document().unwrap_or("{}"),
+                ))
+                .unwrap_or(serde_json::Value::Null);
 
-                let last_used = role.role_last_used()
+                let last_used = role
+                    .role_last_used()
                     .and_then(|l| l.last_used_date())
                     .map(|d| fmt_iam_dt(d))
                     .unwrap_or_else(|| "Never".to_string());
-                let last_used_region = role.role_last_used()
+                let last_used_region = role
+                    .role_last_used()
                     .and_then(|l| l.region())
                     .unwrap_or("")
                     .to_string();
 
-                let attached_policies: Vec<String> = match self.client
+                let attached_policies: Vec<String> = match self
+                    .client
                     .list_attached_role_policies()
                     .role_name(&name)
                     .send()
                     .await
                 {
-                    Ok(r) => r.attached_policies()
+                    Ok(r) => r
+                        .attached_policies()
                         .iter()
                         .filter_map(|p| p.policy_name().map(|s| s.to_string()))
                         .collect(),
@@ -188,8 +228,14 @@ impl JsonCollector for IamRoleCollector {
                 }));
             }
 
-            marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
-            if marker.is_none() { break; }
+            marker = if resp.is_truncated() {
+                resp.marker().map(|s| s.to_string())
+            } else {
+                None
+            };
+            if marker.is_none() {
+                break;
+            }
         }
 
         Ok(records)
@@ -206,46 +252,63 @@ pub struct IamPolicyCollector {
 
 impl IamPolicyCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: IamClient::new(config) }
+        Self {
+            client: IamClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for IamPolicyCollector {
-    fn name(&self) -> &str { "IAM Policies" }
-    fn filename_prefix(&self) -> &str { "IAM_Policies" }
+    fn name(&self) -> &str {
+        "IAM Policies"
+    }
+    fn filename_prefix(&self) -> &str {
+        "IAM_Policies"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "Policy Name", "ARN", "Policy Type",
-            "Attached Entities", "Permissions Summary",
+            "Policy Name",
+            "ARN",
+            "Policy Type",
+            "Attached Entities",
+            "Permissions Summary",
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 
         // Only customer-managed policies to avoid thousands of AWS-managed rows.
         loop {
-            let mut req = self.client.list_policies().scope(
-                aws_sdk_iam::types::PolicyScopeType::Local,
-            );
+            let mut req = self
+                .client
+                .list_policies()
+                .scope(aws_sdk_iam::types::PolicyScopeType::Local);
             if let Some(ref m) = marker {
                 req = req.marker(m);
             }
             let resp = req.send().await.context("IAM list_policies")?;
 
             for policy in resp.policies() {
-                let name           = policy.policy_name().unwrap_or("").to_string();
-                let arn            = policy.arn().unwrap_or("").to_string();
-                let policy_type    = "Customer Managed".to_string();
-                let attached       = policy.attachment_count()
+                let name = policy.policy_name().unwrap_or("").to_string();
+                let arn = policy.arn().unwrap_or("").to_string();
+                let policy_type = "Customer Managed".to_string();
+                let attached = policy
+                    .attachment_count()
                     .map(|n| n.to_string())
                     .unwrap_or_default();
-                let default_ver    = policy.default_version_id().unwrap_or("").to_string();
+                let default_ver = policy.default_version_id().unwrap_or("").to_string();
 
                 let perms_summary = if !arn.is_empty() && !default_ver.is_empty() {
-                    match self.client
+                    match self
+                        .client
                         .get_policy_version()
                         .policy_arn(&arn)
                         .version_id(&default_ver)
@@ -253,7 +316,8 @@ impl CsvCollector for IamPolicyCollector {
                         .await
                     {
                         Ok(r) => {
-                            let doc = r.policy_version()
+                            let doc = r
+                                .policy_version()
                                 .and_then(|v| v.document())
                                 .map(|d| url_decode(d))
                                 .unwrap_or_default();
@@ -269,8 +333,14 @@ impl CsvCollector for IamPolicyCollector {
                 rows.push(vec![name, arn, policy_type, attached, perms_summary]);
             }
 
-            marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
-            if marker.is_none() { break; }
+            marker = if resp.is_truncated() {
+                resp.marker().map(|s| s.to_string())
+            } else {
+                None
+            };
+            if marker.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -290,7 +360,9 @@ fn summarize_policy_actions(doc: &str) -> String {
                 actions.push(snippet[..end].to_string());
             }
         }
-        if actions.len() >= 5 { break; }
+        if actions.len() >= 5 {
+            break;
+        }
     }
     if actions.is_empty() {
         doc.chars().take(150).collect()
@@ -313,19 +385,36 @@ pub struct IamAccessKeyCollector {
 
 impl IamAccessKeyCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: IamClient::new(config) }
+        Self {
+            client: IamClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for IamAccessKeyCollector {
-    fn name(&self) -> &str { "IAM Access Keys" }
-    fn filename_prefix(&self) -> &str { "IAM_Access_Keys" }
+    fn name(&self) -> &str {
+        "IAM Access Keys"
+    }
+    fn filename_prefix(&self) -> &str {
+        "IAM_Access_Keys"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["User Name", "Access Key ID", "Status", "Created Date", "Last Used"]
+        &[
+            "User Name",
+            "Access Key ID",
+            "Status",
+            "Created Date",
+            "Last Used",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // Collect all usernames first.
@@ -340,13 +429,20 @@ impl CsvCollector for IamAccessKeyCollector {
             for u in resp.users() {
                 user_names.push(u.user_name().to_string());
             }
-            marker = if resp.is_truncated() { resp.marker().map(|s| s.to_string()) } else { None };
-            if marker.is_none() { break; }
+            marker = if resp.is_truncated() {
+                resp.marker().map(|s| s.to_string())
+            } else {
+                None
+            };
+            if marker.is_none() {
+                break;
+            }
         }
 
         // Fetch access keys for each user.
         for user_name in &user_names {
-            let key_resp = match self.client
+            let key_resp = match self
+                .client
                 .list_access_keys()
                 .user_name(user_name)
                 .send()
@@ -357,17 +453,26 @@ impl CsvCollector for IamAccessKeyCollector {
             };
 
             for key_meta in key_resp.access_key_metadata() {
-                let key_id  = key_meta.access_key_id().unwrap_or("").to_string();
-                let status  = key_meta.status().map(|s| s.as_str()).unwrap_or("").to_string();
-                let created = key_meta.create_date().map(|d| fmt_iam_dt(d)).unwrap_or_default();
+                let key_id = key_meta.access_key_id().unwrap_or("").to_string();
+                let status = key_meta
+                    .status()
+                    .map(|s| s.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let created = key_meta
+                    .create_date()
+                    .map(|d| fmt_iam_dt(d))
+                    .unwrap_or_default();
 
-                let last_used = match self.client
+                let last_used = match self
+                    .client
                     .get_access_key_last_used()
                     .access_key_id(&key_id)
                     .send()
                     .await
                 {
-                    Ok(r) => r.access_key_last_used()
+                    Ok(r) => r
+                        .access_key_last_used()
                         .and_then(|l| l.last_used_date())
                         .map(|d| fmt_iam_dt(d))
                         .unwrap_or_else(|| "Never".to_string()),

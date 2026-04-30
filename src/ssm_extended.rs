@@ -20,19 +20,37 @@ pub struct SsmPatchBaselineCollector {
 
 impl SsmPatchBaselineCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SsmClient::new(config) }
+        Self {
+            client: SsmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SsmPatchBaselineCollector {
-    fn name(&self) -> &str { "SSM Patch Baselines" }
-    fn filename_prefix(&self) -> &str { "SSM_Patch_Baseline_Config" }
+    fn name(&self) -> &str {
+        "SSM Patch Baselines"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SSM_Patch_Baseline_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Baseline ID", "Name", "Operating System", "Default Baseline", "Approved Patches", "Patch Rules Summary"]
+        &[
+            "Baseline ID",
+            "Name",
+            "Operating System",
+            "Default Baseline",
+            "Approved Patches",
+            "Patch Rules Summary",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -45,34 +63,37 @@ impl CsvCollector for SsmPatchBaselineCollector {
 
             for identity in resp.baseline_identities() {
                 let baseline_id = identity.baseline_id().unwrap_or("").to_string();
-                let name        = identity.baseline_name().unwrap_or("").to_string();
-                let os          = identity.operating_system()
+                let name = identity.baseline_name().unwrap_or("").to_string();
+                let os = identity
+                    .operating_system()
                     .map(|o| o.as_str().to_string())
                     .unwrap_or_default();
-                let is_default  = identity.default_baseline().to_string();
+                let is_default = identity.default_baseline().to_string();
 
                 // Get full details for patch rules and approved patches
-                let (approved_patches, patch_rules) = match self.client
+                let (approved_patches, patch_rules) = match self
+                    .client
                     .get_patch_baseline()
                     .baseline_id(&baseline_id)
                     .send()
                     .await
                 {
                     Ok(r) => {
-                        let approved: Vec<String> = r.approved_patches()
-                            .iter()
-                            .map(|s| s.to_string())
-                            .collect();
+                        let approved: Vec<String> =
+                            r.approved_patches().iter().map(|s| s.to_string()).collect();
 
-                        let rules: Vec<String> = r.approval_rules()
+                        let rules: Vec<String> = r
+                            .approval_rules()
                             .map(|ar| ar.patch_rules())
                             .unwrap_or_default()
                             .iter()
                             .map(|rule| {
-                                let approve_after = rule.approve_after_days()
+                                let approve_after = rule
+                                    .approve_after_days()
                                     .map(|n| format!("after={n}d"))
                                     .unwrap_or_default();
-                                let compliance = rule.compliance_level()
+                                let compliance = rule
+                                    .compliance_level()
                                     .map(|c| c.as_str().to_string())
                                     .unwrap_or_default();
                                 format!("compliance={compliance},{approve_after}")
@@ -87,11 +108,20 @@ impl CsvCollector for SsmPatchBaselineCollector {
                     }
                 };
 
-                rows.push(vec![baseline_id, name, os, is_default, approved_patches, patch_rules]);
+                rows.push(vec![
+                    baseline_id,
+                    name,
+                    os,
+                    is_default,
+                    approved_patches,
+                    patch_rules,
+                ]);
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -108,19 +138,37 @@ pub struct SsmParameterConfigCollector {
 
 impl SsmParameterConfigCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SsmClient::new(config) }
+        Self {
+            client: SsmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SsmParameterConfigCollector {
-    fn name(&self) -> &str { "SSM Parameter Store Config" }
-    fn filename_prefix(&self) -> &str { "SSM_Parameter_Config" }
+    fn name(&self) -> &str {
+        "SSM Parameter Store Config"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SSM_Parameter_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Name", "Type", "KMS Key ID", "Last Modified", "Description", "Tier"]
+        &[
+            "Name",
+            "Type",
+            "KMS Key ID",
+            "Last Modified",
+            "Description",
+            "Tier",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -132,16 +180,19 @@ impl CsvCollector for SsmParameterConfigCollector {
             let resp = req.send().await.context("SSM describe_parameters")?;
 
             for param in resp.parameters() {
-                let name         = param.name().unwrap_or("").to_string();
-                let param_type   = param.r#type()
+                let name = param.name().unwrap_or("").to_string();
+                let param_type = param
+                    .r#type()
                     .map(|t| t.as_str().to_string())
                     .unwrap_or_default();
-                let kms_key      = param.key_id().unwrap_or("").to_string();
-                let last_mod     = param.last_modified_date()
+                let kms_key = param.key_id().unwrap_or("").to_string();
+                let last_mod = param
+                    .last_modified_date()
                     .map(fmt_ssm_dt)
                     .unwrap_or_default();
-                let description  = param.description().unwrap_or("").to_string();
-                let tier         = param.tier()
+                let description = param.description().unwrap_or("").to_string();
+                let tier = param
+                    .tier()
                     .map(|t| t.as_str().to_string())
                     .unwrap_or_default();
 
@@ -149,7 +200,9 @@ impl CsvCollector for SsmParameterConfigCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -166,19 +219,36 @@ pub struct TimeSyncConfigCollector {
 
 impl TimeSyncConfigCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SsmClient::new(config) }
+        Self {
+            client: SsmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for TimeSyncConfigCollector {
-    fn name(&self) -> &str { "EC2 Time Sync Config (SSM)" }
-    fn filename_prefix(&self) -> &str { "Time_Sync_Config" }
+    fn name(&self) -> &str {
+        "EC2 Time Sync Config (SSM)"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Time_Sync_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Instance ID", "Computer Name", "Platform", "SSM Ping Status", "Time Source Note"]
+        &[
+            "Instance ID",
+            "Computer Name",
+            "Platform",
+            "SSM Ping Status",
+            "Time Source Note",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -196,12 +266,14 @@ impl CsvCollector for TimeSyncConfigCollector {
             };
 
             for info in resp.instance_information_list() {
-                let instance_id   = info.instance_id().unwrap_or("").to_string();
+                let instance_id = info.instance_id().unwrap_or("").to_string();
                 let computer_name = info.computer_name().unwrap_or("").to_string();
-                let platform      = info.platform_type()
+                let platform = info
+                    .platform_type()
                     .map(|p| p.as_str().to_string())
                     .unwrap_or_default();
-                let ping_status   = info.ping_status()
+                let ping_status = info
+                    .ping_status()
                     .map(|p| p.as_str().to_string())
                     .unwrap_or_default();
 
@@ -214,11 +286,19 @@ impl CsvCollector for TimeSyncConfigCollector {
                     "Verify via: chronyc sources (SSM Run Command)".to_string()
                 };
 
-                rows.push(vec![instance_id, computer_name, platform, ping_status, time_note]);
+                rows.push(vec![
+                    instance_id,
+                    computer_name,
+                    platform,
+                    ping_status,
+                    time_note,
+                ]);
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)

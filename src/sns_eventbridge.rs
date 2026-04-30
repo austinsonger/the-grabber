@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use aws_sdk_sns::Client as SnsClient;
 use aws_sdk_eventbridge::Client as EbClient;
+use aws_sdk_sns::Client as SnsClient;
 use serde_json::Value;
 
 use crate::evidence::{CsvCollector, JsonCollector};
@@ -16,20 +16,37 @@ pub struct SnsTopicPoliciesCollector {
 
 impl SnsTopicPoliciesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SnsClient::new(config) }
+        Self {
+            client: SnsClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SnsTopicPoliciesCollector {
-    fn name(&self) -> &str { "SNS Topic Policies" }
-    fn filename_prefix(&self) -> &str { "SNS_Topic_Config" }
+    fn name(&self) -> &str {
+        "SNS Topic Policies"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SNS_Topic_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Topic ARN", "Display Name", "Subscriptions Confirmed", "Subscriptions Pending",
-          "KMS Key ID", "Has Policy"]
+        &[
+            "Topic ARN",
+            "Display Name",
+            "Subscriptions Confirmed",
+            "Subscriptions Pending",
+            "KMS Key ID",
+            "Has Policy",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -43,7 +60,8 @@ impl CsvCollector for SnsTopicPoliciesCollector {
             for topic in resp.topics() {
                 let arn = topic.topic_arn().unwrap_or("").to_string();
 
-                let attrs_map = match self.client
+                let attrs_map = match self
+                    .client
                     .get_topic_attributes()
                     .topic_arn(&arn)
                     .send()
@@ -56,21 +74,34 @@ impl CsvCollector for SnsTopicPoliciesCollector {
                     }
                 };
 
-                let get_attr = |key: &str| -> String {
-                    attrs_map.get(key).cloned().unwrap_or_default()
-                };
+                let get_attr =
+                    |key: &str| -> String { attrs_map.get(key).cloned().unwrap_or_default() };
 
-                let display_name       = get_attr("DisplayName");
-                let subs_confirmed     = get_attr("SubscriptionsConfirmed");
-                let subs_pending       = get_attr("SubscriptionsPending");
-                let kms_key            = get_attr("KmsMasterKeyId");
-                let has_policy         = if attrs_map.contains_key("Policy") { "Yes" } else { "No" }.to_string();
+                let display_name = get_attr("DisplayName");
+                let subs_confirmed = get_attr("SubscriptionsConfirmed");
+                let subs_pending = get_attr("SubscriptionsPending");
+                let kms_key = get_attr("KmsMasterKeyId");
+                let has_policy = if attrs_map.contains_key("Policy") {
+                    "Yes"
+                } else {
+                    "No"
+                }
+                .to_string();
 
-                rows.push(vec![arn, display_name, subs_confirmed, subs_pending, kms_key, has_policy]);
+                rows.push(vec![
+                    arn,
+                    display_name,
+                    subs_confirmed,
+                    subs_pending,
+                    kms_key,
+                    has_policy,
+                ]);
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -87,20 +118,31 @@ pub struct EventBridgeRulesCollector {
 
 impl EventBridgeRulesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: EbClient::new(config) }
+        Self {
+            client: EbClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for EventBridgeRulesCollector {
-    fn name(&self) -> &str { "EventBridge Rules" }
-    fn filename_prefix(&self) -> &str { "EventBridge_Rules_Config" }
+    fn name(&self) -> &str {
+        "EventBridge Rules"
+    }
+    fn filename_prefix(&self) -> &str {
+        "EventBridge_Rules_Config"
+    }
 
-    async fn collect_records(&self, _account_id: &str, _region: &str) -> Result<Vec<serde_json::Value>> {
+    async fn collect_records(
+        &self,
+        _account_id: &str,
+        _region: &str,
+    ) -> Result<Vec<serde_json::Value>> {
         let mut records = Vec::new();
 
         let buses = match self.client.list_event_buses().send().await {
-            Ok(r) => r.event_buses()
+            Ok(r) => r
+                .event_buses()
                 .iter()
                 .filter_map(|b| b.name().map(|s| s.to_string()))
                 .collect::<Vec<_>>(),
@@ -125,20 +167,23 @@ impl JsonCollector for EventBridgeRulesCollector {
 
                 for rule in resp.rules() {
                     let rule_name = rule.name().unwrap_or("").to_string();
-                    let state     = rule.state().map(|s| s.as_str()).unwrap_or("");
-                    let schedule  = rule.schedule_expression();
-                    let event_pattern: serde_json::Value = rule.event_pattern()
+                    let state = rule.state().map(|s| s.as_str()).unwrap_or("");
+                    let schedule = rule.schedule_expression();
+                    let event_pattern: serde_json::Value = rule
+                        .event_pattern()
                         .and_then(|p| serde_json::from_str(p).ok())
                         .unwrap_or(serde_json::Value::Null);
 
-                    let targets: Vec<serde_json::Value> = match self.client
+                    let targets: Vec<serde_json::Value> = match self
+                        .client
                         .list_targets_by_rule()
                         .rule(&rule_name)
                         .event_bus_name(bus_name)
                         .send()
                         .await
                     {
-                        Ok(r) => r.targets()
+                        Ok(r) => r
+                            .targets()
                             .iter()
                             .map(|t| serde_json::json!({ "id": t.id(), "arn": t.arn() }))
                             .collect(),
@@ -156,7 +201,9 @@ impl JsonCollector for EventBridgeRulesCollector {
                 }
 
                 next_token = resp.next_token().map(|s| s.to_string());
-                if next_token.is_none() { break; }
+                if next_token.is_none() {
+                    break;
+                }
             }
         }
 
@@ -174,23 +221,41 @@ pub struct ChangeEventRulesCollector {
 
 impl ChangeEventRulesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: EbClient::new(config) }
+        Self {
+            client: EbClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl crate::evidence::CsvCollector for ChangeEventRulesCollector {
-    fn name(&self) -> &str { "EventBridge Rules for Changes" }
-    fn filename_prefix(&self) -> &str { "Change_Event_Rules" }
+    fn name(&self) -> &str {
+        "EventBridge Rules for Changes"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Change_Event_Rules"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Rule Name", "Event Bus", "State", "Event Pattern", "Targets"]
+        &[
+            "Rule Name",
+            "Event Bus",
+            "State",
+            "Event Pattern",
+            "Targets",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let buses = match self.client.list_event_buses().send().await {
-            Ok(r) => r.event_buses()
+            Ok(r) => r
+                .event_buses()
                 .iter()
                 .filter_map(|b| b.name().map(|s| s.to_string()))
                 .collect::<Vec<_>>(),
@@ -222,7 +287,8 @@ impl crate::evidence::CsvCollector for ChangeEventRulesCollector {
                     // Parse pattern to check if it looks change-related
                     // Accept all event-pattern rules (audit scope); filter note for operator
                     let rule_name = rule.name().unwrap_or("").to_string();
-                    let state     = rule.state()
+                    let state = rule
+                        .state()
                         .map(|s| s.as_str().to_string())
                         .unwrap_or_default();
 
@@ -231,14 +297,16 @@ impl crate::evidence::CsvCollector for ChangeEventRulesCollector {
                         .map(|v| v.to_string())
                         .unwrap_or(pattern);
 
-                    let targets = match self.client
+                    let targets = match self
+                        .client
                         .list_targets_by_rule()
                         .rule(&rule_name)
                         .event_bus_name(bus_name)
                         .send()
                         .await
                     {
-                        Ok(r) => r.targets()
+                        Ok(r) => r
+                            .targets()
                             .iter()
                             .map(|t| format!("{}:{}", t.id(), t.arn()))
                             .collect::<Vec<_>>()
@@ -246,11 +314,19 @@ impl crate::evidence::CsvCollector for ChangeEventRulesCollector {
                         Err(_) => String::new(),
                     };
 
-                    rows.push(vec![rule_name, bus_name.clone(), state, pattern_display, targets]);
+                    rows.push(vec![
+                        rule_name,
+                        bus_name.clone(),
+                        state,
+                        pattern_display,
+                        targets,
+                    ]);
                 }
 
                 next_token = resp.next_token().map(|s| s.to_string());
-                if next_token.is_none() { break; }
+                if next_token.is_none() {
+                    break;
+                }
             }
         }
 

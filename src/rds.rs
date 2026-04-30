@@ -69,9 +69,7 @@ impl RdsCollector {
                 // Filter to the requested date window.
                 if let Some(ts) = created_at {
                     let secs = ts.secs();
-                    if secs < params.start_time.timestamp()
-                        || secs > params.end_time.timestamp()
-                    {
+                    if secs < params.start_time.timestamp() || secs > params.end_time.timestamp() {
                         continue;
                     }
                 } else {
@@ -148,9 +146,7 @@ impl RdsCollector {
 
                 if let Some(ts) = created_at {
                     let secs = ts.secs();
-                    if secs < params.start_time.timestamp()
-                        || secs > params.end_time.timestamp()
-                    {
+                    if secs < params.start_time.timestamp() || secs > params.end_time.timestamp() {
                         continue;
                     }
                 } else {
@@ -208,9 +204,7 @@ fn fmt_rds_dt(dt: &aws_sdk_rds::primitives::DateTime) -> String {
         .unwrap_or_else(|| format!("epoch:{}", dt.secs()))
 }
 
-fn build_instance_raw(
-    snap: &aws_sdk_rds::types::DbSnapshot,
-) -> Option<serde_json::Value> {
+fn build_instance_raw(snap: &aws_sdk_rds::types::DbSnapshot) -> Option<serde_json::Value> {
     Some(serde_json::json!({
         "dbSnapshotIdentifier": snap.db_snapshot_identifier(),
         "dbInstanceIdentifier": snap.db_instance_identifier(),
@@ -224,9 +218,7 @@ fn build_instance_raw(
     }))
 }
 
-fn build_cluster_raw(
-    snap: &aws_sdk_rds::types::DbClusterSnapshot,
-) -> Option<serde_json::Value> {
+fn build_cluster_raw(snap: &aws_sdk_rds::types::DbClusterSnapshot) -> Option<serde_json::Value> {
     Some(serde_json::json!({
         "dbClusterSnapshotIdentifier": snap.db_cluster_snapshot_identifier(),
         "dbClusterIdentifier": snap.db_cluster_identifier(),

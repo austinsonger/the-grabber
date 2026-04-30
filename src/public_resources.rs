@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aws_sdk_ec2::Client as Ec2Client;
+use aws_sdk_elasticloadbalancingv2::types::LoadBalancerSchemeEnum;
 use aws_sdk_elasticloadbalancingv2::Client as ElbClient;
 use aws_sdk_rds::Client as RdsClient;
-use aws_sdk_elasticloadbalancingv2::types::LoadBalancerSchemeEnum;
 
 use crate::evidence::CsvCollector;
 
@@ -25,13 +25,28 @@ impl PublicResourceCollector {
 
 #[async_trait]
 impl CsvCollector for PublicResourceCollector {
-    fn name(&self) -> &str { "Public Resources" }
-    fn filename_prefix(&self) -> &str { "Public_Resources" }
+    fn name(&self) -> &str {
+        "Public Resources"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Public_Resources"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Resource ID", "Resource Type", "Public IP / DNS", "Port Exposure", "Notes"]
+        &[
+            "Resource ID",
+            "Resource Type",
+            "Public IP / DNS",
+            "Port Exposure",
+            "Notes",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // ── 1. EC2 instances with public IPs ────────────────────────────────
@@ -52,10 +67,14 @@ impl CsvCollector for PublicResourceCollector {
             for reservation in resp.reservations() {
                 for instance in reservation.instances() {
                     let public_ip = instance.public_ip_address().unwrap_or("");
-                    if public_ip.is_empty() { continue; }
+                    if public_ip.is_empty() {
+                        continue;
+                    }
 
                     let instance_id = instance.instance_id().unwrap_or("").to_string();
-                    let sg_ids: Vec<String> = instance.security_groups().iter()
+                    let sg_ids: Vec<String> = instance
+                        .security_groups()
+                        .iter()
                         .filter_map(|sg| sg.group_id())
                         .map(|s| s.to_string())
                         .collect();
@@ -71,7 +90,9 @@ impl CsvCollector for PublicResourceCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         // ── 2. Internet-facing ELBs ──────────────────────────────────────────
@@ -97,7 +118,8 @@ impl CsvCollector for PublicResourceCollector {
                 let lb_name = lb.load_balancer_name().unwrap_or("").to_string();
                 let lb_arn = lb.load_balancer_arn().unwrap_or("").to_string();
                 let dns = lb.dns_name().unwrap_or("").to_string();
-                let lb_type = lb.r#type()
+                let lb_type = lb
+                    .r#type()
                     .map(|t| t.as_str().to_string())
                     .unwrap_or_else(|| "Load Balancer".to_string());
 
@@ -111,7 +133,9 @@ impl CsvCollector for PublicResourceCollector {
             }
 
             elb_marker = resp.next_marker().map(|s| s.to_string());
-            if elb_marker.is_none() { break; }
+            if elb_marker.is_none() {
+                break;
+            }
         }
 
         // ── 3. Publicly accessible RDS instances ─────────────────────────────
@@ -130,15 +154,19 @@ impl CsvCollector for PublicResourceCollector {
             };
 
             for db in resp.db_instances() {
-                if !db.publicly_accessible().unwrap_or(false) { continue; }
+                if !db.publicly_accessible().unwrap_or(false) {
+                    continue;
+                }
 
                 let db_id = db.db_instance_identifier().unwrap_or("").to_string();
                 let db_class = db.db_instance_class().unwrap_or("").to_string();
-                let endpoint = db.endpoint()
+                let endpoint = db
+                    .endpoint()
                     .and_then(|e| e.address())
                     .unwrap_or("")
                     .to_string();
-                let port = db.endpoint()
+                let port = db
+                    .endpoint()
                     .and_then(|e| e.port())
                     .map(|p| p.to_string())
                     .unwrap_or_default();
@@ -153,7 +181,9 @@ impl CsvCollector for PublicResourceCollector {
             }
 
             rds_marker = resp.marker().map(|s| s.to_string());
-            if rds_marker.is_none() { break; }
+            if rds_marker.is_none() {
+                break;
+            }
         }
 
         Ok(rows)

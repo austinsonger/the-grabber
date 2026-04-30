@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use aws_sdk_organizations::Client as OrgClient;
 use aws_sdk_organizations::types::PolicyType;
+use aws_sdk_organizations::Client as OrgClient;
 
 use crate::evidence::CsvCollector;
 
@@ -11,24 +11,42 @@ pub struct OrganizationsSCPCollector {
 
 impl OrganizationsSCPCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: OrgClient::new(config) }
+        Self {
+            client: OrgClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for OrganizationsSCPCollector {
-    fn name(&self) -> &str { "Organizations Service Control Policies" }
-    fn filename_prefix(&self) -> &str { "Organizations_SCPs" }
+    fn name(&self) -> &str {
+        "Organizations Service Control Policies"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Organizations_SCPs"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Policy Name", "Policy ID", "Attached Targets", "AWS Managed", "Actions Summary"]
+        &[
+            "Policy Name",
+            "Policy ID",
+            "Attached Targets",
+            "AWS Managed",
+            "Actions Summary",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
         // list_policies with SCP filter
-        let first_resp = self.client
+        let first_resp = self
+            .client
             .list_policies()
             .filter(PolicyType::ServiceControlPolicy)
             .send()
@@ -37,19 +55,25 @@ impl CsvCollector for OrganizationsSCPCollector {
         match first_resp {
             Err(e) => {
                 let msg = format!("{e:#}");
-                if msg.contains("AccessDeniedException") || msg.contains("AWSOrganizationsNotInUseException") {
+                if msg.contains("AccessDeniedException")
+                    || msg.contains("AWSOrganizationsNotInUseException")
+                {
                     eprintln!("  WARN: Organizations list_policies: {msg}");
                     return Ok(rows);
                 }
                 return Err(e).context("Organizations list_policies");
             }
             Ok(resp) => {
-                let policies: Vec<(String, String, bool)> = resp.policies().iter().map(|p| {
-                    let name = p.name().unwrap_or("").to_string();
-                    let id = p.id().unwrap_or("").to_string();
-                    let aws_managed = p.aws_managed();
-                    (name, id, aws_managed)
-                }).collect();
+                let policies: Vec<(String, String, bool)> = resp
+                    .policies()
+                    .iter()
+                    .map(|p| {
+                        let name = p.name().unwrap_or("").to_string();
+                        let id = p.id().unwrap_or("").to_string();
+                        let aws_managed = p.aws_managed();
+                        (name, id, aws_managed)
+                    })
+                    .collect();
 
                 next_token = resp.next_token().map(|s| s.to_string());
 
@@ -61,8 +85,11 @@ impl CsvCollector for OrganizationsSCPCollector {
         }
 
         loop {
-            if next_token.is_none() { break; }
-            let mut req = self.client
+            if next_token.is_none() {
+                break;
+            }
+            let mut req = self
+                .client
                 .list_policies()
                 .filter(PolicyType::ServiceControlPolicy);
             if let Some(ref t) = next_token {
@@ -76,12 +103,16 @@ impl CsvCollector for OrganizationsSCPCollector {
                 }
             };
 
-            let policies: Vec<(String, String, bool)> = resp.policies().iter().map(|p| {
-                let name = p.name().unwrap_or("").to_string();
-                let id = p.id().unwrap_or("").to_string();
-                let aws_managed = p.aws_managed();
-                (name, id, aws_managed)
-            }).collect();
+            let policies: Vec<(String, String, bool)> = resp
+                .policies()
+                .iter()
+                .map(|p| {
+                    let name = p.name().unwrap_or("").to_string();
+                    let id = p.id().unwrap_or("").to_string();
+                    let aws_managed = p.aws_managed();
+                    (name, id, aws_managed)
+                })
+                .collect();
 
             next_token = resp.next_token().map(|s| s.to_string());
 
@@ -98,14 +129,17 @@ impl CsvCollector for OrganizationsSCPCollector {
 impl OrganizationsSCPCollector {
     async fn build_policy_row(&self, name: &str, id: &str, aws_managed: bool) -> Vec<String> {
         // Get attached targets
-        let targets_str = match self.client
+        let targets_str = match self
+            .client
             .list_targets_for_policy()
             .policy_id(id)
             .send()
             .await
         {
             Ok(resp) => {
-                let names: Vec<String> = resp.targets().iter()
+                let names: Vec<String> = resp
+                    .targets()
+                    .iter()
                     .take(10)
                     .map(|t| t.name().unwrap_or("").to_string())
                     .collect();
@@ -118,16 +152,9 @@ impl OrganizationsSCPCollector {
         };
 
         // Get policy content and extract deny actions
-        let actions_summary = match self.client
-            .describe_policy()
-            .policy_id(id)
-            .send()
-            .await
-        {
+        let actions_summary = match self.client.describe_policy().policy_id(id).send().await {
             Ok(resp) => {
-                let content = resp.policy()
-                    .and_then(|p| p.content())
-                    .unwrap_or("");
+                let content = resp.policy().and_then(|p| p.content()).unwrap_or("");
                 extract_deny_actions(content)
             }
             Err(e) => {

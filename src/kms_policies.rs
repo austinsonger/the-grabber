@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use aws_sdk_kms::Client as KmsClient;
 use aws_sdk_ec2::Client as Ec2Client;
+use aws_sdk_kms::Client as KmsClient;
 
 use crate::evidence::CsvCollector;
 
@@ -15,19 +15,37 @@ pub struct KmsKeyPolicyCollector {
 
 impl KmsKeyPolicyCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: KmsClient::new(config) }
+        Self {
+            client: KmsClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for KmsKeyPolicyCollector {
-    fn name(&self) -> &str { "KMS Key Policies" }
-    fn filename_prefix(&self) -> &str { "KMS_KeyPolicies" }
+    fn name(&self) -> &str {
+        "KMS Key Policies"
+    }
+    fn filename_prefix(&self) -> &str {
+        "KMS_KeyPolicies"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Key ID", "Key ARN", "Key State", "Rotation Enabled", "Key Usage", "Policy Allows External Access"]
+        &[
+            "Key ID",
+            "Key ARN",
+            "Key State",
+            "Rotation Enabled",
+            "Key Usage",
+            "Policy Allows External Access",
+        ]
     }
 
-    async fn collect_rows(&self, account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_marker: Option<String> = None;
 
@@ -42,12 +60,7 @@ impl CsvCollector for KmsKeyPolicyCollector {
                 let key_id = key_entry.key_id().unwrap_or("").to_string();
 
                 // describe_key to check if customer managed
-                let desc_resp = match self.client
-                    .describe_key()
-                    .key_id(&key_id)
-                    .send()
-                    .await
-                {
+                let desc_resp = match self.client.describe_key().key_id(&key_id).send().await {
                     Ok(r) => r,
                     Err(e) => {
                         eprintln!("  WARN: KMS describe_key {key_id}: {e:#}");
@@ -61,23 +74,24 @@ impl CsvCollector for KmsKeyPolicyCollector {
                 };
 
                 // Skip AWS managed keys
-                let key_manager = meta.key_manager()
-                    .map(|m| m.as_str())
-                    .unwrap_or("");
+                let key_manager = meta.key_manager().map(|m| m.as_str()).unwrap_or("");
                 if key_manager != "CUSTOMER" {
                     continue;
                 }
 
                 let key_arn = meta.arn().unwrap_or("").to_string();
-                let key_state = meta.key_state()
+                let key_state = meta
+                    .key_state()
                     .map(|s| s.as_str().to_string())
                     .unwrap_or_default();
-                let key_usage = meta.key_usage()
+                let key_usage = meta
+                    .key_usage()
                     .map(|u| u.as_str().to_string())
                     .unwrap_or_default();
 
                 // Rotation status
-                let rotation_enabled = match self.client
+                let rotation_enabled = match self
+                    .client
                     .get_key_rotation_status()
                     .key_id(&key_id)
                     .send()
@@ -88,7 +102,8 @@ impl CsvCollector for KmsKeyPolicyCollector {
                 };
 
                 // Key policy
-                let external_access = match self.client
+                let external_access = match self
+                    .client
                     .get_key_policy()
                     .key_id(&key_id)
                     .policy_name("default")
@@ -167,32 +182,40 @@ impl EbsDefaultEncryptionCollector {
 
 #[async_trait]
 impl CsvCollector for EbsDefaultEncryptionCollector {
-    fn name(&self) -> &str { "EBS Default Encryption" }
-    fn filename_prefix(&self) -> &str { "EBS_DefaultEncryption" }
+    fn name(&self) -> &str {
+        "EBS Default Encryption"
+    }
+    fn filename_prefix(&self) -> &str {
+        "EBS_DefaultEncryption"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &["Region", "Default Encryption Enabled", "KMS Key ID"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
-        let enc_resp = match self.ec2_client
-            .get_ebs_encryption_by_default()
-            .send()
-            .await
-        {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
+        let enc_resp = match self.ec2_client.get_ebs_encryption_by_default().send().await {
             Ok(r) => r,
             Err(e) => {
                 eprintln!("  WARN: EC2 get_ebs_encryption_by_default: {e:#}");
-                return Ok(vec![vec![region.to_string(), "Unknown".to_string(), String::new()]]);
+                return Ok(vec![vec![
+                    region.to_string(),
+                    "Unknown".to_string(),
+                    String::new(),
+                ]]);
             }
         };
 
-        let enabled = enc_resp.ebs_encryption_by_default().unwrap_or(false).to_string();
+        let enabled = enc_resp
+            .ebs_encryption_by_default()
+            .unwrap_or(false)
+            .to_string();
 
-        let kms_key_id = match self.ec2_client
-            .get_ebs_default_kms_key_id()
-            .send()
-            .await
-        {
+        let kms_key_id = match self.ec2_client.get_ebs_default_kms_key_id().send().await {
             Ok(r) => r.kms_key_id().unwrap_or("").to_string(),
             Err(e) => {
                 eprintln!("  WARN: EC2 get_ebs_default_kms_key_id: {e:#}");

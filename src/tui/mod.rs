@@ -23,14 +23,32 @@ use crate::inventory_core::INVENTORY_ITEMS;
 #[derive(Debug, Clone)]
 pub enum Progress {
     /// Signals the start of collection for a new account (multi-account mode).
-    AccountStarted { name: String, index: usize, total: usize, region: String, collectors: Vec<String> },
+    AccountStarted {
+        name: String,
+        index: usize,
+        total: usize,
+        region: String,
+        collectors: Vec<String>,
+    },
     /// Signals that collection for an account has finished.
-    AccountFinished { name: String },
+    AccountFinished {
+        name: String,
+    },
     /// Signals that collection is now running against a specific region (all-regions mode).
-    RegionStarted { region: String },
-    Started { collector: String },
-    Done { collector: String, count: usize },
-    Error { collector: String, message: String },
+    RegionStarted {
+        region: String,
+    },
+    Started {
+        collector: String,
+    },
+    Done {
+        collector: String,
+        count: usize,
+    },
+    Error {
+        collector: String,
+        message: String,
+    },
     /// Sent once all collectors finish.
     Finished {
         files: Vec<String>,
@@ -69,12 +87,13 @@ pub enum Screen {
     Welcome,
     /// Choose between Collectors and Inventory.
     FeatureSelection,
-    SelectAccount,   // shown when TOML accounts are configured
-    SelectProfile,   // legacy: pick from ~/.aws/config profiles
-    SelectRegion,    // legacy: pick region
+    SelectAccount, // shown when TOML accounts are configured
+    SelectProfile, // legacy: pick from ~/.aws/config profiles
+    SelectRegion,  // legacy: pick region
     SetDates,
     /// Multi-select AWS asset types (Inventory flow only).
     Inventory,
+    PoamAccount,
     PoamRegion,
     PoamYear,
     PoamMonth,
@@ -112,10 +131,7 @@ impl TextInput {
 
     pub fn backspace(&mut self) {
         if self.cursor > 0 {
-            let c = self.value[..self.cursor]
-                .chars()
-                .last()
-                .unwrap();
+            let c = self.value[..self.cursor].chars().last().unwrap();
             self.cursor -= c.len_utf8();
             self.value.remove(self.cursor);
         }
@@ -228,11 +244,11 @@ pub struct App {
 
     // Running / results
     pub collector_statuses: Vec<CollectorStatus>,
-    pub result_files: Vec<String>,         // paths of files written
-    pub result_zip: Option<String>,        // path to bundled zip (zip option)
-    pub result_signing_manifest: Option<String>,  // path to SIGNING-MANIFEST-*.json
-    pub result_signing_key_path: Option<String>,  // path to SIGNING-*.key
-    pub error_messages: Vec<(String, String)>,  // (collector_name, error_message)
+    pub result_files: Vec<String>,  // paths of files written
+    pub result_zip: Option<String>, // path to bundled zip (zip option)
+    pub result_signing_manifest: Option<String>, // path to SIGNING-MANIFEST-*.json
+    pub result_signing_key_path: Option<String>, // path to SIGNING-*.key
+    pub error_messages: Vec<(String, String)>, // (collector_name, error_message)
     pub progress_rx: Option<mpsc::UnboundedReceiver<Progress>>,
 
     // Validation error shown at bottom of a screen
@@ -249,6 +265,7 @@ pub struct App {
     pub selected_feature: Feature,
 
     // POAM inputs/results
+    pub poam_account_cursor: usize,
     pub poam_region_cursor: usize,
     pub poam_year: TextInput,
     pub poam_month_cursor: usize,
@@ -261,8 +278,8 @@ pub struct App {
 
     // Preparing screen state (set by main before entering the setup loop)
     pub prep_log: Vec<String>,
-    pub prep_current: usize,   // 1-based index of account currently being set up
-    pub prep_total: usize,     // total number of accounts being prepared
+    pub prep_current: usize, // 1-based index of account currently being set up
+    pub prep_total: usize,   // total number of accounts being prepared
 }
 
 impl App {
@@ -271,151 +288,437 @@ impl App {
 
         let collector_items = vec![
             // ── App Layer & DNS ── (0..6)
-            ("api-gateway",        "API Gateway              (current state, CSV)"),
-            ("cloudfront",         "CloudFront Distributions (current state, CSV)"),
-            ("lambda-config",      "Lambda Configuration     (current state, CSV)"),
-            ("lambda-permissions", "Lambda Permissions       (current state, CSV)"),
-            ("route53-zones",      "Route53 Hosted Zones     (current state, CSV)"),
-            ("route53-resolver",   "Route53 Resolver Rules   (current state, CSV)"),
+            (
+                "api-gateway",
+                "API Gateway              (current state, CSV)",
+            ),
+            (
+                "cloudfront",
+                "CloudFront Distributions (current state, CSV)",
+            ),
+            (
+                "lambda-config",
+                "Lambda Configuration     (current state, CSV)",
+            ),
+            (
+                "lambda-permissions",
+                "Lambda Permissions       (current state, CSV)",
+            ),
+            (
+                "route53-zones",
+                "Route53 Hosted Zones     (current state, CSV)",
+            ),
+            (
+                "route53-resolver",
+                "Route53 Resolver Rules   (current state, CSV)",
+            ),
             // ── Audit Trail ── (6..23)
-            ("config-recorder",    "AWS Config Recorder      (current state, CSV)"),
-            ("config-rules",       "AWS Config Rules         (current state, CSV)"),
-            ("cfn-drift",          "CloudFormation Drift     (current state, CSV)"),
-            ("cloudtrail",         "CloudTrail API           (last 90 days, JSON)"),
-            ("ct-changes",         "CloudTrail Change Events (last 7 days, CSV)"),
-            ("cloudtrail-config",  "CloudTrail Configuration (current state, CSV)"),
-            ("ct-selectors",       "CloudTrail Evt Selectors (current state, CSV)"),
-            ("ct-full-config",     "CloudTrail Full Config   (current state, CSV)"),
-            ("ct-validation",      "CloudTrail Log Validation(current state, CSV)"),
-            ("s3",                 "CloudTrail S3            (7 months, requires s3-bucket, JSON)"),
-            ("ct-s3-policy",       "CloudTrail S3 Policy     (current state, CSV)"),
-            ("config-compliance",  "Config Compliance History(all rules, CSV)"),
-            ("config-history",     "Config Resource History  (current state, CSV)"),
-            ("config-timeline",    "Config Resource Timeline (last 5 per resource, CSV)"),
-            ("config-snapshot",    "Config Snapshot (PiT)    (point-in-time, CSV)"),
-            ("ct-config-changes",  "CT Config Change Events  (last 90 days, CSV)"),
-            ("ct-iam-changes",     "CT IAM Changes (Hi-Risk) (last 90 days, CSV)"),
+            (
+                "config-recorder",
+                "AWS Config Recorder      (current state, CSV)",
+            ),
+            (
+                "config-rules",
+                "AWS Config Rules         (current state, CSV)",
+            ),
+            ("cfn-drift", "CloudFormation Drift     (current state, CSV)"),
+            (
+                "cloudtrail",
+                "CloudTrail API           (last 90 days, JSON)",
+            ),
+            ("ct-changes", "CloudTrail Change Events (last 7 days, CSV)"),
+            (
+                "cloudtrail-config",
+                "CloudTrail Configuration (current state, CSV)",
+            ),
+            (
+                "ct-selectors",
+                "CloudTrail Evt Selectors (current state, CSV)",
+            ),
+            (
+                "ct-full-config",
+                "CloudTrail Full Config   (current state, CSV)",
+            ),
+            (
+                "ct-validation",
+                "CloudTrail Log Validation(current state, CSV)",
+            ),
+            (
+                "s3",
+                "CloudTrail S3            (7 months, requires s3-bucket, JSON)",
+            ),
+            (
+                "ct-s3-policy",
+                "CloudTrail S3 Policy     (current state, CSV)",
+            ),
+            (
+                "config-compliance",
+                "Config Compliance History(all rules, CSV)",
+            ),
+            (
+                "config-history",
+                "Config Resource History  (current state, CSV)",
+            ),
+            (
+                "config-timeline",
+                "Config Resource Timeline (last 5 per resource, CSV)",
+            ),
+            (
+                "config-snapshot",
+                "Config Snapshot (PiT)    (point-in-time, CSV)",
+            ),
+            (
+                "ct-config-changes",
+                "CT Config Change Events  (last 90 days, CSV)",
+            ),
+            (
+                "ct-iam-changes",
+                "CT IAM Changes (Hi-Risk) (last 90 days, CSV)",
+            ),
             // ── Compute ── (23..37)
-            ("asg",                "Auto Scaling Groups      (current state, CSV)"),
-            ("ec2-detailed",       "EC2 Details (AMI/IMDS)   (current state, CSV)"),
-            ("ec2-config",         "EC2 Instance Config      (current state, CSV)"),
-            ("ec2-instances",      "EC2 Instances            (current state, CSV)"),
-            ("launch-templates",   "EC2 Launch Templates     (current state, CSV)"),
-            ("ssm-maint-windows",  "SSM Maintenance Windows  (current state, CSV)"),
-            ("ssm-instances",      "SSM Managed Instances    (current state, CSV)"),
-            ("ssm-params",         "SSM Parameter Store      (current state, CSV)"),
-            ("ssm-baselines",      "SSM Patch Baselines      (current state, CSV)"),
-            ("ssm-patches",        "SSM Patch Compliance     (current state, CSV)"),
-            ("ssm-patch-detail",   "SSM Patch Detail         (per instance, CSV)"),
-            ("ssm-patch-exec",     "SSM Patch Executions     (command history, CSV)"),
-            ("ssm-patch-summary",  "SSM Patch Summary        (per instance, CSV)"),
-            ("time-sync",          "Time Sync Config (SSM)   (current state, CSV)"),
+            ("asg", "Auto Scaling Groups      (current state, CSV)"),
+            (
+                "ec2-detailed",
+                "EC2 Details (AMI/IMDS)   (current state, CSV)",
+            ),
+            (
+                "ec2-config",
+                "EC2 Instance Config      (current state, CSV)",
+            ),
+            (
+                "ec2-instances",
+                "EC2 Instances            (current state, CSV)",
+            ),
+            (
+                "launch-templates",
+                "EC2 Launch Templates     (current state, CSV)",
+            ),
+            (
+                "ssm-maint-windows",
+                "SSM Maintenance Windows  (current state, CSV)",
+            ),
+            (
+                "ssm-instances",
+                "SSM Managed Instances    (current state, CSV)",
+            ),
+            (
+                "ssm-params",
+                "SSM Parameter Store      (current state, CSV)",
+            ),
+            (
+                "ssm-baselines",
+                "SSM Patch Baselines      (current state, CSV)",
+            ),
+            (
+                "ssm-patches",
+                "SSM Patch Compliance     (current state, CSV)",
+            ),
+            (
+                "ssm-patch-detail",
+                "SSM Patch Detail         (per instance, CSV)",
+            ),
+            (
+                "ssm-patch-exec",
+                "SSM Patch Executions     (command history, CSV)",
+            ),
+            (
+                "ssm-patch-summary",
+                "SSM Patch Summary        (per instance, CSV)",
+            ),
+            ("time-sync", "Time Sync Config (SSM)   (current state, CSV)"),
             // ── Containers ── (37..41)
-            ("ecr-scan",           "ECR Image Scan Findings  (current state, CSV)"),
-            ("ecr-config",         "ECR Repo Config          (current state, CSV)"),
-            ("ecs",                "ECS Clusters             (current state, CSV)"),
-            ("eks",                "EKS Clusters             (current state, CSV)"),
+            ("ecr-scan", "ECR Image Scan Findings  (current state, CSV)"),
+            (
+                "ecr-config",
+                "ECR Repo Config          (current state, CSV)",
+            ),
+            ("ecs", "ECS Clusters             (current state, CSV)"),
+            ("eks", "EKS Clusters             (current state, CSV)"),
             // ── Database & Backup ── (41..48)
-            ("backup",             "AWS Backup API           (native backup jobs, JSON)"),
-            ("backup-plans",       "AWS Backup Plans         (current state, CSV)"),
-            ("backup-vaults",      "Backup Vault Config      (current state, CSV)"),
-            ("rds-backup-config",  "RDS Backup Config        (current state, CSV)"),
-            ("rds-inventory",      "RDS Inventory            (current state, CSV)"),
-            ("rds",                "RDS Snapshots            (last 30 days, JSON)"),
-            ("rds-snapshots",      "RDS Snapshots            (current state, CSV)"),
+            (
+                "backup",
+                "AWS Backup API           (native backup jobs, JSON)",
+            ),
+            (
+                "backup-plans",
+                "AWS Backup Plans         (current state, CSV)",
+            ),
+            (
+                "backup-vaults",
+                "Backup Vault Config      (current state, CSV)",
+            ),
+            (
+                "rds-backup-config",
+                "RDS Backup Config        (current state, CSV)",
+            ),
+            (
+                "rds-inventory",
+                "RDS Inventory            (current state, CSV)",
+            ),
+            ("rds", "RDS Snapshots            (last 30 days, JSON)"),
+            (
+                "rds-snapshots",
+                "RDS Snapshots            (current state, CSV)",
+            ),
             // ── Encryption & Secrets ── (48..55)
-            ("ebs-encryption",     "EBS Default Encryption   (current state, CSV)"),
-            ("ebs-config",         "EBS Encryption Config    (current state, CSV)"),
-            ("kms-config",         "KMS Key Config (Full)    (current state, CSV)"),
-            ("kms-policies",       "KMS Key Policies         (current state, CSV)"),
-            ("kms",                "KMS Keys                 (current state, CSV)"),
-            ("secrets",            "Secrets Manager          (current state, CSV)"),
-            ("secrets-policies",   "Secrets Manager Policies (current state, CSV)"),
+            (
+                "ebs-encryption",
+                "EBS Default Encryption   (current state, CSV)",
+            ),
+            (
+                "ebs-config",
+                "EBS Encryption Config    (current state, CSV)",
+            ),
+            (
+                "kms-config",
+                "KMS Key Config (Full)    (current state, CSV)",
+            ),
+            (
+                "kms-policies",
+                "KMS Key Policies         (current state, CSV)",
+            ),
+            ("kms", "KMS Keys                 (current state, CSV)"),
+            ("secrets", "Secrets Manager          (current state, CSV)"),
+            (
+                "secrets-policies",
+                "Secrets Manager Policies (current state, CSV)",
+            ),
             // ── Identity & Access ── (55..67)
-            ("access-analyzer",    "IAM Access Analyzer      (current state, CSV)"),
-            ("iam-access-keys",    "IAM Access Keys          (current state, CSV)"),
-            ("iam-account-summary","IAM Account Summary      (current state, CSV)"),
-            ("iam-certs",          "IAM Certificates         (current state, CSV)"),
-            ("iam-password-policy","IAM Password Policy      (current state, CSV)"),
-            ("iam-policies",       "IAM Policies             (current state, CSV)"),
-            ("iam-role-policies",  "IAM Role Policies        (current state, CSV)"),
-            ("iam-trusts",         "IAM Role Trust Policies  (current state, CSV)"),
-            ("iam-roles",          "IAM Roles                (current state, CSV)"),
-            ("iam-user-policies",  "IAM User Policies        (current state, CSV)"),
-            ("iam-users",          "IAM Users                (current state, CSV)"),
-            ("saml-providers",     "SAML IdP Config          (current state, CSV)"),
+            (
+                "access-analyzer",
+                "IAM Access Analyzer      (current state, CSV)",
+            ),
+            (
+                "iam-access-keys",
+                "IAM Access Keys          (current state, CSV)",
+            ),
+            (
+                "iam-account-summary",
+                "IAM Account Summary      (current state, CSV)",
+            ),
+            ("iam-certs", "IAM Certificates         (current state, CSV)"),
+            (
+                "iam-password-policy",
+                "IAM Password Policy      (current state, CSV)",
+            ),
+            (
+                "iam-policies",
+                "IAM Policies             (current state, CSV)",
+            ),
+            (
+                "iam-role-policies",
+                "IAM Role Policies        (current state, CSV)",
+            ),
+            (
+                "iam-trusts",
+                "IAM Role Trust Policies  (current state, CSV)",
+            ),
+            ("iam-roles", "IAM Roles                (current state, CSV)"),
+            (
+                "iam-user-policies",
+                "IAM User Policies        (current state, CSV)",
+            ),
+            ("iam-users", "IAM Users                (current state, CSV)"),
+            (
+                "saml-providers",
+                "SAML IdP Config          (current state, CSV)",
+            ),
             // ── Monitoring & Events ── (67..77)
-            ("cw-alarms",          "CloudWatch Alarms        (current state, CSV)"),
-            ("cw-log-groups",      "CloudWatch Log Groups    (current state, CSV)"),
-            ("cw-config-alarms",   "CW Alarms (All)          (current state, CSV)"),
-            ("cw-log-config",      "CW Log Group Config      (current state, CSV)"),
-            ("change-event-rules", "EventBridge Change Rules (event-pattern, CSV)"),
-            ("eventbridge-rules",  "EventBridge Rules        (current state, CSV)"),
-            ("metric-filters",     "Log Metric Filters/Alarms(current state, CSV)"),
-            ("metric-filter-config","Metric Filter Config    (current state, CSV)"),
-            ("sns-policies",       "SNS Topic Policies       (current state, CSV)"),
-            ("sns",                "SNS Topic Subscribers    (current state, CSV)"),
+            ("cw-alarms", "CloudWatch Alarms        (current state, CSV)"),
+            (
+                "cw-log-groups",
+                "CloudWatch Log Groups    (current state, CSV)",
+            ),
+            (
+                "cw-config-alarms",
+                "CW Alarms (All)          (current state, CSV)",
+            ),
+            (
+                "cw-log-config",
+                "CW Log Group Config      (current state, CSV)",
+            ),
+            (
+                "change-event-rules",
+                "EventBridge Change Rules (event-pattern, CSV)",
+            ),
+            (
+                "eventbridge-rules",
+                "EventBridge Rules        (current state, CSV)",
+            ),
+            (
+                "metric-filters",
+                "Log Metric Filters/Alarms(current state, CSV)",
+            ),
+            (
+                "metric-filter-config",
+                "Metric Filter Config    (current state, CSV)",
+            ),
+            (
+                "sns-policies",
+                "SNS Topic Policies       (current state, CSV)",
+            ),
+            ("sns", "SNS Topic Subscribers    (current state, CSV)"),
             // ── Network ── (77..97)
-            ("acm",                "ACM Certificates         (current state, CSV)"),
-            ("alb-logs",           "ALB Access Log Config    (current state, CSV)"),
-            ("igw",                "Internet Gateways        (current state, CSV)"),
-            ("elb-full-config",    "Load Balancer Full Config(current state, CSV)"),
-            ("elb-listeners",      "Load Balancer Listeners  (current state, CSV)"),
-            ("elb",                "Load Balancers           (current state, CSV)"),
-            ("nat-gateways",       "NAT Gateways             (current state, CSV)"),
-            ("nacl",               "Network ACLs             (current state, CSV)"),
-            ("public-resources",   "Publicly Exposed Res.    (current state, CSV)"),
-            ("rt-config",          "Route Table Config       (current state, CSV)"),
-            ("route-tables",       "Route Tables             (current state, CSV)"),
-            ("sg-config",          "Security Group Config    (current state, CSV)"),
-            ("security-groups",    "Security Groups          (current state, CSV)"),
-            ("vpc-config",         "VPC Configuration        (current state, CSV)"),
-            ("vpc-endpoints",      "VPC Endpoints            (current state, CSV)"),
-            ("vpc-flow-logs",      "VPC Flow Logging         (current state, CSV)"),
-            ("vpc",                "VPCs                     (current state, CSV)"),
-            ("waf-config",         "WAF Full Config          (current state, CSV)"),
-            ("waf-logging",        "WAF Logging Config       (current state, CSV)"),
-            ("waf",                "WAF Regional Web ACLs    (current state, CSV)"),
+            ("acm", "ACM Certificates         (current state, CSV)"),
+            ("alb-logs", "ALB Access Log Config    (current state, CSV)"),
+            ("igw", "Internet Gateways        (current state, CSV)"),
+            (
+                "elb-full-config",
+                "Load Balancer Full Config(current state, CSV)",
+            ),
+            (
+                "elb-listeners",
+                "Load Balancer Listeners  (current state, CSV)",
+            ),
+            ("elb", "Load Balancers           (current state, CSV)"),
+            (
+                "nat-gateways",
+                "NAT Gateways             (current state, CSV)",
+            ),
+            ("nacl", "Network ACLs             (current state, CSV)"),
+            (
+                "public-resources",
+                "Publicly Exposed Res.    (current state, CSV)",
+            ),
+            ("rt-config", "Route Table Config       (current state, CSV)"),
+            (
+                "route-tables",
+                "Route Tables             (current state, CSV)",
+            ),
+            ("sg-config", "Security Group Config    (current state, CSV)"),
+            (
+                "security-groups",
+                "Security Groups          (current state, CSV)",
+            ),
+            (
+                "vpc-config",
+                "VPC Configuration        (current state, CSV)",
+            ),
+            (
+                "vpc-endpoints",
+                "VPC Endpoints            (current state, CSV)",
+            ),
+            (
+                "vpc-flow-logs",
+                "VPC Flow Logging         (current state, CSV)",
+            ),
+            ("vpc", "VPCs                     (current state, CSV)"),
+            (
+                "waf-config",
+                "WAF Full Config          (current state, CSV)",
+            ),
+            (
+                "waf-logging",
+                "WAF Logging Config       (current state, CSV)",
+            ),
+            ("waf", "WAF Regional Web ACLs    (current state, CSV)"),
             // ── Organization & Account ── (97..101)
-            ("account-contacts",   "Account Alt. Contacts    (current state, CSV)"),
-            ("org-config",         "AWS Org Config           (requires org master, CSV)"),
-            ("scp",                "Org SCPs                 (requires org admin, CSV)"),
-            ("resource-tags",      "Resource Tags            (current state, CSV)"),
+            (
+                "account-contacts",
+                "Account Alt. Contacts    (current state, CSV)",
+            ),
+            (
+                "org-config",
+                "AWS Org Config           (requires org master, CSV)",
+            ),
+            ("scp", "Org SCPs                 (requires org admin, CSV)"),
+            (
+                "resource-tags",
+                "Resource Tags            (current state, CSV)",
+            ),
             // ── Security Detection ── (101..113)
-            ("guardduty-config",   "GuardDuty Config         (current state, CSV)"),
-            ("guardduty",          "GuardDuty Findings       (current state, CSV)"),
-            ("gd-full-config",     "GuardDuty Full Config    (current state, CSV)"),
-            ("guardduty-rules",    "GuardDuty Suppression    (current state, CSV)"),
-            ("inspector-history",  "Inspector Findings Hist. (if enabled, CSV)"),
-            ("inspector-config",   "Inspector2 Config        (if enabled, CSV)"),
-            ("inspector-ecr",      "Inspector2 ECR Findings  (if enabled, CSV)"),
-            ("inspector",          "Inspector2 Findings      (if enabled, CSV)"),
-            ("macie",              "Macie Findings           (if enabled, CSV)"),
-            ("securityhub",        "Security Hub Findings    (current state, CSV)"),
-            ("sh-config",          "SecurityHub Config       (current state, CSV)"),
-            ("sh-standards",       "SecurityHub Standards    (current state, CSV)"),
+            (
+                "guardduty-config",
+                "GuardDuty Config         (current state, CSV)",
+            ),
+            ("guardduty", "GuardDuty Findings       (current state, CSV)"),
+            (
+                "gd-full-config",
+                "GuardDuty Full Config    (current state, CSV)",
+            ),
+            (
+                "guardduty-rules",
+                "GuardDuty Suppression    (current state, CSV)",
+            ),
+            (
+                "inspector-history",
+                "Inspector Findings Hist. (if enabled, CSV)",
+            ),
+            (
+                "inspector-config",
+                "Inspector2 Config        (if enabled, CSV)",
+            ),
+            (
+                "inspector-ecr-images",
+                "Inspector2 ECR Images    (if enabled, CSV)",
+            ),
+            ("inspector", "Inspector2 Findings      (if enabled, CSV)"),
+            ("macie", "Macie Findings           (if enabled, CSV)"),
+            (
+                "securityhub",
+                "Security Hub Findings    (current state, CSV)",
+            ),
+            ("sh-config", "SecurityHub Config       (current state, CSV)"),
+            (
+                "sh-standards",
+                "SecurityHub Standards    (current state, CSV)",
+            ),
             // ── Storage ── (113..126)
-            ("dynamodb",           "DynamoDB Tables          (current state, CSV)"),
-            ("ebs",                "EBS Volumes              (current state, CSV)"),
-            ("efs",                "EFS File Systems         (current state, CSV)"),
-            ("elasticache",        "ElastiCache Clusters     (current state, CSV)"),
-            ("elasticache-global", "ElastiCache Global DS    (current state, CSV)"),
-            ("s3-logging",         "S3 Bucket Access Logging (current state, CSV)"),
-            ("s3-policies",        "S3 Bucket Policies       (current state, CSV)"),
-            ("s3-bucket-policy",   "S3 Bucket Policy (Full)  (current state, CSV)"),
-            ("s3-config",          "S3 Buckets Config        (current state, CSV)"),
-            ("s3-data-events",     "S3 Data Events Config    (current state, CSV)"),
-            ("s3-encryption",      "S3 Encryption Config     (current state, CSV)"),
-            ("s3-logging-config",  "S3 Logging Config        (current state, CSV)"),
-            ("s3-public-access",   "S3 Public Access Block   (current state, CSV)"),
+            ("dynamodb", "DynamoDB Tables          (current state, CSV)"),
+            ("ebs", "EBS Volumes              (current state, CSV)"),
+            ("efs", "EFS File Systems         (current state, CSV)"),
+            (
+                "elasticache",
+                "ElastiCache Clusters     (current state, CSV)",
+            ),
+            (
+                "elasticache-global",
+                "ElastiCache Global DS    (current state, CSV)",
+            ),
+            (
+                "s3-logging",
+                "S3 Bucket Access Logging (current state, CSV)",
+            ),
+            (
+                "s3-policies",
+                "S3 Bucket Policies       (current state, CSV)",
+            ),
+            (
+                "s3-bucket-policy",
+                "S3 Bucket Policy (Full)  (current state, CSV)",
+            ),
+            ("s3-config", "S3 Buckets Config        (current state, CSV)"),
+            (
+                "s3-data-events",
+                "S3 Data Events Config    (current state, CSV)",
+            ),
+            (
+                "s3-encryption",
+                "S3 Encryption Config     (current state, CSV)",
+            ),
+            (
+                "s3-logging-config",
+                "S3 Logging Config        (current state, CSV)",
+            ),
+            (
+                "s3-public-access",
+                "S3 Public Access Block   (current state, CSV)",
+            ),
         ];
 
         // --- Collector selection defaults ---
         let total = collector_items.len();
         let mut collector_selected = HashSet::new();
 
-        let hardcoded_optins = ["s3", "elasticache-global", "scp", "macie",
-                                "inspector", "inspector-config", "org-config"];
+        let hardcoded_optins = [
+            "s3",
+            "elasticache-global",
+            "scp",
+            "macie",
+            "inspector",
+            "inspector-config",
+            "org-config",
+        ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {
             // Exclusive: ONLY enable listed collectors
@@ -532,22 +835,15 @@ impl App {
             start_date: TextInput::new(
                 &(chrono::Utc::now().date_naive()
                     - chrono::Months::new((time_frame_cursor as u32) + 1))
-                    .format("%Y-%m-%d").to_string(),
+                .format("%Y-%m-%d")
+                .to_string(),
             ),
-            end_date: TextInput::new(
-                &chrono::Utc::now().format("%Y-%m-%d").to_string(),
-            ),
+            end_date: TextInput::new(&chrono::Utc::now().format("%Y-%m-%d").to_string()),
             time_frame_cursor,
             collector_items,
             collector_cursor: 0,
             collector_selected,
-            output_dir: TextInput::new(
-                config
-                    .defaults
-                    .output_dir
-                    .as_deref()
-                    .unwrap_or("."),
-            ),
+            output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,
             zip,
@@ -573,6 +869,7 @@ impl App {
             prep_current: 0,
             prep_total: 0,
             selected_feature: Feature::Collectors,
+            poam_account_cursor: 0,
             poam_region_cursor: region_cursor,
             poam_year: TextInput::new(&chrono::Local::now().format("%Y").to_string()),
             poam_month_cursor: chrono::Local::now()
@@ -606,7 +903,8 @@ impl App {
     pub fn explicit_regions(&self) -> Vec<String> {
         let mut indices: Vec<usize> = self.options_selected_regions.iter().copied().collect();
         indices.sort_unstable();
-        indices.iter()
+        indices
+            .iter()
             .filter_map(|&i| self.regions.get(i).map(|r| r.to_string()))
             .collect()
     }
@@ -631,16 +929,29 @@ impl App {
 
     pub fn poam_month_name(&self) -> &'static str {
         const MONTHS: [&str; 12] = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December",
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
         ];
-        MONTHS.get(self.poam_month_cursor).copied().unwrap_or("January")
+        MONTHS
+            .get(self.poam_month_cursor)
+            .copied()
+            .unwrap_or("January")
     }
 
     pub fn poam_month_folder(&self) -> String {
         const FOLDERS: [&str; 12] = [
-            "01-JAN", "02-FEB", "03-MAR", "04-APR", "05-MAY", "06-JUN",
-            "07-JUL", "08-AUG", "09-SEP", "10-OCT", "11-NOV", "12-DEC",
+            "01-JAN", "02-FEB", "03-MAR", "04-APR", "05-MAY", "06-JUN", "07-JUL", "08-AUG",
+            "09-SEP", "10-OCT", "11-NOV", "12-DEC",
         ];
         FOLDERS
             .get(self.poam_month_cursor)
@@ -658,9 +969,23 @@ impl App {
         }
     }
 
+    /// Returns the evidence base directory for the selected POAM account,
+    /// e.g. "evidence-output/federal/ops" or "evidence-output/security".
+    pub fn poam_evidence_base(&self) -> String {
+        if self.has_accounts() {
+            self.accounts
+                .get(self.poam_account_cursor)
+                .and_then(|a| a.output_dir.as_deref())
+                .unwrap_or("evidence-output/security")
+                .trim_start_matches("./")
+                .to_string()
+        } else {
+            "evidence-output/security".to_string()
+        }
+    }
+
     pub fn poam_evidence_path(&self) -> String {
-        std::path::PathBuf::from("evidence-output")
-            .join("security")
+        std::path::PathBuf::from(self.poam_evidence_base())
             .join(self.poam_selected_region())
             .join(self.poam_year_value())
             .join(self.poam_month_folder())
@@ -699,7 +1024,10 @@ impl App {
 
     /// Compute per-account settings without mutating shared App state.
     /// Returns (profile, region, output_dir, collector_keys).
-    pub fn resolve_account_settings(&self, index: usize) -> (String, String, Option<String>, Vec<String>) {
+    pub fn resolve_account_settings(
+        &self,
+        index: usize,
+    ) -> (String, String, Option<String>, Vec<String>) {
         let acct = &self.accounts[index];
 
         let profile = acct.profile.clone();
@@ -707,7 +1035,8 @@ impl App {
             if self.region_use_custom {
                 self.region_custom.value.clone()
             } else {
-                self.regions.get(self.region_cursor)
+                self.regions
+                    .get(self.region_cursor)
                     .map(|s| s.to_string())
                     .unwrap_or_else(|| "us-east-1".to_string())
             }
@@ -770,36 +1099,41 @@ impl App {
         self.error_msg = None;
         self.screen = match self.screen {
             Screen::Welcome => Screen::FeatureSelection,
-            Screen::FeatureSelection => {
-                match self.selected_feature {
-                    Feature::Poam => Screen::PoamRegion,
-                    _ => {
-                        if self.has_accounts() {
-                            Screen::SelectAccount
-                        } else {
-                            Screen::SelectProfile
-                        }
+            Screen::FeatureSelection => match self.selected_feature {
+                Feature::Poam => {
+                    if self.has_accounts() {
+                        Screen::PoamAccount
+                    } else {
+                        Screen::PoamRegion
                     }
                 }
-            }
-            Screen::SelectAccount   => Screen::SetDates,
-            Screen::SelectProfile   => Screen::SelectRegion,
-            Screen::SelectRegion    => Screen::SetDates,
+                _ => {
+                    if self.has_accounts() {
+                        Screen::SelectAccount
+                    } else {
+                        Screen::SelectProfile
+                    }
+                }
+            },
+            Screen::PoamAccount => Screen::PoamRegion,
+            Screen::SelectAccount => Screen::SetDates,
+            Screen::SelectProfile => Screen::SelectRegion,
+            Screen::SelectRegion => Screen::SetDates,
             Screen::SetDates => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,
-                Feature::Inventory  => Screen::Inventory,
-                Feature::Poam       => Screen::PoamRegion,
+                Feature::Inventory => Screen::Inventory,
+                Feature::Poam => Screen::PoamRegion,
             },
-            Screen::Inventory        => Screen::SetOptions,
-            Screen::PoamRegion       => Screen::PoamYear,
-            Screen::PoamYear         => Screen::PoamMonth,
-            Screen::PoamMonth        => Screen::Confirm,
+            Screen::Inventory => Screen::SetOptions,
+            Screen::PoamRegion => Screen::PoamYear,
+            Screen::PoamYear => Screen::PoamMonth,
+            Screen::PoamMonth => Screen::Confirm,
             Screen::SelectCollectors => Screen::SetOptions,
-            Screen::SetOptions      => Screen::Confirm,
-            Screen::Confirm         => Screen::Running,
-            Screen::Preparing       => Screen::Running,
-            Screen::Running         => Screen::Results,
-            Screen::Results         => Screen::Results,
+            Screen::SetOptions => Screen::Confirm,
+            Screen::Confirm => Screen::Running,
+            Screen::Preparing => Screen::Running,
+            Screen::Running => Screen::Results,
+            Screen::Results => Screen::Results,
         };
     }
 
@@ -807,7 +1141,7 @@ impl App {
         self.error_msg = None;
         self.screen = match self.screen {
             Screen::FeatureSelection => Screen::Welcome,
-            Screen::SelectAccount   => Screen::FeatureSelection,
+            Screen::SelectAccount => Screen::FeatureSelection,
             Screen::SelectProfile => {
                 if self.has_accounts() {
                     Screen::SelectAccount
@@ -815,7 +1149,7 @@ impl App {
                     Screen::FeatureSelection
                 }
             }
-            Screen::SelectRegion    => Screen::SelectProfile,
+            Screen::SelectRegion => Screen::SelectProfile,
             Screen::SetDates => {
                 if self.has_accounts() {
                     Screen::SelectAccount
@@ -823,15 +1157,22 @@ impl App {
                     Screen::SelectRegion
                 }
             }
-            Screen::Inventory        => Screen::SetDates,
-            Screen::PoamRegion       => Screen::FeatureSelection,
-            Screen::PoamYear         => Screen::PoamRegion,
-            Screen::PoamMonth        => Screen::PoamYear,
+            Screen::Inventory => Screen::SetDates,
+            Screen::PoamAccount => Screen::FeatureSelection,
+            Screen::PoamRegion => {
+                if self.has_accounts() {
+                    Screen::PoamAccount
+                } else {
+                    Screen::FeatureSelection
+                }
+            }
+            Screen::PoamYear => Screen::PoamRegion,
+            Screen::PoamMonth => Screen::PoamYear,
             Screen::SelectCollectors => Screen::SetDates,
             Screen::SetOptions => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,
-                Feature::Inventory  => Screen::Inventory,
-                Feature::Poam       => Screen::PoamMonth,
+                Feature::Inventory => Screen::Inventory,
+                Feature::Poam => Screen::PoamMonth,
             },
             Screen::Confirm => match self.selected_feature {
                 Feature::Poam => Screen::PoamMonth,
@@ -870,7 +1211,8 @@ impl App {
             }
             Screen::Inventory => {
                 if self.inventory_selected.is_empty() {
-                    self.error_msg = Some("Select at least one asset type (Space to toggle)".into());
+                    self.error_msg =
+                        Some("Select at least one asset type (Space to toggle)".into());
                     return false;
                 }
                 true
@@ -921,14 +1263,27 @@ impl App {
         if let Some(rx) = &mut self.progress_rx {
             while let Ok(msg) = rx.try_recv() {
                 match msg {
-                    Progress::AccountStarted { name, index, total, region, collectors } => {
+                    Progress::AccountStarted {
+                        name,
+                        index,
+                        total,
+                        region,
+                        collectors,
+                    } => {
                         self.current_account_label = Some(name);
                         self.current_account_index = index;
                         self.total_account_count = total;
-                        self.current_region_label = if region.is_empty() { None } else { Some(region) };
+                        self.current_region_label = if region.is_empty() {
+                            None
+                        } else {
+                            Some(region)
+                        };
                         self.collector_statuses = collectors
                             .into_iter()
-                            .map(|n| CollectorStatus { name: n, state: CollectorState::Waiting })
+                            .map(|n| CollectorStatus {
+                                name: n,
+                                state: CollectorState::Waiting,
+                            })
                             .collect();
                     }
                     Progress::AccountFinished { .. } => {
@@ -957,7 +1312,8 @@ impl App {
                         }
                     }
                     Progress::Error { collector, message } => {
-                        self.error_messages.push((collector.clone(), message.clone()));
+                        self.error_messages
+                            .push((collector.clone(), message.clone()));
                         if let Some(s) = self
                             .collector_statuses
                             .iter_mut()
@@ -966,7 +1322,13 @@ impl App {
                             s.state = CollectorState::Failed(message);
                         }
                     }
-                    Progress::Finished { files, zip_path, signing_manifest, signing_key_path, poam_summary } => {
+                    Progress::Finished {
+                        files,
+                        zip_path,
+                        signing_manifest,
+                        signing_key_path,
+                        poam_summary,
+                    } => {
                         self.result_files = files;
                         self.result_zip = zip_path;
                         self.result_signing_manifest = signing_manifest;
@@ -1059,10 +1421,7 @@ pub fn run(mut app: App) -> Result<Option<App>> {
     }
 }
 
-fn event_loop(
-    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
-    app: &mut App,
-) -> Result<()> {
+fn event_loop(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> Result<()> {
     loop {
         app.tick = app.tick.wrapping_add(1);
 
@@ -1082,7 +1441,9 @@ fn event_loop(
                 match handle_key(app, key.code, key.modifiers) {
                     Action::Quit => return Ok(()),
                     Action::StartCollection => return Ok(()),
-                    Action::NewCollection => { app.reset(); }
+                    Action::NewCollection => {
+                        app.reset();
+                    }
                     Action::Continue => {}
                 }
             }
@@ -1135,11 +1496,17 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SelectAccount => match key {
-            KeyCode::Up   => { if app.account_cursor > 0 { app.account_cursor -= 1; } }
+            KeyCode::Up => {
+                if app.account_cursor > 0 {
+                    app.account_cursor -= 1;
+                }
+            }
             KeyCode::Down => {
                 // accounts.len() entries + 1 "Other" option
                 let max = app.accounts.len(); // "Other" is at index == len
-                if app.account_cursor < max { app.account_cursor += 1; }
+                if app.account_cursor < max {
+                    app.account_cursor += 1;
+                }
             }
             KeyCode::Char(' ') => {
                 let i = app.account_cursor;
@@ -1173,7 +1540,9 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                     if app.selected_accounts.is_empty() {
                         app.selected_accounts.insert(app.account_cursor);
                     }
-                    if app.validate_current() { app.next_screen(); }
+                    if app.validate_current() {
+                        app.next_screen();
+                    }
                 }
             }
             KeyCode::Esc => app.prev_screen(),
@@ -1181,10 +1550,22 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SelectProfile => match key {
-            KeyCode::Up    => { if app.profile_cursor > 0 { app.profile_cursor -= 1; } }
-            KeyCode::Down  => { if app.profile_cursor + 1 < app.profiles.len() { app.profile_cursor += 1; } }
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
-            KeyCode::Esc   => app.prev_screen(),
+            KeyCode::Up => {
+                if app.profile_cursor > 0 {
+                    app.profile_cursor -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if app.profile_cursor + 1 < app.profiles.len() {
+                    app.profile_cursor += 1;
+                }
+            }
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
@@ -1205,27 +1586,67 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             }
             KeyCode::Char(c) if app.region_use_custom => app.region_custom.insert(c),
             KeyCode::Backspace if app.region_use_custom => app.region_custom.backspace(),
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
-            KeyCode::Esc   => app.prev_screen(),
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
         Screen::SetDates => match key {
-            KeyCode::Up   => { if app.time_frame_cursor > 0 { app.time_frame_cursor -= 1; } }
-            KeyCode::Down => { if app.time_frame_cursor < 11 { app.time_frame_cursor += 1; } }
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
-            KeyCode::Esc   => app.prev_screen(),
+            KeyCode::Up => {
+                if app.time_frame_cursor > 0 {
+                    app.time_frame_cursor -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if app.time_frame_cursor < 11 {
+                    app.time_frame_cursor += 1;
+                }
+            }
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
+            KeyCode::Esc => app.prev_screen(),
+            _ => {}
+        },
+
+        Screen::PoamAccount => match key {
+            KeyCode::Up => {
+                if app.poam_account_cursor > 0 {
+                    app.poam_account_cursor -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if app.poam_account_cursor + 1 < app.accounts.len() {
+                    app.poam_account_cursor += 1;
+                }
+            }
+            KeyCode::Enter => app.next_screen(),
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
         Screen::PoamRegion => match key {
-            KeyCode::Up => { if app.poam_region_cursor > 0 { app.poam_region_cursor -= 1; } }
+            KeyCode::Up => {
+                if app.poam_region_cursor > 0 {
+                    app.poam_region_cursor -= 1;
+                }
+            }
             KeyCode::Down => {
                 if app.poam_region_cursor + 1 < app.regions.len() {
                     app.poam_region_cursor += 1;
                 }
             }
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
             KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
@@ -1235,22 +1656,46 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             KeyCode::Backspace => app.poam_year.backspace(),
             KeyCode::Left => app.poam_year.move_left(),
             KeyCode::Right => app.poam_year.move_right(),
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
             KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
         Screen::PoamMonth => match key {
-            KeyCode::Up => { if app.poam_month_cursor > 0 { app.poam_month_cursor -= 1; } }
-            KeyCode::Down => { if app.poam_month_cursor < 11 { app.poam_month_cursor += 1; } }
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
+            KeyCode::Up => {
+                if app.poam_month_cursor > 0 {
+                    app.poam_month_cursor -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if app.poam_month_cursor < 11 {
+                    app.poam_month_cursor += 1;
+                }
+            }
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
             KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
         Screen::SelectCollectors => match key {
-            KeyCode::Up   => { if app.collector_cursor > 0 { app.collector_cursor -= 1; } }
-            KeyCode::Down => { if app.collector_cursor + 1 < app.collector_items.len() { app.collector_cursor += 1; } }
+            KeyCode::Up => {
+                if app.collector_cursor > 0 {
+                    app.collector_cursor -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if app.collector_cursor + 1 < app.collector_items.len() {
+                    app.collector_cursor += 1;
+                }
+            }
             KeyCode::Char(' ') => {
                 let i = app.collector_cursor;
                 if app.collector_selected.contains(&i) {
@@ -1267,13 +1712,21 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             KeyCode::Char('d') => {
                 app.collector_selected.clear();
             }
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
-            KeyCode::Esc   => app.prev_screen(),
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
         Screen::Inventory => match key {
-            KeyCode::Up   => { if app.inventory_cursor > 0 { app.inventory_cursor -= 1; } }
+            KeyCode::Up => {
+                if app.inventory_cursor > 0 {
+                    app.inventory_cursor -= 1;
+                }
+            }
             KeyCode::Down => {
                 if app.inventory_cursor + 1 < app.inventory_items.len() {
                     app.inventory_cursor += 1;
@@ -1295,8 +1748,12 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             KeyCode::Char('d') => {
                 app.inventory_selected.clear();
             }
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
-            KeyCode::Esc   => app.prev_screen(),
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 
@@ -1333,32 +1790,50 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                     app.skip_run_manifest = !app.skip_run_manifest;
                 }
             }
-            KeyCode::Char(' ') if app.options_field == 6
-                && app.selected_feature == Feature::Collectors =>
+            KeyCode::Char(' ')
+                if app.options_field == 6 && app.selected_feature == Feature::Collectors =>
             {
                 app.skip_chain_of_custody = !app.skip_chain_of_custody;
             }
             // Region list navigation and toggle (field 6 for Inventory, 7 for Collectors)
-            KeyCode::Up if {
-                let rf = if app.selected_feature == Feature::Inventory { 6 } else { 7 };
-                app.options_field == rf
-            } => {
+            KeyCode::Up
+                if {
+                    let rf = if app.selected_feature == Feature::Inventory {
+                        6
+                    } else {
+                        7
+                    };
+                    app.options_field == rf
+                } =>
+            {
                 if app.options_region_cursor > 0 {
                     app.options_region_cursor -= 1;
                 }
             }
-            KeyCode::Down if {
-                let rf = if app.selected_feature == Feature::Inventory { 6 } else { 7 };
-                app.options_field == rf
-            } => {
+            KeyCode::Down
+                if {
+                    let rf = if app.selected_feature == Feature::Inventory {
+                        6
+                    } else {
+                        7
+                    };
+                    app.options_field == rf
+                } =>
+            {
                 if app.options_region_cursor + 1 < app.regions.len() {
                     app.options_region_cursor += 1;
                 }
             }
-            KeyCode::Char(' ') if {
-                let rf = if app.selected_feature == Feature::Inventory { 6 } else { 7 };
-                app.options_field == rf
-            } => {
+            KeyCode::Char(' ')
+                if {
+                    let rf = if app.selected_feature == Feature::Inventory {
+                        6
+                    } else {
+                        7
+                    };
+                    app.options_field == rf
+                } =>
+            {
                 let i = app.options_region_cursor;
                 if app.options_selected_regions.contains(&i) {
                     app.options_selected_regions.remove(&i);
@@ -1370,10 +1845,14 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             }
             KeyCode::Char(c) if app.options_field == 0 => app.filter_input.insert(c),
             KeyCode::Backspace if app.options_field == 0 => app.filter_input.backspace(),
-            KeyCode::Left  if app.options_field == 0 => app.filter_input.move_left(),
+            KeyCode::Left if app.options_field == 0 => app.filter_input.move_left(),
             KeyCode::Right if app.options_field == 0 => app.filter_input.move_right(),
-            KeyCode::Enter => { if app.validate_current() { app.next_screen(); } }
-            KeyCode::Esc   => app.prev_screen(),
+            KeyCode::Enter => {
+                if app.validate_current() {
+                    app.next_screen();
+                }
+            }
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 

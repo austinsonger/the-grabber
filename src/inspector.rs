@@ -1,9 +1,10 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use aws_sdk_inspector2::Client as Inspector2Client;
 use aws_sdk_inspector2::primitives::DateTime as InspectorDateTime;
-use aws_sdk_inspector2::types::{DateFilter, FilterCriteria, SortCriteria, SortField,
-    SortOrder, StringComparison, StringFilter};
+use aws_sdk_inspector2::types::{
+    DateFilter, FilterCriteria, SortCriteria, SortField, SortOrder, StringComparison, StringFilter,
+};
+use aws_sdk_inspector2::Client as Inspector2Client;
 
 use crate::evidence::CsvCollector;
 
@@ -34,12 +35,12 @@ fn dedup_findings_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
     // Maps dedup key → (row, updated_at_string)
     let mut best: HashMap<String, (Vec<String>, String)> = HashMap::new();
     for row in rows {
-        let cve_id    = row.get(8).map(|s| s.as_str()).unwrap_or("");
-        let pkg_name  = row.get(18).map(|s| s.as_str()).unwrap_or("");
+        let cve_id = row.get(8).map(|s| s.as_str()).unwrap_or("");
+        let pkg_name = row.get(18).map(|s| s.as_str()).unwrap_or("");
         let src_layer = row.get(25).map(|s| s.as_str()).unwrap_or("");
-        let resource  = row.get(26).map(|s| s.as_str()).unwrap_or("");
-        let arn       = row.get(0).map(|s| s.as_str()).unwrap_or("");
-        let updated   = row.get(37).map(|s| s.clone()).unwrap_or_default();
+        let resource = row.get(26).map(|s| s.as_str()).unwrap_or("");
+        let arn = row.get(0).map(|s| s.as_str()).unwrap_or("");
+        let updated = row.get(37).map(|s| s.clone()).unwrap_or_default();
 
         let key = if !cve_id.is_empty() && !resource.is_empty() && !pkg_name.is_empty() {
             format!("res_pkg:{}|{}|{}", cve_id, resource, pkg_name)
@@ -51,7 +52,8 @@ fn dedup_findings_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             format!("arn:{}", arn)
         };
 
-        let replace = best.get(&key)
+        let replace = best
+            .get(&key)
             .map(|(_, existing)| updated > *existing)
             .unwrap_or(true);
         if replace {
@@ -67,14 +69,20 @@ pub struct InspectorCollector {
 
 impl InspectorCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: Inspector2Client::new(config) }
+        Self {
+            client: Inspector2Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for InspectorCollector {
-    fn name(&self) -> &str { "Inspector2 Findings" }
-    fn filename_prefix(&self) -> &str { "Inspector2_Findings" }
+    fn name(&self) -> &str {
+        "Inspector2 Findings"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Inspector2_Findings"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
             // Finding identity & timing
@@ -126,7 +134,12 @@ impl CsvCollector for InspectorCollector {
         ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         // Pre-check: verify Inspector2 is enabled in this region before listing
         // findings.  list_findings can hang indefinitely when Inspector2 is not
         // activated, so we bail early if get_configuration indicates it is off.
@@ -189,7 +202,7 @@ impl CsvCollector for InspectorCollector {
                 DateFilter::builder()
                     .start_inclusive(InspectorDateTime::from_secs(start))
                     .end_inclusive(InspectorDateTime::from_secs(end))
-                    .build()
+                    .build(),
             );
         }
         let filter = filter_builder.build();
@@ -200,7 +213,8 @@ impl CsvCollector for InspectorCollector {
                 break;
             }
 
-            let mut req = self.client
+            let mut req = self
+                .client
                 .list_findings()
                 .max_results(100)
                 .filter_criteria(filter.clone())
@@ -209,7 +223,7 @@ impl CsvCollector for InspectorCollector {
                         .field(SortField::InspectorScore)
                         .sort_order(SortOrder::Desc)
                         .build()
-                        .expect("SortCriteria is always valid")
+                        .expect("SortCriteria is always valid"),
                 );
             if let Some(ref t) = next_token {
                 req = req.next_token(t);
@@ -234,132 +248,228 @@ impl CsvCollector for InspectorCollector {
             for f in resp.findings() {
                 // ── Finding identity ──────────────────────────────────────
                 let finding_arn = f.finding_arn().to_string();
-                let account_id  = f.aws_account_id().to_string();
-                let f_type      = f.r#type().as_str().to_string();
-                let title       = f.title().unwrap_or("").to_string();
+                let account_id = f.aws_account_id().to_string();
+                let f_type = f.r#type().as_str().to_string();
+                let title = f.title().unwrap_or("").to_string();
                 let description = f.description().to_string();
 
                 // ── Scoring ───────────────────────────────────────────────
-                let severity        = f.severity().as_str().to_string();
-                let inspector_score = f.inspector_score()
+                let severity = f.severity().as_str().to_string();
+                let inspector_score = f
+                    .inspector_score()
                     .map(|s| format!("{s:.2}"))
                     .unwrap_or_default();
-                let epss_score = f.epss()
+                let epss_score = f
+                    .epss()
                     .map(|e| format!("{:.4}", e.score()))
                     .unwrap_or_default();
 
                 // ── Package vulnerability ─────────────────────────────────
                 let (
-                    cve_id, cve_source, cve_source_url,
-                    vendor_severity, vendor_created_at, vendor_updated_at,
-                    cvss_score, cvss_vector,
-                    related_vulns, reference_urls,
-                    pkg_name, pkg_version, pkg_arch, pkg_manager,
-                    pkg_file_path, fixed_in_version, pkg_remediation, src_layer_hash,
+                    cve_id,
+                    cve_source,
+                    cve_source_url,
+                    vendor_severity,
+                    vendor_created_at,
+                    vendor_updated_at,
+                    cvss_score,
+                    cvss_vector,
+                    related_vulns,
+                    reference_urls,
+                    pkg_name,
+                    pkg_version,
+                    pkg_arch,
+                    pkg_manager,
+                    pkg_file_path,
+                    fixed_in_version,
+                    pkg_remediation,
+                    src_layer_hash,
                 ) = if let Some(v) = f.package_vulnerability_details() {
-                    let cve_id      = v.vulnerability_id().to_string();
-                    let source      = v.source().to_string();
-                    let source_url  = v.source_url().unwrap_or("").to_string();
-                    let vend_sev    = v.vendor_severity().unwrap_or("").to_string();
-                    let vend_cre    = v.vendor_created_at().map(|d| secs_to_rfc3339(d.secs())).unwrap_or_default();
-                    let vend_upd    = v.vendor_updated_at().map(|d| secs_to_rfc3339(d.secs())).unwrap_or_default();
+                    let cve_id = v.vulnerability_id().to_string();
+                    let source = v.source().to_string();
+                    let source_url = v.source_url().unwrap_or("").to_string();
+                    let vend_sev = v.vendor_severity().unwrap_or("").to_string();
+                    let vend_cre = v
+                        .vendor_created_at()
+                        .map(|d| secs_to_rfc3339(d.secs()))
+                        .unwrap_or_default();
+                    let vend_upd = v
+                        .vendor_updated_at()
+                        .map(|d| secs_to_rfc3339(d.secs()))
+                        .unwrap_or_default();
 
                     // Highest CVSS score (prefer v3 by taking max base_score)
-                    let (cvss_s, cvss_v) = v.cvss().iter()
-                        .max_by(|a, b| a.base_score().partial_cmp(&b.base_score()).unwrap_or(std::cmp::Ordering::Equal))
-                        .map(|c| (format!("{:.1}", c.base_score()), c.scoring_vector().to_string()))
+                    let (cvss_s, cvss_v) = v
+                        .cvss()
+                        .iter()
+                        .max_by(|a, b| {
+                            a.base_score()
+                                .partial_cmp(&b.base_score())
+                                .unwrap_or(std::cmp::Ordering::Equal)
+                        })
+                        .map(|c| {
+                            (
+                                format!("{:.1}", c.base_score()),
+                                c.scoring_vector().to_string(),
+                            )
+                        })
                         .unwrap_or_default();
 
                     let related = v.related_vulnerabilities().join("; ");
-                    let refs    = v.reference_urls().join("; ");
+                    let refs = v.reference_urls().join("; ");
 
                     // First affected package
-                    let (pn, pv, pa, pm, pfp, fiv, pr, slh) =
-                        v.vulnerable_packages().first()
-                        .map(|p| (
-                            p.name().to_string(),
-                            p.version().to_string(),
-                            p.arch().unwrap_or("").to_string(),
-                            p.package_manager().map(|m| m.as_str().to_string()).unwrap_or_default(),
-                            p.file_path().unwrap_or("").to_string(),
-                            p.fixed_in_version().unwrap_or("").to_string(),
-                            p.remediation().unwrap_or("").to_string(),
-                            p.source_layer_hash().unwrap_or("").to_string(),
-                        ))
+                    let (pn, pv, pa, pm, pfp, fiv, pr, slh) = v
+                        .vulnerable_packages()
+                        .first()
+                        .map(|p| {
+                            (
+                                p.name().to_string(),
+                                p.version().to_string(),
+                                p.arch().unwrap_or("").to_string(),
+                                p.package_manager()
+                                    .map(|m| m.as_str().to_string())
+                                    .unwrap_or_default(),
+                                p.file_path().unwrap_or("").to_string(),
+                                p.fixed_in_version().unwrap_or("").to_string(),
+                                p.remediation().unwrap_or("").to_string(),
+                                p.source_layer_hash().unwrap_or("").to_string(),
+                            )
+                        })
                         .unwrap_or_default();
 
-                    (cve_id, source, source_url, vend_sev, vend_cre, vend_upd,
-                     cvss_s, cvss_v, related, refs, pn, pv, pa, pm, pfp, fiv, pr, slh)
+                    (
+                        cve_id, source, source_url, vend_sev, vend_cre, vend_upd, cvss_s, cvss_v,
+                        related, refs, pn, pv, pa, pm, pfp, fiv, pr, slh,
+                    )
                 } else {
                     (
-                        String::new(), String::new(), String::new(),
-                        String::new(), String::new(), String::new(),
-                        String::new(), String::new(), String::new(), String::new(),
-                        String::new(), String::new(), String::new(), String::new(),
-                        String::new(), String::new(), String::new(), String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
                     )
                 };
 
                 // ── Resource (first) ──────────────────────────────────────
-                let (res_id, res_type, res_region) = f.resources().first()
-                    .map(|r| (
-                        r.id().to_string(),
-                        r.r#type().as_str().to_string(),
-                        r.region().unwrap_or("").to_string(),
-                    ))
+                let (res_id, res_type, res_region) = f
+                    .resources()
+                    .first()
+                    .map(|r| {
+                        (
+                            r.id().to_string(),
+                            r.r#type().as_str().to_string(),
+                            r.region().unwrap_or("").to_string(),
+                        )
+                    })
                     .unwrap_or_default();
 
                 // ── Remediation ───────────────────────────────────────────
-                let (rem_text, rem_url) = f.remediation()
+                let (rem_text, rem_url) = f
+                    .remediation()
                     .and_then(|r| r.recommendation())
-                    .map(|rec| (
-                        rec.text().unwrap_or("").to_string(),
-                        rec.url().unwrap_or("").to_string(),
-                    ))
+                    .map(|rec| {
+                        (
+                            rec.text().unwrap_or("").to_string(),
+                            rec.url().unwrap_or("").to_string(),
+                        )
+                    })
                     .unwrap_or_default();
 
                 // ── Exploitability ────────────────────────────────────────
-                let exploit_available   = f.exploit_available()
+                let exploit_available = f
+                    .exploit_available()
                     .map(|e| e.as_str().to_string())
                     .unwrap_or_default();
-                let last_known_exploit  = f.exploitability_details()
+                let last_known_exploit = f
+                    .exploitability_details()
                     .and_then(|e| e.last_known_exploit_at())
                     .map(|d| secs_to_rfc3339(d.secs()))
                     .unwrap_or_default();
 
                 // ── Lifecycle ─────────────────────────────────────────────
-                let status          = f.status().as_str().to_string();
-                let fix_available   = f.fix_available()
+                let status = f.status().as_str().to_string();
+                let fix_available = f
+                    .fix_available()
                     .map(|x| x.as_str().to_string())
                     .unwrap_or_default();
-                let first_observed  = secs_to_rfc3339(f.first_observed_at().secs());
-                let last_observed   = secs_to_rfc3339(f.last_observed_at().secs());
-                let updated_at      = f.updated_at().map(|d| secs_to_rfc3339(d.secs())).unwrap_or_default();
+                let first_observed = secs_to_rfc3339(f.first_observed_at().secs());
+                let last_observed = secs_to_rfc3339(f.last_observed_at().secs());
+                let updated_at = f
+                    .updated_at()
+                    .map(|d| secs_to_rfc3339(d.secs()))
+                    .unwrap_or_default();
 
                 rows.push(vec![
-                    finding_arn, account_id, f_type, title, description,
-                    severity, inspector_score, epss_score,
-                    cve_id, cve_source, cve_source_url,
-                    vendor_severity, vendor_created_at, vendor_updated_at,
-                    cvss_score, cvss_vector, related_vulns, reference_urls,
-                    pkg_name, pkg_version, pkg_arch, pkg_manager,
-                    pkg_file_path, fixed_in_version, pkg_remediation, src_layer_hash,
-                    res_id, res_type, res_region,
-                    rem_text, rem_url,
-                    exploit_available, last_known_exploit,
-                    status, fix_available, first_observed, last_observed, updated_at,
+                    finding_arn,
+                    account_id,
+                    f_type,
+                    title,
+                    description,
+                    severity,
+                    inspector_score,
+                    epss_score,
+                    cve_id,
+                    cve_source,
+                    cve_source_url,
+                    vendor_severity,
+                    vendor_created_at,
+                    vendor_updated_at,
+                    cvss_score,
+                    cvss_vector,
+                    related_vulns,
+                    reference_urls,
+                    pkg_name,
+                    pkg_version,
+                    pkg_arch,
+                    pkg_manager,
+                    pkg_file_path,
+                    fixed_in_version,
+                    pkg_remediation,
+                    src_layer_hash,
+                    res_id,
+                    res_type,
+                    res_region,
+                    rem_text,
+                    rem_url,
+                    exploit_available,
+                    last_known_exploit,
+                    status,
+                    fix_available,
+                    first_observed,
+                    last_observed,
+                    updated_at,
                 ]);
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         let before = rows.len();
         let rows = dedup_findings_rows(rows);
         let removed = before - rows.len();
         if removed > 0 {
-            eprintln!("  Inspector2: removed {removed} duplicate findings ({before} → {})", rows.len());
+            eprintln!(
+                "  Inspector2: removed {removed} duplicate findings ({before} → {})",
+                rows.len()
+            );
         }
 
         Ok(rows)

@@ -20,19 +20,37 @@ pub struct SsmPatchDetailCollector {
 
 impl SsmPatchDetailCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SsmClient::new(config) }
+        Self {
+            client: SsmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SsmPatchDetailCollector {
-    fn name(&self) -> &str { "SSM Patch Compliance (Detailed)" }
-    fn filename_prefix(&self) -> &str { "SSM_Patch_Compliance_Detail" }
+    fn name(&self) -> &str {
+        "SSM Patch Compliance (Detailed)"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SSM_Patch_Compliance_Detail"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Instance ID", "Patch ID", "Title", "Severity", "State", "Installed Time"]
+        &[
+            "Instance ID",
+            "Patch ID",
+            "Title",
+            "Severity",
+            "State",
+            "Installed Time",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // Get all managed instance IDs first
@@ -56,12 +74,15 @@ impl CsvCollector for SsmPatchDetailCollector {
                 }
             }
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         // Per instance: get individual patch data (first page only to bound output)
         for instance_id in &instance_ids {
-            let resp = match self.client
+            let resp = match self
+                .client
                 .describe_instance_patches()
                 .instance_id(instance_id)
                 .send()
@@ -75,14 +96,19 @@ impl CsvCollector for SsmPatchDetailCollector {
             };
 
             for patch in resp.patches() {
-                let kb_id    = patch.kb_id().to_string();
-                let title    = patch.title().to_string();
+                let kb_id = patch.kb_id().to_string();
+                let title = patch.title().to_string();
                 let severity = patch.severity().to_string();
-                let state    = patch.state().as_str().to_string();
+                let state = patch.state().as_str().to_string();
                 let installed_time = epoch_to_rfc3339(patch.installed_time().secs());
 
                 rows.push(vec![
-                    instance_id.clone(), kb_id, title, severity, state, installed_time,
+                    instance_id.clone(),
+                    kb_id,
+                    title,
+                    severity,
+                    state,
+                    installed_time,
                 ]);
             }
         }
@@ -101,20 +127,39 @@ pub struct SsmPatchSummaryCollector {
 
 impl SsmPatchSummaryCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SsmClient::new(config) }
+        Self {
+            client: SsmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SsmPatchSummaryCollector {
-    fn name(&self) -> &str { "SSM Patch Summary" }
-    fn filename_prefix(&self) -> &str { "SSM_Patch_Summary" }
+    fn name(&self) -> &str {
+        "SSM Patch Summary"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SSM_Patch_Summary"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Instance ID", "Compliance Status", "Critical Count", "Security Count",
-          "Other Count", "Missing Count", "Installed Count", "Operation"]
+        &[
+            "Instance ID",
+            "Compliance Status",
+            "Critical Count",
+            "Security Count",
+            "Other Count",
+            "Missing Count",
+            "Installed Count",
+            "Operation",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -132,15 +177,25 @@ impl CsvCollector for SsmPatchSummaryCollector {
             };
 
             for state in resp.instance_patch_states() {
-                let instance_id   = state.instance_id().to_string();
-                let missing       = state.missing_count();
-                let failed        = state.failed_count();
-                let compliance    = if missing > 0 || failed > 0 { "NON_COMPLIANT" } else { "COMPLIANT" };
-                let critical      = state.critical_non_compliant_count().unwrap_or(0).to_string();
-                let security      = state.security_non_compliant_count().unwrap_or(0).to_string();
-                let other         = state.other_non_compliant_count().unwrap_or(0).to_string();
-                let installed     = state.installed_count().to_string();
-                let operation     = state.operation().as_str().to_string();
+                let instance_id = state.instance_id().to_string();
+                let missing = state.missing_count();
+                let failed = state.failed_count();
+                let compliance = if missing > 0 || failed > 0 {
+                    "NON_COMPLIANT"
+                } else {
+                    "COMPLIANT"
+                };
+                let critical = state
+                    .critical_non_compliant_count()
+                    .unwrap_or(0)
+                    .to_string();
+                let security = state
+                    .security_non_compliant_count()
+                    .unwrap_or(0)
+                    .to_string();
+                let other = state.other_non_compliant_count().unwrap_or(0).to_string();
+                let installed = state.installed_count().to_string();
+                let operation = state.operation().as_str().to_string();
 
                 rows.push(vec![
                     instance_id,
@@ -155,7 +210,9 @@ impl CsvCollector for SsmPatchSummaryCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -172,19 +229,36 @@ pub struct SsmPatchExecutionCollector {
 
 impl SsmPatchExecutionCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SsmClient::new(config) }
+        Self {
+            client: SsmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SsmPatchExecutionCollector {
-    fn name(&self) -> &str { "SSM Patch Execution History" }
-    fn filename_prefix(&self) -> &str { "SSM_Patch_Execution" }
+    fn name(&self) -> &str {
+        "SSM Patch Execution History"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SSM_Patch_Execution"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Command ID", "Instance ID", "Requested Date Time", "Completed Date Time", "Status"]
+        &[
+            "Command ID",
+            "Instance ID",
+            "Requested Date Time",
+            "Completed Date Time",
+            "Status",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         use aws_sdk_ssm::types::CommandFilterKey;
 
         let mut rows = Vec::new();
@@ -204,9 +278,7 @@ impl CsvCollector for SsmPatchExecutionCollector {
             });
 
         loop {
-            let mut req = self.client
-                .list_commands()
-                .filters(filter.clone());
+            let mut req = self.client.list_commands().filters(filter.clone());
             if let Some(ref t) = next_token {
                 req = req.next_token(t);
             }
@@ -219,19 +291,18 @@ impl CsvCollector for SsmPatchExecutionCollector {
             };
 
             for cmd in resp.commands() {
-                let command_id    = cmd.command_id().unwrap_or("").to_string();
-                let requested_dt  = cmd.requested_date_time()
+                let command_id = cmd.command_id().unwrap_or("").to_string();
+                let requested_dt = cmd
+                    .requested_date_time()
                     .map(|d| epoch_to_rfc3339(d.secs()))
                     .unwrap_or_default();
-                let status        = cmd.status()
+                let status = cmd
+                    .status()
                     .map(|s| s.as_str().to_string())
                     .unwrap_or_default();
                 let status_detail = cmd.status_details().unwrap_or("").to_string();
                 // Instances: join the first few target instance IDs
-                let instances: Vec<&str> = cmd.instance_ids()
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect();
+                let instances: Vec<&str> = cmd.instance_ids().iter().map(|s| s.as_str()).collect();
                 let instance_summary = if instances.is_empty() {
                     "N/A (targets)".to_string()
                 } else {
@@ -248,7 +319,9 @@ impl CsvCollector for SsmPatchExecutionCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -265,19 +338,38 @@ pub struct SsmMaintenanceWindowCollector {
 
 impl SsmMaintenanceWindowCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: SsmClient::new(config) }
+        Self {
+            client: SsmClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SsmMaintenanceWindowCollector {
-    fn name(&self) -> &str { "SSM Maintenance Windows" }
-    fn filename_prefix(&self) -> &str { "SSM_Maintenance_Window" }
+    fn name(&self) -> &str {
+        "SSM Maintenance Windows"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SSM_Maintenance_Window"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Window ID", "Name", "Enabled", "Schedule", "Duration (hrs)", "Targets", "Tasks"]
+        &[
+            "Window ID",
+            "Name",
+            "Enabled",
+            "Schedule",
+            "Duration (hrs)",
+            "Targets",
+            "Tasks",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -296,19 +388,21 @@ impl CsvCollector for SsmMaintenanceWindowCollector {
 
             for window in resp.window_identities() {
                 let window_id = window.window_id().unwrap_or("").to_string();
-                let name      = window.name().unwrap_or("").to_string();
-                let enabled   = window.enabled().to_string();
-                let schedule  = window.schedule().unwrap_or("").to_string();
-                let duration  = window.duration().unwrap_or(0).to_string();
+                let name = window.name().unwrap_or("").to_string();
+                let enabled = window.enabled().to_string();
+                let schedule = window.schedule().unwrap_or("").to_string();
+                let duration = window.duration().unwrap_or(0).to_string();
 
                 // Targets for this window
-                let targets_summary = match self.client
+                let targets_summary = match self
+                    .client
                     .describe_maintenance_window_targets()
                     .window_id(&window_id)
                     .send()
                     .await
                 {
-                    Ok(r) => r.targets()
+                    Ok(r) => r
+                        .targets()
                         .iter()
                         .flat_map(|wt| wt.targets())
                         .map(|t| {
@@ -322,17 +416,19 @@ impl CsvCollector for SsmMaintenanceWindowCollector {
                 };
 
                 // Tasks for this window
-                let tasks_summary = match self.client
+                let tasks_summary = match self
+                    .client
                     .describe_maintenance_window_tasks()
                     .window_id(&window_id)
                     .send()
                     .await
                 {
-                    Ok(r) => r.tasks()
+                    Ok(r) => r
+                        .tasks()
                         .iter()
                         .map(|t| {
                             let task_name = t.name().unwrap_or("unknown");
-                            let task_arn  = t.task_arn().unwrap_or("?");
+                            let task_arn = t.task_arn().unwrap_or("?");
                             format!("{task_name}[{task_arn}]")
                         })
                         .collect::<Vec<_>>()
@@ -341,13 +437,20 @@ impl CsvCollector for SsmMaintenanceWindowCollector {
                 };
 
                 rows.push(vec![
-                    window_id, name, enabled, schedule, duration,
-                    targets_summary, tasks_summary,
+                    window_id,
+                    name,
+                    enabled,
+                    schedule,
+                    duration,
+                    targets_summary,
+                    tasks_summary,
                 ]);
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)

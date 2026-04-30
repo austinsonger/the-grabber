@@ -14,34 +14,56 @@ pub struct S3EncryptionConfigCollector {
 
 impl S3EncryptionConfigCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: S3Client::new(config) }
+        Self {
+            client: S3Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for S3EncryptionConfigCollector {
-    fn name(&self) -> &str { "S3 Bucket Encryption Config" }
-    fn filename_prefix(&self) -> &str { "S3_Encryption_Config" }
+    fn name(&self) -> &str {
+        "S3 Bucket Encryption Config"
+    }
+    fn filename_prefix(&self) -> &str {
+        "S3_Encryption_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Bucket Name", "SSE Algorithm", "KMS Master Key ID", "Bucket Key Enabled"]
+        &[
+            "Bucket Name",
+            "SSE Algorithm",
+            "KMS Master Key ID",
+            "Bucket Key Enabled",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
-        let buckets = self.client.list_buckets().send().await
+        let buckets = self
+            .client
+            .list_buckets()
+            .send()
+            .await
             .context("S3 list_buckets")?;
 
         for bucket in buckets.buckets() {
             let name = bucket.name().unwrap_or("").to_string();
 
-            let (algo, key_id, bucket_key) = match self.client
+            let (algo, key_id, bucket_key) = match self
+                .client
                 .get_bucket_encryption()
                 .bucket(&name)
                 .send()
                 .await
             {
                 Ok(r) => {
-                    let rule = r.server_side_encryption_configuration()
+                    let rule = r
+                        .server_side_encryption_configuration()
                         .and_then(|c| c.rules().first());
                     let apply = rule.and_then(|r| r.apply_server_side_encryption_by_default());
                     let algo = apply
@@ -87,46 +109,57 @@ pub struct S3BucketPolicyDetailCollector {
 
 impl S3BucketPolicyDetailCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: S3Client::new(config) }
+        Self {
+            client: S3Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for S3BucketPolicyDetailCollector {
-    fn name(&self) -> &str { "S3 Bucket Policy" }
-    fn filename_prefix(&self) -> &str { "S3_Bucket_Policy" }
+    fn name(&self) -> &str {
+        "S3 Bucket Policy"
+    }
+    fn filename_prefix(&self) -> &str {
+        "S3_Bucket_Policy"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &["Bucket Name", "Has Policy", "Policy Document"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
-        let buckets = self.client.list_buckets().send().await
+        let buckets = self
+            .client
+            .list_buckets()
+            .send()
+            .await
             .context("S3 list_buckets")?;
 
         for bucket in buckets.buckets() {
             let name = bucket.name().unwrap_or("").to_string();
 
-            let (has_policy, policy_doc) = match self.client
-                .get_bucket_policy()
-                .bucket(&name)
-                .send()
-                .await
-            {
-                Ok(r) => {
-                    let doc = r.policy().unwrap_or("").to_string();
-                    ("Yes".to_string(), doc)
-                }
-                Err(e) => {
-                    let msg = format!("{e}");
-                    if msg.contains("NoSuchBucketPolicy") || msg.contains("NoSuchBucket") {
-                        ("No".to_string(), String::new())
-                    } else {
-                        eprintln!("  WARN: S3 get_bucket_policy {name}: {e:#}");
-                        ("Error".to_string(), String::new())
+            let (has_policy, policy_doc) =
+                match self.client.get_bucket_policy().bucket(&name).send().await {
+                    Ok(r) => {
+                        let doc = r.policy().unwrap_or("").to_string();
+                        ("Yes".to_string(), doc)
                     }
-                }
-            };
+                    Err(e) => {
+                        let msg = format!("{e}");
+                        if msg.contains("NoSuchBucketPolicy") || msg.contains("NoSuchBucket") {
+                            ("No".to_string(), String::new())
+                        } else {
+                            eprintln!("  WARN: S3 get_bucket_policy {name}: {e:#}");
+                            ("Error".to_string(), String::new())
+                        }
+                    }
+                };
 
             rows.push(vec![name, has_policy, policy_doc]);
         }
@@ -145,27 +178,49 @@ pub struct S3PublicAccessBlockCollector {
 
 impl S3PublicAccessBlockCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: S3Client::new(config) }
+        Self {
+            client: S3Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for S3PublicAccessBlockCollector {
-    fn name(&self) -> &str { "S3 Public Access Block" }
-    fn filename_prefix(&self) -> &str { "S3_Public_Access_Block" }
+    fn name(&self) -> &str {
+        "S3 Public Access Block"
+    }
+    fn filename_prefix(&self) -> &str {
+        "S3_Public_Access_Block"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Bucket Name", "Block Public ACLs", "Ignore Public ACLs", "Block Public Policy", "Restrict Public Buckets"]
+        &[
+            "Bucket Name",
+            "Block Public ACLs",
+            "Ignore Public ACLs",
+            "Block Public Policy",
+            "Restrict Public Buckets",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
-        let buckets = self.client.list_buckets().send().await
+        let buckets = self
+            .client
+            .list_buckets()
+            .send()
+            .await
             .context("S3 list_buckets")?;
 
         for bucket in buckets.buckets() {
             let name = bucket.name().unwrap_or("").to_string();
 
-            let (bpa, ipa, bpp, rpb) = match self.client
+            let (bpa, ipa, bpp, rpb) = match self
+                .client
                 .get_public_access_block()
                 .bucket(&name)
                 .send()
@@ -174,19 +229,39 @@ impl CsvCollector for S3PublicAccessBlockCollector {
                 Ok(r) => {
                     let cfg = r.public_access_block_configuration();
                     (
-                        cfg.and_then(|c| c.block_public_acls()).unwrap_or(false).to_string(),
-                        cfg.and_then(|c| c.ignore_public_acls()).unwrap_or(false).to_string(),
-                        cfg.and_then(|c| c.block_public_policy()).unwrap_or(false).to_string(),
-                        cfg.and_then(|c| c.restrict_public_buckets()).unwrap_or(false).to_string(),
+                        cfg.and_then(|c| c.block_public_acls())
+                            .unwrap_or(false)
+                            .to_string(),
+                        cfg.and_then(|c| c.ignore_public_acls())
+                            .unwrap_or(false)
+                            .to_string(),
+                        cfg.and_then(|c| c.block_public_policy())
+                            .unwrap_or(false)
+                            .to_string(),
+                        cfg.and_then(|c| c.restrict_public_buckets())
+                            .unwrap_or(false)
+                            .to_string(),
                     )
                 }
                 Err(e) => {
                     let msg = format!("{e}");
-                    if msg.contains("NoSuchPublicAccessBlockConfiguration") || msg.contains("NoSuchBucket") {
-                        ("false".to_string(), "false".to_string(), "false".to_string(), "false".to_string())
+                    if msg.contains("NoSuchPublicAccessBlockConfiguration")
+                        || msg.contains("NoSuchBucket")
+                    {
+                        (
+                            "false".to_string(),
+                            "false".to_string(),
+                            "false".to_string(),
+                            "false".to_string(),
+                        )
                     } else {
                         eprintln!("  WARN: S3 get_public_access_block {name}: {e:#}");
-                        ("Error".to_string(), "Error".to_string(), "Error".to_string(), "Error".to_string())
+                        (
+                            "Error".to_string(),
+                            "Error".to_string(),
+                            "Error".to_string(),
+                            "Error".to_string(),
+                        )
                     }
                 }
             };
@@ -208,47 +283,61 @@ pub struct S3LoggingConfigCollector {
 
 impl S3LoggingConfigCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: S3Client::new(config) }
+        Self {
+            client: S3Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for S3LoggingConfigCollector {
-    fn name(&self) -> &str { "S3 Logging Configuration" }
-    fn filename_prefix(&self) -> &str { "S3_Logging_Config" }
+    fn name(&self) -> &str {
+        "S3 Logging Configuration"
+    }
+    fn filename_prefix(&self) -> &str {
+        "S3_Logging_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Bucket Name", "Logging Enabled", "Target Bucket", "Target Prefix"]
+        &[
+            "Bucket Name",
+            "Logging Enabled",
+            "Target Bucket",
+            "Target Prefix",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
-        let buckets = self.client.list_buckets().send().await
+        let buckets = self
+            .client
+            .list_buckets()
+            .send()
+            .await
             .context("S3 list_buckets")?;
 
         for bucket in buckets.buckets() {
             let name = bucket.name().unwrap_or("").to_string();
 
-            let (enabled, target_bucket, target_prefix) = match self.client
-                .get_bucket_logging()
-                .bucket(&name)
-                .send()
-                .await
-            {
-                Ok(r) => {
-                    match r.logging_enabled() {
+            let (enabled, target_bucket, target_prefix) =
+                match self.client.get_bucket_logging().bucket(&name).send().await {
+                    Ok(r) => match r.logging_enabled() {
                         Some(le) => (
                             "Yes".to_string(),
                             le.target_bucket().to_string(),
                             le.target_prefix().to_string(),
                         ),
                         None => ("No".to_string(), String::new(), String::new()),
+                    },
+                    Err(e) => {
+                        eprintln!("  WARN: S3 get_bucket_logging {name}: {e:#}");
+                        ("Error".to_string(), String::new(), String::new())
                     }
-                }
-                Err(e) => {
-                    eprintln!("  WARN: S3 get_bucket_logging {name}: {e:#}");
-                    ("Error".to_string(), String::new(), String::new())
-                }
-            };
+                };
 
             rows.push(vec![name, enabled, target_bucket, target_prefix]);
         }

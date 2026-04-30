@@ -22,10 +22,9 @@ use aws_sdk_s3::Client as S3Client;
 
 use crate::evidence::CsvCollector;
 use crate::inventory_core::{
-    normalize_s3_region, RowBuilder, ASSET_KEY_ALB, ASSET_KEY_CONTAINER,
-    ASSET_KEY_EC2_INSTANCE, ASSET_KEY_ELASTICACHE_CLUSTER, ASSET_KEY_KMS_KEY,
-    ASSET_KEY_LAMBDA_FUNCTION, ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_S3_BUCKET,
-    INVENTORY_CSV_HEADERS,
+    normalize_s3_region, RowBuilder, ASSET_KEY_ALB, ASSET_KEY_CONTAINER, ASSET_KEY_EC2_INSTANCE,
+    ASSET_KEY_ELASTICACHE_CLUSTER, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION,
+    ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_S3_BUCKET, INVENTORY_CSV_HEADERS,
 };
 
 // ---------------------------------------------------------------------------
@@ -70,9 +69,15 @@ impl InventoryCollector {
 
 #[async_trait]
 impl CsvCollector for InventoryCollector {
-    fn name(&self) -> &str { "AWS Inventory" }
-    fn filename_prefix(&self) -> &str { "AWS_Inventory" }
-    fn headers(&self) -> &'static [&'static str] { INVENTORY_CSV_HEADERS }
+    fn name(&self) -> &str {
+        "AWS Inventory"
+    }
+    fn filename_prefix(&self) -> &str {
+        "AWS_Inventory"
+    }
+    fn headers(&self) -> &'static [&'static str] {
+        INVENTORY_CSV_HEADERS
+    }
 
     async fn collect_rows(
         &self,
@@ -85,24 +90,12 @@ impl CsvCollector for InventoryCollector {
 
         for type_key in &self.selected_types {
             let result = match type_key.as_str() {
-                ASSET_KEY_KMS_KEY => {
-                    collect_kms_keys(&self.kms, &region).await
-                }
-                ASSET_KEY_S3_BUCKET => {
-                    collect_s3_buckets(&self.s3, &region).await
-                }
-                ASSET_KEY_LAMBDA_FUNCTION => {
-                    collect_lambda_functions(&self.lambda, &region).await
-                }
-                ASSET_KEY_EC2_INSTANCE => {
-                    collect_ec2_instances(&self.ec2, &region).await
-                }
-                ASSET_KEY_ALB => {
-                    collect_albs(&self.elb, &region).await
-                }
-                ASSET_KEY_RDS_DB_INSTANCE => {
-                    collect_rds_instances(&self.rds, &region).await
-                }
+                ASSET_KEY_KMS_KEY => collect_kms_keys(&self.kms, &region).await,
+                ASSET_KEY_S3_BUCKET => collect_s3_buckets(&self.s3, &region).await,
+                ASSET_KEY_LAMBDA_FUNCTION => collect_lambda_functions(&self.lambda, &region).await,
+                ASSET_KEY_EC2_INSTANCE => collect_ec2_instances(&self.ec2, &region).await,
+                ASSET_KEY_ALB => collect_albs(&self.elb, &region).await,
+                ASSET_KEY_RDS_DB_INSTANCE => collect_rds_instances(&self.rds, &region).await,
                 ASSET_KEY_ELASTICACHE_CLUSTER => {
                     collect_elasticache_clusters(&self.elasticache, &region).await
                 }
@@ -125,7 +118,10 @@ impl CsvCollector for InventoryCollector {
                 Err(e) => eprintln!("WARN: inventory collection error ({type_key}): {e:#}"),
             }
         }
-        eprintln!("    [inventory] total for all types: {} rows", all_rows.len());
+        eprintln!(
+            "    [inventory] total for all types: {} rows",
+            all_rows.len()
+        );
 
         Ok(all_rows)
     }
@@ -160,19 +156,48 @@ async fn collect_kms_keys(client: &KmsClient, region: &str) -> Result<Vec<Vec<St
                 continue;
             }
 
-            let rotation = match client.get_key_rotation_status().key_id(&key_id).send().await {
-                Ok(r) => if r.key_rotation_enabled() { "Yes" } else { "No" }.to_string(),
+            let rotation = match client
+                .get_key_rotation_status()
+                .key_id(&key_id)
+                .send()
+                .await
+            {
+                Ok(r) => if r.key_rotation_enabled() {
+                    "Yes"
+                } else {
+                    "No"
+                }
+                .to_string(),
                 Err(_) => String::new(),
             };
 
             let description = meta.description().unwrap_or("").to_string();
             let arn = meta.arn().unwrap_or("").to_string();
-            let key_manager = meta.key_manager().map(|m| m.as_str()).unwrap_or("").to_string();
-            let key_usage = meta.key_usage().map(|u| u.as_str()).unwrap_or("").to_string();
-            let key_spec = meta.key_spec().map(|s| s.as_str()).unwrap_or("").to_string();
-            let key_state = meta.key_state().map(|s| s.as_str()).unwrap_or("").to_string();
+            let key_manager = meta
+                .key_manager()
+                .map(|m| m.as_str())
+                .unwrap_or("")
+                .to_string();
+            let key_usage = meta
+                .key_usage()
+                .map(|u| u.as_str())
+                .unwrap_or("")
+                .to_string();
+            let key_spec = meta
+                .key_spec()
+                .map(|s| s.as_str())
+                .unwrap_or("")
+                .to_string();
+            let key_state = meta
+                .key_state()
+                .map(|s| s.as_str())
+                .unwrap_or("")
+                .to_string();
             let origin = meta.origin().map(|o| o.as_str()).unwrap_or("").to_string();
-            let multi_region = meta.multi_region().map(|v| v.to_string()).unwrap_or_default();
+            let multi_region = meta
+                .multi_region()
+                .map(|v| v.to_string())
+                .unwrap_or_default();
 
             let comments = format!(
                 "Arn: {arn} | KeyManager: {key_manager} | KeyUsage: {key_usage} | \
@@ -213,7 +238,11 @@ async fn collect_kms_keys(client: &KmsClient, region: &str) -> Result<Vec<Vec<St
 // ---------------------------------------------------------------------------
 
 async fn collect_s3_buckets(client: &S3Client, _region: &str) -> Result<Vec<Vec<String>>> {
-    let resp = client.list_buckets().send().await.context("S3 list_buckets")?;
+    let resp = client
+        .list_buckets()
+        .send()
+        .await
+        .context("S3 list_buckets")?;
     let mut rows = Vec::new();
 
     for bucket in resp.buckets() {
@@ -225,7 +254,10 @@ async fn collect_s3_buckets(client: &S3Client, _region: &str) -> Result<Vec<Vec<
         };
 
         let is_public = match client.get_bucket_policy_status().bucket(&name).send().await {
-            Ok(r) => r.policy_status().and_then(|s| s.is_public()).unwrap_or(false),
+            Ok(r) => r
+                .policy_status()
+                .and_then(|s| s.is_public())
+                .unwrap_or(false),
             Err(_) => false,
         };
 
@@ -237,29 +269,30 @@ async fn collect_s3_buckets(client: &S3Client, _region: &str) -> Result<Vec<Vec<
                         cfg.and_then(|c| c.block_public_acls()).unwrap_or(false),
                         cfg.and_then(|c| c.ignore_public_acls()).unwrap_or(false),
                         cfg.and_then(|c| c.block_public_policy()).unwrap_or(false),
-                        cfg.and_then(|c| c.restrict_public_buckets()).unwrap_or(false),
+                        cfg.and_then(|c| c.restrict_public_buckets())
+                            .unwrap_or(false),
                     )
                 }
                 Err(_) => (false, false, false, false),
             };
 
-        let (sse_algo, kms_key_id) =
-            match client.get_bucket_encryption().bucket(&name).send().await {
-                Ok(r) => {
-                    let rule = r
-                        .server_side_encryption_configuration()
-                        .and_then(|c| c.rules().first())
-                        .and_then(|rule| rule.apply_server_side_encryption_by_default());
-                    (
-                        rule.map(|d| d.sse_algorithm().as_str().to_string())
-                            .unwrap_or_default(),
-                        rule.and_then(|d| d.kms_master_key_id())
-                            .unwrap_or("")
-                            .to_string(),
-                    )
-                }
-                Err(_) => (String::new(), String::new()),
-            };
+        let (sse_algo, kms_key_id) = match client.get_bucket_encryption().bucket(&name).send().await
+        {
+            Ok(r) => {
+                let rule = r
+                    .server_side_encryption_configuration()
+                    .and_then(|c| c.rules().first())
+                    .and_then(|rule| rule.apply_server_side_encryption_by_default());
+                (
+                    rule.map(|d| d.sse_algorithm().as_str().to_string())
+                        .unwrap_or_default(),
+                    rule.and_then(|d| d.kms_master_key_id())
+                        .unwrap_or("")
+                        .to_string(),
+                )
+            }
+            Err(_) => (String::new(), String::new()),
+        };
 
         let versioning = match client.get_bucket_versioning().bucket(&name).send().await {
             Ok(r) => r
@@ -282,7 +315,10 @@ async fn collect_s3_buckets(client: &S3Client, _region: &str) -> Result<Vec<Vec<
                 .tag_set()
                 .iter()
                 .find(|t| {
-                    matches!(t.key(), "Purpose" | "App" | "Role" | "Function" | "purpose" | "app" | "role")
+                    matches!(
+                        t.key(),
+                        "Purpose" | "App" | "Role" | "Function" | "purpose" | "app" | "role"
+                    )
                 })
                 .map(|t| t.value().to_string())
                 .unwrap_or_default(),
@@ -357,12 +393,14 @@ async fn collect_lambda_functions(client: &LambdaClient, region: &str) -> Result
                 format!("VPC: {vpc_id}, Subnets: {subnets}")
             };
 
-            let env_var_count = func.environment()
+            let env_var_count = func
+                .environment()
                 .and_then(|e| e.variables())
                 .map(|m| m.len())
                 .unwrap_or(0);
 
-            let dl_arn = func.dead_letter_config()
+            let dl_arn = func
+                .dead_letter_config()
                 .and_then(|d| d.target_arn())
                 .unwrap_or("")
                 .to_string();
@@ -383,7 +421,11 @@ async fn collect_lambda_functions(client: &LambdaClient, region: &str) -> Result
                     .asset_type("Lambda Function")
                     .sw_vendor("Amazon Web Services")
                     .sw_name_ver(format!("AWS Lambda | Runtime: {runtime}"))
-                    .function(if description.is_empty() { name } else { description })
+                    .function(if description.is_empty() {
+                        name
+                    } else {
+                        description
+                    })
                     .vlan_network_id(vlan_net)
                     .comments(comments)
                     .build(),
@@ -421,22 +463,32 @@ async fn collect_ec2_instances(client: &Ec2Client, region: &str) -> Result<Vec<V
                 let public_ip = instance.public_ip_address().unwrap_or("").to_string();
                 let public_dns = instance.public_dns_name().unwrap_or("").to_string();
                 let private_dns = instance.private_dns_name().unwrap_or("").to_string();
-                let instance_type = instance.instance_type().map(|t| t.as_str()).unwrap_or("").to_string();
+                let instance_type = instance
+                    .instance_type()
+                    .map(|t| t.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 let vpc_id = instance.vpc_id().unwrap_or("").to_string();
                 let subnet_id = instance.subnet_id().unwrap_or("").to_string();
-                let az = instance.placement()
+                let az = instance
+                    .placement()
                     .and_then(|p| p.availability_zone())
                     .unwrap_or("")
                     .to_string();
 
-                let mac_address = instance.network_interfaces()
+                let mac_address = instance
+                    .network_interfaces()
                     .first()
                     .and_then(|ni| ni.mac_address())
                     .unwrap_or("")
                     .to_string();
 
                 let is_public = !public_ip.is_empty();
-                let dns_name = if !public_dns.is_empty() { public_dns.clone() } else { private_dns.clone() };
+                let dns_name = if !public_dns.is_empty() {
+                    public_dns.clone()
+                } else {
+                    private_dns.clone()
+                };
                 let location = format!("{region} / AZ: {az}");
                 let vlan_net = if vpc_id.is_empty() {
                     String::new()
@@ -489,7 +541,9 @@ async fn collect_albs(client: &ElbClient, region: &str) -> Result<Vec<Vec<String
 
         for lb in resp.load_balancers() {
             // Only application load balancers
-            if lb.r#type() != Some(&aws_sdk_elasticloadbalancingv2::types::LoadBalancerTypeEnum::Application) {
+            if lb.r#type()
+                != Some(&aws_sdk_elasticloadbalancingv2::types::LoadBalancerTypeEnum::Application)
+            {
                 continue;
             }
 
@@ -498,8 +552,14 @@ async fn collect_albs(client: &ElbClient, region: &str) -> Result<Vec<Vec<String
             let scheme = lb.scheme().map(|s| s.as_str()).unwrap_or("").to_string();
             let vpc_id = lb.vpc_id().unwrap_or("").to_string();
             let is_public = lb.scheme()
-                == Some(&aws_sdk_elasticloadbalancingv2::types::LoadBalancerSchemeEnum::InternetFacing);
-            let ip_type = lb.ip_address_type().map(|t| t.as_str()).unwrap_or("").to_string();
+                == Some(
+                    &aws_sdk_elasticloadbalancingv2::types::LoadBalancerSchemeEnum::InternetFacing,
+                );
+            let ip_type = lb
+                .ip_address_type()
+                .map(|t| t.as_str())
+                .unwrap_or("")
+                .to_string();
             let sgs = lb.security_groups().join(", ");
 
             let subnet_ids: Vec<String> = lb
@@ -590,22 +650,25 @@ async fn collect_rds_instances(client: &RdsClient, region: &str) -> Result<Vec<V
             let engine_ver = db.engine_version().unwrap_or("").to_string();
             let class = db.db_instance_class().unwrap_or("").to_string();
             let publicly_accessible = db.publicly_accessible().unwrap_or(false);
-            let endpoint = db.endpoint().and_then(|e| e.address()).unwrap_or("").to_string();
+            let endpoint = db
+                .endpoint()
+                .and_then(|e| e.address())
+                .unwrap_or("")
+                .to_string();
 
-            let (subnet_group_name, vpc_id, subnet_ids) =
-                if let Some(sg) = db.db_subnet_group() {
-                    let sgn = sg.db_subnet_group_name().unwrap_or("").to_string();
-                    let vid = sg.vpc_id().unwrap_or("").to_string();
-                    let sids: Vec<String> = sg
-                        .subnets()
-                        .iter()
-                        .filter_map(|s| s.subnet_identifier())
-                        .map(|s| s.to_string())
-                        .collect();
-                    (sgn, vid, sids.join(", "))
-                } else {
-                    (String::new(), String::new(), String::new())
-                };
+            let (subnet_group_name, vpc_id, subnet_ids) = if let Some(sg) = db.db_subnet_group() {
+                let sgn = sg.db_subnet_group_name().unwrap_or("").to_string();
+                let vid = sg.vpc_id().unwrap_or("").to_string();
+                let sids: Vec<String> = sg
+                    .subnets()
+                    .iter()
+                    .filter_map(|s| s.subnet_identifier())
+                    .map(|s| s.to_string())
+                    .collect();
+                (sgn, vid, sids.join(", "))
+            } else {
+                (String::new(), String::new(), String::new())
+            };
 
             let sw_vendor = match engine.to_lowercase().as_str() {
                 e if e.starts_with("aurora") => "Amazon Web Services",
@@ -616,9 +679,7 @@ async fn collect_rds_instances(client: &RdsClient, region: &str) -> Result<Vec<V
                 _ => "Amazon Web Services",
             };
 
-            let location = format!(
-                "{region} / Subnet group: {subnet_group_name}, VPC: {vpc_id}"
-            );
+            let location = format!("{region} / Subnet group: {subnet_group_name}, VPC: {vpc_id}");
             let vlan_net = if vpc_id.is_empty() {
                 String::new()
             } else {
@@ -667,7 +728,10 @@ async fn collect_elasticache_clusters(
         if let Some(ref m) = marker {
             req = req.marker(m);
         }
-        let resp = req.send().await.context("ElastiCache describe_replication_groups")?;
+        let resp = req
+            .send()
+            .await
+            .context("ElastiCache describe_replication_groups")?;
 
         for rg in resp.replication_groups() {
             let id = rg.replication_group_id().unwrap_or("").to_string();
@@ -688,7 +752,11 @@ async fn collect_elasticache_clusters(
 
             // Get CacheNodeType from first member cluster
             let (cache_node_type, engine, engine_ver, subnet_group_name) = {
-                let member_id = rg.member_clusters().first().map(|s| s.as_str()).unwrap_or("");
+                let member_id = rg
+                    .member_clusters()
+                    .first()
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
                 if member_id.is_empty() {
                     (String::new(), String::new(), String::new(), String::new())
                 } else {
@@ -701,10 +769,16 @@ async fn collect_elasticache_clusters(
                         Ok(r) => {
                             let cc = r.cache_clusters().first();
                             (
-                                cc.and_then(|c| c.cache_node_type()).unwrap_or("").to_string(),
+                                cc.and_then(|c| c.cache_node_type())
+                                    .unwrap_or("")
+                                    .to_string(),
                                 cc.and_then(|c| c.engine()).unwrap_or("").to_string(),
-                                cc.and_then(|c| c.engine_version()).unwrap_or("").to_string(),
-                                cc.and_then(|c| c.cache_subnet_group_name()).unwrap_or("").to_string(),
+                                cc.and_then(|c| c.engine_version())
+                                    .unwrap_or("")
+                                    .to_string(),
+                                cc.and_then(|c| c.cache_subnet_group_name())
+                                    .unwrap_or("")
+                                    .to_string(),
                             )
                         }
                         Err(_) => (String::new(), String::new(), String::new(), String::new()),
@@ -812,14 +886,21 @@ async fn collect_containers(
             let repo_name = repo.repository_name().unwrap_or("").to_string();
             let repo_arn = repo.repository_arn().unwrap_or("").to_string();
             let registry_id = repo.registry_id().unwrap_or("").to_string();
-            let mutability = repo.image_tag_mutability().map(|m| m.as_str()).unwrap_or("").to_string();
-            let scan_on_push = repo.image_scanning_configuration()
+            let mutability = repo
+                .image_tag_mutability()
+                .map(|m| m.as_str())
+                .unwrap_or("")
+                .to_string();
+            let scan_on_push = repo
+                .image_scanning_configuration()
                 .map(|c| c.scan_on_push())
                 .unwrap_or(false);
-            let enc_type = repo.encryption_configuration()
+            let enc_type = repo
+                .encryption_configuration()
                 .and_then(|e| Some(e.encryption_type().as_str().to_string()))
                 .unwrap_or_default();
-            let enc_kms = repo.encryption_configuration()
+            let enc_kms = repo
+                .encryption_configuration()
                 .and_then(|e| e.kms_key())
                 .unwrap_or("")
                 .to_string();
@@ -870,11 +951,13 @@ async fn collect_containers(
                 });
 
                 let image_count = images.len();
-                let newest_push = images.first()
+                let newest_push = images
+                    .first()
                     .and_then(|i| i.image_pushed_at())
                     .map(|d| secs_to_rfc3339(d.secs()))
                     .unwrap_or_default();
-                let oldest_push = images.last()
+                let oldest_push = images
+                    .last()
                     .and_then(|i| i.image_pushed_at())
                     .map(|d| secs_to_rfc3339(d.secs()))
                     .unwrap_or_default();
@@ -906,7 +989,11 @@ async fn collect_containers(
                         .sw_name_ver(format!(
                             "{} | Tags: {}",
                             repo_name,
-                            if tags.is_empty() { "none".to_string() } else { tags }
+                            if tags.is_empty() {
+                                "none".to_string()
+                            } else {
+                                tags
+                            }
                         ))
                         .comments(repo_comments)
                         .build(),

@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use aws_sdk_ec2::Client as Ec2Client;
 use aws_sdk_ec2::types::Filter;
+use aws_sdk_ec2::Client as Ec2Client;
 
 use crate::evidence::CsvCollector;
 
@@ -15,19 +15,36 @@ pub struct InternetGatewayCollector {
 
 impl InternetGatewayCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: Ec2Client::new(config) }
+        Self {
+            client: Ec2Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for InternetGatewayCollector {
-    fn name(&self) -> &str { "Internet Gateways" }
-    fn filename_prefix(&self) -> &str { "Network_InternetGateways" }
+    fn name(&self) -> &str {
+        "Internet Gateways"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Network_InternetGateways"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Gateway ID", "Attached VPC ID", "Attachment State", "Name Tag", "Region"]
+        &[
+            "Gateway ID",
+            "Attached VPC ID",
+            "Attachment State",
+            "Name Tag",
+            "Region",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -40,7 +57,9 @@ impl CsvCollector for InternetGatewayCollector {
 
             for igw in resp.internet_gateways() {
                 let igw_id = igw.internet_gateway_id().unwrap_or("").to_string();
-                let name_tag = igw.tags().iter()
+                let name_tag = igw
+                    .tags()
+                    .iter()
                     .find(|t| t.key() == Some("Name"))
                     .and_then(|t| t.value())
                     .unwrap_or("")
@@ -58,7 +77,8 @@ impl CsvCollector for InternetGatewayCollector {
                 } else {
                     for attachment in attachments {
                         let vpc_id = attachment.vpc_id().unwrap_or("").to_string();
-                        let state = attachment.state()
+                        let state = attachment
+                            .state()
                             .map(|s| s.as_str().to_string())
                             .unwrap_or_default();
                         rows.push(vec![
@@ -73,7 +93,9 @@ impl CsvCollector for InternetGatewayCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)
@@ -90,19 +112,38 @@ pub struct NatGatewayCollector {
 
 impl NatGatewayCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: Ec2Client::new(config) }
+        Self {
+            client: Ec2Client::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for NatGatewayCollector {
-    fn name(&self) -> &str { "NAT Gateways" }
-    fn filename_prefix(&self) -> &str { "Network_NatGateways" }
+    fn name(&self) -> &str {
+        "NAT Gateways"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Network_NatGateways"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["NAT Gateway ID", "Subnet ID", "VPC ID", "Public IP", "Private IP", "Connectivity Type", "State"]
+        &[
+            "NAT Gateway ID",
+            "Subnet ID",
+            "VPC ID",
+            "Public IP",
+            "Private IP",
+            "Connectivity Type",
+            "State",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -114,7 +155,8 @@ impl CsvCollector for NatGatewayCollector {
             .build();
 
         loop {
-            let mut req = self.client
+            let mut req = self
+                .client
                 .describe_nat_gateways()
                 .filter(state_filter.clone());
             if let Some(ref t) = next_token {
@@ -128,14 +170,22 @@ impl CsvCollector for NatGatewayCollector {
                 let vpc_id = nat.vpc_id().unwrap_or("").to_string();
 
                 let first_addr = nat.nat_gateway_addresses().first();
-                let public_ip = first_addr.and_then(|a| a.public_ip()).unwrap_or("").to_string();
-                let private_ip = first_addr.and_then(|a| a.private_ip()).unwrap_or("").to_string();
+                let public_ip = first_addr
+                    .and_then(|a| a.public_ip())
+                    .unwrap_or("")
+                    .to_string();
+                let private_ip = first_addr
+                    .and_then(|a| a.private_ip())
+                    .unwrap_or("")
+                    .to_string();
 
-                let connectivity = nat.connectivity_type()
+                let connectivity = nat
+                    .connectivity_type()
                     .map(|c| c.as_str().to_string())
                     .unwrap_or_default();
 
-                let state = nat.state()
+                let state = nat
+                    .state()
                     .map(|s| s.as_str().to_string())
                     .unwrap_or_default();
 
@@ -151,7 +201,9 @@ impl CsvCollector for NatGatewayCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)

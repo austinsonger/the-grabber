@@ -32,7 +32,11 @@ pub trait EvidenceCollector: Send + Sync {
 pub trait JsonCollector: Send + Sync {
     fn name(&self) -> &str;
     fn filename_prefix(&self) -> &str;
-    async fn collect_records(&self, account_id: &str, region: &str) -> Result<Vec<serde_json::Value>>;
+    async fn collect_records(
+        &self,
+        account_id: &str,
+        region: &str,
+    ) -> Result<Vec<serde_json::Value>>;
 }
 
 /// Output envelope written to disk for every JsonCollector.
@@ -63,7 +67,12 @@ pub trait CsvCollector: Send + Sync {
     /// with creation timestamps) MUST filter by this range when provided.
     /// Pure point-in-time snapshot collectors that have no date dimension may
     /// ignore it.
-    async fn collect_rows(&self, account_id: &str, region: &str, dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>>;
+    async fn collect_rows(
+        &self,
+        account_id: &str,
+        region: &str,
+        dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>>;
 }
 
 /// Parameters passed to every collector.

@@ -10,30 +10,49 @@ pub struct ResourceTaggingCollector {
 
 impl ResourceTaggingCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: TagClient::new(config) }
+        Self {
+            client: TagClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for ResourceTaggingCollector {
-    fn name(&self) -> &str { "Resource Tagging Configuration" }
-    fn filename_prefix(&self) -> &str { "Resource_Tagging_Config" }
+    fn name(&self) -> &str {
+        "Resource Tagging Configuration"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Resource_Tagging_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Resource ARN", "Resource Type", "Owner", "Environment", "Data Classification", "All Tags"]
+        &[
+            "Resource ARN",
+            "Resource Type",
+            "Owner",
+            "Environment",
+            "Data Classification",
+            "All Tags",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut pagination_token: Option<String> = None;
 
         loop {
-            let mut req = self.client
-                .get_resources()
-                .resources_per_page(100);
+            let mut req = self.client.get_resources().resources_per_page(100);
             if let Some(ref t) = pagination_token {
                 req = req.pagination_token(t);
             }
-            let resp = req.send().await.context("ResourceGroupsTaggingAPI get_resources")?;
+            let resp = req
+                .send()
+                .await
+                .context("ResourceGroupsTaggingAPI get_resources")?;
 
             for resource in resp.resource_tag_mapping_list() {
                 let arn = resource.resource_arn().unwrap_or("").to_string();
@@ -51,25 +70,40 @@ impl CsvCollector for ResourceTaggingCollector {
                     }
                 };
 
-                let tags: std::collections::HashMap<&str, &str> = resource.tags()
+                let tags: std::collections::HashMap<&str, &str> = resource
+                    .tags()
                     .iter()
                     .map(|t| (t.key(), t.value()))
                     .collect();
 
-                let owner      = tags.get("Owner").copied().unwrap_or("").to_string();
-                let env        = tags.get("Environment").or_else(|| tags.get("Env")).copied().unwrap_or("").to_string();
-                let data_class = tags.get("DataClassification")
+                let owner = tags.get("Owner").copied().unwrap_or("").to_string();
+                let env = tags
+                    .get("Environment")
+                    .or_else(|| tags.get("Env"))
+                    .copied()
+                    .unwrap_or("")
+                    .to_string();
+                let data_class = tags
+                    .get("DataClassification")
                     .or_else(|| tags.get("Classification"))
                     .copied()
                     .unwrap_or("")
                     .to_string();
 
-                let all_tags: Vec<String> = resource.tags()
+                let all_tags: Vec<String> = resource
+                    .tags()
                     .iter()
                     .map(|t| format!("{}={}", t.key(), t.value()))
                     .collect();
 
-                rows.push(vec![arn, res_type, owner, env, data_class, all_tags.join("; ")]);
+                rows.push(vec![
+                    arn,
+                    res_type,
+                    owner,
+                    env,
+                    data_class,
+                    all_tags.join("; "),
+                ]);
             }
 
             let token = resp.pagination_token().map(|s| s.to_string());

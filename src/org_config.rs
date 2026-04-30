@@ -10,20 +10,38 @@ pub struct OrgConfigCollector {
 
 impl OrgConfigCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: OrgClient::new(config) }
+        Self {
+            client: OrgClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for OrgConfigCollector {
-    fn name(&self) -> &str { "AWS Organizations Configuration" }
-    fn filename_prefix(&self) -> &str { "AWS_Organizations_Config" }
+    fn name(&self) -> &str {
+        "AWS Organizations Configuration"
+    }
+    fn filename_prefix(&self) -> &str {
+        "AWS_Organizations_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Org ID", "Master Account ID", "Master Account Email", "Feature Set",
-          "Total Accounts", "Root ID", "SCPs Enabled"]
+        &[
+            "Org ID",
+            "Master Account ID",
+            "Master Account Email",
+            "Feature Set",
+            "Total Accounts",
+            "Root ID",
+            "SCPs Enabled",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let org = match self.client.describe_organization().send().await {
             Ok(r) => r,
             Err(e) => {
@@ -37,15 +55,21 @@ impl CsvCollector for OrgConfigCollector {
             None => return Ok(vec![]),
         };
 
-        let org_id        = org_info.id().unwrap_or("").to_string();
-        let master_acct   = org_info.master_account_id().unwrap_or("").to_string();
-        let master_email  = org_info.master_account_email().unwrap_or("").to_string();
-        let feature_set   = org_info.feature_set()
+        let org_id = org_info.id().unwrap_or("").to_string();
+        let master_acct = org_info.master_account_id().unwrap_or("").to_string();
+        let master_email = org_info.master_account_email().unwrap_or("").to_string();
+        let feature_set = org_info
+            .feature_set()
             .map(|f| f.as_str().to_string())
             .unwrap_or_default();
-        let scps_enabled  = org_info.available_policy_types()
+        let scps_enabled = org_info
+            .available_policy_types()
             .iter()
-            .any(|pt| pt.r#type().map(|t| t.as_str() == "SERVICE_CONTROL_POLICY").unwrap_or(false))
+            .any(|pt| {
+                pt.r#type()
+                    .map(|t| t.as_str() == "SERVICE_CONTROL_POLICY")
+                    .unwrap_or(false)
+            })
             .to_string();
 
         // Count accounts
@@ -62,12 +86,16 @@ impl CsvCollector for OrgConfigCollector {
             };
             account_count += resp.accounts().len();
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         // Get root ID
         let root_id = match self.client.list_roots().send().await {
-            Ok(r) => r.roots().first()
+            Ok(r) => r
+                .roots()
+                .first()
                 .and_then(|root| root.id())
                 .unwrap_or("")
                 .to_string(),

@@ -10,19 +10,38 @@ pub struct AccessAnalyzerCollector {
 
 impl AccessAnalyzerCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: AaClient::new(config) }
+        Self {
+            client: AaClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for AccessAnalyzerCollector {
-    fn name(&self) -> &str { "IAM Access Analyzer Findings" }
-    fn filename_prefix(&self) -> &str { "AccessAnalyzer_Findings" }
+    fn name(&self) -> &str {
+        "IAM Access Analyzer Findings"
+    }
+    fn filename_prefix(&self) -> &str {
+        "AccessAnalyzer_Findings"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Analyzer Name", "Resource ARN", "Resource Type", "Finding Type", "Public Access", "Cross Account", "Status"]
+        &[
+            "Analyzer Name",
+            "Resource ARN",
+            "Resource Type",
+            "Finding Type",
+            "Public Access",
+            "Cross Account",
+            "Status",
+        ]
     }
 
-    async fn collect_rows(&self, account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         // List all analyzers
@@ -44,7 +63,9 @@ impl CsvCollector for AccessAnalyzerCollector {
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         if analyzers.is_empty() {
@@ -56,9 +77,7 @@ impl CsvCollector for AccessAnalyzerCollector {
             let mut findings_token: Option<String> = None;
 
             loop {
-                let mut req = self.client
-                    .list_findings()
-                    .analyzer_arn(az_arn);
+                let mut req = self.client.list_findings().analyzer_arn(az_arn);
                 if let Some(ref t) = findings_token {
                     req = req.next_token(t);
                 }
@@ -77,7 +96,11 @@ impl CsvCollector for AccessAnalyzerCollector {
                     // Finding type derived from analyzer type
                     let finding_type = az_type.clone();
 
-                    let is_public = if finding.is_public().unwrap_or(false) { "Yes" } else { "No" };
+                    let is_public = if finding.is_public().unwrap_or(false) {
+                        "Yes"
+                    } else {
+                        "No"
+                    };
 
                     // Cross account: check principal map for ARNs with different account IDs
                     let cross_account = {
@@ -111,7 +134,9 @@ impl CsvCollector for AccessAnalyzerCollector {
                 }
 
                 findings_token = resp.next_token().map(|s| s.to_string());
-                if findings_token.is_none() { break; }
+                if findings_token.is_none() {
+                    break;
+                }
             }
         }
 

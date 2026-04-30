@@ -53,9 +53,7 @@ pub struct CollectorOutcome {
 
 impl CollectorOutcome {
     pub fn success(collector: &str, count: usize, path: &Path) -> Self {
-        let filename = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned());
+        let filename = path.file_name().map(|n| n.to_string_lossy().into_owned());
         let size_bytes = std::fs::metadata(path).map(|m| m.len()).ok();
         Self {
             collector: collector.to_string(),
@@ -193,8 +191,8 @@ pub fn write_run_manifest(out_dir: &Path, manifest: &RunManifest) -> Result<Path
         .with_context(|| format!("cannot create {}", out_dir.display()))?;
     let filename = format!("RUN-MANIFEST-{}.json", manifest.run_id);
     let path = out_dir.join(&filename);
-    let json = serde_json::to_string_pretty(manifest)
-        .context("failed to serialise run manifest")?;
+    let json =
+        serde_json::to_string_pretty(manifest).context("failed to serialise run manifest")?;
     std::fs::write(&path, json.as_bytes())
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(path)
@@ -285,15 +283,15 @@ pub fn write_chain_of_custody(out_dir: &Path, entry: &CustodyEntry) -> Result<Pa
     // Per-run full JSON.
     let filename = format!("CHAIN-OF-CUSTODY-{}.json", entry.run_id);
     let path = out_dir.join(&filename);
-    let pretty = serde_json::to_string_pretty(entry)
-        .context("failed to serialise custody entry")?;
+    let pretty =
+        serde_json::to_string_pretty(entry).context("failed to serialise custody entry")?;
     std::fs::write(&path, pretty.as_bytes())
         .with_context(|| format!("failed to write {}", path.display()))?;
 
     // Append-only JSONL log — never truncated, accumulates across runs.
     let jsonl_path = out_dir.join("CHAIN-OF-CUSTODY.jsonl");
-    let compact = serde_json::to_string(entry)
-        .context("failed to compact-serialise custody entry")?;
+    let compact =
+        serde_json::to_string(entry).context("failed to compact-serialise custody entry")?;
     let mut f = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -337,9 +335,7 @@ fn get_hostname() -> String {
     #[cfg(unix)]
     {
         let mut buf = vec![0u8; 256];
-        let ret = unsafe {
-            libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len())
-        };
+        let ret = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
         if ret == 0 {
             let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
             return String::from_utf8_lossy(&buf[..end]).into_owned();

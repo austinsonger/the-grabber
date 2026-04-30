@@ -10,7 +10,9 @@ pub struct SecurityHubStandardsCollector {
 
 impl SecurityHubStandardsCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: ShClient::new(config) }
+        Self {
+            client: ShClient::new(config),
+        }
     }
 }
 
@@ -36,13 +38,22 @@ fn standard_name_from_arn(arn: &str) -> String {
 
 #[async_trait]
 impl CsvCollector for SecurityHubStandardsCollector {
-    fn name(&self) -> &str { "Security Hub Enabled Standards" }
-    fn filename_prefix(&self) -> &str { "SecurityHub_Standards" }
+    fn name(&self) -> &str {
+        "Security Hub Enabled Standards"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SecurityHub_Standards"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &["Standard Name", "Standards ARN", "Status", "Subscribed At"]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut next_token: Option<String> = None;
 
@@ -62,23 +73,19 @@ impl CsvCollector for SecurityHubStandardsCollector {
             for sub in resp.standards_subscriptions() {
                 let standards_arn = sub.standards_arn().unwrap_or("").to_string();
                 let standard_name = standard_name_from_arn(&standards_arn);
-                let status = sub.standards_status()
+                let status = sub
+                    .standards_status()
                     .map(|s| s.as_str().to_string())
                     .unwrap_or_default();
-                let subscribed_at = sub.standards_subscription_arn()
-                    .unwrap_or("")
-                    .to_string();
+                let subscribed_at = sub.standards_subscription_arn().unwrap_or("").to_string();
 
-                rows.push(vec![
-                    standard_name,
-                    standards_arn,
-                    status,
-                    subscribed_at,
-                ]);
+                rows.push(vec![standard_name, standards_arn, status, subscribed_at]);
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
-            if next_token.is_none() { break; }
+            if next_token.is_none() {
+                break;
+            }
         }
 
         Ok(rows)

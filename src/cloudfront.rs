@@ -10,19 +10,36 @@ pub struct CloudFrontCollector {
 
 impl CloudFrontCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: CfClient::new(config) }
+        Self {
+            client: CfClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for CloudFrontCollector {
-    fn name(&self) -> &str { "CloudFront Distributions" }
-    fn filename_prefix(&self) -> &str { "CloudFront_Distributions" }
+    fn name(&self) -> &str {
+        "CloudFront Distributions"
+    }
+    fn filename_prefix(&self) -> &str {
+        "CloudFront_Distributions"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Distribution ID", "Domain Name", "WAF Enabled", "Logging Enabled", "TLS Version"]
+        &[
+            "Distribution ID",
+            "Domain Name",
+            "WAF Enabled",
+            "Logging Enabled",
+            "TLS Version",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
         let mut marker: Option<String> = None;
 
@@ -39,22 +56,24 @@ impl CsvCollector for CloudFrontCollector {
             };
 
             for dist in dl.items() {
-                let dist_id    = dist.id().to_string();
-                let domain     = dist.domain_name().to_string();
-                let waf        = if !dist.web_acl_id().is_empty() { "Yes" } else { "No" }.to_string();
-                let tls        = dist.viewer_certificate()
+                let dist_id = dist.id().to_string();
+                let domain = dist.domain_name().to_string();
+                let waf = if !dist.web_acl_id().is_empty() {
+                    "Yes"
+                } else {
+                    "No"
+                }
+                .to_string();
+                let tls = dist
+                    .viewer_certificate()
                     .and_then(|vc| vc.minimum_protocol_version().cloned())
                     .map(|v| v.as_str().to_string())
                     .unwrap_or_default();
 
                 // Get logging status from full distribution config.
-                let logging = match self.client
-                    .get_distribution()
-                    .id(&dist_id)
-                    .send()
-                    .await
-                {
-                    Ok(r) => r.distribution()
+                let logging = match self.client.get_distribution().id(&dist_id).send().await {
+                    Ok(r) => r
+                        .distribution()
                         .and_then(|d| d.distribution_config())
                         .and_then(|c| c.logging())
                         .map(|l| if l.enabled() { "Enabled" } else { "Disabled" })

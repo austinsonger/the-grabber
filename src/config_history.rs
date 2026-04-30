@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use aws_sdk_config::Client as ConfigClient;
 use aws_sdk_config::types::ResourceType;
+use aws_sdk_config::Client as ConfigClient;
 
 use crate::evidence::CsvCollector;
 
@@ -17,19 +17,37 @@ pub struct ConfigHistoryCollector {
 
 impl ConfigHistoryCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
-        Self { client: ConfigClient::new(config) }
+        Self {
+            client: ConfigClient::new(config),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for ConfigHistoryCollector {
-    fn name(&self) -> &str { "AWS Config Resource History" }
-    fn filename_prefix(&self) -> &str { "Config_ResourceHistory" }
+    fn name(&self) -> &str {
+        "AWS Config Resource History"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Config_ResourceHistory"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["Resource Type", "Resource ID", "Resource Name", "Change Type", "Capture Time", "Config Status"]
+        &[
+            "Resource Type",
+            "Resource ID",
+            "Resource Name",
+            "Change Type",
+            "Capture Time",
+            "Config Status",
+        ]
     }
 
-    async fn collect_rows(&self, _account_id: &str, _region: &str, _dates: Option<(i64, i64)>) -> Result<Vec<Vec<String>>> {
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
         let resource_types = &[
@@ -44,7 +62,8 @@ impl CsvCollector for ConfigHistoryCollector {
             let rt = ResourceType::from(*rt_str);
 
             // List discovered resources (cap at 20)
-            let resources_resp = match self.client
+            let resources_resp = match self
+                .client
                 .list_discovered_resources()
                 .resource_type(rt.clone())
                 .limit(20)
@@ -60,9 +79,12 @@ impl CsvCollector for ConfigHistoryCollector {
 
             for resource in resources_resp.resource_identifiers() {
                 let resource_id = resource.resource_id().unwrap_or("").to_string();
-                if resource_id.is_empty() { continue; }
+                if resource_id.is_empty() {
+                    continue;
+                }
 
-                let history_resp = match self.client
+                let history_resp = match self
+                    .client
                     .get_resource_config_history()
                     .resource_type(rt.clone())
                     .resource_id(&resource_id)
@@ -72,21 +94,26 @@ impl CsvCollector for ConfigHistoryCollector {
                 {
                     Ok(r) => r,
                     Err(e) => {
-                        eprintln!("  WARN: Config get_resource_config_history {resource_id}: {e:#}");
+                        eprintln!(
+                            "  WARN: Config get_resource_config_history {resource_id}: {e:#}"
+                        );
                         continue;
                     }
                 };
 
                 for item in history_resp.configuration_items() {
-                    let item_rt = item.resource_type()
+                    let item_rt = item
+                        .resource_type()
                         .map(|t| t.as_str().to_string())
                         .unwrap_or_else(|| rt_str.to_string());
                     let item_id = item.resource_id().unwrap_or("").to_string();
                     let item_name = item.resource_name().unwrap_or("").to_string();
-                    let capture_time = item.configuration_item_capture_time()
+                    let capture_time = item
+                        .configuration_item_capture_time()
                         .map(fmt_config_dt)
                         .unwrap_or_default();
-                    let status_raw = item.configuration_item_status()
+                    let status_raw = item
+                        .configuration_item_status()
                         .map(|s| s.as_str().to_string())
                         .unwrap_or_default();
                     let change_type = status_to_change_type(&status_raw);
@@ -113,5 +140,6 @@ fn status_to_change_type(status: &str) -> String {
         "ResourceDeleted" | "ResourceDeletedNotRecorded" => "Deleted",
         "OK" | "ResourceNotRecorded" => "Modified",
         _ => "Unknown",
-    }.to_string()
+    }
+    .to_string()
 }
