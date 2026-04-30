@@ -1071,6 +1071,57 @@ impl App {
         self.collector_cursor = start;
     }
 
+    /// True when `global_idx` passes the current collector search filter.
+    /// Always true when the search value is empty.
+    pub fn search_matches_item(&self, global_idx: usize) -> bool {
+        let term = self.collector_search.value.to_lowercase();
+        if term.is_empty() {
+            return true;
+        }
+        let (key, label) = &self.collector_items[global_idx];
+        key.to_lowercase().contains(&term) || label.to_lowercase().contains(&term)
+    }
+
+    /// Returns indices of categories that contain at least one item matching the
+    /// current search filter. Returns all category indices when search is empty.
+    pub fn visible_categories(&self) -> Vec<usize> {
+        (0..COLLECTOR_CATEGORIES.len())
+            .filter(|&cat_idx| {
+                let (start, end) = self.category_bounds(cat_idx);
+                (start..end).any(|i| self.search_matches_item(i))
+            })
+            .collect()
+    }
+
+    /// Returns global item indices within `cat_idx` that pass the search filter.
+    /// Returns all items in the category when search is empty.
+    pub fn visible_items_in_category(&self, cat_idx: usize) -> Vec<usize> {
+        let (start, end) = self.category_bounds(cat_idx);
+        (start..end)
+            .filter(|&i| self.search_matches_item(i))
+            .collect()
+    }
+
+    /// After the search term changes, snaps `collector_category_cursor` to the
+    /// first visible category (if the current one no longer matches) and snaps
+    /// `collector_cursor` to the first visible item in that category.
+    pub fn clamp_collector_cursors(&mut self) {
+        let visible_cats = self.visible_categories();
+        if visible_cats.is_empty() {
+            return;
+        }
+        if !visible_cats.contains(&self.collector_category_cursor) {
+            self.collector_category_cursor = visible_cats[0];
+        }
+        let visible_items = self.visible_items_in_category(self.collector_category_cursor);
+        if visible_items.is_empty() {
+            return;
+        }
+        if !visible_items.contains(&self.collector_cursor) {
+            self.collector_cursor = visible_items[0];
+        }
+    }
+
     /// Returns the selected inventory asset-type keys in index order.
     pub fn selected_inventory_types(&self) -> Vec<String> {
         let mut indices: Vec<usize> = self.inventory_selected.iter().copied().collect();
@@ -2003,4 +2054,126 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
     }
 
     Action::Continue
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_app() -> App {
+        App::new(vec![])
+    }
+
+    #[test]
+    fn search_empty_matches_all_items() {
+        let app = make_app();
+        for i in 0..app.collector_items.len() {
+            assert!(app.search_matches_item(i), "item {i} should match empty search");
+        }
+    }
+
+    #[test]
+    fn search_matches_key_substring() {
+        let mut app = make_app();
+        app.collector_search.value = "iam".to_string();
+        app.collector_search.cursor = 3;
+        // "access-analyzer" label is "IAM Access Analyzer …" — matches via label
+        assert!(app.search_matches_item(55));
+        // "api-gateway" — neither key nor label contains "iam"
+        assert!(!app.search_matches_item(0));
+    }
+
+    #[test]
+    fn search_case_insensitive() {
+        let mut app = make_app();
+        app.collector_search.value = "IAM".to_string();
+        app.collector_search.cursor = 3;
+        assert!(app.search_matches_item(55));
+    }
+
+    #[test]
+    fn search_matches_label_text() {
+        let mut app = make_app();
+        // "cloudtrail" appears in many keys/labels in the Audit Trail category
+        app.collector_search.value = "cloudtrail".to_string();
+        app.collector_search.cursor = 10;
+        // index 9 is ("cloudtrail", "CloudTrail API …")
+        assert!(app.search_matches_item(9));
+        // index 0 is "api-gateway" — no "cloudtrail"
+        assert!(!app.search_matches_item(0));
+    }
+
+    #[test]
+    fn visible_categories_empty_search_returns_all() {
+        let app = make_app();
+        let visible = app.visible_categories();
+        assert_eq!(visible.len(), COLLECTOR_CATEGORIES.len());
+        assert_eq!(visible, (0..COLLECTOR_CATEGORIES.len()).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn visible_categories_filters_to_matching_categories() {
+        let mut app = make_app();
+        app.collector_search.value = "iam".to_string();
+        app.collector_search.cursor = 3;
+        let visible = app.visible_categories();
+        // "Identity & Access" (index 6) has IAM collectors — must be present
+        assert!(visible.contains(&6));
+        // "Audit Trail" (index 1) has "ct-iam-changes" — must be present
+        assert!(visible.contains(&1));
+        // "Containers" (index 3) has no IAM items — must be absent
+        assert!(!visible.contains(&3));
+        // "Database & Backup" (index 4) has no IAM items — must be absent
+        assert!(!visible.contains(&4));
+    }
+
+    #[test]
+    fn visible_items_empty_search_returns_full_category() {
+        let app = make_app();
+        let (start, end) = app.category_bounds(0);
+        let visible = app.visible_items_in_category(0);
+        assert_eq!(visible, (start..end).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn visible_items_filters_within_category() {
+        let mut app = make_app();
+        app.collector_search.value = "iam".to_string();
+        app.collector_search.cursor = 3;
+        // Identity & Access category (index 6) — all items have "iam" in key or label
+        let visible = app.visible_items_in_category(6);
+        assert!(!visible.is_empty());
+        for &i in &visible {
+            assert!(app.search_matches_item(i), "item {i} should match 'iam'");
+        }
+        // Containers category (index 3) — no IAM items
+        let visible_containers = app.visible_items_in_category(3);
+        assert!(visible_containers.is_empty());
+    }
+
+    #[test]
+    fn clamp_cursors_snaps_to_first_visible_category() {
+        let mut app = make_app();
+        // Force cursor to Containers (index 3), which has no IAM items
+        app.collector_category_cursor = 3;
+        app.collector_search.value = "iam".to_string();
+        app.collector_search.cursor = 3;
+        app.clamp_collector_cursors();
+        let visible = app.visible_categories();
+        assert!(
+            visible.contains(&app.collector_category_cursor),
+            "category_cursor should be in visible set after clamp"
+        );
+    }
+
+    #[test]
+    fn clamp_cursors_noop_on_empty_search() {
+        let mut app = make_app();
+        app.collector_category_cursor = 5;
+        app.collector_cursor = 50;
+        app.clamp_collector_cursors();
+        // No-op when search is empty — all categories visible
+        assert_eq!(app.collector_category_cursor, 5);
+        assert_eq!(app.collector_cursor, 50);
+    }
 }
