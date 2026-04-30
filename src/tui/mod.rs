@@ -1812,32 +1812,87 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
 
         Screen::SelectCollectors => match key {
             // ── Panel switching ──────────────────────────────────────────
-            KeyCode::Tab | KeyCode::Left | KeyCode::Right => {
+            KeyCode::Tab => {
                 app.collector_focus = match app.collector_focus {
                     CollectorFocus::Search => CollectorFocus::Categories,
                     CollectorFocus::Categories => CollectorFocus::Items,
                     CollectorFocus::Items => CollectorFocus::Search,
                 };
             }
+            // Left/Right only toggles Categories ↔ Items (not Search)
+            KeyCode::Left | KeyCode::Right
+                if app.collector_focus != CollectorFocus::Search =>
+            {
+                app.collector_focus = match app.collector_focus {
+                    CollectorFocus::Categories => CollectorFocus::Items,
+                    CollectorFocus::Items | CollectorFocus::Search => CollectorFocus::Categories,
+                };
+            }
+
+            // ── Search panel ─────────────────────────────────────────────
+            KeyCode::Left if app.collector_focus == CollectorFocus::Search => {
+                app.collector_search.move_left();
+            }
+            KeyCode::Right if app.collector_focus == CollectorFocus::Search => {
+                app.collector_search.move_right();
+            }
+            KeyCode::Char(c) if app.collector_focus == CollectorFocus::Search => {
+                app.collector_search.insert(c);
+                app.clamp_collector_cursors();
+            }
+            KeyCode::Backspace if app.collector_focus == CollectorFocus::Search => {
+                app.collector_search.backspace();
+                app.clamp_collector_cursors();
+            }
+            KeyCode::Down if app.collector_focus == CollectorFocus::Search => {
+                app.collector_focus = CollectorFocus::Categories;
+            }
+            // Esc with non-empty search: clear search, stay on screen
+            KeyCode::Esc
+                if app.collector_focus == CollectorFocus::Search
+                    && !app.collector_search.value.is_empty() =>
+            {
+                app.collector_search.clear();
+                app.clamp_collector_cursors();
+            }
 
             // ── Category panel navigation ────────────────────────────────
             KeyCode::Up if app.collector_focus == CollectorFocus::Categories => {
-                if app.collector_category_cursor > 0 {
-                    app.collector_category_cursor -= 1;
-                    let (start, _) = app.category_bounds(app.collector_category_cursor);
-                    app.collector_cursor = start;
+                let visible = app.visible_categories();
+                if let Some(pos) = visible
+                    .iter()
+                    .position(|&c| c == app.collector_category_cursor)
+                {
+                    if pos > 0 {
+                        app.collector_category_cursor = visible[pos - 1];
+                        let items =
+                            app.visible_items_in_category(app.collector_category_cursor);
+                        if let Some(&first) = items.first() {
+                            app.collector_cursor = first;
+                        }
+                    }
                 }
             }
             KeyCode::Down if app.collector_focus == CollectorFocus::Categories => {
-                if app.collector_category_cursor + 1 < COLLECTOR_CATEGORIES.len() {
-                    app.collector_category_cursor += 1;
-                    let (start, _) = app.category_bounds(app.collector_category_cursor);
-                    app.collector_cursor = start;
+                let visible = app.visible_categories();
+                if let Some(pos) = visible
+                    .iter()
+                    .position(|&c| c == app.collector_category_cursor)
+                {
+                    if pos + 1 < visible.len() {
+                        app.collector_category_cursor = visible[pos + 1];
+                        let items =
+                            app.visible_items_in_category(app.collector_category_cursor);
+                        if let Some(&first) = items.first() {
+                            app.collector_cursor = first;
+                        }
+                    }
                 }
             }
-            // Number keys jump to category
+            // Number keys jump to category (only in Categories focus)
             KeyCode::Char(c)
-                if c.is_ascii_digit() && app.collector_focus == CollectorFocus::Categories =>
+                if c.is_ascii_digit()
+                    && app.collector_focus == CollectorFocus::Categories =>
             {
                 let digit = c as usize - '0' as usize;
                 if digit > 0 && digit <= COLLECTOR_CATEGORIES.len() {
@@ -1847,15 +1902,51 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
 
             // ── Item panel navigation ────────────────────────────────────
             KeyCode::Up if app.collector_focus == CollectorFocus::Items => {
-                let (start, _) = app.category_bounds(app.collector_category_cursor);
-                if app.collector_cursor > start {
-                    app.collector_cursor -= 1;
+                let items = app.visible_items_in_category(app.collector_category_cursor);
+                if let Some(pos) = items.iter().position(|&i| i == app.collector_cursor) {
+                    if pos > 0 {
+                        app.collector_cursor = items[pos - 1];
+                    } else {
+                        // Jump to previous visible category, land on its last item
+                        let visible_cats = app.visible_categories();
+                        if let Some(cat_pos) = visible_cats
+                            .iter()
+                            .position(|&c| c == app.collector_category_cursor)
+                        {
+                            if cat_pos > 0 {
+                                app.collector_category_cursor = visible_cats[cat_pos - 1];
+                                let prev_items =
+                                    app.visible_items_in_category(app.collector_category_cursor);
+                                if let Some(&last) = prev_items.last() {
+                                    app.collector_cursor = last;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             KeyCode::Down if app.collector_focus == CollectorFocus::Items => {
-                let (_, end) = app.category_bounds(app.collector_category_cursor);
-                if app.collector_cursor + 1 < end {
-                    app.collector_cursor += 1;
+                let items = app.visible_items_in_category(app.collector_category_cursor);
+                if let Some(pos) = items.iter().position(|&i| i == app.collector_cursor) {
+                    if pos + 1 < items.len() {
+                        app.collector_cursor = items[pos + 1];
+                    } else {
+                        // Jump to next visible category, land on its first item
+                        let visible_cats = app.visible_categories();
+                        if let Some(cat_pos) = visible_cats
+                            .iter()
+                            .position(|&c| c == app.collector_category_cursor)
+                        {
+                            if cat_pos + 1 < visible_cats.len() {
+                                app.collector_category_cursor = visible_cats[cat_pos + 1];
+                                let next_items =
+                                    app.visible_items_in_category(app.collector_category_cursor);
+                                if let Some(&first) = next_items.first() {
+                                    app.collector_cursor = first;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1870,18 +1961,20 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             }
             KeyCode::Char(' ') if app.collector_focus == CollectorFocus::Categories => {
                 let sel = app.selected_in_category(app.collector_category_cursor);
-                let (_, end) = app.category_bounds(app.collector_category_cursor);
-                let (start, _) = app.category_bounds(app.collector_category_cursor);
+                let (start, end) = app.category_bounds(app.collector_category_cursor);
                 let total = end.saturating_sub(start);
-                // If any selected, deselect all; otherwise select all.
                 app.set_category_selection(app.collector_category_cursor, sel < total);
             }
 
-            // ── Select / Deselect all in current category ────────────────
-            KeyCode::Char('a') => {
+            // ── Select / Deselect all (guarded: not while typing in search) ──
+            KeyCode::Char('a')
+                if app.collector_focus != CollectorFocus::Search =>
+            {
                 app.set_category_selection(app.collector_category_cursor, true);
             }
-            KeyCode::Char('d') => {
+            KeyCode::Char('d')
+                if app.collector_focus != CollectorFocus::Search =>
+            {
                 app.set_category_selection(app.collector_category_cursor, false);
             }
 
@@ -2068,7 +2161,10 @@ mod tests {
     fn search_empty_matches_all_items() {
         let app = make_app();
         for i in 0..app.collector_items.len() {
-            assert!(app.search_matches_item(i), "item {i} should match empty search");
+            assert!(
+                app.search_matches_item(i),
+                "item {i} should match empty search"
+            );
         }
     }
 
