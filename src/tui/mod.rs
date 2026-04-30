@@ -1561,7 +1561,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                 };
             }
             KeyCode::Enter | KeyCode::Char(' ') => app.next_screen(),
-            KeyCode::Esc => return Action::Quit,
+            KeyCode::Esc => app.prev_screen(),
             _ => {}
         },
 

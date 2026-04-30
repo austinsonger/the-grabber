@@ -435,14 +435,14 @@ fn draw_footer(f: &mut Frame, area: Rect, hints: &[(&str, &str)]) {
 fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
     match screen {
         Screen::Welcome => vec![("⏎", "Begin"), ("Esc", "Quit")],
-        Screen::FeatureSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Quit")],
+        Screen::FeatureSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::SelectAccount => vec![
             ("↑↓", "Navigate"),
             ("␣", "Toggle"),
             ("a", "All"),
             ("d", "None"),
             ("⏎", "Confirm"),
-            ("Esc", "Quit"),
+            ("Esc", "Back"),
         ],
         Screen::SelectProfile => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::SelectRegion => vec![
