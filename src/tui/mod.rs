@@ -81,6 +81,7 @@ pub enum Feature {
 /// Which panel has focus on the SelectCollectors screen.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CollectorFocus {
+    Search,
     Categories,
     Items,
 }
@@ -254,6 +255,7 @@ pub struct App {
     pub collector_selected: HashSet<usize>,
     pub collector_category_cursor: usize,
     pub collector_focus: CollectorFocus,
+    pub collector_search: TextInput,
 
     // Options
     pub output_dir: TextInput,
@@ -873,6 +875,7 @@ impl App {
             collector_selected,
             collector_category_cursor: 0,
             collector_focus: CollectorFocus::Categories,
+            collector_search: TextInput::default(),
             output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,
@@ -1323,6 +1326,7 @@ impl App {
         self.inventory_selected.clear();
         self.collector_category_cursor = 0;
         self.collector_focus = CollectorFocus::Categories;
+        self.collector_search.clear();
         self.poam_summary = None;
         self.selected_feature = Feature::Collectors;
         // Preserve options_selected_regions so the user's choices carry over.
@@ -1759,8 +1763,9 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
             // ── Panel switching ──────────────────────────────────────────
             KeyCode::Tab | KeyCode::Left | KeyCode::Right => {
                 app.collector_focus = match app.collector_focus {
+                    CollectorFocus::Search => CollectorFocus::Categories,
                     CollectorFocus::Categories => CollectorFocus::Items,
-                    CollectorFocus::Items => CollectorFocus::Categories,
+                    CollectorFocus::Items => CollectorFocus::Search,
                 };
             }
 
