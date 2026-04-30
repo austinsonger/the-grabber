@@ -1243,11 +1243,22 @@ fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
 fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     let selected_count = app.collector_selected.len();
     let total_count = app.collector_items.len();
+    let search_term = &app.collector_search.value;
 
-    let title = format!(
-        " Collectors ─────────── {} of {} selected ",
-        selected_count, total_count,
-    );
+    let title = if search_term.is_empty() {
+        format!(
+            " Collectors ─────────── {} of {} selected ",
+            selected_count, total_count,
+        )
+    } else {
+        let match_count: usize = (0..total_count)
+            .filter(|&i| app.search_matches_item(i))
+            .count();
+        format!(
+            " Collectors ─────────── {} of {} selected  •  {} matches ",
+            selected_count, total_count, match_count,
+        )
+    };
 
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
@@ -1260,36 +1271,104 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // Reserve 1 row at bottom for help text
-    let help_height = 1u16;
-    let main_height = inner.height.saturating_sub(help_height + 1);
-    let main_area = Rect {
-        x: inner.x,
-        y: inner.y,
-        width: inner.width,
-        height: main_height,
-    };
-    let help_area = Rect {
-        x: inner.x,
-        y: inner.y + main_height + 1,
-        width: inner.width,
-        height: help_height,
-    };
+    // Layout: search bar (3) | main panels (fill) | separator (1) | help (1)
+    let v_chunks = Layout::vertical([
+        Constraint::Length(3),
+        Constraint::Fill(1),
+        Constraint::Length(1),
+        Constraint::Length(1),
+    ])
+    .split(inner);
 
-    // Split into left (categories) and right (items)
-    let h_split = Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
-        .split(main_area);
+    let search_area = v_chunks[0];
+    let main_area = v_chunks[1];
+    let help_area = v_chunks[3];
+
+    // ── Search bar ───────────────────────────────────────────────
+    let search_focused = app.collector_focus == CollectorFocus::Search;
+    let has_search = !search_term.is_empty();
+    let search_label = if has_search {
+        " Search collectors  [✕ Esc to clear] ".to_string()
+    } else {
+        " Search collectors… ".to_string()
+    };
+    let search_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(if search_focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(BORDER_SUBTLE)
+        })
+        .title(Span::styled(
+            search_label,
+            if search_focused {
+                Style::default().fg(CYAN)
+            } else {
+                Style::default().fg(TEXT_DIM)
+            },
+        ))
+        .padding(Padding::horizontal(1));
+
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            search_term.as_str(),
+            Style::default().fg(TEXT_BRIGHT),
+        ))
+        .block(search_block),
+        search_area,
+    );
+
+    if search_focused {
+        // border(1) + padding(1) + cursor byte offset
+        f.set_cursor_position((
+            search_area.x + 2 + app.collector_search.cursor as u16,
+            search_area.y + 1,
+        ));
+    }
+
+    // ── Resolve visible set ───────────────────────────────────────
+    let visible_cats = app.visible_categories();
+
+    // ── Empty state: no categories have any matching item ─────────
+    if visible_cats.is_empty() {
+        let empty_msg = format!(
+            "No collectors match \"{}\"   •   Esc to clear",
+            search_term
+        );
+        f.render_widget(
+            Paragraph::new(Span::styled(empty_msg, Style::default().fg(TEXT_DIM)))
+                .alignment(Alignment::Center),
+            main_area,
+        );
+        f.render_widget(
+            Paragraph::new("Type to filter  •  Down/Tab switch panel  •  Esc clear")
+                .style(Style::default().fg(TEXT_DIM))
+                .alignment(Alignment::Center),
+            help_area,
+        );
+        return;
+    }
+
+    // ── Split into left (categories) and right (items) ───────────
+    let h_split =
+        Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
+            .split(main_area);
     let left_area = h_split[0];
     let right_area = h_split[1];
 
-    // ── Left panel: categories ──────────────────────────────────────
+    // ── Left panel: visible categories ───────────────────────────
     let cat_focused = app.collector_focus == CollectorFocus::Categories;
-    let mut cat_items: Vec<ListItem> = Vec::new();
 
-    for (cat_idx, (_, cat_name)) in COLLECTOR_CATEGORIES.iter().enumerate() {
+    let visible_cat_pos = visible_cats
+        .iter()
+        .position(|&c| c == app.collector_category_cursor)
+        .unwrap_or(0);
+
+    let mut cat_items: Vec<ListItem> = Vec::new();
+    for &cat_idx in &visible_cats {
+        let (_, cat_name) = COLLECTOR_CATEGORIES[cat_idx];
         let sel = app.selected_in_category(cat_idx);
-        let (_, end) = app.category_bounds(cat_idx);
-        let (start, _) = app.category_bounds(cat_idx);
+        let (start, end) = app.category_bounds(cat_idx);
         let total = end.saturating_sub(start);
         let is_selected_cat = cat_idx == app.collector_category_cursor;
 
@@ -1299,13 +1378,11 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 
         let mut style = Style::default().fg(TEXT_NORMAL);
         if is_selected_cat {
-            if cat_focused {
-                style = Style::default().fg(AMBER).add_modifier(Modifier::BOLD);
+            style = if cat_focused {
+                Style::default().fg(AMBER).add_modifier(Modifier::BOLD)
             } else {
-                style = Style::default().fg(AMBER);
-            }
-        }
-        if is_selected_cat {
+                Style::default().fg(AMBER)
+            };
             style = style.patch(Style::default().bg(BG_SELECTED));
         }
 
@@ -1325,7 +1402,7 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         )]));
 
     let mut cat_state = ListState::default();
-    cat_state.select(Some(app.collector_category_cursor));
+    cat_state.select(Some(visible_cat_pos));
 
     f.render_stateful_widget(
         List::new(cat_items)
@@ -1336,13 +1413,25 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         &mut cat_state,
     );
 
-    // ── Right panel: items in selected category ─────────────────────
+    // ── Right panel: visible items in selected category ───────────
     let item_focused = app.collector_focus == CollectorFocus::Items;
-    let (cat_start, cat_end) = app.category_bounds(app.collector_category_cursor);
+    let visible_items = app.visible_items_in_category(app.collector_category_cursor);
     let cat_name = COLLECTOR_CATEGORIES[app.collector_category_cursor].1;
 
+    let item_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(if item_focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(BORDER_SUBTLE)
+        })
+        .title(Line::from(vec![Span::styled(
+            format!(" {} ", cat_name),
+            Style::default().fg(if item_focused { CYAN } else { CYAN_DIM }),
+        )]));
+
     let mut item_list: Vec<ListItem> = Vec::new();
-    for i in cat_start..cat_end {
+    for &i in &visible_items {
         let (_, label) = &app.collector_items[i];
         let checked = app.collector_selected.contains(&i);
         let focused = i == app.collector_cursor;
@@ -1353,14 +1442,12 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         } else {
             Style::default().fg(TEXT_DIM)
         };
-
         let name_style = if focused && item_focused {
             Style::default().fg(AMBER).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(TEXT_NORMAL)
         };
 
-        // Split label into name and description
         let parts: Vec<&str> = label.splitn(2, '(').collect();
         let name = parts[0].trim();
         let desc = if parts.len() > 1 {
@@ -1384,19 +1471,11 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         item_list.push(item);
     }
 
-    let item_block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(if item_focused {
-            Style::default().fg(CYAN)
-        } else {
-            Style::default().fg(BORDER_SUBTLE)
-        })
-        .title(Line::from(vec![Span::styled(
-            format!(" {} ", cat_name),
-            Style::default().fg(if item_focused { CYAN } else { CYAN_DIM }),
-        )]));
+    let local_cursor = visible_items
+        .iter()
+        .position(|&i| i == app.collector_cursor)
+        .unwrap_or(0);
 
-    let local_cursor = app.collector_cursor.saturating_sub(cat_start);
     let mut item_state = ListState::default();
     item_state.select(Some(local_cursor));
 
@@ -1409,16 +1488,33 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         &mut item_state,
     );
 
-    // ── Help text ───────────────────────────────────────────────────
-    let help_text = if cat_focused {
-        "↑↓ navigate • 1-9 jump • Tab/→ switch panel • Space toggle category • a/d all/none"
-    } else {
-        "↑↓ navigate • Space toggle • a/d all/none • Tab/← switch panel • Enter confirm"
+    // ── Help text ─────────────────────────────────────────────────
+    let help_text = match app.collector_focus {
+        CollectorFocus::Search => {
+            "Type to filter  •  Down/Tab switch panel  •  Esc clear"
+        }
+        CollectorFocus::Categories => {
+            if has_search {
+                "↑↓ navigate • 1-9 jump • Tab/→ switch panel • Space toggle category • a/d all/none  •  Tab → search"
+            } else {
+                "↑↓ navigate • 1-9 jump • Tab/→ switch panel • Space toggle category • a/d all/none"
+            }
+        }
+        CollectorFocus::Items => {
+            if has_search {
+                "↑↓ navigate • Space toggle • a/d all/none • Tab/← switch panel • Enter confirm  •  Tab → search"
+            } else {
+                "↑↓ navigate • Space toggle • a/d all/none • Tab/← switch panel • Enter confirm"
+            }
+        }
     };
-    let help = Paragraph::new(help_text)
-        .style(Style::default().fg(TEXT_DIM))
-        .alignment(Alignment::Center);
-    f.render_widget(help, help_area);
+
+    f.render_widget(
+        Paragraph::new(help_text)
+            .style(Style::default().fg(TEXT_DIM))
+            .alignment(Alignment::Center),
+        help_area,
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
