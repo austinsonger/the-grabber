@@ -239,18 +239,17 @@ fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
     out
 }
 
-// Pre-dedup filter: keep only findings from the most recently pushed image per repo.
-//
-// Inspector2 reports findings for every image in a repo, including old superseded
-// ones.  For compliance reporting we only care about the current (latest) image
-// state — old images inflate the finding count with vulnerabilities that may
-// already be resolved in newer pushes.
+// Pre-dedup filter: for each repo, keep only findings from the most recently
+// pushed image hash.  Inspector2 reports findings for every image digest ever
+// pushed to a repo, including old superseded versions.  For compliance reporting
+// only the current (latest) image matters — old versions inflate the count with
+// vulnerabilities that may already be resolved in newer pushes.
 //
 // Indices:  23 = Repository Name,  25 = Image Hash,  29 = Pushed At
-fn filter_latest_images(mut rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
+fn filter_latest_image_per_repo(mut rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
     use std::collections::HashMap;
 
-    // Step 1: for each repo, find the Image Hash with the latest Pushed At.
+    // Step 1: for each repo, find the image hash with the latest Pushed At.
     let mut latest_hash: HashMap<String, String> = HashMap::new();
     let mut latest_push: HashMap<String, String> = HashMap::new();
 
@@ -269,13 +268,13 @@ fn filter_latest_images(mut rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
         }
     }
 
-    // Step 2: discard rows from older images.
+    // Step 2: discard rows from older image versions.
     rows.retain(|row| {
         let repo = row.get(23).map(|s| s.as_str()).unwrap_or("");
         let hash = row.get(25).map(|s| s.as_str()).unwrap_or("");
 
-        if repo.is_empty() {
-            return true; // keep rows without repo info
+        if repo.is_empty() || hash.is_empty() {
+            return true; // keep rows without repo/hash info
         }
 
         match latest_hash.get(repo) {
@@ -828,7 +827,7 @@ impl CsvCollector for InspectorEcrImagesCollector {
         }
 
         let before = rows.len();
-        let rows = filter_latest_images(rows);
+        let rows = filter_latest_image_per_repo(rows);
         let after_latest = rows.len();
         let rows = dedup_ecr_image_rows(rows);
         let after_dedup = rows.len();

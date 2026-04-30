@@ -78,6 +78,13 @@ pub enum Feature {
     Poam,
 }
 
+/// Which panel has focus on the SelectCollectors screen.
+#[derive(Debug, Clone, PartialEq)]
+pub enum CollectorFocus {
+    Categories,
+    Items,
+}
+
 // ---------------------------------------------------------------------------
 // Wizard screens
 // ---------------------------------------------------------------------------
@@ -105,6 +112,25 @@ pub enum Screen {
     Running,
     Results,
 }
+
+// ---------------------------------------------------------------------------
+// Collector categories (used by two-panel SelectCollectors screen)
+// ---------------------------------------------------------------------------
+
+pub const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
+    (0, "App Layer & DNS"),
+    (6, "Audit Trail"),
+    (23, "Compute"),
+    (37, "Containers"),
+    (41, "Database & Backup"),
+    (48, "Encryption & Secrets"),
+    (55, "Identity & Access"),
+    (67, "Monitoring & Events"),
+    (77, "Network"),
+    (97, "Organization & Account"),
+    (101, "Security Detection"),
+    (113, "Storage"),
+];
 
 // ---------------------------------------------------------------------------
 // Text input state
@@ -226,6 +252,8 @@ pub struct App {
     pub collector_items: Vec<(&'static str, &'static str)>, // (key, label)
     pub collector_cursor: usize,
     pub collector_selected: HashSet<usize>,
+    pub collector_category_cursor: usize,
+    pub collector_focus: CollectorFocus,
 
     // Options
     pub output_dir: TextInput,
@@ -843,6 +871,8 @@ impl App {
             collector_items,
             collector_cursor: 0,
             collector_selected,
+            collector_category_cursor: 0,
+            collector_focus: CollectorFocus::Categories,
             output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,
@@ -998,6 +1028,44 @@ impl App {
             .iter()
             .filter_map(|&i| self.collector_items.get(i).map(|(k, _)| k.to_string()))
             .collect()
+    }
+
+    /// Return the (start, end) item indices for a given category.
+    pub fn category_bounds(&self, cat_idx: usize) -> (usize, usize) {
+        let start = COLLECTOR_CATEGORIES[cat_idx].0;
+        let end = if cat_idx + 1 < COLLECTOR_CATEGORIES.len() {
+            COLLECTOR_CATEGORIES[cat_idx + 1].0
+        } else {
+            self.collector_items.len()
+        };
+        (start, end)
+    }
+
+    /// Count selected items in a category.
+    pub fn selected_in_category(&self, cat_idx: usize) -> usize {
+        let (start, end) = self.category_bounds(cat_idx);
+        (start..end)
+            .filter(|i| self.collector_selected.contains(i))
+            .count()
+    }
+
+    /// Select or deselect all items in a category.
+    pub fn set_category_selection(&mut self, cat_idx: usize, selected: bool) {
+        let (start, end) = self.category_bounds(cat_idx);
+        for i in start..end {
+            if selected {
+                self.collector_selected.insert(i);
+            } else {
+                self.collector_selected.remove(&i);
+            }
+        }
+    }
+
+    /// Jump collector_cursor to the first item of a category.
+    pub fn jump_to_category(&mut self, cat_idx: usize) {
+        self.collector_category_cursor = cat_idx;
+        let (start, _) = self.category_bounds(cat_idx);
+        self.collector_cursor = start;
     }
 
     /// Returns the selected inventory asset-type keys in index order.
@@ -1253,6 +1321,8 @@ impl App {
         self.options_region_cursor = 0;
         self.inventory_cursor = 0;
         self.inventory_selected.clear();
+        self.collector_category_cursor = 0;
+        self.collector_focus = CollectorFocus::Categories;
         self.poam_summary = None;
         self.selected_feature = Feature::Collectors;
         // Preserve options_selected_regions so the user's choices carry over.
@@ -1686,17 +1756,55 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         },
 
         Screen::SelectCollectors => match key {
-            KeyCode::Up => {
-                if app.collector_cursor > 0 {
+            // ── Panel switching ──────────────────────────────────────────
+            KeyCode::Tab | KeyCode::Left | KeyCode::Right => {
+                app.collector_focus = match app.collector_focus {
+                    CollectorFocus::Categories => CollectorFocus::Items,
+                    CollectorFocus::Items => CollectorFocus::Categories,
+                };
+            }
+
+            // ── Category panel navigation ────────────────────────────────
+            KeyCode::Up if app.collector_focus == CollectorFocus::Categories => {
+                if app.collector_category_cursor > 0 {
+                    app.collector_category_cursor -= 1;
+                    let (start, _) = app.category_bounds(app.collector_category_cursor);
+                    app.collector_cursor = start;
+                }
+            }
+            KeyCode::Down if app.collector_focus == CollectorFocus::Categories => {
+                if app.collector_category_cursor + 1 < COLLECTOR_CATEGORIES.len() {
+                    app.collector_category_cursor += 1;
+                    let (start, _) = app.category_bounds(app.collector_category_cursor);
+                    app.collector_cursor = start;
+                }
+            }
+            // Number keys jump to category
+            KeyCode::Char(c)
+                if c.is_ascii_digit() && app.collector_focus == CollectorFocus::Categories =>
+            {
+                let digit = c as usize - '0' as usize;
+                if digit > 0 && digit <= COLLECTOR_CATEGORIES.len() {
+                    app.jump_to_category(digit - 1);
+                }
+            }
+
+            // ── Item panel navigation ────────────────────────────────────
+            KeyCode::Up if app.collector_focus == CollectorFocus::Items => {
+                let (start, _) = app.category_bounds(app.collector_category_cursor);
+                if app.collector_cursor > start {
                     app.collector_cursor -= 1;
                 }
             }
-            KeyCode::Down => {
-                if app.collector_cursor + 1 < app.collector_items.len() {
+            KeyCode::Down if app.collector_focus == CollectorFocus::Items => {
+                let (_, end) = app.category_bounds(app.collector_category_cursor);
+                if app.collector_cursor + 1 < end {
                     app.collector_cursor += 1;
                 }
             }
-            KeyCode::Char(' ') => {
+
+            // ── Toggle (Space) ───────────────────────────────────────────
+            KeyCode::Char(' ') if app.collector_focus == CollectorFocus::Items => {
                 let i = app.collector_cursor;
                 if app.collector_selected.contains(&i) {
                     app.collector_selected.remove(&i);
@@ -1704,14 +1812,23 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
                     app.collector_selected.insert(i);
                 }
             }
+            KeyCode::Char(' ') if app.collector_focus == CollectorFocus::Categories => {
+                let sel = app.selected_in_category(app.collector_category_cursor);
+                let (_, end) = app.category_bounds(app.collector_category_cursor);
+                let (start, _) = app.category_bounds(app.collector_category_cursor);
+                let total = end.saturating_sub(start);
+                // If any selected, deselect all; otherwise select all.
+                app.set_category_selection(app.collector_category_cursor, sel < total);
+            }
+
+            // ── Select / Deselect all in current category ────────────────
             KeyCode::Char('a') => {
-                for i in 0..app.collector_items.len() {
-                    app.collector_selected.insert(i);
-                }
+                app.set_category_selection(app.collector_category_cursor, true);
             }
             KeyCode::Char('d') => {
-                app.collector_selected.clear();
+                app.set_category_selection(app.collector_category_cursor, false);
             }
+
             KeyCode::Enter => {
                 if app.validate_current() {
                     app.next_screen();

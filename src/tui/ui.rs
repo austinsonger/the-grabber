@@ -6,7 +6,7 @@ use ratatui::widgets::{
 };
 use ratatui::Frame;
 
-use super::{App, CollectorState, Feature, Screen};
+use super::{App, CollectorFocus, CollectorState, Feature, Screen, COLLECTOR_CATEGORIES};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Color palette — RGB true color
@@ -1240,22 +1240,6 @@ fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
 // Select Collectors
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Category boundaries for section headers.
-const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
-    (0, "App Layer & DNS"),
-    (6, "Audit Trail"),
-    (23, "Compute"),
-    (37, "Containers"),
-    (41, "Database & Backup"),
-    (48, "Encryption & Secrets"),
-    (55, "Identity & Access"),
-    (67, "Monitoring & Events"),
-    (77, "Network"),
-    (97, "Organization & Account"),
-    (101, "Security Detection"),
-    (113, "Storage"),
-];
-
 fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     let selected_count = app.collector_selected.len();
     let total_count = app.collector_items.len();
@@ -1265,47 +1249,118 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         selected_count, total_count,
     );
 
-    // Build list items with section headers
-    let mut items: Vec<ListItem> = Vec::new();
-    let mut visual_to_data: Vec<Option<usize>> = Vec::new(); // maps visual row → data index
-    let _ = visual_to_data; // we use ListState with data cursor
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .title(Line::from(vec![Span::styled(
+            &title,
+            Style::default().fg(CYAN_DIM),
+        )]));
 
-    for (i, (key, label)) in app.collector_items.iter().enumerate() {
-        // Check if we need a section header before this item
-        if let Some((_, cat_name)) = COLLECTOR_CATEGORIES.iter().find(|(idx, _)| *idx == i) {
-            let sep_width = area.width.saturating_sub(12) as usize;
-            let header_line = format!(
-                "── {} {}",
-                cat_name,
-                "─".repeat(sep_width.saturating_sub(cat_name.len() + 4))
-            );
-            let max_chars = (area.width as usize).saturating_sub(6);
-            let truncated: String = header_line.chars().take(max_chars).collect();
-            items.push(ListItem::new(Line::from(Span::styled(
-                format!("   {truncated}"),
-                Style::default().fg(TEXT_DIM),
-            ))));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    // Reserve 1 row at bottom for help text
+    let help_height = 1u16;
+    let main_height = inner.height.saturating_sub(help_height + 1);
+    let main_area = Rect {
+        x: inner.x,
+        y: inner.y,
+        width: inner.width,
+        height: main_height,
+    };
+    let help_area = Rect {
+        x: inner.x,
+        y: inner.y + main_height + 1,
+        width: inner.width,
+        height: help_height,
+    };
+
+    // Split into left (categories) and right (items)
+    let h_split = Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
+        .split(main_area);
+    let left_area = h_split[0];
+    let right_area = h_split[1];
+
+    // ── Left panel: categories ──────────────────────────────────────
+    let cat_focused = app.collector_focus == CollectorFocus::Categories;
+    let mut cat_items: Vec<ListItem> = Vec::new();
+
+    for (cat_idx, (_, cat_name)) in COLLECTOR_CATEGORIES.iter().enumerate() {
+        let sel = app.selected_in_category(cat_idx);
+        let (_, end) = app.category_bounds(cat_idx);
+        let (start, _) = app.category_bounds(cat_idx);
+        let total = end.saturating_sub(start);
+        let is_selected_cat = cat_idx == app.collector_category_cursor;
+
+        let num = cat_idx + 1;
+        let count_str = format!("{}/{}", sel, total);
+        let label = format!("{}.{:<22} {:>5}", num, cat_name, count_str);
+
+        let mut style = Style::default().fg(TEXT_NORMAL);
+        if is_selected_cat {
+            if cat_focused {
+                style = Style::default().fg(AMBER).add_modifier(Modifier::BOLD);
+            } else {
+                style = Style::default().fg(AMBER);
+            }
+        }
+        if is_selected_cat {
+            style = style.patch(Style::default().bg(BG_SELECTED));
         }
 
+        cat_items.push(ListItem::new(Line::from(Span::styled(label, style))));
+    }
+
+    let cat_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(if cat_focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(BORDER_SUBTLE)
+        })
+        .title(Line::from(vec![Span::styled(
+            " Categories ",
+            Style::default().fg(if cat_focused { CYAN } else { CYAN_DIM }),
+        )]));
+
+    let mut cat_state = ListState::default();
+    cat_state.select(Some(app.collector_category_cursor));
+
+    f.render_stateful_widget(
+        List::new(cat_items)
+            .block(cat_block)
+            .highlight_symbol("▸ ")
+            .highlight_style(Style::default()),
+        left_area,
+        &mut cat_state,
+    );
+
+    // ── Right panel: items in selected category ─────────────────────
+    let item_focused = app.collector_focus == CollectorFocus::Items;
+    let (cat_start, cat_end) = app.category_bounds(app.collector_category_cursor);
+    let cat_name = COLLECTOR_CATEGORIES[app.collector_category_cursor].1;
+
+    let mut item_list: Vec<ListItem> = Vec::new();
+    for i in cat_start..cat_end {
+        let (_, label) = &app.collector_items[i];
         let checked = app.collector_selected.contains(&i);
         let focused = i == app.collector_cursor;
 
         let checkbox = if checked { "[✓]" } else { "[ ]" };
-        let cursor_icon = if focused { "▸" } else { " " };
-
         let checkbox_style = if checked {
             Style::default().fg(GREEN).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(TEXT_DIM)
         };
 
-        let name_style = if focused {
+        let name_style = if focused && item_focused {
             Style::default().fg(AMBER).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(TEXT_NORMAL)
         };
 
-        // Split label into name and description parts
+        // Split label into name and description
         let parts: Vec<&str> = label.splitn(2, '(').collect();
         let name = parts[0].trim();
         let desc = if parts.len() > 1 {
@@ -1315,47 +1370,55 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
         };
 
         let mut line_spans = vec![
-            Span::styled(format!(" {} ", cursor_icon), Style::default().fg(AMBER)),
             Span::styled(format!("{} ", checkbox), checkbox_style),
-            Span::styled(format!("{:<30}", name), name_style),
+            Span::styled(format!("{:<28}", name), name_style),
         ];
         if !desc.is_empty() {
             line_spans.push(Span::styled(desc, Style::default().fg(TEXT_DIM)));
         }
 
-        let item = ListItem::new(Line::from(line_spans));
-        let item = if focused {
-            item.style(Style::default().bg(BG_SELECTED))
-        } else {
-            item
-        };
-        items.push(item);
+        let mut item = ListItem::new(Line::from(line_spans));
+        if focused && item_focused {
+            item = item.style(Style::default().bg(BG_SELECTED));
+        }
+        item_list.push(item);
     }
 
-    let block = Block::bordered()
+    let item_block = Block::bordered()
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .border_style(if item_focused {
+            Style::default().fg(CYAN)
+        } else {
+            Style::default().fg(BORDER_SUBTLE)
+        })
         .title(Line::from(vec![Span::styled(
-            &title,
-            Style::default().fg(CYAN_DIM),
+            format!(" {} ", cat_name),
+            Style::default().fg(if item_focused { CYAN } else { CYAN_DIM }),
         )]));
 
-    // We need to calculate the offset to account for section headers
-    // above the current cursor position
-    let headers_before_cursor = COLLECTOR_CATEGORIES
-        .iter()
-        .filter(|(idx, _)| *idx <= app.collector_cursor)
-        .count();
-    let visual_cursor = app.collector_cursor + headers_before_cursor;
-
-    let mut state = ListState::default();
-    state.select(Some(visual_cursor));
+    let local_cursor = app.collector_cursor.saturating_sub(cat_start);
+    let mut item_state = ListState::default();
+    item_state.select(Some(local_cursor));
 
     f.render_stateful_widget(
-        List::new(items).block(block).highlight_symbol(""),
-        content_inset(area),
-        &mut state,
+        List::new(item_list)
+            .block(item_block)
+            .highlight_symbol("")
+            .highlight_style(Style::default()),
+        right_area,
+        &mut item_state,
     );
+
+    // ── Help text ───────────────────────────────────────────────────
+    let help_text = if cat_focused {
+        "↑↓ navigate • 1-9 jump • Tab/→ switch panel • Space toggle category • a/d all/none"
+    } else {
+        "↑↓ navigate • Space toggle • a/d all/none • Tab/← switch panel • Enter confirm"
+    };
+    let help = Paragraph::new(help_text)
+        .style(Style::default().fg(TEXT_DIM))
+        .alignment(Alignment::Center);
+    f.render_widget(help, help_area);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
