@@ -3,6 +3,8 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
+use crate::providers::CloudProvider;
+
 /// User-level configuration loaded from a TOML file.
 ///
 /// Supports multi-account setups (e.g. AWS SSO with multiple accounts),
@@ -72,15 +74,22 @@ pub struct CollectorConfig {
     pub enable_extra: Option<Vec<String>>,
 }
 
-/// A named AWS account that the tool can collect evidence from.
+/// A named account for any supported provider.
 ///
-/// Each account maps to an AWS CLI profile (typically an SSO role)
-/// and carries its own region, output directory, and collector
-/// override settings.
+/// Existing TOML configs with no `provider` field default to `aws` — no migration needed.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Account {
     /// Human-readable display name (e.g. "Corporate Production").
     pub name: String,
+
+    /// Which provider this account belongs to.
+    /// Defaults to `aws` when not specified, preserving backwards compatibility.
+    #[serde(default)]
+    pub provider: CloudProvider,
+
+    // ------------------------------------------------------------------
+    // AWS fields
+    // ------------------------------------------------------------------
 
     /// AWS account ID, shown in the TUI for identification.
     pub account_id: Option<String>,
@@ -89,17 +98,78 @@ pub struct Account {
     pub description: Option<String>,
 
     /// AWS CLI profile name or SSO role name (must match ~/.aws/config).
-    pub profile: String,
+    pub profile: Option<String>,
 
-    /// Override the default region for this account.
+    /// AWS region override (e.g. "us-east-1").
     pub region: Option<String>,
 
     /// Override the default output directory for this account.
     pub output_dir: Option<String>,
 
+    // ------------------------------------------------------------------
+    // Azure fields
+    // ------------------------------------------------------------------
+
+    /// Azure Active Directory tenant ID (UUID).
+    pub tenant_id: Option<String>,
+
+    /// Azure subscription ID (UUID).
+    pub subscription_id: Option<String>,
+
+    // ------------------------------------------------------------------
+    // GCP fields
+    // ------------------------------------------------------------------
+
+    /// GCP project ID string (e.g. "my-project-123").
+    pub project_id: Option<String>,
+
+    // ------------------------------------------------------------------
+    // Tenable fields (Tenable.io and Tenable.sc share the same key format)
+    // ------------------------------------------------------------------
+
+    /// Tenable API access key.
+    /// Can also be supplied via `TENABLE_ACCESS_KEY` env var (env wins over TOML).
+    pub tenable_access_key: Option<String>,
+
+    /// Tenable API secret key.
+    /// Can also be supplied via `TENABLE_SECRET_KEY` env var (env wins over TOML).
+    pub tenable_secret_key: Option<String>,
+
+    /// Tenable base URL.
+    /// Omit for Tenable.io (defaults to `https://cloud.tenable.com`).
+    /// Set to your on-premises Tenable.sc URL for self-hosted deployments.
+    pub tenable_url: Option<String>,
+
+    // ------------------------------------------------------------------
+    // Collector filtering (all providers)
+    // ------------------------------------------------------------------
+
     /// Per-account collector overrides (enable_extra / disable).
     #[serde(default)]
     pub collectors: CollectorConfig,
+}
+
+impl Account {
+    /// Resolve Tenable access key: env var takes precedence over TOML.
+    pub fn tenable_access_key_resolved(&self) -> Option<String> {
+        std::env::var("TENABLE_ACCESS_KEY")
+            .ok()
+            .or_else(|| self.tenable_access_key.clone())
+    }
+
+    /// Resolve Tenable secret key: env var takes precedence over TOML.
+    pub fn tenable_secret_key_resolved(&self) -> Option<String> {
+        std::env::var("TENABLE_SECRET_KEY")
+            .ok()
+            .or_else(|| self.tenable_secret_key.clone())
+    }
+
+    /// Resolve Tenable base URL, defaulting to Tenable.io cloud endpoint.
+    pub fn tenable_url_resolved(&self) -> String {
+        self.tenable_url
+            .clone()
+            .unwrap_or_else(|| "https://cloud.tenable.com".to_string())
+    }
 }
 
 /// Best-effort load of config, checking in order:

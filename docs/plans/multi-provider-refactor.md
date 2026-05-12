@@ -332,10 +332,6 @@ Largest file: under 200 lines
 
 ## Phase 0 — `CloudProvider` Foundation
 
-> **Naming:** The original name `CloudProvider` is no longer accurate now that Tenable
-> (a security platform, not a cloud) is a supported provider. The enum is renamed to
-> `CloudProvider`. All references throughout `providers/mod.rs`, `app_config.rs`,
-> `evidence.rs`, and `tui/` use the new name from the start.
 
 Phase 0 creates the two building blocks everything else depends on: the `CloudProvider`
 enum and the `ProviderFactory` trait. It also converts the project to a Cargo workspace

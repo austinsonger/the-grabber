@@ -780,7 +780,7 @@ fn draw_select_account(f: &mut Frame, area: Rect, app: &App) {
         let detail = format!(
             "      {} · {} · {}",
             acct.account_id.as_deref().unwrap_or(""),
-            acct.profile,
+            acct.profile.as_deref().unwrap_or(""),
             acct.region.as_deref().unwrap_or("us-east-1"),
         );
 
@@ -2057,7 +2057,7 @@ fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         if sorted_accounts.len() == 1 {
             let acct = &app.accounts[sorted_accounts[0]];
             rows.push(kv_line("Account", &acct.name));
-            rows.push(kv_line("Profile", &acct.profile));
+            rows.push(kv_line("Profile", acct.profile.as_deref().unwrap_or("")));
             rows.push(kv_line("Region", acct.region.as_deref().unwrap_or(&region)));
         } else {
             rows.push(kv_line_colored("Accounts", &account_display, AMBER));

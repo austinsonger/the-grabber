@@ -1152,7 +1152,7 @@ impl App {
     ) -> (String, String, Option<String>, Vec<String>) {
         let acct = &self.accounts[index];
 
-        let profile = acct.profile.clone();
+        let profile = acct.profile.clone().unwrap_or_default();
         let region = acct.region.clone().unwrap_or_else(|| {
             if self.region_use_custom {
                 self.region_custom.value.clone()
