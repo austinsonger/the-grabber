@@ -1,94 +1,13 @@
-mod providers;
-mod access_analyzer;
-mod account_config;
-mod acm;
-mod alb_logs;
-mod apigateway;
 mod app_config;
 mod audit_log;
-mod autoscaling;
-mod backup;
-mod backup_config;
-mod cloudformation_drift;
-mod cloudfront;
-mod cloudtrail;
-mod cloudtrail_config;
-mod cloudtrail_details;
-mod cloudtrail_iam;
-mod cloudtrail_inventory;
-mod cloudtrail_s3;
-mod cloudwatch;
-mod cloudwatch_alarms;
-mod cloudwatch_config;
-mod cloudwatch_resources;
-mod config_history;
-mod config_rules;
-mod config_timeline;
-mod dynamodb;
-mod ebs;
-mod ec2_config;
-mod ec2_detailed;
-mod ec2_inventory;
-mod ecr;
-mod ecr_config;
-mod ecs;
-mod efs;
-mod eks;
-mod elasticache;
-mod elb;
-mod elb_config;
 mod evidence;
-mod guardduty;
-mod guardduty_config;
-mod iam_certs;
-mod iam_inventory;
-mod iam_policies;
-mod iam_trusts;
-mod inspector;
-mod inspector_config;
-mod inspector_ecr;
-mod inspector_history;
 mod inventory_core;
 mod inventory_orchestrator;
 mod inventory_xlsx;
-mod kms;
-mod kms_config;
-mod kms_policies;
-mod lambda_config;
-mod launch_templates;
-mod macie;
-mod network_gateways;
-mod org_config;
-mod organizations;
 mod poam;
-mod public_resources;
-mod rds;
-mod rds_inventory;
-mod rds_snapshots;
-mod route53_config;
-mod s3_config;
-mod s3_detail;
-mod s3_inventory;
-mod s3_policies;
-mod secrets_extended;
-mod secretsmanager;
-mod security_svc_config;
-mod securityhub;
-mod securityhub_standards;
+mod providers;
 mod signing;
-mod sns;
-mod sns_eventbridge;
-mod ssm;
-mod ssm_extended;
-mod ssm_patch_detail;
-mod tagging_config;
 mod tui;
-mod vpc;
-mod vpc_endpoints;
-mod vpcflowlogs;
-mod waf;
-mod waf_full_config;
-mod waf_logging;
 mod zip_bundle;
 
 #[cfg(unix)]
@@ -102,124 +21,124 @@ use chrono::{Local, NaiveDate, Utc};
 use clap::Parser;
 use tokio::sync::mpsc;
 
-use crate::access_analyzer::AccessAnalyzerCollector;
-use crate::account_config::{
+use crate::providers::aws::access_analyzer::AccessAnalyzerCollector;
+use crate::providers::aws::account_config::{
     AccountContactsCollector, IamAccountSummaryCollector, SamlProviderCollector,
 };
-use crate::acm::AcmCertCollector;
-use crate::alb_logs::AlbLogsCollector;
-use crate::apigateway::ApiGatewayCollector;
-use crate::autoscaling::AutoScalingCollector;
-use crate::backup::BackupCollector;
-use crate::backup_config::{
+use crate::providers::aws::acm::AcmCertCollector;
+use crate::providers::aws::alb_logs::AlbLogsCollector;
+use crate::providers::aws::apigateway::ApiGatewayCollector;
+use crate::providers::aws::autoscaling::AutoScalingCollector;
+use crate::providers::aws::backup::BackupCollector;
+use crate::providers::aws::backup_config::{
     BackupPlanConfigCollector, BackupVaultConfigCollector, RdsBackupConfigCollector,
 };
-use crate::cloudformation_drift::CloudFormationDriftCollector;
-use crate::cloudfront::CloudFrontCollector;
-use crate::cloudtrail::CloudTrailCollector;
-use crate::cloudtrail_config::CloudTrailFullConfigCollector;
-use crate::cloudtrail_details::{
+use crate::providers::aws::cloudformation_drift::CloudFormationDriftCollector;
+use crate::providers::aws::cloudfront::CloudFrontCollector;
+use crate::providers::aws::cloudtrail::CloudTrailCollector;
+use crate::providers::aws::cloudtrail_config::CloudTrailFullConfigCollector;
+use crate::providers::aws::cloudtrail_details::{
     CloudTrailChangeEventsCollector, CloudTrailEventSelectorsCollector,
     CloudTrailLogValidationCollector, CloudTrailS3PolicyCollector, S3DataEventsCollector,
 };
-use crate::cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector};
-use crate::cloudtrail_inventory::CloudTrailInventoryCollector;
-use crate::cloudtrail_s3::{CloudTrailS3Collector, CloudTrailS3Config};
-use crate::cloudwatch::MetricFilterAlarmCollector;
-use crate::cloudwatch_alarms::CloudWatchConfigAlarmsCollector;
-use crate::cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector};
-use crate::cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector};
-use crate::config_history::ConfigHistoryCollector;
-use crate::config_rules::ConfigRulesCollector;
-use crate::config_timeline::{
+use crate::providers::aws::cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector};
+use crate::providers::aws::cloudtrail_inventory::CloudTrailInventoryCollector;
+use crate::providers::aws::cloudtrail_s3::{CloudTrailS3Collector, CloudTrailS3Config};
+use crate::providers::aws::cloudwatch::MetricFilterAlarmCollector;
+use crate::providers::aws::cloudwatch_alarms::CloudWatchConfigAlarmsCollector;
+use crate::providers::aws::cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector};
+use crate::providers::aws::cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector};
+use crate::providers::aws::config_history::ConfigHistoryCollector;
+use crate::providers::aws::config_rules::ConfigRulesCollector;
+use crate::providers::aws::config_timeline::{
     ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector,
 };
-use crate::dynamodb::DynamoDbCollector;
-use crate::ebs::EbsCollector;
-use crate::ec2_config::{
+use crate::providers::aws::dynamodb::DynamoDbCollector;
+use crate::providers::aws::ebs::EbsCollector;
+use crate::providers::aws::ec2_config::{
     Ec2InstanceConfigCollector, RouteTableConfigCollector, SecurityGroupConfigCollector,
     VpcConfigCollector,
 };
-use crate::ec2_detailed::Ec2DetailedCollector;
-use crate::ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector};
-use crate::ecr::EcrScanCollector;
-use crate::ecr_config::EcrRepoConfigCollector;
-use crate::ecs::EcsClusterCollector;
-use crate::efs::EfsCollector;
-use crate::eks::EksClusterCollector;
-use crate::elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector};
-use crate::elb::{LoadBalancerCollector, LoadBalancerListenerCollector};
-use crate::elb_config::ElbFullConfigCollector;
+use crate::providers::aws::ec2_detailed::Ec2DetailedCollector;
+use crate::providers::aws::ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector};
+use crate::providers::aws::ecr::EcrScanCollector;
+use crate::providers::aws::ecr_config::EcrRepoConfigCollector;
+use crate::providers::aws::ecs::EcsClusterCollector;
+use crate::providers::aws::efs::EfsCollector;
+use crate::providers::aws::eks::EksClusterCollector;
+use crate::providers::aws::elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector};
+use crate::providers::aws::elb::{LoadBalancerCollector, LoadBalancerListenerCollector};
+use crate::providers::aws::elb_config::ElbFullConfigCollector;
 use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, JsonCollector,
     JsonInventoryReport, ReportMetadata,
 };
-use crate::guardduty::GuardDutyCollector;
-use crate::guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector};
-use crate::iam_certs::IamCertCollector;
-use crate::iam_inventory::{
+use crate::providers::aws::guardduty::GuardDutyCollector;
+use crate::providers::aws::guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector};
+use crate::providers::aws::iam_certs::IamCertCollector;
+use crate::providers::aws::iam_inventory::{
     IamAccessKeyCollector, IamPolicyCollector, IamRoleCollector, IamUserCollector,
 };
-use crate::iam_policies::{
+use crate::providers::aws::iam_policies::{
     IamPasswordPolicyCollector, IamRolePoliciesCollector, IamUserPoliciesCollector,
 };
-use crate::iam_trusts::IamTrustsCollector;
-use crate::inspector::InspectorCollector;
-use crate::inspector_config::InspectorConfigCollector;
-use crate::inspector_ecr::InspectorEcrImagesCollector;
-use crate::inspector_history::InspectorFindingsHistoryCollector;
+use crate::providers::aws::iam_trusts::IamTrustsCollector;
+use crate::providers::aws::inspector::InspectorCollector;
+use crate::providers::aws::inspector_config::InspectorConfigCollector;
+use crate::providers::aws::inspector_ecr::InspectorEcrImagesCollector;
+use crate::providers::aws::inspector_history::InspectorFindingsHistoryCollector;
 use crate::inventory_core::INVENTORY_ITEMS;
 use crate::inventory_orchestrator::InventoryCollector;
-use crate::kms::KmsKeyCollector;
-use crate::kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector};
-use crate::kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector};
-use crate::lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector};
-use crate::launch_templates::LaunchTemplateCollector;
-use crate::macie::MacieCollector;
-use crate::network_gateways::{InternetGatewayCollector, NatGatewayCollector};
-use crate::org_config::OrgConfigCollector;
-use crate::organizations::OrganizationsSCPCollector;
-use crate::public_resources::PublicResourceCollector;
-use crate::rds::RdsCollector;
-use crate::rds_inventory::RdsInventoryCollector;
-use crate::rds_snapshots::RdsSnapshotCollector;
-use crate::route53_config::{Route53ResolverRulesCollector, Route53ZonesCollector};
-use crate::s3_config::S3BucketConfigCollector;
-use crate::s3_detail::{
+use crate::providers::aws::kms::KmsKeyCollector;
+use crate::providers::aws::kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector};
+use crate::providers::aws::kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector};
+use crate::providers::aws::lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector};
+use crate::providers::aws::launch_templates::LaunchTemplateCollector;
+use crate::providers::aws::macie::MacieCollector;
+use crate::providers::aws::network_gateways::{InternetGatewayCollector, NatGatewayCollector};
+use crate::providers::aws::org_config::OrgConfigCollector;
+use crate::providers::aws::organizations::OrganizationsSCPCollector;
+use crate::providers::aws::public_resources::PublicResourceCollector;
+use crate::providers::aws::rds::RdsCollector;
+use crate::providers::aws::rds_inventory::RdsInventoryCollector;
+use crate::providers::aws::rds_snapshots::RdsSnapshotCollector;
+use crate::providers::aws::route53_config::{Route53ResolverRulesCollector, Route53ZonesCollector};
+use crate::providers::aws::s3_config::S3BucketConfigCollector;
+use crate::providers::aws::s3_detail::{
     S3BucketPolicyDetailCollector, S3EncryptionConfigCollector, S3LoggingConfigCollector,
     S3PublicAccessBlockCollector,
 };
-use crate::s3_inventory::S3BucketLoggingCollector;
-use crate::s3_policies::S3PoliciesCollector;
-use crate::secrets_extended::SecretsManagerPoliciesCollector;
-use crate::secretsmanager::SecretsManagerCollector;
-use crate::security_svc_config::{
+use crate::providers::aws::s3_inventory::S3BucketLoggingCollector;
+use crate::providers::aws::s3_policies::S3PoliciesCollector;
+use crate::providers::aws::secrets_extended::SecretsManagerPoliciesCollector;
+use crate::providers::aws::secretsmanager::SecretsManagerCollector;
+use crate::providers::aws::security_svc_config::{
     AwsConfigRecorderCollector, GuardDutyFullConfigCollector, SecurityHubConfigCollector,
 };
-use crate::securityhub::SecurityHubCollector;
-use crate::securityhub_standards::SecurityHubStandardsCollector;
-use crate::sns::SnsSubscriptionCollector;
-use crate::sns_eventbridge::ChangeEventRulesCollector;
-use crate::sns_eventbridge::{EventBridgeRulesCollector, SnsTopicPoliciesCollector};
-use crate::ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector};
-use crate::ssm_extended::{
+use crate::providers::aws::securityhub::SecurityHubCollector;
+use crate::providers::aws::securityhub_standards::SecurityHubStandardsCollector;
+use crate::providers::aws::sns::SnsSubscriptionCollector;
+use crate::providers::aws::sns_eventbridge::ChangeEventRulesCollector;
+use crate::providers::aws::sns_eventbridge::{EventBridgeRulesCollector, SnsTopicPoliciesCollector};
+use crate::providers::aws::ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector};
+use crate::providers::aws::ssm_extended::{
     SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
 };
-use crate::ssm_patch_detail::{
+use crate::providers::aws::ssm_patch_detail::{
     SsmMaintenanceWindowCollector, SsmPatchDetailCollector, SsmPatchExecutionCollector,
     SsmPatchSummaryCollector,
 };
-use crate::tagging_config::ResourceTaggingCollector;
+use crate::providers::aws::tagging_config::ResourceTaggingCollector;
 use crate::tui::{
     read_aws_profiles, restore_terminal, run as run_tui, setup_terminal, App, CollectorState,
     CollectorStatus, Feature, Progress,
 };
-use crate::vpc::{NetworkAclCollector, VpcCollector};
-use crate::vpc_endpoints::VpcEndpointCollector;
-use crate::vpcflowlogs::VpcFlowLogCollector;
-use crate::waf::WafCollector;
-use crate::waf_full_config::WafFullConfigCollector;
-use crate::waf_logging::WafLoggingCollector;
+use crate::providers::aws::vpc::{NetworkAclCollector, VpcCollector};
+use crate::providers::aws::vpc_endpoints::VpcEndpointCollector;
+use crate::providers::aws::vpcflowlogs::VpcFlowLogCollector;
+use crate::providers::aws::waf::WafCollector;
+use crate::providers::aws::waf_full_config::WafFullConfigCollector;
+use crate::providers::aws::waf_logging::WafLoggingCollector;
 
 // ---------------------------------------------------------------------------
 // CLI  (all fields optional — omitting --start-date launches the TUI)
