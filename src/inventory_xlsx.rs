@@ -367,7 +367,7 @@ fn inventory_template_columns<R: Read + std::io::Seek>(
 }
 
 fn normalized_header_label(raw: &str) -> String {
-    let expanded = raw.replace("_x000a_", "\n");
+    let expanded = raw.replace("_x000a_", "\n").replace("\r\n", "\n").replace('\r', "\n");
     let visible = expanded.split("\n\n(").next().unwrap_or(&expanded);
     visible
         .split_whitespace()
@@ -444,6 +444,34 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+    fn integration_writes_against_real_template() {
+        let tmp = std::env::temp_dir().join("grabber_inventory_test.xlsx");
+        let _ = std::fs::remove_file(&tmp);
+        let row = crate::inventory_core::RowBuilder::new()
+            .unique_id("arn:test")
+            .virtual_flag("Yes")
+            .public("No")
+            .location("us-east-1")
+            .asset_type("KMS Key")
+            .sw_vendor("Amazon Web Services")
+            .sw_name_ver("AWS KMS")
+            .function("Test row")
+            .comments("Integration smoke test")
+            .build();
+        let rows = vec![row];
+        write_inventory_xlsx(
+            &rows,
+            std::path::Path::new("assets/Inventory.xlsx"),
+            &tmp,
+        )
+        .expect("write_inventory_xlsx must succeed against real template");
+        let bytes = std::fs::metadata(&tmp).expect("output exists").len();
+        assert!(bytes > 10_000, "output xlsx looks too small ({bytes} bytes)");
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
     fn normalizes_template_headers_with_descriptions() {
         assert_eq!(
             normalized_header_label("VLAN/\nNetwork ID\n\n(\nDescription\n)"),
@@ -452,6 +480,12 @@ mod tests {
         assert_eq!(
             normalized_header_label("Function_x000a__x000a_(_x000a_Description_x000a_)"),
             "function"
+        );
+        // FedRAMP template re-saved on macOS / strict OOXML uses CRLF line
+        // breaks inside cells; the split on "\n\n(" must still trigger.
+        assert_eq!(
+            normalized_header_label("UNIQUE ASSET IDENTIFIER\r\n\r\n(\r\nUnique Identifier ...\r\n)"),
+            "unique asset identifier"
         );
     }
 }

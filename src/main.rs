@@ -231,14 +231,21 @@ use crate::waf_logging::WafLoggingCollector;
 )]
 struct Cli {
     /// Start date (inclusive), YYYY-MM-DD.
-    /// Providing this flag enables non-interactive CLI mode; omit it to launch the TUI.
+    /// Providing this flag (or --lookback) enables non-interactive CLI mode; omit both to launch the TUI.
     #[arg(long)]
     start_date: Option<String>,
 
     /// End date (inclusive), YYYY-MM-DD.
-    /// Required when --start-date is provided.
+    /// Required when --start-date is provided; ignored with --lookback (end = today).
     #[arg(long)]
     end_date: Option<String>,
+
+    /// Lookback window from today, e.g. 30d, 12w, 3m, 1y.
+    /// Accepted units: d / day / days, w / week / weeks, m / month / months, y / year / years.
+    /// Sets end-date to today and start-date to today minus the window.
+    /// Cannot be combined with --start-date or --end-date.
+    #[arg(long)]
+    lookback: Option<String>,
 
     /// AWS region
     #[arg(long, default_value = "us-east-1")]
@@ -326,11 +333,110 @@ struct Cli {
     /// Requires --signing-key.
     #[arg(long)]
     verify_manifest: Option<String>,
+
+    // ------- Skip options -------
+    /// Skip writing the run-manifest JSON after collection (collectors mode only).
+    #[arg(long, default_value_t = false)]
+    skip_run_manifest: bool,
+
+    /// Skip writing the chain-of-custody log after collection (collectors mode only).
+    #[arg(long, default_value_t = false)]
+    skip_chain_of_custody: bool,
+
+    /// Skip writing the inventory CSV after collection (inventory mode only).
+    #[arg(long, default_value_t = false)]
+    skip_inventory_csv: bool,
+
+    /// Limit inventory to specific asset types (comma-separated, inventory mode only).
+    /// Valid keys: kms-key, s3-bucket, lambda-function, ec2-instance, alb,
+    ///             rds-db-instance, elasticache-cluster, container.
+    /// Omit to collect all types (or use individual type flags below).
+    #[arg(long, value_delimiter = ',')]
+    inventory_types: Option<Vec<String>>,
+
+    // ------- Individual inventory asset-type flags -------
+    /// Inventory: include KMS Keys.
+    #[arg(long = "kms", default_value_t = false)]
+    inv_kms: bool,
+
+    /// Inventory: include S3 Buckets.
+    #[arg(long = "s3", default_value_t = false)]
+    inv_s3: bool,
+
+    /// Inventory: include Lambda Functions.
+    #[arg(long = "lambda", default_value_t = false)]
+    inv_lambda: bool,
+
+    /// Inventory: include EC2 Instances.
+    #[arg(long = "ec2", default_value_t = false)]
+    inv_ec2: bool,
+
+    /// Inventory: include Application Load Balancers.
+    #[arg(long = "alb", default_value_t = false)]
+    inv_alb: bool,
+
+    /// Inventory: include RDS DB Instances.
+    #[arg(long = "rds", default_value_t = false)]
+    inv_rds: bool,
+
+    /// Inventory: include ElastiCache Clusters.
+    #[arg(long = "elasticache", default_value_t = false)]
+    inv_elasticache: bool,
+
+    /// Inventory: include Containers (ECR/ECS/EKS).
+    #[arg(long = "containers", default_value_t = false)]
+    inv_containers: bool,
+
+    // ------- POA&M mode -------
+    /// Run the POA&M reconciliation workflow (non-interactive).
+    /// Requires --poam-year and --poam-month; uses --region for the region.
+    #[arg(long, default_value_t = false)]
+    poam: bool,
+
+    /// Base evidence directory for POA&M (e.g. evidence-output/security).
+    #[arg(long, default_value = "evidence-output/security")]
+    poam_evidence_base: String,
+
+    /// 4-digit findings year for POA&M (e.g. 2026).
+    #[arg(long)]
+    poam_year: Option<String>,
+
+    /// Month name for POA&M (e.g. January, February … December). Required with --poam.
+    #[arg(long)]
+    poam_month: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
+
+/// Parse a lookback string like "30d", "12weeks", "3m", "1year" into a start
+/// `NaiveDate` (end date is always today).
+fn parse_lookback(s: &str) -> Result<NaiveDate> {
+    let s = s.trim().to_ascii_lowercase();
+    // Split at the boundary between digits and letters.
+    let split = s
+        .find(|c: char| c.is_alphabetic())
+        .context("--lookback must start with a number, e.g. 30d or 3months")?;
+    let amount: i64 = s[..split]
+        .parse()
+        .context("--lookback: expected a positive integer before the unit")?;
+    if amount <= 0 {
+        anyhow::bail!("--lookback: amount must be greater than zero");
+    }
+    let unit = s[split..].trim_end_matches('s'); // "days"→"day", "weeks"→"week", etc.
+    let today = chrono::Utc::now().date_naive();
+    let start = match unit {
+        "d" | "day" => today - chrono::Duration::days(amount),
+        "w" | "week" => today - chrono::Duration::weeks(amount),
+        "m" | "month" => today - chrono::Months::new(amount as u32),
+        "y" | "year" => today - chrono::Months::new(amount as u32 * 12),
+        other => anyhow::bail!(
+            "--lookback: unknown unit '{other}'. Use d/day, w/week, m/month, or y/year"
+        ),
+    };
+    Ok(start)
+}
 
 fn main() -> Result<()> {
     tokio::runtime::Builder::new_multi_thread()
@@ -359,7 +465,11 @@ async fn async_main() -> Result<()> {
         return run_inventory_cli(&cli).await;
     }
 
-    if cli.start_date.is_none() {
+    if cli.poam {
+        return run_poam_cli(&cli).await;
+    }
+
+    if cli.start_date.is_none() && cli.lookback.is_none() {
         // ── Interactive TUI mode ─────────────────────────────────────────
         let profiles = read_aws_profiles();
         let mut app = App::new(profiles);
@@ -950,22 +1060,35 @@ async fn async_main() -> Result<()> {
     }
 
     // ── Non-interactive (CLI flags) mode ─────────────────────────────────
-    let start_str = cli.start_date.as_deref().unwrap();
-    let end_str = cli
-        .end_date
-        .as_deref()
-        .context("--end-date is required when --start-date is provided")?;
-
-    let start = NaiveDate::parse_from_str(start_str, "%Y-%m-%d")
-        .context("Invalid --start-date")?
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_utc();
-    let end = NaiveDate::parse_from_str(end_str, "%Y-%m-%d")
-        .context("Invalid --end-date")?
-        .and_hms_opt(23, 59, 59)
-        .unwrap()
-        .and_utc();
+    let (start, end) = if let Some(ref lb) = cli.lookback {
+        if cli.start_date.is_some() || cli.end_date.is_some() {
+            anyhow::bail!("--lookback cannot be combined with --start-date or --end-date");
+        }
+        let today = chrono::Utc::now().date_naive();
+        let start_date = parse_lookback(lb)?;
+        (
+            start_date.and_hms_opt(0, 0, 0).unwrap().and_utc(),
+            today.and_hms_opt(23, 59, 59).unwrap().and_utc(),
+        )
+    } else {
+        let start_str = cli.start_date.as_deref().unwrap();
+        let end_str = cli
+            .end_date
+            .as_deref()
+            .context("--end-date is required when --start-date is provided")?;
+        (
+            NaiveDate::parse_from_str(start_str, "%Y-%m-%d")
+                .context("Invalid --start-date")?
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc(),
+            NaiveDate::parse_from_str(end_str, "%Y-%m-%d")
+                .context("Invalid --end-date")?
+                .and_hms_opt(23, 59, 59)
+                .unwrap()
+                .and_utc(),
+        )
+    };
 
     let mut loader =
         aws_config::defaults(BehaviorVersion::latest()).region(Region::new(cli.region.clone()));
@@ -1727,13 +1850,15 @@ async fn async_main() -> Result<()> {
             &mr_coll_end,
             mr_outcomes,
         );
-        match audit_log::write_run_manifest(&output_dir, &mr_manifest) {
-            Ok(p) => eprintln!("Run manifest written: {}", p.display()),
-            Err(e) => eprintln!("WARN: could not write run manifest: {e}"),
+        if !cli.skip_run_manifest {
+            match audit_log::write_run_manifest(&output_dir, &mr_manifest) {
+                Ok(p) => eprintln!("Run manifest written: {}", p.display()),
+                Err(e) => eprintln!("WARN: could not write run manifest: {e}"),
+            }
         }
 
         // ── Write chain-of-custody (multi-region) ─────────────────────────────
-        {
+        if !cli.skip_chain_of_custody {
             let identity = cli_identity.unwrap_or(audit_log::AwsIdentity {
                 account_id: account_id.clone(),
                 caller_arn: "unknown".to_string(),
@@ -1838,13 +1963,15 @@ async fn async_main() -> Result<()> {
         &sr_coll_end,
         sr_outcomes,
     );
-    match audit_log::write_run_manifest(&output_dir, &sr_manifest) {
-        Ok(p) => eprintln!("Run manifest written: {}", p.display()),
-        Err(e) => eprintln!("WARN: could not write run manifest: {e}"),
+    if !cli.skip_run_manifest {
+        match audit_log::write_run_manifest(&output_dir, &sr_manifest) {
+            Ok(p) => eprintln!("Run manifest written: {}", p.display()),
+            Err(e) => eprintln!("WARN: could not write run manifest: {e}"),
+        }
     }
 
     // ── Write chain-of-custody (single-region) ───────────────────────────────
-    {
+    if !cli.skip_chain_of_custody {
         let identity = cli_identity.unwrap_or(audit_log::AwsIdentity {
             account_id: account_id.clone(),
             caller_arn: "unknown".to_string(),
@@ -1969,12 +2096,61 @@ fn cli_profile_label(profile: Option<&str>) -> &str {
     }
 }
 
+/// Build the inventory type list from the individual type flags and/or
+/// --inventory-types.  Individual flags and --inventory-types are additive.
+/// If nothing is selected the full set is returned (collect everything).
+fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
+    let mut selected: Vec<String> = Vec::new();
+
+    if let Some(ref types) = cli.inventory_types {
+        selected.extend(types.iter().cloned());
+    }
+
+    if cli.inv_kms {
+        selected.push("kms-key".to_string());
+    }
+    if cli.inv_s3 {
+        selected.push("s3-bucket".to_string());
+    }
+    if cli.inv_lambda {
+        selected.push("lambda-function".to_string());
+    }
+    if cli.inv_ec2 {
+        selected.push("ec2-instance".to_string());
+    }
+    if cli.inv_alb {
+        selected.push("alb".to_string());
+    }
+    if cli.inv_rds {
+        selected.push("rds-db-instance".to_string());
+    }
+    if cli.inv_elasticache {
+        selected.push("elasticache-cluster".to_string());
+    }
+    if cli.inv_containers {
+        selected.push("container".to_string());
+    }
+
+    // Deduplicate while preserving order.
+    let mut seen = std::collections::HashSet::new();
+    selected.retain(|k| seen.insert(k.clone()));
+
+    if selected.is_empty() {
+        all_inventory_type_keys()
+    } else {
+        selected
+    }
+}
+
 async fn run_inventory_cli(cli: &Cli) -> Result<()> {
     if cli.collectors.is_some() {
         anyhow::bail!("--collectors cannot be used with --inventory");
     }
     if cli.start_date.is_some() || cli.end_date.is_some() {
-        anyhow::bail!("--start-date/--end-date are not used with --inventory");
+        anyhow::bail!(
+            "--start-date and --end-date are not used with --inventory; \
+             use --lookback to set the collection window (e.g. --lookback 90d)"
+        );
     }
     if cli.filter.is_some() {
         anyhow::bail!("--filter is not supported with --inventory");
@@ -1991,7 +2167,7 @@ async fn run_inventory_cli(cli: &Cli) -> Result<()> {
         anyhow::bail!("S3 CloudTrail flags are not supported with --inventory");
     }
 
-    let inventory_types = all_inventory_type_keys();
+    let inventory_types = resolve_inventory_types(cli);
     let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
     let (probe_config, work_config, using_ambient_credentials) =
         load_cli_probe_and_work_configs(&cli.region, cli.profile.as_deref()).await;
@@ -2003,6 +2179,25 @@ async fn run_inventory_cli(cli: &Cli) -> Result<()> {
         );
     }
     let account_id = print_cli_identity(&cli_identity);
+
+    // Resolve optional lookback into a date window passed to collect_rows.
+    // InventoryCollector itself is current-state and ignores dates, but they
+    // are forwarded for audit-trail consistency with the TUI.
+    let inventory_dates: Option<(i64, i64)> = if let Some(ref lb) = cli.lookback {
+        let today = chrono::Utc::now().date_naive();
+        let start = parse_lookback(lb)?;
+        let start_ts = start.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp();
+        let end_ts = today.and_hms_opt(23, 59, 59).unwrap().and_utc().timestamp();
+        eprintln!(
+            "Lookback window: {} → {} ({})",
+            start,
+            today,
+            lb
+        );
+        Some((start_ts, end_ts))
+    } else {
+        None
+    };
 
     eprintln!("Inventory asset types: {}", inventory_types.join(", "));
 
@@ -2033,14 +2228,15 @@ async fn run_inventory_cli(cli: &Cli) -> Result<()> {
         let collector = InventoryCollector::new(&region_work_config, inventory_types.clone());
         eprintln!("Collecting inventory from {}...", region_name);
         let rows = collector
-            .collect_rows(&account_id, region_name, None)
+            .collect_rows(&account_id, region_name, inventory_dates)
             .await?;
         eprintln!("  {} returned {} rows", region_name, rows.len());
         inventory_rows.extend(rows);
     }
 
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
-    let written_files = write_inventory_outputs(&output_dir, &timestamp, &inventory_rows, false)?;
+    let written_files =
+        write_inventory_outputs(&output_dir, &timestamp, &inventory_rows, cli.skip_inventory_csv)?;
 
     if cli.zip && !written_files.is_empty() {
         let zip_name = format!("Evidence-{}.zip", timestamp);
@@ -2073,6 +2269,50 @@ async fn run_inventory_cli(cli: &Cli) -> Result<()> {
 
     Ok(())
 }
+
+async fn run_poam_cli(cli: &Cli) -> Result<()> {
+    let year = cli
+        .poam_year
+        .as_deref()
+        .context("--poam-year <YYYY> is required with --poam")?;
+    let month = cli
+        .poam_month
+        .as_deref()
+        .context("--poam-month <Month> is required with --poam (e.g. January)")?;
+
+    if year.len() != 4 || year.parse::<u32>().is_err() {
+        anyhow::bail!("--poam-year must be a 4-digit year (e.g. 2026)");
+    }
+
+    let evidence_path =
+        poam::resolve_evidence_path(&cli.poam_evidence_base, &cli.region, year, month)?;
+    eprintln!(
+        "POA&M evidence path: {}",
+        evidence_path.display()
+    );
+
+    match poam::run_poam(&cli.poam_evidence_base, &cli.region, year, month)? {
+        result => {
+            eprintln!("POA&M reconciliation complete.");
+            eprintln!(
+                "  Region: {}  Year: {}  Month: {}",
+                result.region, result.year, result.month_name
+            );
+            eprintln!("  Evidence path: {}", result.evidence_path.display());
+            if let Some(csv) = &result.selected_csv {
+                eprintln!("  CSV used: {csv}");
+            }
+            eprintln!("  Findings opened:  {}", result.added_open_count);
+            eprintln!("  Findings closed:  {}", result.moved_closed_count);
+            for w in &result.warnings {
+                eprintln!("  WARN: {w}");
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn write_inventory_outputs(
     output_dir: &PathBuf,
     timestamp: &str,
