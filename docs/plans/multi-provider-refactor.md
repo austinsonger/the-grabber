@@ -1421,10 +1421,14 @@ No other files change.
 
 ---
 
-## Phase 4 — Application Layer Decomposition
+## Phase 4 — Application Layer Decomposition ✅ Steps 1-9 (partial)
 
-`main.rs` is 4,146 lines with seven distinct responsibilities. This phase breaks it into
-focused modules without changing any behavior.
+`main.rs` was 4,146 lines with seven distinct responsibilities. After Phase 4:
+- `main.rs`: 1,738 lines (fn main + async_main only — all helper functions extracted)
+- `tui/mod.rs`: 2,084 lines (state types moved to state.rs)
+- `tui/state.rs`: 197 lines (new — pure state types)
+- Steps 1–8 complete. Step 9 (screen-by-screen tui/ decomposition) requires interactive
+  TUI testing after each extraction — defer until TUI testing harness is available.
 
 ### Target file tree
 
@@ -1497,18 +1501,18 @@ grabber/                           ← repo root (workspace root)
    > Future: once the provider system is in place, this becomes a `CollectorRegistry`
    > that also accepts Azure/GCP configs and produces provider-tagged collectors.
 
-6. **Create `src/runner/cli_runners.rs`** — `run_inventory_cli`, `run_poam_cli`.
+6. ✅ **Create `src/runner/cli_runners.rs`** — `run_inventory_cli`, `run_poam_cli`,
+   `run_json_collectors`, `run_csv_collectors`, `run_json_inv_collectors`.
 
-7. **Create `src/runner/tui_runners.rs`** — `run_tui_csv_collector`,
+7. ✅ **Create `src/runner/tui_runners.rs`** — `run_tui_csv_collector`,
    `run_tui_inv_collector`, `run_tui_json_collector`, `run_tui_poam`.
 
-8. **Create `src/runner/multi_account.rs`** — `run_tui_multi_account` (currently
-   ~550 lines on its own).
+8. ✅ **Create `src/runner/multi_account.rs`** — `AccountCollectors` struct,
+   `GLOBAL_COLLECTOR_KEYS` const, `run_tui_multi_account`.
 
-9. **`tui/` decomposition** — Split `tui/mod.rs` (2,275 lines) and `tui/ui.rs`
-   (3,173 lines) following the screen/state separation in the target tree above.
-   Extract state types to `tui/state.rs` first (zero behavior change), then screens
-   one at a time, verifying TUI renders correctly after each.
+9. 🔄 **`tui/` decomposition** — `tui/state.rs` extracted (197 lines, pure state types).
+   Remaining: `tui/mod.rs` (2,084 lines) and `tui/ui.rs` (3,173 lines).
+   Screen-by-screen extraction requires interactive TUI verification after each step.
 
 ### `CollectorRegistry` — future-ready design
 
