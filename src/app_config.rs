@@ -90,7 +90,6 @@ pub struct Account {
     // ------------------------------------------------------------------
     // AWS fields
     // ------------------------------------------------------------------
-
     /// AWS account ID, shown in the TUI for identification.
     pub account_id: Option<String>,
 
@@ -109,7 +108,6 @@ pub struct Account {
     // ------------------------------------------------------------------
     // Azure fields
     // ------------------------------------------------------------------
-
     /// Azure Active Directory tenant ID (UUID).
     pub tenant_id: Option<String>,
 
@@ -119,14 +117,12 @@ pub struct Account {
     // ------------------------------------------------------------------
     // GCP fields
     // ------------------------------------------------------------------
-
     /// GCP project ID string (e.g. "my-project-123").
     pub project_id: Option<String>,
 
     // ------------------------------------------------------------------
     // Tenable fields (Tenable.io and Tenable.sc share the same key format)
     // ------------------------------------------------------------------
-
     /// Tenable API access key.
     /// Can also be supplied via `TENABLE_ACCESS_KEY` env var (env wins over TOML).
     pub tenable_access_key: Option<String>,
@@ -143,7 +139,6 @@ pub struct Account {
     // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
-
     /// Per-account collector overrides (enable_extra / disable).
     #[serde(default)]
     pub collectors: CollectorConfig,

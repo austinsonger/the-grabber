@@ -1331,10 +1331,7 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 
     // ── Empty state: no categories have any matching item ─────────
     if visible_cats.is_empty() {
-        let empty_msg = format!(
-            "No collectors match \"{}\"   •   Esc to clear",
-            search_term
-        );
+        let empty_msg = format!("No collectors match \"{}\"   •   Esc to clear", search_term);
         f.render_widget(
             Paragraph::new(Span::styled(empty_msg, Style::default().fg(TEXT_DIM)))
                 .alignment(Alignment::Center),
@@ -1350,9 +1347,8 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     }
 
     // ── Split into left (categories) and right (items) ───────────
-    let h_split =
-        Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
-            .split(main_area);
+    let h_split = Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
+        .split(main_area);
     let left_area = h_split[0];
     let right_area = h_split[1];
 
@@ -1490,9 +1486,7 @@ fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 
     // ── Help text ─────────────────────────────────────────────────
     let help_text = match app.collector_focus {
-        CollectorFocus::Search => {
-            "Type to filter  •  Down/Tab switch panel  •  Esc clear"
-        }
+        CollectorFocus::Search => "Type to filter  •  Down/Tab switch panel  •  Esc clear",
         CollectorFocus::Categories => {
             if has_search {
                 "↑↓ navigate • 1-9 jump • Tab/→ switch panel • Space toggle category • a/d all/none  •  Tab → search"

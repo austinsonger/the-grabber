@@ -7,7 +7,11 @@ pub fn redirect_stderr_to_file(path: &std::path::Path) -> i32 {
     if backup < 0 {
         return -1;
     }
-    match std::fs::OpenOptions::new().create(true).append(true).open(path) {
+    match std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
         Ok(f) => {
             let fd = f.into_raw_fd();
             unsafe {
@@ -17,7 +21,9 @@ pub fn redirect_stderr_to_file(path: &std::path::Path) -> i32 {
             backup
         }
         Err(_) => {
-            unsafe { libc::close(backup); }
+            unsafe {
+                libc::close(backup);
+            }
             -1
         }
     }

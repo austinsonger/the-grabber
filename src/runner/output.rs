@@ -33,9 +33,18 @@ pub fn date_path_suffix() -> PathBuf {
     let year = now.format("%Y").to_string();
     let month_num = now.format("%m").to_string();
     let month_abbr = match month_num.as_str() {
-        "01" => "JAN", "02" => "FEB", "03" => "MAR", "04" => "APR",
-        "05" => "MAY", "06" => "JUN", "07" => "JUL", "08" => "AUG",
-        "09" => "SEP", "10" => "OCT", "11" => "NOV", "12" => "DEC",
+        "01" => "JAN",
+        "02" => "FEB",
+        "03" => "MAR",
+        "04" => "APR",
+        "05" => "MAY",
+        "06" => "JUN",
+        "07" => "JUL",
+        "08" => "AUG",
+        "09" => "SEP",
+        "10" => "OCT",
+        "11" => "NOV",
+        "12" => "DEC",
         _ => "UNK",
     };
     PathBuf::from(&year).join(format!("{month_num}-{month_abbr}"))
@@ -75,16 +84,27 @@ pub fn write_inventory_outputs(
     let year = now_local.format("%Y").to_string();
     let month_num = now_local.format("%m").to_string();
     let month_abbr = match month_num.as_str() {
-        "01" => "JAN", "02" => "FEB", "03" => "MAR", "04" => "APR",
-        "05" => "MAY", "06" => "JUN", "07" => "JUL", "08" => "AUG",
-        "09" => "SEP", "10" => "OCT", "11" => "NOV", "12" => "DEC",
+        "01" => "JAN",
+        "02" => "FEB",
+        "03" => "MAR",
+        "04" => "APR",
+        "05" => "MAY",
+        "06" => "JUN",
+        "07" => "JUL",
+        "08" => "AUG",
+        "09" => "SEP",
+        "10" => "OCT",
+        "11" => "NOV",
+        "12" => "DEC",
         other => {
             eprintln!("=== WARN: unexpected month '{other}', using 'UNK' in path ===");
             "UNK"
         }
     };
 
-    let xlsx_filename = now_local.format("%Y-%m-%d_Inventory_%H-%M-%S.xlsx").to_string();
+    let xlsx_filename = now_local
+        .format("%Y-%m-%d_Inventory_%H-%M-%S.xlsx")
+        .to_string();
     let xlsx_path = PathBuf::from("inventory")
         .join(&year)
         .join(format!("{month_num}-{month_abbr}"))

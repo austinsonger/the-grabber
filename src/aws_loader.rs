@@ -55,7 +55,10 @@ pub fn print_cli_identity(identity: &Option<audit_log::AwsIdentity>) -> String {
     eprintln!(
         "Identity: account={} arn={}",
         account_id,
-        identity.as_ref().map(|id| id.caller_arn.as_str()).unwrap_or("unknown"),
+        identity
+            .as_ref()
+            .map(|id| id.caller_arn.as_str())
+            .unwrap_or("unknown"),
     );
     account_id
 }

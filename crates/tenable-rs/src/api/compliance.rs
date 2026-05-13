@@ -13,7 +13,9 @@ impl<'c> ComplianceApi<'c> {
         filters: Option<serde_json::Value>,
     ) -> Result<ExportJob<ComplianceFinding>, TenableError> {
         let body = export_body(filters);
-        self.0.start_export("/compliance/export", "/compliance/export", &body).await
+        self.0
+            .start_export("/compliance/export", "/compliance/export", &body)
+            .await
     }
 
     /// Convenience: start an export and collect all records in one call.
@@ -24,4 +26,3 @@ impl<'c> ComplianceApi<'c> {
         self.export(filters).await?.collect_all().await
     }
 }
-

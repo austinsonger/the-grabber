@@ -7,7 +7,9 @@ use tokio::sync::mpsc;
 use crate::audit_log;
 use crate::evidence::{CollectParams, CsvCollector, EvidenceCollector, JsonCollector};
 use crate::runner::output::{date_path_suffix, write_csv_bytes};
-use crate::runner::tui_runners::{run_tui_csv_collector, run_tui_inv_collector, run_tui_json_collector};
+use crate::runner::tui_runners::{
+    run_tui_csv_collector, run_tui_inv_collector, run_tui_json_collector,
+};
 use crate::tui::{App, Progress, Screen};
 
 /// Collectors that query account-global AWS services. In all-regions mode

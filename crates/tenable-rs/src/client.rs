@@ -1,4 +1,4 @@
-use reqwest::{Client, header};
+use reqwest::{header, Client};
 use serde::de::DeserializeOwned;
 use tokio::time::{sleep, Duration};
 
@@ -17,7 +17,7 @@ const DEFAULT_RETRY_AFTER_SECS: u64 = 60;
 /// connection pool. Build one instance and clone into each collector.
 #[derive(Clone)]
 pub struct TenableClient {
-    pub(crate) http:     Client,
+    pub(crate) http: Client,
     pub(crate) base_url: String,
 }
 
@@ -41,11 +41,12 @@ impl TenableClient {
         let mut headers = header::HeaderMap::new();
         headers.insert("X-ApiKeys", header::HeaderValue::from_str(&auth_value)?);
 
-        let http = Client::builder()
-            .default_headers(headers)
-            .build()?;
+        let http = Client::builder().default_headers(headers).build()?;
 
-        Ok(Self { http, base_url: base_url.trim_end_matches('/').to_string() })
+        Ok(Self {
+            http,
+            base_url: base_url.trim_end_matches('/').to_string(),
+        })
     }
 
     /// Build a full URL by appending `path` (which must start with `/`).
@@ -81,11 +82,21 @@ impl TenableClient {
         Ok(resp)
     }
 
-    pub fn vulns(&self)      -> VulnsApi<'_>      { VulnsApi(self) }
-    pub fn assets(&self)     -> AssetsApi<'_>     { AssetsApi(self) }
-    pub fn scans(&self)      -> ScansApi<'_>      { ScansApi(self) }
-    pub fn audit_log(&self)  -> AuditLogApi<'_>   { AuditLogApi(self) }
-    pub fn compliance(&self) -> ComplianceApi<'_> { ComplianceApi(self) }
+    pub fn vulns(&self) -> VulnsApi<'_> {
+        VulnsApi(self)
+    }
+    pub fn assets(&self) -> AssetsApi<'_> {
+        AssetsApi(self)
+    }
+    pub fn scans(&self) -> ScansApi<'_> {
+        ScansApi(self)
+    }
+    pub fn audit_log(&self) -> AuditLogApi<'_> {
+        AuditLogApi(self)
+    }
+    pub fn compliance(&self) -> ComplianceApi<'_> {
+        ComplianceApi(self)
+    }
 
     /// POST to `post_path` to start an export, then build poll/download paths
     /// rooted at `resource_base`.

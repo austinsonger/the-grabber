@@ -28,9 +28,13 @@ use crate::runner::cli_runners::{
     run_csv_collectors, run_inventory_cli, run_json_collectors, run_json_inv_collectors,
     run_poam_cli,
 };
-use crate::runner::multi_account::{AccountCollectors, run_tui_multi_account, GLOBAL_COLLECTOR_KEYS};
+use crate::runner::multi_account::{
+    run_tui_multi_account, AccountCollectors, GLOBAL_COLLECTOR_KEYS,
+};
 use crate::runner::tui_runners::run_tui_poam;
 
+use crate::evidence::{CollectParams, CsvCollector, EvidenceCollector, JsonCollector};
+use crate::inventory_orchestrator::InventoryCollector;
 use crate::providers::aws::access_analyzer::AccessAnalyzerCollector;
 use crate::providers::aws::account_config::{
     AccountContactsCollector, IamAccountSummaryCollector, SamlProviderCollector,
@@ -51,12 +55,18 @@ use crate::providers::aws::cloudtrail_details::{
     CloudTrailChangeEventsCollector, CloudTrailEventSelectorsCollector,
     CloudTrailLogValidationCollector, CloudTrailS3PolicyCollector, S3DataEventsCollector,
 };
-use crate::providers::aws::cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector};
+use crate::providers::aws::cloudtrail_iam::{
+    CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector,
+};
 use crate::providers::aws::cloudtrail_inventory::CloudTrailInventoryCollector;
 use crate::providers::aws::cloudwatch::MetricFilterAlarmCollector;
 use crate::providers::aws::cloudwatch_alarms::CloudWatchConfigAlarmsCollector;
-use crate::providers::aws::cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector};
-use crate::providers::aws::cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector};
+use crate::providers::aws::cloudwatch_config::{
+    CwLogGroupConfigCollector, MetricFilterConfigCollector,
+};
+use crate::providers::aws::cloudwatch_resources::{
+    CloudWatchAlarmCollector, CloudWatchLogGroupCollector,
+};
 use crate::providers::aws::config_history::ConfigHistoryCollector;
 use crate::providers::aws::config_rules::ConfigRulesCollector;
 use crate::providers::aws::config_timeline::{
@@ -69,7 +79,9 @@ use crate::providers::aws::ec2_config::{
     VpcConfigCollector,
 };
 use crate::providers::aws::ec2_detailed::Ec2DetailedCollector;
-use crate::providers::aws::ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector};
+use crate::providers::aws::ec2_inventory::{
+    Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector,
+};
 use crate::providers::aws::ecr::EcrScanCollector;
 use crate::providers::aws::ecr_config::EcrRepoConfigCollector;
 use crate::providers::aws::ecs::EcsClusterCollector;
@@ -78,9 +90,10 @@ use crate::providers::aws::eks::EksClusterCollector;
 use crate::providers::aws::elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector};
 use crate::providers::aws::elb::{LoadBalancerCollector, LoadBalancerListenerCollector};
 use crate::providers::aws::elb_config::ElbFullConfigCollector;
-use crate::evidence::{CollectParams, CsvCollector, EvidenceCollector, JsonCollector};
 use crate::providers::aws::guardduty::GuardDutyCollector;
-use crate::providers::aws::guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector};
+use crate::providers::aws::guardduty_config::{
+    GuardDutyConfigCollector, GuardDutySuppressionCollector,
+};
 use crate::providers::aws::iam_certs::IamCertCollector;
 use crate::providers::aws::iam_inventory::{
     IamAccessKeyCollector, IamPolicyCollector, IamRoleCollector, IamUserCollector,
@@ -93,7 +106,6 @@ use crate::providers::aws::inspector::InspectorCollector;
 use crate::providers::aws::inspector_config::InspectorConfigCollector;
 use crate::providers::aws::inspector_ecr::InspectorEcrImagesCollector;
 use crate::providers::aws::inspector_history::InspectorFindingsHistoryCollector;
-use crate::inventory_orchestrator::InventoryCollector;
 use crate::providers::aws::kms::KmsKeyCollector;
 use crate::providers::aws::kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector};
 use crate::providers::aws::kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector};
@@ -124,7 +136,9 @@ use crate::providers::aws::securityhub::SecurityHubCollector;
 use crate::providers::aws::securityhub_standards::SecurityHubStandardsCollector;
 use crate::providers::aws::sns::SnsSubscriptionCollector;
 use crate::providers::aws::sns_eventbridge::ChangeEventRulesCollector;
-use crate::providers::aws::sns_eventbridge::{EventBridgeRulesCollector, SnsTopicPoliciesCollector};
+use crate::providers::aws::sns_eventbridge::{
+    EventBridgeRulesCollector, SnsTopicPoliciesCollector,
+};
 use crate::providers::aws::ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector};
 use crate::providers::aws::ssm_extended::{
     SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
@@ -134,16 +148,16 @@ use crate::providers::aws::ssm_patch_detail::{
     SsmPatchSummaryCollector,
 };
 use crate::providers::aws::tagging_config::ResourceTaggingCollector;
-use crate::tui::{
-    read_aws_profiles, restore_terminal, run as run_tui, setup_terminal, App, CollectorState,
-    CollectorStatus, Feature, Progress,
-};
 use crate::providers::aws::vpc::{NetworkAclCollector, VpcCollector};
 use crate::providers::aws::vpc_endpoints::VpcEndpointCollector;
 use crate::providers::aws::vpcflowlogs::VpcFlowLogCollector;
 use crate::providers::aws::waf::WafCollector;
 use crate::providers::aws::waf_full_config::WafFullConfigCollector;
 use crate::providers::aws::waf_logging::WafLoggingCollector;
+use crate::tui::{
+    read_aws_profiles, restore_terminal, run as run_tui, setup_terminal, App, CollectorState,
+    CollectorStatus, Feature, Progress,
+};
 
 // ---------------------------------------------------------------------------
 // Main
@@ -460,7 +474,8 @@ async fn async_main() -> Result<()> {
                         app.prep_log
                             .push("    Discovering enabled regions…".to_string());
                         terminal.draw(|f| tui::ui::draw(f, &app))?;
-                        discovered_regions = crate::aws_loader::discover_regions(&probe_config).await;
+                        discovered_regions =
+                            crate::aws_loader::discover_regions(&probe_config).await;
                         if discovered_regions.is_empty() {
                             app.prep_log.push(format!(
                                 "  ✗ Could not discover regions for {}, falling back to {}",
@@ -556,12 +571,20 @@ async fn async_main() -> Result<()> {
                             // sits alongside per-region evidence in the date-based hierarchy.
                             if !global_csv_keys.is_empty() || !global_inv_keys.is_empty() {
                                 let gcfg = make_cfg().load().await;
-                                let gdir = out_base.join(&region).join(crate::runner::output::date_path_suffix());
+                                let gdir = out_base
+                                    .join(&region)
+                                    .join(crate::runner::output::date_path_suffix());
                                 regional_collectors.push((
                                     region.clone(),
                                     gdir,
-                                    crate::runner::collector_registry::build_csv_collectors(&global_csv_keys, &gcfg),
-                                    crate::runner::collector_registry::build_json_inv_collectors(&global_inv_keys, &gcfg),
+                                    crate::runner::collector_registry::build_csv_collectors(
+                                        &global_csv_keys,
+                                        &gcfg,
+                                    ),
+                                    crate::runner::collector_registry::build_json_inv_collectors(
+                                        &global_inv_keys,
+                                        &gcfg,
+                                    ),
                                     Vec::new(),
                                 ));
                             }
@@ -587,13 +610,23 @@ async fn async_main() -> Result<()> {
                                     })
                                     .load()
                                     .await;
-                                let rdir = out_base.join(region_name).join(crate::runner::output::date_path_suffix());
+                                let rdir = out_base
+                                    .join(region_name)
+                                    .join(crate::runner::output::date_path_suffix());
                                 regional_collectors.push((
                                     region_name.clone(),
                                     rdir,
-                                    crate::runner::collector_registry::build_csv_collectors(&regional_csv_keys, &rcfg),
-                                    crate::runner::collector_registry::build_json_inv_collectors(&regional_inv_keys, &rcfg),
-                                    crate::runner::collector_registry::build_json_collectors(&json_keys, &rcfg),
+                                    crate::runner::collector_registry::build_csv_collectors(
+                                        &regional_csv_keys,
+                                        &rcfg,
+                                    ),
+                                    crate::runner::collector_registry::build_json_inv_collectors(
+                                        &regional_inv_keys,
+                                        &rcfg,
+                                    ),
+                                    crate::runner::collector_registry::build_json_collectors(
+                                        &json_keys, &rcfg,
+                                    ),
                                 ));
                             }
                             if let Some(last) = app.prep_log.last_mut() {
@@ -612,8 +645,15 @@ async fn async_main() -> Result<()> {
                     // Build single-region collectors from the fresh work config.
                     // For inventory mode with multi-region, all collection is in regional_collectors;
                     // only build a base InventoryCollector when no regions were discovered (single-region path).
-                    let json_collectors = crate::runner::collector_registry::build_json_collectors(&names_ref, &work_config);
-                    let json_inv_collectors = crate::runner::collector_registry::build_json_inv_collectors(&names_ref, &work_config);
+                    let json_collectors = crate::runner::collector_registry::build_json_collectors(
+                        &names_ref,
+                        &work_config,
+                    );
+                    let json_inv_collectors =
+                        crate::runner::collector_registry::build_json_inv_collectors(
+                            &names_ref,
+                            &work_config,
+                        );
                     let csv_collectors = if is_inventory {
                         if discovered_regions.is_empty() {
                             // Single-region fallback (SetOptions left all-regions and explicit-regions blank).
@@ -626,7 +666,10 @@ async fn async_main() -> Result<()> {
                             Vec::new()
                         }
                     } else {
-                        crate::runner::collector_registry::build_csv_collectors(&names_ref, &work_config)
+                        crate::runner::collector_registry::build_csv_collectors(
+                            &names_ref,
+                            &work_config,
+                        )
                     };
 
                     let mut display_names: Vec<String> = json_collectors
@@ -1476,8 +1519,12 @@ async fn async_main() -> Result<()> {
         // ── Run global collectors once (into base output dir) ─────────────────
         if !global_csv.is_empty() || !global_json_inv.is_empty() {
             eprintln!("\n=== Global collectors (running once) ===");
-            let global_csv_v = crate::runner::collector_registry::build_csv_collectors(&global_csv, &config);
-            let global_inv_v = crate::runner::collector_registry::build_json_inv_collectors(&global_json_inv, &config);
+            let global_csv_v =
+                crate::runner::collector_registry::build_csv_collectors(&global_csv, &config);
+            let global_inv_v = crate::runner::collector_registry::build_json_inv_collectors(
+                &global_json_inv,
+                &config,
+            );
             mr_outcomes.extend(
                 run_csv_collectors(
                     &global_csv_v,
@@ -1517,7 +1564,10 @@ async fn async_main() -> Result<()> {
             let region_dir = output_dir.join(region_name);
 
             if !regional_csv.is_empty() {
-                let csv_v = crate::runner::collector_registry::build_csv_collectors(&regional_csv, &region_config);
+                let csv_v = crate::runner::collector_registry::build_csv_collectors(
+                    &regional_csv,
+                    &region_config,
+                );
                 mr_outcomes.extend(
                     run_csv_collectors(
                         &csv_v,
@@ -1531,7 +1581,10 @@ async fn async_main() -> Result<()> {
                 );
             }
             if !regional_json_inv.is_empty() {
-                let inv_v = crate::runner::collector_registry::build_json_inv_collectors(&regional_json_inv, &region_config);
+                let inv_v = crate::runner::collector_registry::build_json_inv_collectors(
+                    &regional_json_inv,
+                    &region_config,
+                );
                 mr_outcomes.extend(
                     run_json_inv_collectors(
                         &inv_v,
@@ -1544,7 +1597,10 @@ async fn async_main() -> Result<()> {
                 );
             }
             if !wanted_json.is_empty() {
-                let json_v = crate::runner::collector_registry::build_json_collectors(&wanted_json, &region_config);
+                let json_v = crate::runner::collector_registry::build_json_collectors(
+                    &wanted_json,
+                    &region_config,
+                );
                 mr_outcomes.extend(
                     run_json_collectors(&json_v, &params, region_name, &region_dir, &mr_run_id)
                         .await?,
@@ -1735,4 +1791,3 @@ async fn async_main() -> Result<()> {
     }
     Ok(())
 }
-

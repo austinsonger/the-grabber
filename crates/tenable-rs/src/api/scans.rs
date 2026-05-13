@@ -11,7 +11,9 @@ impl<'c> ScansApi<'c> {
         let resp = self.0.get("/scans").await?;
         let resp = check_response(resp).await?;
         #[derive(serde::Deserialize)]
-        struct ListResponse { scans: Vec<ScanSummary> }
+        struct ListResponse {
+            scans: Vec<ScanSummary>,
+        }
         let body: ListResponse = resp.json().await?;
         Ok(body.scans)
     }

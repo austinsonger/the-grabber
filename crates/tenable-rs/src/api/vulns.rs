@@ -16,7 +16,9 @@ impl<'c> VulnsApi<'c> {
         filters: Option<serde_json::Value>,
     ) -> Result<ExportJob<VulnFinding>, TenableError> {
         let body = export_body(filters);
-        self.0.start_export("/vulns/export", "/vulns/export", &body).await
+        self.0
+            .start_export("/vulns/export", "/vulns/export", &body)
+            .await
     }
 
     /// Convenience: start an export and collect all records in one call.
@@ -27,4 +29,3 @@ impl<'c> VulnsApi<'c> {
         self.export(filters).await?.collect_all().await
     }
 }
-

@@ -11,13 +11,13 @@ pub struct AuditLogApi<'c>(pub(crate) &'c TenableClient);
 #[derive(Default)]
 pub struct EventsParams<'a> {
     /// Maximum records per page (default: 100).
-    pub limit:  Option<u32>,
+    pub limit: Option<u32>,
     /// Cursor token from a previous response to continue pagination.
-    pub next:   Option<&'a str>,
+    pub next: Option<&'a str>,
     /// Filter expressions (e.g. `"action:user.login"`).
     pub filter: Option<&'a str>,
     /// Sort order (e.g. `"timestamp:asc"`).
-    pub sort:   Option<&'a str>,
+    pub sort: Option<&'a str>,
 }
 
 impl<'c> AuditLogApi<'c> {
@@ -40,7 +40,9 @@ impl<'c> AuditLogApi<'c> {
             pagination: Option<Pagination>,
         }
         #[derive(serde::Deserialize)]
-        struct Pagination { next: Option<String> }
+        struct Pagination {
+            next: Option<String>,
+        }
 
         let body: Response = resp.json().await?;
         let cursor = body.pagination.and_then(|p| p.next);
@@ -61,7 +63,7 @@ impl<'c> AuditLogApi<'c> {
             all.extend(page);
             match next_cursor {
                 Some(c) => cursor = Some(c),
-                None    => break,
+                None => break,
             }
         }
         Ok(all)
@@ -71,8 +73,14 @@ impl<'c> AuditLogApi<'c> {
 fn build_path(params: &EventsParams<'_>) -> String {
     let limit = params.limit.unwrap_or(DEFAULT_EVENT_LIMIT);
     let mut qs = format!("?limit={}", limit);
-    if let Some(next) = params.next   { qs.push_str(&format!("&next={}", next)); }
-    if let Some(f)    = params.filter { qs.push_str(&format!("&f={}", f)); }
-    if let Some(s)    = params.sort   { qs.push_str(&format!("&sort={}", s)); }
+    if let Some(next) = params.next {
+        qs.push_str(&format!("&next={}", next));
+    }
+    if let Some(f) = params.filter {
+        qs.push_str(&format!("&f={}", f));
+    }
+    if let Some(s) = params.sort {
+        qs.push_str(&format!("&sort={}", s));
+    }
     format!("/audit-log/v1/events{}", qs)
 }

@@ -42,6 +42,6 @@ fn build_body(chunk_size: Option<u32>, filters: Option<serde_json::Value>) -> se
     let size = chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE);
     match filters {
         Some(f) => serde_json::json!({ "chunk_size": size, "filters": f }),
-        None    => serde_json::json!({ "chunk_size": size }),
+        None => serde_json::json!({ "chunk_size": size }),
     }
 }

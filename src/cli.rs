@@ -204,10 +204,10 @@ pub fn parse_lookback(s: &str) -> Result<NaiveDate> {
     let unit = s[split..].trim_end_matches('s');
     let today = chrono::Utc::now().date_naive();
     let start = match unit {
-        "d" | "day"   => today - chrono::Duration::days(amount),
-        "w" | "week"  => today - chrono::Duration::weeks(amount),
+        "d" | "day" => today - chrono::Duration::days(amount),
+        "w" | "week" => today - chrono::Duration::weeks(amount),
         "m" | "month" => today - chrono::Months::new(amount as u32),
-        "y" | "year"  => today - chrono::Months::new(amount as u32 * 12),
+        "y" | "year" => today - chrono::Months::new(amount as u32 * 12),
         other => anyhow::bail!(
             "--lookback: unknown unit '{other}'. Use d/day, w/week, m/month, or y/year"
         ),
@@ -223,7 +223,10 @@ pub fn cli_profile_label(profile: Option<&str>) -> &str {
 }
 
 fn all_inventory_type_keys() -> Vec<String> {
-    INVENTORY_ITEMS.iter().map(|(key, _)| (*key).to_string()).collect()
+    INVENTORY_ITEMS
+        .iter()
+        .map(|(key, _)| (*key).to_string())
+        .collect()
 }
 
 /// Build the inventory type list from the individual type flags and/or
@@ -236,17 +239,37 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
         selected.extend(types.iter().cloned());
     }
 
-    if cli.inv_kms        { selected.push("kms-key".to_string()); }
-    if cli.inv_s3         { selected.push("s3-bucket".to_string()); }
-    if cli.inv_lambda     { selected.push("lambda-function".to_string()); }
-    if cli.inv_ec2        { selected.push("ec2-instance".to_string()); }
-    if cli.inv_alb        { selected.push("alb".to_string()); }
-    if cli.inv_rds        { selected.push("rds-db-instance".to_string()); }
-    if cli.inv_elasticache { selected.push("elasticache-cluster".to_string()); }
-    if cli.inv_containers { selected.push("container".to_string()); }
+    if cli.inv_kms {
+        selected.push("kms-key".to_string());
+    }
+    if cli.inv_s3 {
+        selected.push("s3-bucket".to_string());
+    }
+    if cli.inv_lambda {
+        selected.push("lambda-function".to_string());
+    }
+    if cli.inv_ec2 {
+        selected.push("ec2-instance".to_string());
+    }
+    if cli.inv_alb {
+        selected.push("alb".to_string());
+    }
+    if cli.inv_rds {
+        selected.push("rds-db-instance".to_string());
+    }
+    if cli.inv_elasticache {
+        selected.push("elasticache-cluster".to_string());
+    }
+    if cli.inv_containers {
+        selected.push("container".to_string());
+    }
 
     let mut seen = std::collections::HashSet::new();
     selected.retain(|k| seen.insert(k.clone()));
 
-    if selected.is_empty() { all_inventory_type_keys() } else { selected }
+    if selected.is_empty() {
+        all_inventory_type_keys()
+    } else {
+        selected
+    }
 }

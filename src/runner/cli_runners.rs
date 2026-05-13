@@ -98,8 +98,12 @@ pub async fn run_inventory_cli(cli: &Cli) -> Result<()> {
     }
 
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
-    let written_files =
-        write_inventory_outputs(&output_dir, &timestamp, &inventory_rows, cli.skip_inventory_csv)?;
+    let written_files = write_inventory_outputs(
+        &output_dir,
+        &timestamp,
+        &inventory_rows,
+        cli.skip_inventory_csv,
+    )?;
 
     if cli.zip && !written_files.is_empty() {
         let zip_name = format!("Evidence-{}.zip", timestamp);

@@ -31,9 +31,9 @@ pub enum CloudProvider {
 impl fmt::Display for CloudProvider {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CloudProvider::Aws     => write!(f, "AWS"),
-            CloudProvider::Azure   => write!(f, "Azure"),
-            CloudProvider::Gcp     => write!(f, "GCP"),
+            CloudProvider::Aws => write!(f, "AWS"),
+            CloudProvider::Azure => write!(f, "Azure"),
+            CloudProvider::Gcp => write!(f, "GCP"),
             CloudProvider::Tenable => write!(f, "Tenable"),
         }
     }

@@ -19,10 +19,10 @@ const POLL_INTERVAL_SECS: u64 = 5;
 ///
 /// Call `collect_all()` to drive the full lifecycle, or `cancel()` to abort.
 pub struct ExportJob<T> {
-    client:        TenableClient,
+    client: TenableClient,
     /// Base path for this specific export job, e.g. `/vulns/export/{uuid}`.
     resource_path: String,
-    _phantom:      PhantomData<T>,
+    _phantom: PhantomData<T>,
 }
 
 /// Response shape returned when an export is started.
@@ -33,14 +33,18 @@ pub(crate) struct ExportStarted {
 
 #[derive(Debug, Deserialize)]
 struct ExportStatus {
-    status:           String,
+    status: String,
     #[serde(default)]
     chunks_available: Vec<u32>,
 }
 
 impl<T: DeserializeOwned> ExportJob<T> {
     pub(crate) fn new(client: TenableClient, resource_path: String) -> Self {
-        Self { client, resource_path, _phantom: PhantomData }
+        Self {
+            client,
+            resource_path,
+            _phantom: PhantomData,
+        }
     }
 
     /// Cancel this in-progress export.
@@ -75,9 +79,17 @@ impl<T: DeserializeOwned> ExportJob<T> {
             let resp = check_response(resp).await?;
             let status: ExportStatus = resp.json().await?;
             match status.status.as_str() {
-                "FINISHED"  => return Ok(status.chunks_available),
-                "ERROR"     => return Err(TenableError::ExportFailed { status: status.status }),
-                "CANCELLED" => return Err(TenableError::ExportFailed { status: status.status }),
+                "FINISHED" => return Ok(status.chunks_available),
+                "ERROR" => {
+                    return Err(TenableError::ExportFailed {
+                        status: status.status,
+                    })
+                }
+                "CANCELLED" => {
+                    return Err(TenableError::ExportFailed {
+                        status: status.status,
+                    })
+                }
                 // QUEUED and PROCESSING are in-progress states — keep polling
                 _ => sleep(Duration::from_secs(POLL_INTERVAL_SECS)).await,
             }
