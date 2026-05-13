@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::tui::state::COLLECTOR_CATEGORIES;
 
 use super::App;
