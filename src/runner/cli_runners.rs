@@ -11,125 +11,8 @@ use crate::evidence::{
     JsonInventoryReport, ReportMetadata,
 };
 use crate::inventory_orchestrator::InventoryCollector;
-use crate::providers::aws::access_analyzer::AccessAnalyzerCollector;
-use crate::providers::aws::account_config::{
-    AccountContactsCollector, IamAccountSummaryCollector, SamlProviderCollector,
-};
-use crate::providers::aws::acm::AcmCertCollector;
-use crate::providers::aws::alb_logs::AlbLogsCollector;
-use crate::providers::aws::apigateway::ApiGatewayCollector;
-use crate::providers::aws::autoscaling::AutoScalingCollector;
-use crate::providers::aws::backup::BackupCollector;
-use crate::providers::aws::backup_config::{
-    BackupPlanConfigCollector, BackupVaultConfigCollector, RdsBackupConfigCollector,
-};
-use crate::providers::aws::cloudformation_drift::CloudFormationDriftCollector;
-use crate::providers::aws::cloudfront::CloudFrontCollector;
-use crate::providers::aws::cloudtrail::CloudTrailCollector;
-use crate::providers::aws::cloudtrail_config::CloudTrailFullConfigCollector;
-use crate::providers::aws::cloudtrail_details::{
-    CloudTrailChangeEventsCollector, CloudTrailEventSelectorsCollector,
-    CloudTrailLogValidationCollector, CloudTrailS3PolicyCollector, S3DataEventsCollector,
-};
-use crate::providers::aws::cloudtrail_iam::{
-    CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector,
-};
-use crate::providers::aws::cloudtrail_inventory::CloudTrailInventoryCollector;
-use crate::providers::aws::cloudwatch::MetricFilterAlarmCollector;
-use crate::providers::aws::cloudwatch_alarms::CloudWatchConfigAlarmsCollector;
-use crate::providers::aws::cloudwatch_config::{
-    CwLogGroupConfigCollector, MetricFilterConfigCollector,
-};
-use crate::providers::aws::cloudwatch_resources::{
-    CloudWatchAlarmCollector, CloudWatchLogGroupCollector,
-};
-use crate::providers::aws::config_history::ConfigHistoryCollector;
-use crate::providers::aws::config_rules::ConfigRulesCollector;
-use crate::providers::aws::config_timeline::{
-    ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector,
-};
-use crate::providers::aws::dynamodb::DynamoDbCollector;
-use crate::providers::aws::ebs::EbsCollector;
-use crate::providers::aws::ec2_config::{
-    Ec2InstanceConfigCollector, RouteTableConfigCollector, SecurityGroupConfigCollector,
-    VpcConfigCollector,
-};
-use crate::providers::aws::ec2_detailed::Ec2DetailedCollector;
-use crate::providers::aws::ec2_inventory::{
-    Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector,
-};
-use crate::providers::aws::ecr::EcrScanCollector;
-use crate::providers::aws::ecr_config::EcrRepoConfigCollector;
-use crate::providers::aws::ecs::EcsClusterCollector;
-use crate::providers::aws::efs::EfsCollector;
-use crate::providers::aws::eks::EksClusterCollector;
-use crate::providers::aws::elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector};
-use crate::providers::aws::elb::{LoadBalancerCollector, LoadBalancerListenerCollector};
-use crate::providers::aws::elb_config::ElbFullConfigCollector;
-use crate::providers::aws::guardduty::GuardDutyCollector;
-use crate::providers::aws::guardduty_config::{
-    GuardDutyConfigCollector, GuardDutySuppressionCollector,
-};
-use crate::providers::aws::iam_certs::IamCertCollector;
-use crate::providers::aws::iam_inventory::{
-    IamAccessKeyCollector, IamPolicyCollector, IamRoleCollector, IamUserCollector,
-};
-use crate::providers::aws::iam_policies::{
-    IamPasswordPolicyCollector, IamRolePoliciesCollector, IamUserPoliciesCollector,
-};
-use crate::providers::aws::iam_trusts::IamTrustsCollector;
-use crate::providers::aws::inspector::InspectorCollector;
-use crate::providers::aws::inspector_config::InspectorConfigCollector;
-use crate::providers::aws::inspector_ecr::InspectorEcrImagesCollector;
-use crate::providers::aws::inspector_history::InspectorFindingsHistoryCollector;
-use crate::providers::aws::kms::KmsKeyCollector;
-use crate::providers::aws::kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector};
-use crate::providers::aws::kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector};
-use crate::providers::aws::lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector};
-use crate::providers::aws::launch_templates::LaunchTemplateCollector;
-use crate::providers::aws::macie::MacieCollector;
-use crate::providers::aws::network_gateways::{InternetGatewayCollector, NatGatewayCollector};
-use crate::providers::aws::org_config::OrgConfigCollector;
-use crate::providers::aws::organizations::OrganizationsSCPCollector;
-use crate::providers::aws::public_resources::PublicResourceCollector;
-use crate::providers::aws::rds::RdsCollector;
-use crate::providers::aws::rds_inventory::RdsInventoryCollector;
-use crate::providers::aws::rds_snapshots::RdsSnapshotCollector;
-use crate::providers::aws::route53_config::{Route53ResolverRulesCollector, Route53ZonesCollector};
-use crate::providers::aws::s3_config::S3BucketConfigCollector;
-use crate::providers::aws::s3_detail::{
-    S3BucketPolicyDetailCollector, S3EncryptionConfigCollector, S3LoggingConfigCollector,
-    S3PublicAccessBlockCollector,
-};
-use crate::providers::aws::s3_inventory::S3BucketLoggingCollector;
-use crate::providers::aws::s3_policies::S3PoliciesCollector;
-use crate::providers::aws::secrets_extended::SecretsManagerPoliciesCollector;
-use crate::providers::aws::secretsmanager::SecretsManagerCollector;
-use crate::providers::aws::security_svc_config::{
-    AwsConfigRecorderCollector, GuardDutyFullConfigCollector, SecurityHubConfigCollector,
-};
-use crate::providers::aws::securityhub::SecurityHubCollector;
-use crate::providers::aws::securityhub_standards::SecurityHubStandardsCollector;
-use crate::providers::aws::sns::SnsSubscriptionCollector;
-use crate::providers::aws::sns_eventbridge::ChangeEventRulesCollector;
-use crate::providers::aws::sns_eventbridge::{
-    EventBridgeRulesCollector, SnsTopicPoliciesCollector,
-};
-use crate::providers::aws::ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector};
-use crate::providers::aws::ssm_extended::{
-    SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
-};
-use crate::providers::aws::ssm_patch_detail::{
-    SsmMaintenanceWindowCollector, SsmPatchDetailCollector, SsmPatchExecutionCollector,
-    SsmPatchSummaryCollector,
-};
-use crate::providers::aws::tagging_config::ResourceTaggingCollector;
-use crate::providers::aws::vpc::{NetworkAclCollector, VpcCollector};
-use crate::providers::aws::vpc_endpoints::VpcEndpointCollector;
-use crate::providers::aws::vpcflowlogs::VpcFlowLogCollector;
-use crate::providers::aws::waf::WafCollector;
-use crate::providers::aws::waf_full_config::WafFullConfigCollector;
-use crate::providers::aws::waf_logging::WafLoggingCollector;
+use crate::providers::aws::factory::AwsProviderFactory;
+use crate::providers::ProviderFactory;
 use crate::runner::multi_account::GLOBAL_COLLECTOR_KEYS;
 use crate::runner::output::{format_path_with_osc8, write_csv_bytes, write_inventory_outputs};
 
@@ -551,444 +434,34 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
         include_raw: cli.include_raw,
     };
 
-    let run_all = cli.collectors.is_none();
-    let wants = |name: &str| -> bool {
-        cli.collectors
-            .as_deref()
-            .map(|v| v.iter().any(|n| n.eq_ignore_ascii_case(name)))
-            .unwrap_or(true)
+    // Determine selected collector keys from CLI
+    let selected: Vec<String> = if let Some(ref names) = cli.collectors {
+        names.iter().map(|n| n.to_lowercase()).collect()
+    } else {
+        GLOBAL_COLLECTOR_KEYS
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
     };
 
-    // --- JSON evidence collectors (time-windowed) ---------------------------
-    let mut json_collectors: Vec<Box<dyn EvidenceCollector>> = Vec::new();
-    if wants("cloudtrail") {
-        json_collectors.push(Box::new(CloudTrailCollector::new(&config)));
-    }
-    if wants("backup") {
-        json_collectors.push(Box::new(BackupCollector::new(&config)));
-    }
-    if wants("rds") {
-        json_collectors.push(Box::new(RdsCollector::new(&config)));
-    }
-    if wants("s3") && !run_all {
+    // Build all collectors through the factory
+    let factory = AwsProviderFactory::new(
+        config.clone(),
+        account_id.clone(),
+        cli.region.clone(),
+        selected.clone(),
+    );
+    let mut json_collectors: Vec<Box<dyn EvidenceCollector>> = factory.evidence_collectors();
+    let json_inv_collectors: Vec<Box<dyn JsonCollector>> = factory.json_collectors();
+    let csv_collectors: Vec<Box<dyn CsvCollector>> = factory.csv_collectors();
+
+    // S3 is a special-case collector requiring CLI flags — add it manually
+    if selected.iter().any(|n| n == "s3") && cli.collectors.is_some() {
         match crate::aws_loader::build_s3_collector_from_cli(cli, &s3_config, &account_id) {
             Ok(Some(c)) => json_collectors.push(Box::new(c)),
             Ok(None) => anyhow::bail!("--s3-bucket is required for the s3 collector"),
             Err(e) => eprintln!("WARN: {e:#}"),
         }
-    }
-
-    // --- JSON inventory collectors (current-state, structured JSON output) ---
-    let mut json_inv_collectors: Vec<Box<dyn JsonCollector>> = Vec::new();
-    if wants("iam-roles") {
-        json_inv_collectors.push(Box::new(IamRoleCollector::new(&config)));
-    }
-    if wants("iam-role-policies") {
-        json_inv_collectors.push(Box::new(IamRolePoliciesCollector::new(&config)));
-    }
-    if wants("iam-user-policies") {
-        json_inv_collectors.push(Box::new(IamUserPoliciesCollector::new(&config)));
-    }
-    if wants("eventbridge-rules") {
-        json_inv_collectors.push(Box::new(EventBridgeRulesCollector::new(&config)));
-    }
-    if wants("ct-config-changes") {
-        json_inv_collectors.push(Box::new(CloudTrailConfigChangesCollector::new(&config)));
-    }
-    if wants("kms-config") {
-        json_inv_collectors.push(Box::new(KmsKeyConfigCollector::new(&config)));
-    }
-
-    // --- CSV inventory collectors (current-state snapshots) -----------------
-    let mut csv_collectors: Vec<Box<dyn CsvCollector>> = Vec::new();
-    if wants("vpc") {
-        csv_collectors.push(Box::new(VpcCollector::new(&config)));
-    }
-    if wants("nacl") {
-        csv_collectors.push(Box::new(NetworkAclCollector::new(&config)));
-    }
-    if wants("waf") {
-        csv_collectors.push(Box::new(WafCollector::new(&config)));
-    }
-    if wants("elasticache") {
-        csv_collectors.push(Box::new(ElastiCacheCollector::new(&config)));
-    }
-    if wants("elasticache-global") {
-        csv_collectors.push(Box::new(ElastiCacheGlobalCollector::new(&config)));
-    }
-    if wants("efs") {
-        csv_collectors.push(Box::new(EfsCollector::new(&config)));
-    }
-    if wants("dynamodb") {
-        csv_collectors.push(Box::new(DynamoDbCollector::new(&config)));
-    }
-    if wants("ebs") {
-        csv_collectors.push(Box::new(EbsCollector::new(&config)));
-    }
-    if wants("rds-inventory") {
-        csv_collectors.push(Box::new(RdsInventoryCollector::new(&config)));
-    }
-    if wants("cloudtrail-config") {
-        csv_collectors.push(Box::new(CloudTrailInventoryCollector::new(&config)));
-    }
-    if wants("sns") {
-        csv_collectors.push(Box::new(SnsSubscriptionCollector::new(&config)));
-    }
-    if wants("vpc-flow-logs") {
-        csv_collectors.push(Box::new(VpcFlowLogCollector::new(&config)));
-    }
-    if wants("metric-filters") {
-        csv_collectors.push(Box::new(MetricFilterAlarmCollector::new(&config)));
-    }
-    if wants("s3-logging") {
-        csv_collectors.push(Box::new(S3BucketLoggingCollector::new(&config)));
-    }
-    if wants("iam-certs") {
-        csv_collectors.push(Box::new(IamCertCollector::new(&config)));
-    }
-    if wants("elb") {
-        csv_collectors.push(Box::new(LoadBalancerCollector::new(&config)));
-    }
-    if wants("elb-listeners") {
-        csv_collectors.push(Box::new(LoadBalancerListenerCollector::new(&config)));
-    }
-    if wants("acm") {
-        csv_collectors.push(Box::new(AcmCertCollector::new(&config)));
-    }
-    if wants("iam-users") {
-        csv_collectors.push(Box::new(IamUserCollector::new(&config)));
-    }
-    // iam-roles → json_inv_collectors (see above)
-    if wants("iam-policies") {
-        csv_collectors.push(Box::new(IamPolicyCollector::new(&config)));
-    }
-    if wants("iam-access-keys") {
-        csv_collectors.push(Box::new(IamAccessKeyCollector::new(&config)));
-    }
-    if wants("guardduty") {
-        csv_collectors.push(Box::new(GuardDutyCollector::new(&config)));
-    }
-    if wants("securityhub") {
-        csv_collectors.push(Box::new(SecurityHubCollector::new(&config)));
-    }
-    if wants("config-rules") {
-        csv_collectors.push(Box::new(ConfigRulesCollector::new(&config)));
-    }
-    if wants("security-groups") {
-        csv_collectors.push(Box::new(SecurityGroupCollector::new(&config)));
-    }
-    if wants("route-tables") {
-        csv_collectors.push(Box::new(RouteTableCollector::new(&config)));
-    }
-    if wants("ec2-instances") {
-        csv_collectors.push(Box::new(Ec2InstanceCollector::new(&config)));
-    }
-    if wants("asg") {
-        csv_collectors.push(Box::new(AutoScalingCollector::new(&config)));
-    }
-    if wants("kms") {
-        csv_collectors.push(Box::new(KmsKeyCollector::new(&config)));
-    }
-    if wants("secrets") {
-        csv_collectors.push(Box::new(SecretsManagerCollector::new(&config)));
-    }
-    if wants("s3-config") {
-        csv_collectors.push(Box::new(S3BucketConfigCollector::new(&config)));
-    }
-    if wants("cw-alarms") {
-        csv_collectors.push(Box::new(CloudWatchAlarmCollector::new(&config)));
-    }
-    if wants("cw-log-groups") {
-        csv_collectors.push(Box::new(CloudWatchLogGroupCollector::new(&config)));
-    }
-    if wants("api-gateway") {
-        csv_collectors.push(Box::new(ApiGatewayCollector::new(&config)));
-    }
-    if wants("cloudfront") {
-        csv_collectors.push(Box::new(CloudFrontCollector::new(&config)));
-    }
-    if wants("ecs") {
-        csv_collectors.push(Box::new(EcsClusterCollector::new(&config)));
-    }
-    if wants("eks") {
-        csv_collectors.push(Box::new(EksClusterCollector::new(&config)));
-    }
-    // IAM extended
-    if wants("iam-trusts") {
-        csv_collectors.push(Box::new(IamTrustsCollector::new(&config)));
-    }
-    if wants("access-analyzer") {
-        csv_collectors.push(Box::new(AccessAnalyzerCollector::new(&config)));
-    }
-    if wants("scp") {
-        csv_collectors.push(Box::new(OrganizationsSCPCollector::new(&config)));
-    }
-    // CloudTrail extended
-    if wants("ct-selectors") {
-        csv_collectors.push(Box::new(CloudTrailEventSelectorsCollector::new(&config)));
-    }
-    if wants("ct-validation") {
-        csv_collectors.push(Box::new(CloudTrailLogValidationCollector::new(&config)));
-    }
-    if wants("ct-s3-policy") {
-        csv_collectors.push(Box::new(CloudTrailS3PolicyCollector::new(&config)));
-    }
-    if wants("ct-changes") {
-        csv_collectors.push(Box::new(CloudTrailChangeEventsCollector::new(&config)));
-    }
-    if wants("s3-data-events") {
-        csv_collectors.push(Box::new(S3DataEventsCollector::new(&config)));
-    }
-    // GuardDuty extended
-    if wants("guardduty-config") {
-        csv_collectors.push(Box::new(GuardDutyConfigCollector::new(&config)));
-    }
-    if wants("guardduty-rules") {
-        csv_collectors.push(Box::new(GuardDutySuppressionCollector::new(&config)));
-    }
-    // Security Hub extended
-    if wants("sh-standards") {
-        csv_collectors.push(Box::new(SecurityHubStandardsCollector::new(&config)));
-    }
-    // Network
-    if wants("igw") {
-        csv_collectors.push(Box::new(InternetGatewayCollector::new(&config)));
-    }
-    if wants("nat-gateways") {
-        csv_collectors.push(Box::new(NatGatewayCollector::new(&config)));
-    }
-    if wants("public-resources") {
-        csv_collectors.push(Box::new(PublicResourceCollector::new(&config)));
-    }
-    // EC2/SSM extended
-    if wants("ec2-detailed") {
-        csv_collectors.push(Box::new(Ec2DetailedCollector::new(&config)));
-    }
-    if wants("ssm-instances") {
-        csv_collectors.push(Box::new(SsmManagedInstanceCollector::new(&config)));
-    }
-    if wants("ssm-patches") {
-        csv_collectors.push(Box::new(SsmPatchComplianceCollector::new(&config)));
-    }
-    // Encryption extended
-    if wants("kms-policies") {
-        csv_collectors.push(Box::new(KmsKeyPolicyCollector::new(&config)));
-    }
-    if wants("ebs-encryption") {
-        csv_collectors.push(Box::new(EbsDefaultEncryptionCollector::new(&config)));
-    }
-    if wants("rds-snapshots") {
-        csv_collectors.push(Box::new(RdsSnapshotCollector::new(&config)));
-    }
-    if wants("s3-policies") {
-        csv_collectors.push(Box::new(S3PoliciesCollector::new(&config)));
-    }
-    // Other
-    if wants("macie") {
-        csv_collectors.push(Box::new(MacieCollector::new(&config)));
-    }
-    if wants("config-history") {
-        csv_collectors.push(Box::new(ConfigHistoryCollector::new(&config)));
-    }
-    if wants("inspector") {
-        csv_collectors.push(Box::new(InspectorCollector::new(&config)));
-    }
-    if wants("ecr-scan") {
-        csv_collectors.push(Box::new(EcrScanCollector::new(&config)));
-    }
-    if wants("waf-logging") {
-        csv_collectors.push(Box::new(WafLoggingCollector::new(&config)));
-    }
-    if wants("alb-logs") {
-        csv_collectors.push(Box::new(AlbLogsCollector::new(&config)));
-    }
-    // IAM config
-    // iam-role-policies, iam-user-policies → json_inv_collectors (see above)
-    if wants("iam-password-policy") {
-        csv_collectors.push(Box::new(IamPasswordPolicyCollector::new(&config)));
-    }
-    // KMS / EBS config
-    // kms-config → json_inv_collectors (see above)
-    if wants("ebs-config") {
-        csv_collectors.push(Box::new(EbsEncryptionConfigCollector::new(&config)));
-    }
-    // S3 detail
-    if wants("s3-encryption") {
-        csv_collectors.push(Box::new(S3EncryptionConfigCollector::new(&config)));
-    }
-    if wants("s3-bucket-policy") {
-        csv_collectors.push(Box::new(S3BucketPolicyDetailCollector::new(&config)));
-    }
-    if wants("s3-public-access") {
-        csv_collectors.push(Box::new(S3PublicAccessBlockCollector::new(&config)));
-    }
-    if wants("s3-logging-config") {
-        csv_collectors.push(Box::new(S3LoggingConfigCollector::new(&config)));
-    }
-    // EC2 config
-    if wants("sg-config") {
-        csv_collectors.push(Box::new(SecurityGroupConfigCollector::new(&config)));
-    }
-    if wants("vpc-config") {
-        csv_collectors.push(Box::new(VpcConfigCollector::new(&config)));
-    }
-    if wants("rt-config") {
-        csv_collectors.push(Box::new(RouteTableConfigCollector::new(&config)));
-    }
-    if wants("ec2-config") {
-        csv_collectors.push(Box::new(Ec2InstanceConfigCollector::new(&config)));
-    }
-    // CloudTrail config
-    if wants("ct-full-config") {
-        csv_collectors.push(Box::new(CloudTrailFullConfigCollector::new(&config)));
-    }
-    // CloudWatch config
-    if wants("cw-log-config") {
-        csv_collectors.push(Box::new(CwLogGroupConfigCollector::new(&config)));
-    }
-    if wants("metric-filter-config") {
-        csv_collectors.push(Box::new(MetricFilterConfigCollector::new(&config)));
-    }
-    // Security service config
-    if wants("gd-full-config") {
-        csv_collectors.push(Box::new(GuardDutyFullConfigCollector::new(&config)));
-    }
-    if wants("sh-config") {
-        csv_collectors.push(Box::new(SecurityHubConfigCollector::new(&config)));
-    }
-    if wants("config-recorder") {
-        csv_collectors.push(Box::new(AwsConfigRecorderCollector::new(&config)));
-    }
-    // EC2 extended
-    if wants("launch-templates") {
-        csv_collectors.push(Box::new(LaunchTemplateCollector::new(&config)));
-    }
-    if wants("vpc-endpoints") {
-        csv_collectors.push(Box::new(VpcEndpointCollector::new(&config)));
-    }
-    // SSM extended
-    if wants("ssm-baselines") {
-        csv_collectors.push(Box::new(SsmPatchBaselineCollector::new(&config)));
-    }
-    if wants("ssm-params") {
-        csv_collectors.push(Box::new(SsmParameterConfigCollector::new(&config)));
-    }
-    if wants("time-sync") {
-        csv_collectors.push(Box::new(TimeSyncConfigCollector::new(&config)));
-    }
-    // Inspector ECR
-    if wants("inspector-ecr-images") {
-        csv_collectors.push(Box::new(InspectorEcrImagesCollector::new(&config)));
-    }
-    // Inspector config
-    if wants("inspector-config") {
-        csv_collectors.push(Box::new(InspectorConfigCollector::new(&config)));
-    }
-    // WAF full config
-    if wants("waf-config") {
-        csv_collectors.push(Box::new(WafFullConfigCollector::new(&config)));
-    }
-    // ELB full config
-    if wants("elb-full-config") {
-        csv_collectors.push(Box::new(ElbFullConfigCollector::new(&config)));
-    }
-    // Org + account
-    if wants("org-config") {
-        csv_collectors.push(Box::new(OrgConfigCollector::new(&config)));
-    }
-    if wants("account-contacts") {
-        csv_collectors.push(Box::new(AccountContactsCollector::new(&config)));
-    }
-    if wants("saml-providers") {
-        csv_collectors.push(Box::new(SamlProviderCollector::new(&config)));
-    }
-    if wants("iam-account-summary") {
-        csv_collectors.push(Box::new(IamAccountSummaryCollector::new(&config)));
-    }
-    // SNS / EventBridge
-    if wants("sns-policies") {
-        csv_collectors.push(Box::new(SnsTopicPoliciesCollector::new(&config)));
-    }
-    // eventbridge-rules → json_inv_collectors (see above)
-    // Backup
-    if wants("backup-plans") {
-        csv_collectors.push(Box::new(BackupPlanConfigCollector::new(&config)));
-    }
-    if wants("backup-vaults") {
-        csv_collectors.push(Box::new(BackupVaultConfigCollector::new(&config)));
-    }
-    if wants("rds-backup-config") {
-        csv_collectors.push(Box::new(RdsBackupConfigCollector::new(&config)));
-    }
-    // Lambda
-    if wants("lambda-config") {
-        csv_collectors.push(Box::new(LambdaConfigCollector::new(&config)));
-    }
-    if wants("lambda-permissions") {
-        csv_collectors.push(Box::new(LambdaPermissionsCollector::new(&config)));
-    }
-    // ECR config
-    if wants("ecr-config") {
-        csv_collectors.push(Box::new(EcrRepoConfigCollector::new(&config)));
-    }
-    // Route53
-    if wants("route53-zones") {
-        csv_collectors.push(Box::new(Route53ZonesCollector::new(&config)));
-    }
-    if wants("route53-resolver") {
-        csv_collectors.push(Box::new(Route53ResolverRulesCollector::new(&config)));
-    }
-    // Tagging
-    if wants("resource-tags") {
-        csv_collectors.push(Box::new(ResourceTaggingCollector::new(&config)));
-    }
-    // Secrets extended
-    if wants("secrets-policies") {
-        csv_collectors.push(Box::new(SecretsManagerPoliciesCollector::new(&config)));
-    }
-    // Config timeline / compliance
-    if wants("config-timeline") {
-        csv_collectors.push(Box::new(ConfigResourceTimelineCollector::new(&config)));
-    }
-    if wants("config-compliance") {
-        csv_collectors.push(Box::new(ConfigComplianceHistoryCollector::new(&config)));
-    }
-    if wants("config-snapshot") {
-        csv_collectors.push(Box::new(ConfigSnapshotCollector::new(&config)));
-    }
-    // CloudTrail IAM / config changes
-    // ct-config-changes → json_inv_collectors (see above)
-    if wants("ct-iam-changes") {
-        csv_collectors.push(Box::new(CloudTrailIamChangesCollector::new(&config)));
-    }
-    // CloudFormation drift
-    if wants("cfn-drift") {
-        csv_collectors.push(Box::new(CloudFormationDriftCollector::new(&config)));
-    }
-    // SSM patch detail
-    if wants("ssm-patch-detail") {
-        csv_collectors.push(Box::new(SsmPatchDetailCollector::new(&config)));
-    }
-    if wants("ssm-patch-summary") {
-        csv_collectors.push(Box::new(SsmPatchSummaryCollector::new(&config)));
-    }
-    if wants("ssm-patch-exec") {
-        csv_collectors.push(Box::new(SsmPatchExecutionCollector::new(&config)));
-    }
-    if wants("ssm-maint-windows") {
-        csv_collectors.push(Box::new(SsmMaintenanceWindowCollector::new(&config)));
-    }
-    // Inspector findings history
-    if wants("inspector-history") {
-        csv_collectors.push(Box::new(InspectorFindingsHistoryCollector::new(&config)));
-    }
-    // CloudWatch alarms
-    if wants("cw-config-alarms") {
-        csv_collectors.push(Box::new(CloudWatchConfigAlarmsCollector::new(&config)));
-    }
-    // EventBridge change rules
-    if wants("change-event-rules") {
-        csv_collectors.push(Box::new(ChangeEventRulesCollector::new(&config)));
     }
 
     if json_collectors.is_empty()
@@ -1135,7 +608,10 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
                 "cw-config-alarms",
                 "change-event-rules",
             ];
-            full.iter().copied().filter(|k| wants(k)).collect()
+            full.iter()
+                .copied()
+                .filter(|k| selected.iter().any(|s| s.eq_ignore_ascii_case(k)))
+                .collect()
         };
         let wanted_json_inv: Vec<&str> = [
             "iam-roles",
@@ -1147,12 +623,12 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
         ]
         .iter()
         .copied()
-        .filter(|k| wants(k))
+        .filter(|k| selected.iter().any(|s| s.eq_ignore_ascii_case(k)))
         .collect();
         let wanted_json: Vec<&str> = ["cloudtrail", "backup", "rds"]
             .iter()
             .copied()
-            .filter(|k| wants(k))
+            .filter(|k| selected.iter().any(|s| s.eq_ignore_ascii_case(k)))
             .collect();
 
         // Split into global (run once) and regional (run per region).

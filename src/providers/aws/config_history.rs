@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use aws_sdk_config::types::ResourceType;
 use aws_sdk_config::Client as ConfigClient;

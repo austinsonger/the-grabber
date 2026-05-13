@@ -1,7 +1,7 @@
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, BorderType, Gauge, List, ListItem, ListState, Padding, Paragraph};
+use ratatui::widgets::{Block, BorderType, Gauge, List, ListItem, ListState, Paragraph};
 use ratatui::Frame;
 
 use super::widgets::{content_inset, format_duration, format_number, stat_line};

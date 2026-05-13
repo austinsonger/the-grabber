@@ -7,7 +7,7 @@ use ratatui::Frame;
 use super::widgets::{content_inset, draw_stat_card, format_duration, format_number, kv_line};
 use super::{
     App, CollectorState, Feature, AMBER, BG_ELEVATED, BG_MAIN, BORDER_SUBTLE, CYAN, CYAN_DIM,
-    GREEN, PURPLE, RED, RED_BG, TEXT_BRIGHT, TEXT_DIM, TEXT_NORMAL,
+    GREEN, PURPLE, RED, RED_BG, TEXT_DIM, TEXT_NORMAL,
 };
 
 pub(super) fn draw_results(f: &mut Frame, area: Rect, app: &App) {

@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use aws_sdk_ec2::Client as Ec2Client;
 use aws_sdk_elasticloadbalancingv2::types::LoadBalancerSchemeEnum;
