@@ -6,8 +6,10 @@ use ratatui::Frame;
 
 use super::{App, CollectorFocus, CollectorState, Feature, Screen, COLLECTOR_CATEGORIES};
 
+mod account_screens;
 mod collectors;
 mod confirm;
+mod poam_screens;
 mod results;
 mod running;
 mod setup;
@@ -262,13 +264,13 @@ pub fn draw(f: &mut Frame, app: &App) {
     match app.screen {
         Screen::Welcome => setup::draw_welcome(f, content),
         Screen::FeatureSelection => setup::draw_feature_selection(f, content, app),
-        Screen::SelectAccount => setup::draw_select_account(f, content, app),
-        Screen::SelectProfile => setup::draw_profile(f, content, app),
-        Screen::SelectRegion => setup::draw_region(f, content, app),
-        Screen::PoamAccount => setup::draw_poam_account(f, content, app),
-        Screen::PoamRegion => setup::draw_poam_region(f, content, app),
-        Screen::PoamYear => setup::draw_poam_year(f, content, app),
-        Screen::PoamMonth => setup::draw_poam_month(f, content, app),
+        Screen::SelectAccount => account_screens::draw_select_account(f, content, app),
+        Screen::SelectProfile => account_screens::draw_profile(f, content, app),
+        Screen::SelectRegion => account_screens::draw_region(f, content, app),
+        Screen::PoamAccount => poam_screens::draw_poam_account(f, content, app),
+        Screen::PoamRegion => poam_screens::draw_poam_region(f, content, app),
+        Screen::PoamYear => poam_screens::draw_poam_year(f, content, app),
+        Screen::PoamMonth => poam_screens::draw_poam_month(f, content, app),
         Screen::SetDates => setup::draw_dates(f, content, app),
         Screen::Inventory => setup::draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => collectors::draw_collectors(f, content, app),
