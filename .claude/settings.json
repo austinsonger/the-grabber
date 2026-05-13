@@ -1,0 +1,42 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; echo \"$f\" | grep -qE '\\.rs$' && ~/.cargo/bin/cargo fmt; } 2>/dev/null || true",
+            "statusMessage": "Formatting Rust code..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; echo \"$f\" | grep -qE '\\.rs$' || exit 0; ~/.cargo/bin/cargo check 2>&1 || exit 2; }",
+            "statusMessage": "Checking Rust compilation...",
+            "asyncRewake": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; if echo \"$f\" | grep -qE '(^|/)config\\.toml$' && ! echo \"$f\" | grep -q 'example'; then echo '{\"decision\":\"ask\",\"reason\":\"config.toml may contain live AWS credentials/account IDs — confirm this edit is intentional\"}'; fi; } 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // \"\"' | { read -r cmd; if echo \"$cmd\" | grep -qiE 'aws .*(delete|terminate|remove|revoke)'; then echo '{\"decision\":\"ask\",\"reason\":\"Destructive AWS CLI operation detected — please confirm\"}'; fi; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
