@@ -14,6 +14,29 @@
             "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; echo \"$f\" | grep -qE '\\.rs$' || exit 0; ~/.cargo/bin/cargo check 2>&1 || exit 2; }",
             "statusMessage": "Checking Rust compilation...",
             "asyncRewake": true
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; echo \"$f\" | grep -qE '\\.rs$' || exit 0; ~/.cargo/bin/cargo clippy 2>&1 || exit 2; }",
+            "statusMessage": "Running Clippy...",
+            "asyncRewake": true
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; echo \"$f\" | grep -qE '\\.rs$' || exit 0; echo \"$f\" | grep -qiE 'test|spec' || exit 0; ~/.cargo/bin/cargo test 2>&1 || exit 2; }",
+            "statusMessage": "Running tests...",
+            "asyncRewake": true
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; echo \"$f\" | grep -qE '\\.rs$' || exit 0; echo \"$f\" | grep -qiE 'test|spec' && exit 0; count=$(grep -o 'unwrap()' \"$f\" 2>/dev/null | wc -l | tr -d ' '); [ \"$count\" -gt 0 ] && jq -n --arg m \"Warning: $count unwrap() in $f - use ? or expect() with a message instead\" '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":$m}}'; exit 0; }",
+            "statusMessage": "Checking for unwrap()..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // \"\"' | { read -r f; echo \"$f\" | grep -qE '\\.rs$' || exit 0; grep -qE 'pub (fn|struct|trait|enum|type)' \"$f\" 2>/dev/null || exit 0; ~/.cargo/bin/cargo doc --no-deps 2>&1 || exit 2; }",
+            "statusMessage": "Checking public API docs...",
+            "asyncRewake": true
           }
         ]
       }

@@ -3,3 +3,4 @@ pub mod collector_registry;
 pub mod multi_account;
 pub mod output;
 pub mod tui_runners;
+pub mod tui_session;
