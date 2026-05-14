@@ -282,6 +282,7 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tui::state::COLLECTOR_CATEGORIES;
 
     fn make_app() -> App {
         App::new(vec![])

@@ -1,5 +1,7 @@
 mod transforms;
-use transforms::{dedup_ecr_image_rows, filter_latest_image_per_repo, rollup_ecr_by_cve, secs_to_rfc3339};
+use transforms::{
+    dedup_ecr_image_rows, filter_latest_image_per_repo, rollup_ecr_by_cve, secs_to_rfc3339,
+};
 
 use anyhow::Result;
 use async_trait::async_trait;
