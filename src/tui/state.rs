@@ -113,6 +113,7 @@ pub const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
     (97, "Organization & Account"),
     (101, "Security Detection"),
     (113, "Storage"),
+    (126, "Security Scanning"),
 ];
 
 // ---------------------------------------------------------------------------

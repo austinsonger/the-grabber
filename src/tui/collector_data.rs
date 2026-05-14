@@ -507,6 +507,12 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "S3 Public Access Block   ",
         CloudProvider::Aws,
     ),
+    // ── Security Scanning (Tenable) ── (126..127)
+    (
+        "tenable-vulns",
+        "Vulnerability Findings   ",
+        CloudProvider::Tenable,
+    ),
 ];
 
 // ---------------------------------------------------------------------------

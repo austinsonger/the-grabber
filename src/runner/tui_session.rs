@@ -140,6 +140,10 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 sorted.sort();
                 let multi = sorted.len() > 1;
                 for &idx in &sorted {
+                    // Non-AWS providers are handled after the AWS prep loop.
+                    if app.accounts[idx].provider != crate::providers::CloudProvider::Aws {
+                        continue;
+                    }
                     let (profile, region, acct_output_dir, collector_keys_from_toml) =
                         app.resolve_account_settings(idx);
                     let collector_keys = if is_inventory {
@@ -514,6 +518,116 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     regional_collectors,
                     inventory_multi_region,
                 });
+            }
+
+            // ── Tenable accounts ─────────────────────────────────────────────────
+            #[cfg(feature = "tenable")]
+            if !app.selected_accounts.is_empty() {
+                use crate::providers::ProviderFactory as _;
+
+                let sorted_all: Vec<usize> = {
+                    let mut v: Vec<usize> = app.selected_accounts.iter().copied().collect();
+                    v.sort();
+                    v
+                };
+                let multi_for_path = sorted_all.len() > 1;
+
+                for &idx in &sorted_all {
+                    if app.accounts[idx].provider != crate::providers::CloudProvider::Tenable {
+                        continue;
+                    }
+                    let acct = &app.accounts[idx];
+                    let access_key = match acct.tenable_access_key_resolved() {
+                        Some(k) => k,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Tenable '{}' — missing access key \
+                                 (set TENABLE_ACCESS_KEY or tenable_access_key in config)",
+                                acct.name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let secret_key = match acct.tenable_secret_key_resolved() {
+                        Some(k) => k,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Tenable '{}' — missing secret key \
+                                 (set TENABLE_SECRET_KEY or tenable_secret_key in config)",
+                                acct.name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let base_url = acct.tenable_url_resolved();
+                    let site_name = acct.name.clone();
+
+                    let selected_keys: Vec<String> = app
+                        .selected_collectors()
+                        .into_iter()
+                        .filter(|k| k.starts_with("tenable-"))
+                        .collect();
+
+                    let client_result = if base_url == "https://cloud.tenable.com" {
+                        tenable_rs::TenableClient::tenable_io(&access_key, &secret_key)
+                    } else {
+                        tenable_rs::TenableClient::tenable_sc(&base_url, &access_key, &secret_key)
+                    };
+                    let client = match client_result {
+                        Ok(c) => c,
+                        Err(e) => {
+                            app.prep_log.push(format!(
+                                "  ✗ Tenable '{}' — client build failed: {e}",
+                                site_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    let factory = crate::providers::tenable::factory::TenableProviderFactory::new(
+                        client,
+                        site_name.clone(),
+                        selected_keys.clone(),
+                    );
+                    let csv_cols = factory.csv_collectors();
+                    let display_names: Vec<String> =
+                        csv_cols.iter().map(|c| c.name().to_string()).collect();
+
+                    let output_path = if multi_for_path {
+                        Some(
+                            base_output_path
+                                .clone()
+                                .unwrap_or_else(|| PathBuf::from("."))
+                                .join(&site_name),
+                        )
+                    } else {
+                        base_output_path.clone()
+                    };
+
+                    prepared.push(crate::runner::multi_account::AccountCollectors {
+                        account_id: site_name.clone(),
+                        aws_caller_arn: String::new(),
+                        aws_user_id: String::new(),
+                        profile: String::new(),
+                        region: String::new(),
+                        output_path,
+                        collector_keys: selected_keys,
+                        json_collectors: Vec::new(),
+                        json_inv_collectors: Vec::new(),
+                        csv_collectors: csv_cols,
+                        display_names,
+                        discovered_regions: Vec::new(),
+                        regional_collectors: Vec::new(),
+                        inventory_multi_region: Vec::new(),
+                    });
+
+                    app.prep_log
+                        .push(format!("  ✓ Tenable '{}' ready.", site_name));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                }
             }
 
             // Guard: if every account failed the canary check, prepared is empty.
