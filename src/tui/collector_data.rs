@@ -457,7 +457,12 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "SecurityHub Standards    ",
         CloudProvider::Aws,
     ),
-    // ── Storage ── (113..126)
+    (
+        "inspector-sbom",
+        "Inspector2 SBOM Export   ",
+        CloudProvider::Aws,
+    ),
+    // ── Storage ── (114..127)
     ("dynamodb", "DynamoDB Tables          ", CloudProvider::Aws),
     ("ebs", "EBS Volumes              ", CloudProvider::Aws),
     ("efs", "EFS File Systems         ", CloudProvider::Aws),

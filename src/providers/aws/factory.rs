@@ -61,6 +61,7 @@ use crate::providers::aws::{
     inspector_config::InspectorConfigCollector,
     inspector_ecr::InspectorEcrImagesCollector,
     inspector_history::InspectorFindingsHistoryCollector,
+    inspector_sbom::{InspectorSbomCollector, InspectorSbomConfig},
     kms::KmsKeyCollector,
     kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector},
     kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector},
@@ -115,6 +116,7 @@ pub struct AwsProviderFactory {
     account_id: String,
     region: String,
     selected: Vec<String>,
+    sbom: Option<(InspectorSbomConfig, Option<std::path::PathBuf>)>,
 }
 
 impl AwsProviderFactory {
@@ -129,7 +131,17 @@ impl AwsProviderFactory {
             account_id,
             region,
             selected,
+            sbom: None,
         }
+    }
+
+    pub fn with_sbom_config(
+        mut self,
+        sbom_config: InspectorSbomConfig,
+        output_dir: Option<std::path::PathBuf>,
+    ) -> Self {
+        self.sbom = Some((sbom_config, output_dir));
+        self
     }
 }
 
@@ -338,6 +350,31 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("inspector-history") {
             v.push(Box::new(InspectorFindingsHistoryCollector::new(cfg)));
+        }
+        if has("inspector-sbom") {
+            let (sbom_cfg, sbom_out) = match self.sbom.as_ref() {
+                Some((c, o)) => (
+                    InspectorSbomConfig {
+                        bucket: c.bucket.clone(),
+                        key_prefix: c.key_prefix.clone(),
+                        kms_key_arn: c.kms_key_arn.clone(),
+                        format: c.format.clone(),
+                    },
+                    o.clone(),
+                ),
+                None => (
+                    InspectorSbomConfig {
+                        bucket: String::new(),
+                        key_prefix: None,
+                        kms_key_arn: String::new(),
+                        format: aws_sdk_inspector2::types::SbomReportFormat::Cyclonedx14,
+                    },
+                    None,
+                ),
+            };
+            v.push(Box::new(InspectorSbomCollector::new(
+                cfg, cfg, sbom_cfg, sbom_out,
+            )));
         }
         if has("ecr-scan") {
             v.push(Box::new(EcrScanCollector::new(cfg)));

@@ -186,6 +186,19 @@ pub struct Cli {
     /// Month name for POA&M (e.g. January, February … December). Required with --poam.
     #[arg(long)]
     pub poam_month: Option<String>,
+
+    // ------- Inspector SBOM export options -------
+    /// S3 bucket for Inspector SBOM export destination.
+    #[arg(long)]
+    pub sbom_bucket: Option<String>,
+
+    /// KMS key ARN for Inspector SBOM export encryption.
+    #[arg(long)]
+    pub sbom_kms_key: Option<String>,
+
+    /// SBOM report format: cyclonedx14 or spdx23.
+    #[arg(long, default_value = "cyclonedx14")]
+    pub sbom_format: String,
 }
 
 /// Parse a lookback string like "30d", "12weeks", "3m", "1year" into a start

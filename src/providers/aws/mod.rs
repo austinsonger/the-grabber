@@ -46,6 +46,7 @@ pub mod inspector;
 pub mod inspector_config;
 pub mod inspector_ecr;
 pub mod inspector_history;
+pub mod inspector_sbom;
 pub mod kms;
 pub mod kms_config;
 pub mod kms_policies;

@@ -156,6 +156,7 @@ pub(crate) async fn run_multi_region_standard(
             "ssm-maint-windows",
             "cw-config-alarms",
             "change-event-rules",
+            "inspector-sbom",
         ];
         full.iter()
             .copied()

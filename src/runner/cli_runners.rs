@@ -280,12 +280,22 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
     };
 
     // Build all collectors through the factory
-    let factory = AwsProviderFactory::new(
+    let mut factory = AwsProviderFactory::new(
         config.clone(),
         account_id.clone(),
         cli.region.clone(),
         selected.clone(),
     );
+    if selected.iter().any(|n| n == "inspector-sbom") {
+        let sbom_cfg = crate::providers::aws::inspector_sbom::InspectorSbomConfig {
+            bucket: cli.sbom_bucket.clone().unwrap_or_default(),
+            key_prefix: None,
+            kms_key_arn: cli.sbom_kms_key.clone().unwrap_or_default(),
+            format: cli.sbom_format.as_str().into(),
+        };
+        let sbom_out = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+        factory = factory.with_sbom_config(sbom_cfg, Some(sbom_out));
+    }
     let mut json_collectors: Vec<Box<dyn EvidenceCollector>> = factory.evidence_collectors();
     let json_inv_collectors: Vec<Box<dyn JsonCollector>> = factory.json_collectors();
     let csv_collectors: Vec<Box<dyn CsvCollector>> = factory.csv_collectors();
