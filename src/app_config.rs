@@ -168,21 +168,42 @@ impl Account {
 }
 
 /// Best-effort load of config, checking in order:
-///   1. `./config.toml`  (project-local, committed to repo)
+///   1. `./config.toml`  (project-local)
 ///   2. `~/.config/evidence/config.toml`  (user-global)
-/// Returns `None` on any error (no file, parse error, etc.).
+///
+/// After loading the primary config, `./tenable-config.toml` is merged in
+/// (accounts only) if the file exists.
 pub fn load_config() -> Option<AppConfig> {
-    let local = PathBuf::from("config.toml");
-    if local.exists() {
-        if let Ok(contents) = fs::read_to_string(&local) {
-            if let Ok(cfg) = toml::from_str(&contents) {
-                return Some(cfg);
+    let mut cfg: AppConfig = {
+        let local = PathBuf::from("config.toml");
+        if local.exists() {
+            if let Ok(contents) = fs::read_to_string(&local) {
+                if let Ok(c) = toml::from_str(&contents) {
+                    c
+                } else {
+                    return None;
+                }
+            } else {
+                return None;
+            }
+        } else {
+            let path = global_config_path()?;
+            let contents = fs::read_to_string(path).ok()?;
+            toml::from_str(&contents).ok()?
+        }
+    };
+
+    // Merge tenable-config.toml accounts if present
+    let tenable_path = PathBuf::from("tenable-config.toml");
+    if tenable_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&tenable_path) {
+            if let Ok(tenable_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(tenable_cfg.account);
             }
         }
     }
-    let path = global_config_path()?;
-    let contents = fs::read_to_string(path).ok()?;
-    toml::from_str(&contents).ok()
+
+    Some(cfg)
 }
 
 fn global_config_path() -> Option<PathBuf> {
