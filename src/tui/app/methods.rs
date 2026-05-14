@@ -109,7 +109,7 @@ impl App {
     pub fn selected_collectors(&self) -> Vec<String> {
         self.collector_selected
             .iter()
-            .filter_map(|&i| self.collector_items.get(i).map(|(k, _)| k.to_string()))
+            .filter_map(|&i| self.collector_items.get(i).map(|(k, _, _)| k.to_string()))
             .collect()
     }
 
@@ -147,8 +147,13 @@ impl App {
     /// Jump collector_cursor to the first item of a category.
     pub fn jump_to_category(&mut self, cat_idx: usize) {
         self.collector_category_cursor = cat_idx;
-        let (start, _) = self.category_bounds(cat_idx);
-        self.collector_cursor = start;
+        let items = self.visible_items_in_category(cat_idx);
+        if let Some(&first) = items.first() {
+            self.collector_cursor = first;
+        } else {
+            let (start, _) = self.category_bounds(cat_idx);
+            self.collector_cursor = start;
+        }
     }
 
     /// True when `global_idx` passes the current collector search filter.
@@ -158,7 +163,7 @@ impl App {
         if term.is_empty() {
             return true;
         }
-        let (key, label) = &self.collector_items[global_idx];
+        let (key, label, _) = &self.collector_items[global_idx];
         key.to_lowercase().contains(&term) || label.to_lowercase().contains(&term)
     }
 
@@ -249,21 +254,21 @@ impl App {
         let mut selected = self.collector_selected.clone();
         if let Some(ref enable_list) = acct.collectors.enable {
             selected.clear();
-            for (i, (key, _)) in self.collector_items.iter().enumerate() {
+            for (i, (key, _, _)) in self.collector_items.iter().enumerate() {
                 if enable_list.iter().any(|k| k == key) {
                     selected.insert(i);
                 }
             }
         } else {
             if let Some(ref disable_list) = acct.collectors.disable {
-                for (i, (key, _)) in self.collector_items.iter().enumerate() {
+                for (i, (key, _, _)) in self.collector_items.iter().enumerate() {
                     if disable_list.iter().any(|k| k == key) {
                         selected.remove(&i);
                     }
                 }
             }
             if let Some(ref extra) = acct.collectors.enable_extra {
-                for (i, (key, _)) in self.collector_items.iter().enumerate() {
+                for (i, (key, _, _)) in self.collector_items.iter().enumerate() {
                     if extra.iter().any(|k| k == key) {
                         selected.insert(i);
                     }
@@ -273,7 +278,7 @@ impl App {
 
         let collector_keys: Vec<String> = selected
             .iter()
-            .filter_map(|&i| self.collector_items.get(i).map(|(k, _)| k.to_string()))
+            .filter_map(|&i| self.collector_items.get(i).map(|(k, _, _)| k.to_string()))
             .collect();
 
         (profile, region, output_dir, collector_keys)

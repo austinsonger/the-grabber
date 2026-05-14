@@ -1,12 +1,11 @@
-mod trail_collectors;
 mod event_collectors;
+mod trail_collectors;
 
+pub use event_collectors::{CloudTrailChangeEventsCollector, S3DataEventsCollector};
 pub use trail_collectors::{
-    CloudTrailEventSelectorsCollector,
-    CloudTrailLogValidationCollector,
+    CloudTrailEventSelectorsCollector, CloudTrailLogValidationCollector,
     CloudTrailS3PolicyCollector,
 };
-pub use event_collectors::{CloudTrailChangeEventsCollector, S3DataEventsCollector};
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
