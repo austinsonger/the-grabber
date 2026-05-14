@@ -1,12 +1,14 @@
 pub mod app;
+pub mod collector_data;
 pub mod events;
 pub mod state;
 pub mod ui;
 
 pub use app::App;
+pub use collector_data::{AWS_REGIONS, COLLECTOR_ITEMS};
 pub use state::{
     CollectorFocus, CollectorState, CollectorStatus, Feature, PoamSummary, Progress, Screen,
-    TextInput, AWS_REGIONS, COLLECTOR_CATEGORIES, COLLECTOR_ITEMS,
+    TextInput, COLLECTOR_CATEGORIES,
 };
 
 use std::io;

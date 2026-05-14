@@ -9,6 +9,7 @@ use super::{App, CollectorFocus, CollectorState, Feature, Screen, COLLECTOR_CATE
 mod account_screens;
 mod collectors;
 mod confirm;
+mod options;
 mod poam_screens;
 mod results;
 mod running;
@@ -274,7 +275,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::SetDates => setup::draw_dates(f, content, app),
         Screen::Inventory => setup::draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => collectors::draw_collectors(f, content, app),
-        Screen::SetOptions => collectors::draw_options(f, content, app),
+        Screen::SetOptions => options::draw_options(f, content, app),
         Screen::Confirm => confirm::draw_confirm(f, content, app),
         Screen::Preparing => confirm::draw_preparing(f, content, app),
         Screen::Running => running::draw_running(f, content, app),

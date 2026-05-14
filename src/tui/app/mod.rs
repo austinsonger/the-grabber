@@ -10,8 +10,8 @@ use crate::inventory_core::INVENTORY_ITEMS;
 
 use super::state::{
     CollectorFocus, CollectorStatus, Feature, PoamSummary, Progress, Screen, TextInput,
-    AWS_REGIONS, COLLECTOR_ITEMS,
 };
+use crate::tui::collector_data::{AWS_REGIONS, COLLECTOR_ITEMS};
 
 // ---------------------------------------------------------------------------
 // Main App state
