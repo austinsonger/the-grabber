@@ -404,4 +404,10 @@ mod tests {
         assert_eq!(app.collector_category_cursor, 5);
         assert_eq!(app.collector_cursor, 50);
     }
+
+    #[test]
+    fn provider_selection_screen_exists() {
+        let s = crate::tui::Screen::ProviderSelection;
+        assert!(matches!(s, crate::tui::Screen::ProviderSelection));
+    }
 }

@@ -71,6 +71,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::Confirm => return handle_confirm(app, key),
         Screen::Running | Screen::Preparing => {}
         Screen::Results => return handle_results(app, key),
+        Screen::ProviderSelection => {}
     }
 
     let _ = modifiers;

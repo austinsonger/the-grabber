@@ -336,5 +336,6 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::Preparing => vec![],
         Screen::Running => vec![],
         Screen::Results => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
+        Screen::ProviderSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
     }
 }

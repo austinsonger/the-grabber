@@ -77,6 +77,8 @@ pub enum Screen {
     Welcome,
     /// Choose between Collectors and Inventory.
     FeatureSelection,
+    // shown after Feature::Collectors is chosen; before account selection
+    ProviderSelection,
     SelectAccount, // shown when TOML accounts are configured
     SelectProfile, // legacy: pick from ~/.aws/config profiles
     SelectRegion,  // legacy: pick region

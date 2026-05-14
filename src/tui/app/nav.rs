@@ -44,6 +44,7 @@ impl App {
             Screen::Preparing => Screen::Running,
             Screen::Running => Screen::Results,
             Screen::Results => Screen::Results,
+            Screen::ProviderSelection => Screen::FeatureSelection,
         };
     }
 

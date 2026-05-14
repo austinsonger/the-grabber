@@ -123,6 +123,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::Preparing => confirm::draw_preparing(f, content, app),
         Screen::Running => running::draw_running(f, content, app),
         Screen::Results => results::draw_results(f, content, app),
+        Screen::ProviderSelection => todo!("ProviderSelection screen not yet implemented"),
     }
 
     draw_separator(f, layout[6]);
