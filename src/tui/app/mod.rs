@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 
 use crate::app_config::{self, Account};
 use crate::inventory_core::INVENTORY_ITEMS;
+use crate::providers::CloudProvider;
 
 use super::state::{
     CollectorFocus, CollectorStatus, Feature, PoamSummary, Progress, Screen, TextInput,
@@ -49,7 +50,7 @@ pub struct App {
     pub time_frame_cursor: usize, // 0 = 1 Month, 1 = 2 Months, … 11 = 12 Months
 
     // Collector selection (multi-select)
-    pub collector_items: Vec<(&'static str, &'static str)>, // (key, label)
+    pub collector_items: Vec<(&'static str, &'static str, CloudProvider)>, // (key, label, provider)
     pub collector_cursor: usize,
     pub collector_selected: HashSet<usize>,
     pub collector_category_cursor: usize,
@@ -133,7 +134,7 @@ impl App {
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {
             // Exclusive: ONLY enable listed collectors
-            for (i, (key, _)) in collector_items.iter().enumerate() {
+            for (i, (key, _, _)) in collector_items.iter().enumerate() {
                 if enable_list.iter().any(|k| k == key) {
                     collector_selected.insert(i);
                 }
@@ -144,14 +145,14 @@ impl App {
                 collector_selected.insert(i);
             }
             // Remove hardcoded opt-ins
-            for (i, (key, _)) in collector_items.iter().enumerate() {
+            for (i, (key, _, _)) in collector_items.iter().enumerate() {
                 if hardcoded_optins.contains(key) {
                     collector_selected.remove(&i);
                 }
             }
             // Apply config disable list
             if let Some(ref disable_list) = config.defaults.collectors.disable {
-                for (i, (key, _)) in collector_items.iter().enumerate() {
+                for (i, (key, _, _)) in collector_items.iter().enumerate() {
                     if disable_list.iter().any(|k| k == key) {
                         collector_selected.remove(&i);
                     }
@@ -159,7 +160,7 @@ impl App {
             }
             // Apply config enable_extra list
             if let Some(ref extra) = config.defaults.collectors.enable_extra {
-                for (i, (key, _)) in collector_items.iter().enumerate() {
+                for (i, (key, _, _)) in collector_items.iter().enumerate() {
                     if extra.iter().any(|k| k == key) {
                         collector_selected.insert(i);
                     }

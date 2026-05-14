@@ -1,8 +1,10 @@
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph};
 use ratatui::Frame;
+
+use crate::providers::CloudProvider;
 
 use super::COLLECTOR_CATEGORIES;
 use super::{
@@ -202,7 +204,7 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 
     let mut item_list: Vec<ListItem> = Vec::new();
     for &i in &visible_items {
-        let (_, label) = &app.collector_items[i];
+        let (_, label, provider) = &app.collector_items[i];
         let checked = app.collector_selected.contains(&i);
         let focused = i == app.collector_cursor;
 
@@ -226,9 +228,15 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
             String::new()
         };
 
+        let (badge_text, badge_color) = provider_badge(provider);
+
         let mut line_spans = vec![
             Span::styled(format!("{} ", checkbox), checkbox_style),
             Span::styled(format!("{:<28}", name), name_style),
+            Span::styled(
+                format!("{:<5}", badge_text),
+                Style::default().fg(badge_color),
+            ),
         ];
         if !desc.is_empty() {
             line_spans.push(Span::styled(desc, Style::default().fg(TEXT_DIM)));
@@ -283,4 +291,13 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
             .alignment(Alignment::Center),
         help_area,
     );
+}
+
+fn provider_badge(provider: &CloudProvider) -> (&'static str, Color) {
+    match provider {
+        CloudProvider::Aws => ("AWS", Color::Rgb(255, 153, 0)),
+        CloudProvider::Azure => ("AZ", Color::Rgb(0, 120, 212)),
+        CloudProvider::Gcp => ("GCP", Color::Rgb(66, 133, 244)),
+        CloudProvider::Tenable => ("TEN", Color::Rgb(0, 175, 80)),
+    }
 }

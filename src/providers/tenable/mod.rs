@@ -1,4 +1,5 @@
 pub mod factory;
+pub mod vulnerabilities;
 
 // Tenable collector submodules go here, e.g.:
 //   pub mod vulnerabilities;  // → Inspector2 / SecurityHub findings equivalent
