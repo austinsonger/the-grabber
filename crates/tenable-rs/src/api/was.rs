@@ -90,16 +90,27 @@ impl<'c> WasApi<'c> {
         #[derive(Deserialize)]
         struct ConfigItem {
             config_id: String,
+            name: Option<String>,
+        }
+        // Raw scan item from the configs/{id}/scans/search response.
+        // The Scan schema has no `name` — the name lives on the config.
+        // `target` is the web-app URI; `updated_at` is the ISO modification timestamp.
+        #[derive(Deserialize)]
+        struct RawScan {
+            scan_id: String,
+            target: Option<String>,
+            status: Option<String>,
+            updated_at: Option<String>,
         }
         #[derive(Deserialize)]
         struct ScanPage {
-            items: Vec<WasScanSummary>,
+            items: Vec<RawScan>,
         }
 
         const PAGE: usize = 100;
-        let mut all_configs: Vec<String> = Vec::new();
+        let mut all_configs: Vec<(String, Option<String>)> = Vec::new();
 
-        // Paginate through all configs.
+        // Paginate through all configs, capturing id + name.
         let mut offset = 0usize;
         loop {
             let url = format!("/was/v2/configs/search?limit={}&offset={}", PAGE, offset);
@@ -117,18 +128,19 @@ impl<'c> WasApi<'c> {
             };
             let got = page.items.len();
             let total = page.pagination.total;
-            all_configs.extend(page.items.into_iter().map(|c| c.config_id));
+            all_configs.extend(page.items.into_iter().map(|c| (c.config_id, c.name)));
             if got < PAGE || all_configs.len() >= total {
                 break;
             }
             offset += PAGE;
         }
 
-        // For each config, paginate through its scans and deduplicate by scan_id.
+        // For each config, paginate its scans and build WasScanSummary with the
+        // config name as the display name and target as application_uri.
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut all: Vec<WasScanSummary> = Vec::new();
 
-        for config_id in &all_configs {
+        for (config_id, config_name) in &all_configs {
             let mut scan_offset = 0usize;
             loop {
                 let url = format!(
@@ -148,9 +160,15 @@ impl<'c> WasApi<'c> {
                     Err(_) => break,
                 };
                 let got = page.items.len();
-                for scan in page.items {
-                    if seen.insert(scan.scan_id.clone()) {
-                        all.push(scan);
+                for raw in page.items {
+                    if seen.insert(raw.scan_id.clone()) {
+                        all.push(WasScanSummary {
+                            scan_id: raw.scan_id,
+                            name: config_name.clone(),
+                            application_uri: raw.target,
+                            status: raw.status,
+                            finalized_at: raw.updated_at,
+                        });
                     }
                 }
                 if got < PAGE {
