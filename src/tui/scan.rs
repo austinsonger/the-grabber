@@ -1,5 +1,5 @@
 use tenable_rs::api::was::WasScanSummary;
-use tenable_rs::types::scan::{ScanStatus, ScanSummary};
+use tenable_rs::types::scan::ScanSummary;
 
 #[cfg_attr(not(feature = "tenable"), allow(dead_code))]
 pub enum TuiScan {
@@ -24,25 +24,17 @@ impl TuiScan {
 
     pub fn status_str(&self) -> &str {
         match self {
-            TuiScan::Vm(s) => match s.status {
-                ScanStatus::Running => "RUNNING",
-                ScanStatus::Completed => "COMPLETED",
-                ScanStatus::Canceled => "CANCELED",
-                ScanStatus::Paused => "PAUSED",
-                ScanStatus::Pending => "PENDING",
-                ScanStatus::Stopping => "STOPPING",
-                ScanStatus::Unknown => "UNKNOWN",
-            },
-            TuiScan::Was(s) => s.status.as_deref().unwrap_or("UNKNOWN"),
+            TuiScan::Vm(s) => s.status.as_str(),
+            TuiScan::Was(s) => s.status.as_deref().unwrap_or("unknown"),
         }
     }
 
     /// "running" | "completed" | "canceled" | "other" — used by the UI for colour selection.
     pub fn status_color_hint(&self) -> &str {
-        match self.status_str() {
-            "RUNNING" => "running",
-            "COMPLETED" => "completed",
-            "CANCELED" | "UNKNOWN" => "canceled",
+        match self.status_str().to_ascii_lowercase().as_str() {
+            "running" => "running",
+            "completed" => "completed",
+            "canceled" | "cancelled" | "empty" => "canceled",
             _ => "other",
         }
     }
@@ -52,7 +44,8 @@ impl TuiScan {
     /// WAS: finalized_at parsed from RFC-3339.
     pub fn last_modified_timestamp(&self) -> Option<i64> {
         match self {
-            TuiScan::Vm(s) => s.last_modification_date,
+            // Treat 0 (Unix epoch) as absent — scans that have never run report 0.
+            TuiScan::Vm(s) => s.last_modification_date.filter(|&ts| ts > 0),
             TuiScan::Was(s) => s.finalized_at.as_deref().and_then(|t| {
                 chrono::DateTime::parse_from_rfc3339(t)
                     .ok()

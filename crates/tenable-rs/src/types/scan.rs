@@ -5,7 +5,8 @@ pub struct ScanSummary {
     pub id: i64,
     pub uuid: Option<String>,
     pub name: String,
-    pub status: ScanStatus,
+    /// Raw status string from the API (e.g. "completed", "running", "empty", "canceled").
+    pub status: String,
     pub enabled: Option<bool>,
     pub creation_date: Option<i64>,
     pub last_modification_date: Option<i64>,
@@ -31,17 +32,4 @@ pub struct ScanHost {
     pub medium: Option<i64>,
     pub low: Option<i64>,
     pub info: Option<i64>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ScanStatus {
-    Running,
-    Completed,
-    Canceled,
-    Paused,
-    Pending,
-    Stopping,
-    #[serde(other)]
-    Unknown,
 }
