@@ -17,22 +17,47 @@ use super::{
 // ═══════════════════════════════════════════════════════════════════════════
 
 pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
-    let selected_count = app.collector_selected.len();
-    let total_count = app.collector_items.len();
+    // Count only items visible to the current provider.
+    let provider_visible_total: usize = (0..app.collector_items.len())
+        .filter(|&i| {
+            let (_, _, provider) = &app.collector_items[i];
+            if app.selected_feature == crate::tui::state::Feature::Collectors {
+                *provider == app.selected_provider
+            } else {
+                true
+            }
+        })
+        .count();
+    let provider_visible_selected: usize = app
+        .collector_selected
+        .iter()
+        .filter(|&&i| {
+            app.collector_items
+                .get(i)
+                .map(|(_, _, p)| {
+                    if app.selected_feature == crate::tui::state::Feature::Collectors {
+                        *p == app.selected_provider
+                    } else {
+                        true
+                    }
+                })
+                .unwrap_or(false)
+        })
+        .count();
     let search_term = &app.collector_search.value;
 
     let title = if search_term.is_empty() {
         format!(
             " Collectors ─────────── {} of {} selected ",
-            selected_count, total_count,
+            provider_visible_selected, provider_visible_total,
         )
     } else {
-        let match_count: usize = (0..total_count)
+        let match_count: usize = (0..app.collector_items.len())
             .filter(|&i| app.search_matches_item(i))
             .count();
         format!(
             " Collectors ─────────── {} of {} selected  •  {} matches ",
-            selected_count, total_count, match_count,
+            provider_visible_selected, provider_visible_total, match_count,
         )
     };
 
@@ -47,9 +72,13 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // Layout: search bar (3) | main panels (fill) | separator (1) | help (1)
+    let is_tenable = app.selected_provider == CloudProvider::Tenable
+        && app.selected_feature == crate::tui::state::Feature::Collectors;
+
+    // Layout: search bar (3 or 0) | main panels (fill) | separator (1) | help (1)
+    let search_height: u16 = if is_tenable { 0 } else { 3 };
     let v_chunks = Layout::vertical([
-        Constraint::Length(3),
+        Constraint::Length(search_height),
         Constraint::Fill(1),
         Constraint::Length(1),
         Constraint::Length(1),
@@ -60,47 +89,50 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     let main_area = v_chunks[1];
     let help_area = v_chunks[3];
 
-    // ── Search bar ───────────────────────────────────────────────
-    let search_focused = app.collector_focus == CollectorFocus::Search;
-    let has_search = !search_term.is_empty();
-    let search_label = if has_search {
-        " Search collectors  [✕ Esc to clear] ".to_string()
-    } else {
-        " Search collectors… ".to_string()
-    };
-    let search_block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(if search_focused {
-            Style::default().fg(CYAN)
+    // ── Search bar (hidden for Tenable) ──────────────────────────
+    if !is_tenable {
+        let search_focused = app.collector_focus == CollectorFocus::Search;
+        let has_search_inner = !search_term.is_empty();
+        let search_label = if has_search_inner {
+            " Search collectors  [✕ Esc to clear] ".to_string()
         } else {
-            Style::default().fg(BORDER_SUBTLE)
-        })
-        .title(Span::styled(
-            search_label,
-            if search_focused {
+            " Search collectors… ".to_string()
+        };
+        let search_block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(if search_focused {
                 Style::default().fg(CYAN)
             } else {
-                Style::default().fg(TEXT_DIM)
-            },
-        ))
-        .padding(Padding::horizontal(1));
+                Style::default().fg(BORDER_SUBTLE)
+            })
+            .title(Span::styled(
+                search_label,
+                if search_focused {
+                    Style::default().fg(CYAN)
+                } else {
+                    Style::default().fg(TEXT_DIM)
+                },
+            ))
+            .padding(Padding::horizontal(1));
 
-    f.render_widget(
-        Paragraph::new(Span::styled(
-            search_term.as_str(),
-            Style::default().fg(TEXT_BRIGHT),
-        ))
-        .block(search_block),
-        search_area,
-    );
+        f.render_widget(
+            Paragraph::new(Span::styled(
+                search_term.as_str(),
+                Style::default().fg(TEXT_BRIGHT),
+            ))
+            .block(search_block),
+            search_area,
+        );
 
-    if search_focused {
-        // border(1) + padding(1) + cursor byte offset
-        f.set_cursor_position((
-            search_area.x + 2 + app.collector_search.cursor as u16,
-            search_area.y + 1,
-        ));
+        if search_focused {
+            // border(1) + padding(1) + cursor byte offset
+            f.set_cursor_position((
+                search_area.x + 2 + app.collector_search.cursor as u16,
+                search_area.y + 1,
+            ));
+        }
     }
+    let has_search = !search_term.is_empty();
 
     // ── Resolve visible set ───────────────────────────────────────
     let visible_cats = app.visible_categories();

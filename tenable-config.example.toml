@@ -1,0 +1,14 @@
+# Tenable credentials — keep this file out of version control
+# Add to .gitignore: tenable-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: TENABLE_ACCESS_KEY, TENABLE_SECRET_KEY
+
+[[account]]
+name               = "Tenable"
+provider           = "tenable"
+description        = "Tenable.io vulnerability scanning"
+output_dir         = "./evidence-output/tenable"
+tenable_access_key = ""
+tenable_secret_key = ""
+# tenable_url      = ""   # omit for Tenable.io; set for on-prem Tenable.sc

@@ -635,7 +635,8 @@ fn handle_scan_selection(app: &mut App, key: KeyCode) {
         KeyCode::Tab => {
             app.scan_filter = match app.scan_filter {
                 ScanTimeFilter::Recent => ScanTimeFilter::Past12Months,
-                ScanTimeFilter::Past12Months => ScanTimeFilter::Recent,
+                ScanTimeFilter::Past12Months => ScanTimeFilter::AllTime,
+                ScanTimeFilter::AllTime => ScanTimeFilter::Recent,
             };
             app.scan_cursor = 0;
             app.scan_selected.clear();

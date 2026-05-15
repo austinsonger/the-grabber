@@ -329,11 +329,6 @@ impl App {
     #[cfg(feature = "tenable")]
     pub fn visible_scans(&self) -> Vec<usize> {
         use crate::tui::state::ScanTimeFilter;
-        let cutoff_days: i64 = match self.scan_filter {
-            ScanTimeFilter::Recent => 30,
-            ScanTimeFilter::Past12Months => 365,
-        };
-        let cutoff = chrono::Utc::now().timestamp() - cutoff_days * 86400;
 
         let selected = self.selected_collectors();
         let show_vm = selected
@@ -341,6 +336,12 @@ impl App {
             .any(|s| s == "tenable-vulns" || s == "tenable-pci-asv");
         let show_was = selected.iter().any(|s| s == "tenable-was");
         let show_all = !show_vm && !show_was;
+
+        let cutoff: Option<i64> = match self.scan_filter {
+            ScanTimeFilter::AllTime => None,
+            ScanTimeFilter::Recent => Some(chrono::Utc::now().timestamp() - 30 * 86400),
+            ScanTimeFilter::Past12Months => Some(chrono::Utc::now().timestamp() - 365 * 86400),
+        };
 
         self.scan_list
             .iter()
@@ -350,9 +351,13 @@ impl App {
                 if !type_ok {
                     return false;
                 }
-                s.last_modified_timestamp()
-                    .map(|ts| ts >= cutoff)
-                    .unwrap_or(true)
+                match cutoff {
+                    None => true,
+                    Some(c) => s
+                        .last_modified_timestamp()
+                        .map(|ts| ts >= c)
+                        .unwrap_or(true),
+                }
             })
             .map(|(i, _)| i)
             .collect()

@@ -104,6 +104,7 @@ pub enum ScanTimeFilter {
     #[default]
     Recent, // last 30 days
     Past12Months, // last 365 days
+    AllTime,      // no date restriction
 }
 
 // ---------------------------------------------------------------------------

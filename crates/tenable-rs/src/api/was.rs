@@ -27,15 +27,28 @@ pub struct WasVulnerability {
 pub struct WasApi<'c>(pub(crate) &'c TenableClient);
 
 impl<'c> WasApi<'c> {
-    /// List all WAS scans.
+    /// List all WAS scans, paginating through all results.
     pub async fn list_scans(&self) -> Result<Vec<WasScanSummary>, TenableError> {
-        let resp = self.0.get("/was/v2/scans").await?;
-        let resp = check_response(resp).await?;
         #[derive(Deserialize)]
         struct Response {
             scans: Vec<WasScanSummary>,
         }
-        Ok(resp.json::<Response>().await?.scans)
+        const PAGE: usize = 100;
+        let mut all: Vec<WasScanSummary> = Vec::new();
+        let mut offset = 0usize;
+        loop {
+            let url = format!("/was/v2/scans?limit={}&offset={}", PAGE, offset);
+            let resp = self.0.get(&url).await?;
+            let resp = check_response(resp).await?;
+            let page: Response = resp.json().await?;
+            let got = page.scans.len();
+            all.extend(page.scans);
+            if got < PAGE {
+                break;
+            }
+            offset += PAGE;
+        }
+        Ok(all)
     }
 
     /// List vulnerabilities for a specific WAS scan.

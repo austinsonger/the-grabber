@@ -142,6 +142,9 @@ impl App {
             "inspector",
             "inspector-config",
             "org-config",
+            "tenable-vulns",
+            "tenable-was",
+            "tenable-pci-asv",
         ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {

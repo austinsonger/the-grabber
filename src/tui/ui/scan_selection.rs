@@ -62,12 +62,19 @@ pub(super) fn draw_scan_selection(f: &mut Frame, area: Rect, app: &App) {
     } else {
         Style::default().fg(TEXT_DIM)
     };
+    let all_time_style = if app.scan_filter == ScanTimeFilter::AllTime {
+        Style::default().fg(AMBER).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(TEXT_DIM)
+    };
 
     f.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled("[ Recent (30d) ]", recent_style),
             Span::styled("   ", Style::default()),
             Span::styled("[ Past 12 Months ]", past12_style),
+            Span::styled("   ", Style::default()),
+            Span::styled("[ All Time ]", all_time_style),
         ]))
         .alignment(Alignment::Center),
         chunks[3],
