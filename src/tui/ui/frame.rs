@@ -15,7 +15,9 @@ use super::theme::{BG_ELEVATED, CYAN_DIM};
 // Step label sequences (one per wizard flow)
 // ═══════════════════════════════════════════════════════════════════════════
 
-pub(super) const STEPS_ACCOUNTS: &[&str] = &[
+// Feature::Collectors — has TOML accounts, non-Tenable
+pub(super) const STEPS_PROVIDER_ACCOUNTS: &[&str] = &[
+    "Provider",
     "Account",
     "Dates",
     "Collectors",
@@ -23,9 +25,22 @@ pub(super) const STEPS_ACCOUNTS: &[&str] = &[
     "Confirm",
     "Run",
 ];
-pub(super) const STEPS_LEGACY: &[&str] = &[
+
+// Feature::Collectors — legacy profile/region, non-Tenable
+pub(super) const STEPS_PROVIDER_LEGACY: &[&str] = &[
+    "Provider",
     "Profile",
     "Region",
+    "Dates",
+    "Collectors",
+    "Options",
+    "Confirm",
+    "Run",
+];
+
+// Feature::Collectors — Tenable (skips account screen, skips profile/region)
+pub(super) const STEPS_TENABLE: &[&str] = &[
+    "Provider",
     "Dates",
     "Collectors",
     "Options",
@@ -54,12 +69,13 @@ pub(super) fn screen_to_step(
     screen: &Screen,
     has_accounts: bool,
     feature: &Feature,
+    selected_provider: crate::providers::CloudProvider,
 ) -> Option<usize> {
     match feature {
         Feature::Collectors => {
-            if has_accounts {
+            if selected_provider == crate::providers::CloudProvider::Tenable {
                 match screen {
-                    Screen::SelectAccount => Some(0),
+                    Screen::ProviderSelection => Some(0),
                     Screen::SetDates => Some(1),
                     Screen::SelectCollectors => Some(2),
                     Screen::SetOptions => Some(3),
@@ -67,15 +83,27 @@ pub(super) fn screen_to_step(
                     Screen::Running => Some(5),
                     _ => None,
                 }
-            } else {
+            } else if has_accounts {
                 match screen {
-                    Screen::SelectProfile => Some(0),
-                    Screen::SelectRegion => Some(1),
+                    Screen::ProviderSelection => Some(0),
+                    Screen::SelectAccount => Some(1),
                     Screen::SetDates => Some(2),
                     Screen::SelectCollectors => Some(3),
                     Screen::SetOptions => Some(4),
                     Screen::Confirm => Some(5),
                     Screen::Running => Some(6),
+                    _ => None,
+                }
+            } else {
+                match screen {
+                    Screen::ProviderSelection => Some(0),
+                    Screen::SelectProfile => Some(1),
+                    Screen::SelectRegion => Some(2),
+                    Screen::SetDates => Some(3),
+                    Screen::SelectCollectors => Some(4),
+                    Screen::SetOptions => Some(5),
+                    Screen::Confirm => Some(6),
+                    Screen::Running => Some(7),
                     _ => None,
                 }
             }

@@ -19,8 +19,8 @@ mod widgets;
 
 use self::frame::{
     draw_footer, draw_header, draw_separator, draw_step_indicator, get_hints, screen_to_step,
-    STEPS_ACCOUNTS, STEPS_INV_ACCOUNTS, STEPS_INV_LEGACY, STEPS_LEGACY, STEPS_POAM,
-    STEPS_POAM_NO_ACCOUNTS,
+    STEPS_INV_ACCOUNTS, STEPS_INV_LEGACY, STEPS_POAM, STEPS_POAM_NO_ACCOUNTS,
+    STEPS_PROVIDER_ACCOUNTS, STEPS_PROVIDER_LEGACY, STEPS_TENABLE,
 };
 use self::theme::{BG_DARK, BG_MAIN, CYAN_DIM};
 use self::widgets::draw_error_banner;
@@ -47,7 +47,11 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     let show_steps = !matches!(
         app.screen,
-        Screen::Welcome | Screen::FeatureSelection | Screen::Preparing | Screen::Results
+        Screen::Welcome
+            | Screen::FeatureSelection
+            | Screen::ProviderSelection
+            | Screen::Preparing
+            | Screen::Results
     );
     let step_height = if show_steps { 2 } else { 0 };
 
@@ -64,13 +68,21 @@ pub fn draw(f: &mut Frame, app: &App) {
     ])
     .split(inner);
 
-    let step_info = screen_to_step(&app.screen, app.has_accounts(), &app.selected_feature);
+    let step_info = screen_to_step(
+        &app.screen,
+        app.has_accounts(),
+        &app.selected_feature,
+        app.selected_provider,
+    );
     let steps = match app.selected_feature {
         Feature::Collectors => {
-            if app.has_accounts() {
-                STEPS_ACCOUNTS
+            use crate::providers::CloudProvider;
+            if app.selected_provider == CloudProvider::Tenable {
+                STEPS_TENABLE
+            } else if app.has_accounts() {
+                STEPS_PROVIDER_ACCOUNTS
             } else {
-                STEPS_LEGACY
+                STEPS_PROVIDER_LEGACY
             }
         }
         Feature::Inventory => {
@@ -108,6 +120,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     match app.screen {
         Screen::Welcome => setup::draw_welcome(f, content),
         Screen::FeatureSelection => setup::draw_feature_selection(f, content, app),
+        Screen::ProviderSelection => account_screens::draw_provider_selection(f, content, app),
         Screen::SelectAccount => account_screens::draw_select_account(f, content, app),
         Screen::SelectProfile => account_screens::draw_profile(f, content, app),
         Screen::SelectRegion => account_screens::draw_region(f, content, app),
@@ -123,7 +136,6 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::Preparing => confirm::draw_preparing(f, content, app),
         Screen::Running => running::draw_running(f, content, app),
         Screen::Results => results::draw_results(f, content, app),
-        Screen::ProviderSelection => todo!("ProviderSelection screen not yet implemented"),
     }
 
     draw_separator(f, layout[6]);
