@@ -27,17 +27,34 @@ impl CsvCollector for TenableWasCollector {
 
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "Scan ID",
-            "Scan Name",
-            "App URI",
+            // Finding identity
             "Finding ID",
-            "Plugin ID",
-            "Name",
-            "Severity",
+            "State",
+            "First Found",
+            "Last Found",
+            // Target
             "URL",
-            "Remediation",
-            "First Seen",
-            "Last Seen",
+            "HTTP Method",
+            "Input Type",
+            "Input Name",
+            // Plugin
+            "Plugin ID",
+            "Plugin Name",
+            "Risk Factor",
+            "Synopsis",
+            "Description",
+            "Solution",
+            "CVEs",
+            // Scoring
+            "Severity",
+            "Severity ID",
+            "CVSS Base Score",
+            "CVSS3 Base Score",
+            "VPR Score",
+            // Scan
+            "Scan ID",
+            "Scan Started At",
+            "Scan Completed At",
         ]
     }
 
@@ -49,35 +66,66 @@ impl CsvCollector for TenableWasCollector {
     ) -> Result<Vec<Vec<String>>> {
         // A 404 means the tenant does not have WAS licensed; return an empty
         // file rather than failing the whole collection run.
-        let scans = match self.client.was().list_scans().await {
-            Ok(s) => s,
+        let findings = match self.client.was().export_all(None).await {
+            Ok(f) => f,
             Err(tenable_rs::TenableError::Api { status: 404, .. }) => return Ok(vec![]),
             Err(e) => return Err(e.into()),
         };
-        let mut rows = Vec::new();
-        for scan in &scans {
-            let vulns = self
-                .client
-                .was()
-                .list_vulns(&scan.scan_id)
-                .await
-                .unwrap_or_default();
-            for v in vulns {
-                rows.push(vec![
-                    scan.scan_id.clone(),
-                    scan.name.clone().unwrap_or_default(),
-                    scan.application_uri.clone().unwrap_or_default(),
-                    v.finding_id,
-                    v.plugin_id.map(|i| i.to_string()).unwrap_or_default(),
-                    v.name.unwrap_or_default(),
-                    v.severity.unwrap_or_default(),
-                    v.url.unwrap_or_default(),
-                    v.remediation.unwrap_or_default(),
-                    v.first_seen.unwrap_or_default(),
-                    v.last_seen.unwrap_or_default(),
-                ]);
-            }
-        }
+
+        let rows = findings
+            .into_iter()
+            .map(|f| {
+                let plugin = f.plugin.as_ref();
+                let scan = f.scan.as_ref();
+                vec![
+                    f.finding_id,
+                    f.state.unwrap_or_default(),
+                    f.first_found.unwrap_or_default(),
+                    f.last_found.unwrap_or_default(),
+                    f.url.unwrap_or_default(),
+                    f.http_method.unwrap_or_default(),
+                    f.input_type.unwrap_or_default(),
+                    f.input_name.unwrap_or_default(),
+                    plugin
+                        .and_then(|p| p.id)
+                        .map(|i| i.to_string())
+                        .unwrap_or_default(),
+                    plugin.and_then(|p| p.name.clone()).unwrap_or_default(),
+                    plugin
+                        .and_then(|p| p.risk_factor.clone())
+                        .unwrap_or_default(),
+                    plugin.and_then(|p| p.synopsis.clone()).unwrap_or_default(),
+                    plugin
+                        .and_then(|p| p.description.clone())
+                        .unwrap_or_default()
+                        .replace(['\n', '\r'], " "),
+                    plugin.and_then(|p| p.solution.clone()).unwrap_or_default(),
+                    plugin
+                        .and_then(|p| p.cve.clone())
+                        .unwrap_or_default()
+                        .join("; "),
+                    f.severity.unwrap_or_default(),
+                    f.severity_id.map(|i| i.to_string()).unwrap_or_default(),
+                    plugin
+                        .and_then(|p| p.cvss_base_score)
+                        .map(|s| format!("{s:.1}"))
+                        .unwrap_or_default(),
+                    plugin
+                        .and_then(|p| p.cvss3_base_score)
+                        .map(|s| format!("{s:.1}"))
+                        .unwrap_or_default(),
+                    plugin
+                        .and_then(|p| p.vpr_score)
+                        .map(|s| format!("{s:.1}"))
+                        .unwrap_or_default(),
+                    scan.and_then(|s| s.scan_id.clone()).unwrap_or_default(),
+                    scan.and_then(|s| s.started_at.clone()).unwrap_or_default(),
+                    scan.and_then(|s| s.completed_at.clone())
+                        .unwrap_or_default(),
+                ]
+            })
+            .collect();
+
         Ok(rows)
     }
 }

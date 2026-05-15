@@ -46,7 +46,7 @@ impl<'c> ScansApi<'c> {
             scans: Option<Vec<ScanSummary>>,
         }
 
-        let resp = self.0.get("/scans/folders").await?;
+        let resp = self.0.get("/folders").await?;
         let resp = check_response(resp).await?;
         let folder_list: FolderList = resp.json().await?;
 
