@@ -7,11 +7,15 @@ use crate::evidence::CsvCollector;
 
 pub struct TenableWasCollector {
     client: TenableClient,
+    /// WAS scan UUIDs selected by the user. When non-empty, findings are
+    /// filtered to only those whose scan.scan_id matches. When empty, all
+    /// findings across all time are included.
+    scan_ids: Vec<String>,
 }
 
 impl TenableWasCollector {
-    pub fn new(client: TenableClient) -> Self {
-        Self { client }
+    pub fn new(client: TenableClient, scan_ids: Vec<String>) -> Self {
+        Self { client, scan_ids }
     }
 }
 
@@ -64,13 +68,25 @@ impl CsvCollector for TenableWasCollector {
         _region: &str,
         _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        // A 404 means the tenant does not have WAS licensed; return an empty
-        // file rather than failing the whole collection run.
-        let findings = match self.client.was().export_all(None).await {
+        // Pass since=0 to bypass the 30-day default; without this the export
+        // only returns findings from the last 30 days.
+        let filter = serde_json::json!({"filters": {"since": 0}});
+        let mut findings = match self.client.was().export_all(Some(filter)).await {
             Ok(f) => f,
             Err(tenable_rs::TenableError::Api { status: 404, .. }) => return Ok(vec![]),
             Err(e) => return Err(e.into()),
         };
+
+        // If the user selected specific WAS scans, restrict to those.
+        if !self.scan_ids.is_empty() {
+            findings.retain(|f| {
+                f.scan
+                    .as_ref()
+                    .and_then(|s| s.scan_id.as_deref())
+                    .map(|id| self.scan_ids.iter().any(|sel| sel == id))
+                    .unwrap_or(false)
+            });
+        }
 
         let rows = findings
             .into_iter()
