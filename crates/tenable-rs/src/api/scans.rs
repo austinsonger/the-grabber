@@ -15,10 +15,28 @@ struct FolderEntry {
 impl<'c> ScansApi<'c> {
     /// List all scans across every non-trash folder.
     ///
-    /// The `/scans` endpoint without a `folder_id` returns only the "My Scans"
-    /// folder.  To surface scans from custom and shared folders we enumerate
-    /// all folders first, then fetch each one and deduplicate by scan ID.
+    /// Tries folder-based enumeration first (surfaces custom/shared folders).
+    /// Falls back to the bare `/scans` endpoint (returns "My Scans") if the
+    /// folders API is unavailable or returns nothing.
     pub async fn list(&self) -> Result<Vec<ScanSummary>, TenableError> {
+        if let Ok(scans) = self.list_from_all_folders().await {
+            if !scans.is_empty() {
+                return Ok(scans);
+            }
+        }
+
+        // Fallback: bare /scans returns the "My Scans" folder.
+        #[derive(serde::Deserialize)]
+        struct DefaultList {
+            scans: Option<Vec<ScanSummary>>,
+        }
+        let resp = self.0.get("/scans").await?;
+        let resp = check_response(resp).await?;
+        let body: DefaultList = resp.json().await?;
+        Ok(body.scans.unwrap_or_default())
+    }
+
+    async fn list_from_all_folders(&self) -> Result<Vec<ScanSummary>, TenableError> {
         #[derive(serde::Deserialize)]
         struct FolderList {
             folders: Vec<FolderEntry>,
@@ -28,7 +46,6 @@ impl<'c> ScansApi<'c> {
             scans: Option<Vec<ScanSummary>>,
         }
 
-        // Get all folders.
         let resp = self.0.get("/scans/folders").await?;
         let resp = check_response(resp).await?;
         let folder_list: FolderList = resp.json().await?;
@@ -58,18 +75,6 @@ impl<'c> ScansApi<'c> {
                     all.push(scan);
                 }
             }
-        }
-
-        // Fall back to the default endpoint if no folders were returned.
-        if all.is_empty() {
-            let resp = self.0.get("/scans").await?;
-            let resp = check_response(resp).await?;
-            #[derive(serde::Deserialize)]
-            struct DefaultList {
-                scans: Option<Vec<ScanSummary>>,
-            }
-            let body: DefaultList = resp.json().await?;
-            all = body.scans.unwrap_or_default();
         }
 
         Ok(all)
