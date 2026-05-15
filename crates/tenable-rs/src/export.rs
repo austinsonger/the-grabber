@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use futures::StreamExt;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use tokio::time::{sleep, Duration};
@@ -9,6 +10,7 @@ use crate::error::TenableError;
 
 const MAX_POLL_ATTEMPTS: u32 = 120;
 const POLL_INTERVAL_SECS: u64 = 5;
+const CHUNK_DOWNLOAD_CONCURRENCY: usize = 4;
 
 /// Shared async-export abstraction.
 ///
@@ -55,19 +57,29 @@ impl<T: DeserializeOwned> ExportJob<T> {
         Ok(())
     }
 
-    /// Poll until the export is FINISHED, then download and deserialize all chunks.
+    /// Poll until the export is FINISHED, then download all chunks concurrently.
     ///
-    /// Polls every `POLL_INTERVAL_SECS` seconds for up to `MAX_POLL_ATTEMPTS`
-    /// attempts (~10 minutes total).
+    /// Up to CHUNK_DOWNLOAD_CONCURRENCY chunk downloads run in parallel.
+    /// Results are yielded in chunk-id order (same as serial download).
     pub async fn collect_all(self) -> Result<Vec<T>, TenableError> {
         let chunks = self.wait_for_chunks().await?;
+
+        let client = &self.client;
+        let resource_path = &self.resource_path;
+
+        let mut stream = futures::stream::iter(chunks)
+            .map(|chunk_id| async move {
+                let path = format!("{}/chunks/{}", resource_path, chunk_id);
+                let resp = client.get(&path).await?;
+                let resp = check_response(resp).await?;
+                let chunk: Vec<T> = resp.json().await?;
+                Ok::<Vec<T>, TenableError>(chunk)
+            })
+            .buffered(CHUNK_DOWNLOAD_CONCURRENCY);
+
         let mut records = Vec::new();
-        for chunk_id in chunks {
-            let path = format!("{}/chunks/{}", self.resource_path, chunk_id);
-            let resp = self.client.get(&path).await?;
-            let resp = check_response(resp).await?;
-            let chunk: Vec<T> = resp.json().await?;
-            records.extend(chunk);
+        while let Some(result) = stream.next().await {
+            records.extend(result?);
         }
         Ok(records)
     }
