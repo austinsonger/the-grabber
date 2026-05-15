@@ -93,9 +93,9 @@ impl CsvCollector for AcmCertCollector {
 
             let arn = cert.certificate_arn().unwrap_or("").to_string();
             let domain = cert.domain_name().unwrap_or("").to_string();
-            let expires = cert.not_after().map(|d| fmt_aws_dt(d)).unwrap_or_default();
+            let expires = cert.not_after().map(fmt_aws_dt).unwrap_or_default();
             let in_use_by = cert.in_use_by().join(", ");
-            let issued_on = cert.issued_at().map(|d| fmt_aws_dt(d)).unwrap_or_default();
+            let issued_on = cert.issued_at().map(fmt_aws_dt).unwrap_or_default();
             let issuer = cert.issuer().unwrap_or("").to_string();
             let key_algo = cert
                 .key_algorithm()

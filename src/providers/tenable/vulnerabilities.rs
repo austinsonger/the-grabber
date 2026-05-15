@@ -7,11 +7,12 @@ use crate::evidence::CsvCollector;
 
 pub struct TenableVulnerabilitiesCollector {
     client: TenableClient,
+    scan_ids: Vec<i64>,
 }
 
 impl TenableVulnerabilitiesCollector {
-    pub fn new(client: TenableClient) -> Self {
-        Self { client }
+    pub fn new(client: TenableClient, scan_ids: Vec<i64>) -> Self {
+        Self { client, scan_ids }
     }
 }
 
@@ -77,7 +78,12 @@ impl CsvCollector for TenableVulnerabilitiesCollector {
         _region: &str,
         _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        let findings = self.client.vulns().export_all(None).await?;
+        let filters = if self.scan_ids.is_empty() {
+            None
+        } else {
+            Some(serde_json::json!({ "scan.id": self.scan_ids }))
+        };
+        let findings = self.client.vulns().export_all(filters).await?;
 
         let rows = findings
             .into_iter()
@@ -99,8 +105,7 @@ impl CsvCollector for TenableVulnerabilitiesCollector {
                     f.plugin
                         .description
                         .unwrap_or_default()
-                        .replace('\n', " ")
-                        .replace('\r', " "),
+                        .replace(['\n', '\r'], " "),
                     f.plugin.solution.unwrap_or_default(),
                     f.plugin.cve.unwrap_or_default().join("; "),
                     f.plugin.cpe.unwrap_or_default().join("; "),

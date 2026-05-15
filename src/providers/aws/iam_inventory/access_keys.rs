@@ -90,7 +90,7 @@ impl CsvCollector for IamAccessKeyCollector {
                     .to_string();
                 let created = key_meta
                     .create_date()
-                    .map(|d| super::fmt_iam_dt(d))
+                    .map(super::fmt_iam_dt)
                     .unwrap_or_default();
 
                 let last_used = match self
@@ -103,7 +103,7 @@ impl CsvCollector for IamAccessKeyCollector {
                     Ok(r) => r
                         .access_key_last_used()
                         .and_then(|l| l.last_used_date())
-                        .map(|d| super::fmt_iam_dt(d))
+                        .map(super::fmt_iam_dt)
                         .unwrap_or_else(|| "Never".to_string()),
                     Err(_) => "".to_string(),
                 };

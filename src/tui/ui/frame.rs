@@ -4,12 +4,10 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
-use super::theme::{
-    AMBER, BORDER_SUBTLE, CYAN, GREEN, PURPLE, TEAL, TEXT_BRIGHT, TEXT_DIM, TEXT_NORMAL,
-};
+use super::theme::{AMBER, BORDER_SUBTLE, CYAN, GREEN, TEXT_BRIGHT, TEXT_DIM, TEXT_NORMAL};
 use crate::tui::state::{Feature, Screen};
 
-use super::theme::{BG_ELEVATED, CYAN_DIM};
+use super::theme::BG_ELEVATED;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Step label sequences (one per wizard flow)

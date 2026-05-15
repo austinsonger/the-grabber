@@ -3,12 +3,14 @@ pub mod audit_log;
 pub mod compliance;
 pub mod scans;
 pub mod vulns;
+pub mod was;
 
 pub use assets::AssetsApi;
 pub use audit_log::AuditLogApi;
 pub use compliance::ComplianceApi;
 pub use scans::ScansApi;
 pub use vulns::VulnsApi;
+pub use was::WasApi;
 
 /// Build the request body for a bulk export call.
 ///

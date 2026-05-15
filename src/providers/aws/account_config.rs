@@ -148,7 +148,7 @@ impl CsvCollector for SamlProviderCollector {
 
         for provider in list_resp.saml_provider_list() {
             let arn = provider.arn().unwrap_or("").to_string();
-            let name = arn.split('/').last().unwrap_or("").to_string();
+            let name = arn.split('/').next_back().unwrap_or("").to_string();
 
             let (created, valid_until, meta_len) = match self
                 .client

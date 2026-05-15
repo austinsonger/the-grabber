@@ -56,7 +56,7 @@ impl JsonCollector for IamRoleCollector {
                 let last_used = role
                     .role_last_used()
                     .and_then(|l| l.last_used_date())
-                    .map(|d| super::fmt_iam_dt(d))
+                    .map(super::fmt_iam_dt)
                     .unwrap_or_else(|| "Never".to_string());
                 let last_used_region = role
                     .role_last_used()

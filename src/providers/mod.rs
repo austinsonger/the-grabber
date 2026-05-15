@@ -21,7 +21,9 @@ use crate::evidence::{CsvCollector, EvidenceCollector, JsonCollector};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum CloudProvider {
+    #[default]
     Aws,
     Azure,
     Gcp,
@@ -36,12 +38,6 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Gcp => write!(f, "GCP"),
             CloudProvider::Tenable => write!(f, "Tenable"),
         }
-    }
-}
-
-impl Default for CloudProvider {
-    fn default() -> Self {
-        CloudProvider::Aws
     }
 }
 

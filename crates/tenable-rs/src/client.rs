@@ -2,7 +2,7 @@ use reqwest::{header, Client};
 use serde::de::DeserializeOwned;
 use tokio::time::{sleep, Duration};
 
-use crate::api::{AssetsApi, AuditLogApi, ComplianceApi, ScansApi, VulnsApi};
+use crate::api::{AssetsApi, AuditLogApi, ComplianceApi, ScansApi, VulnsApi, WasApi};
 use crate::error::TenableError;
 use crate::export::{check_response, ExportJob, ExportStarted};
 
@@ -96,6 +96,9 @@ impl TenableClient {
     }
     pub fn compliance(&self) -> ComplianceApi<'_> {
         ComplianceApi(self)
+    }
+    pub fn was(&self) -> WasApi<'_> {
+        WasApi(self)
     }
 
     /// POST to `post_path` to start an export, then build poll/download paths

@@ -225,7 +225,7 @@ pub(super) async fn collect_containers(
                 .unwrap_or(false);
             let enc_type = repo
                 .encryption_configuration()
-                .and_then(|e| Some(e.encryption_type().as_str().to_string()))
+                .map(|e| e.encryption_type().as_str().to_string())
                 .unwrap_or_default();
             let enc_kms = repo
                 .encryption_configuration()

@@ -1,5 +1,7 @@
 pub mod factory;
+pub mod pci_asv;
 pub mod vulnerabilities;
+pub mod was;
 
 // Tenable collector submodules go here, e.g.:
 //   pub mod vulnerabilities;  // → Inspector2 / SecurityHub findings equivalent

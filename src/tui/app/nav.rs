@@ -40,8 +40,25 @@ impl App {
             Screen::PoamRegion => Screen::PoamYear,
             Screen::PoamYear => Screen::PoamMonth,
             Screen::PoamMonth => Screen::Confirm,
-            Screen::SelectCollectors => Screen::SetOptions,
-            Screen::ScanSelection => Screen::Confirm,
+            Screen::SelectCollectors => {
+                if self.selected_provider == CloudProvider::Tenable {
+                    Screen::ScanSelection
+                } else {
+                    Screen::SetOptions
+                }
+            }
+            Screen::ScanSelection => {
+                #[cfg(feature = "tenable")]
+                {
+                    self.selected_scan_ids = self
+                        .scan_selected
+                        .iter()
+                        .filter_map(|&i| self.scan_list.get(i))
+                        .map(|s| s.id)
+                        .collect();
+                }
+                Screen::Confirm
+            }
             Screen::SetOptions => Screen::Confirm,
             Screen::Confirm => Screen::Running,
             Screen::Preparing => Screen::Running,
@@ -50,7 +67,7 @@ impl App {
             Screen::ProviderSelection => {
                 if self.selected_provider == CloudProvider::Tenable {
                     self.auto_select_provider_accounts();
-                    Screen::SetDates
+                    Screen::SelectCollectors
                 } else if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
@@ -94,7 +111,13 @@ impl App {
             }
             Screen::PoamYear => Screen::PoamRegion,
             Screen::PoamMonth => Screen::PoamYear,
-            Screen::SelectCollectors => Screen::SetDates,
+            Screen::SelectCollectors => {
+                if self.selected_provider == CloudProvider::Tenable {
+                    Screen::ProviderSelection
+                } else {
+                    Screen::SetDates
+                }
+            }
             Screen::ScanSelection => Screen::SelectCollectors,
             Screen::SetOptions => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,
@@ -103,6 +126,9 @@ impl App {
             },
             Screen::Confirm => match self.selected_feature {
                 Feature::Poam => Screen::PoamMonth,
+                Feature::Collectors if self.selected_provider == CloudProvider::Tenable => {
+                    Screen::ScanSelection
+                }
                 _ => Screen::SetOptions,
             },
             _ => return,
@@ -173,6 +199,13 @@ impl App {
                 let year = self.poam_year.value.trim();
                 if year.len() != 4 || year.parse::<u32>().is_err() {
                     self.error_msg = Some("Enter a 4-digit findings year (e.g., 2026)".into());
+                    return false;
+                }
+                true
+            }
+            Screen::ScanSelection => {
+                if self.scan_selected.is_empty() {
+                    self.error_msg = Some("Select at least one scan (Space to toggle)".into());
                     return false;
                 }
                 true

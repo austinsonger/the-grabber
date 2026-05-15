@@ -86,8 +86,8 @@ impl JsonCollector for CloudTrailConfigChangesCollector {
                     .client
                     .lookup_events()
                     .lookup_attributes(attr.clone())
-                    .start_time(start_dt.clone())
-                    .end_time(end_dt.clone())
+                    .start_time(start_dt)
+                    .end_time(end_dt)
                     .max_results(50);
                 if let Some(ref t) = next_token {
                     req = req.next_token(t);
@@ -231,8 +231,8 @@ impl CsvCollector for CloudTrailIamChangesCollector {
                     .client
                     .lookup_events()
                     .lookup_attributes(attr.clone())
-                    .start_time(start_dt.clone())
-                    .end_time(end_dt.clone())
+                    .start_time(start_dt)
+                    .end_time(end_dt)
                     .max_results(50);
                 if let Some(ref t) = next_token {
                     req = req.next_token(t);

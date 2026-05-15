@@ -39,8 +39,8 @@ fn dedup_findings_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
         let pkg_name = row.get(18).map(|s| s.as_str()).unwrap_or("");
         let src_layer = row.get(25).map(|s| s.as_str()).unwrap_or("");
         let resource = row.get(26).map(|s| s.as_str()).unwrap_or("");
-        let arn = row.get(0).map(|s| s.as_str()).unwrap_or("");
-        let updated = row.get(37).map(|s| s.clone()).unwrap_or_default();
+        let arn = row.first().map(|s| s.as_str()).unwrap_or("");
+        let updated = row.get(37).cloned().unwrap_or_default();
 
         let key = if !cve_id.is_empty() && !resource.is_empty() && !pkg_name.is_empty() {
             format!("res_pkg:{}|{}|{}", cve_id, resource, pkg_name)

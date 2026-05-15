@@ -52,7 +52,7 @@ impl CsvCollector for SnsSubscriptionCollector {
             for sub in resp.subscriptions() {
                 let sub_arn = sub.subscription_arn().unwrap_or("").to_string();
                 let topic_arn = sub.topic_arn().unwrap_or("").to_string();
-                let topic_name = topic_arn.split(':').last().unwrap_or("").to_string();
+                let topic_name = topic_arn.split(':').next_back().unwrap_or("").to_string();
 
                 rows.push(vec![sub_arn, topic_name, topic_arn, region.to_string()]);
             }

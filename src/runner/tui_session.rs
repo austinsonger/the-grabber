@@ -589,6 +589,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         client,
                         site_name.clone(),
                         selected_keys.clone(),
+                        Vec::new(), // scan ID filter — empty means export all scans
                     );
                     let csv_cols = factory.csv_collectors();
                     let display_names: Vec<String> =

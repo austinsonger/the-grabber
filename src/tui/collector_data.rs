@@ -518,6 +518,16 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Vulnerability Findings   ",
         CloudProvider::Tenable,
     ),
+    (
+        "tenable-was",
+        "Web App Scanning         ",
+        CloudProvider::Tenable,
+    ),
+    (
+        "tenable-pci-asv",
+        "PCI ASV Compliance       ",
+        CloudProvider::Tenable,
+    ),
 ];
 
 // ---------------------------------------------------------------------------

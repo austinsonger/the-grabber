@@ -62,11 +62,8 @@ impl CsvCollector for IamCertCollector {
                 let name = meta.server_certificate_name().to_string();
                 let arn = meta.arn().to_string();
                 let path = meta.path().to_string();
-                let issued_on = meta
-                    .upload_date()
-                    .map(|d| fmt_aws_dt(d))
-                    .unwrap_or_default();
-                let expires = meta.expiration().map(|d| fmt_aws_dt(d)).unwrap_or_default();
+                let issued_on = meta.upload_date().map(fmt_aws_dt).unwrap_or_default();
+                let expires = meta.expiration().map(fmt_aws_dt).unwrap_or_default();
 
                 // Detailed X.509 fields (Issuer, Subject, SANs, algorithms, usage)
                 // are not directly available via the IAM metadata API.

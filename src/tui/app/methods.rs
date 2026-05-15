@@ -1,4 +1,3 @@
-use crate::providers::CloudProvider;
 use crate::tui::state::{Feature, COLLECTOR_CATEGORIES};
 
 use super::App;

@@ -295,7 +295,7 @@ impl CsvCollector for Ec2InstanceCollector {
                     let iam_role = inst
                         .iam_instance_profile()
                         .and_then(|p| p.arn())
-                        .and_then(|arn| arn.split('/').last())
+                        .and_then(|arn| arn.split('/').next_back())
                         .unwrap_or("")
                         .to_string();
 

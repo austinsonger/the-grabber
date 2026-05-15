@@ -81,7 +81,7 @@ impl CsvCollector for IamPolicyCollector {
                             let doc = r
                                 .policy_version()
                                 .and_then(|v| v.document())
-                                .map(|d| super::url_decode(d))
+                                .map(super::url_decode)
                                 .unwrap_or_default();
                             // Extract actions from policy document (very rough summary).
                             super::summarize_policy_actions(&doc)

@@ -3,20 +3,29 @@ use tenable_rs::TenableClient;
 use crate::evidence::{CsvCollector, EvidenceCollector, JsonCollector};
 use crate::providers::{CloudProvider, ProviderFactory};
 
+use super::pci_asv::TenablePciAsvCollector;
 use super::vulnerabilities::TenableVulnerabilitiesCollector;
+use super::was::TenableWasCollector;
 
 pub struct TenableProviderFactory {
     client: TenableClient,
     site_name: String,
     selected: Vec<String>,
+    selected_scan_ids: Vec<i64>,
 }
 
 impl TenableProviderFactory {
-    pub fn new(client: TenableClient, site_name: String, selected: Vec<String>) -> Self {
+    pub fn new(
+        client: TenableClient,
+        site_name: String,
+        selected: Vec<String>,
+        selected_scan_ids: Vec<i64>,
+    ) -> Self {
         Self {
             client,
             site_name,
             selected,
+            selected_scan_ids,
         }
     }
 }
@@ -37,7 +46,14 @@ impl ProviderFactory for TenableProviderFactory {
         if self.selected.iter().any(|s| s == "tenable-vulns") {
             v.push(Box::new(TenableVulnerabilitiesCollector::new(
                 self.client.clone(),
+                self.selected_scan_ids.clone(),
             )));
+        }
+        if self.selected.iter().any(|s| s == "tenable-was") {
+            v.push(Box::new(TenableWasCollector::new(self.client.clone())));
+        }
+        if self.selected.iter().any(|s| s == "tenable-pci-asv") {
+            v.push(Box::new(TenablePciAsvCollector::new(self.client.clone())));
         }
         v
     }

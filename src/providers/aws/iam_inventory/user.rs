@@ -61,7 +61,7 @@ impl CsvCollector for IamUserCollector {
                 let created = super::fmt_iam_dt(user.create_date());
                 let pw_last = user
                     .password_last_used()
-                    .map(|d| super::fmt_iam_dt(d))
+                    .map(super::fmt_iam_dt)
                     .unwrap_or_else(|| "Never".to_string());
 
                 let mfa_enabled = match self.client.list_mfa_devices().user_name(&name).send().await

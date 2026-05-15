@@ -28,7 +28,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
         let key = if !cve_id.is_empty() {
             format!("{}|{}", cve_id, pkg_name)
         } else {
-            format!("arn:{}", row.get(0).map(|s| s.as_str()).unwrap_or(""))
+            format!("arn:{}", row.first().map(|s| s.as_str()).unwrap_or(""))
         };
         groups.entry(key).or_default().push(row);
     }
@@ -279,7 +279,7 @@ pub(super) fn dedup_ecr_image_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
         let cve_id = row.get(8).map(|s| s.as_str()).unwrap_or("");
         let pkg_name = row.get(15).map(|s| s.as_str()).unwrap_or("");
         let repo = row.get(23).map(|s| s.as_str()).unwrap_or("");
-        let arn = row.get(0).map(|s| s.as_str()).unwrap_or("");
+        let arn = row.first().map(|s| s.as_str()).unwrap_or("");
 
         let key = if !cve_id.is_empty() && !repo.is_empty() && !pkg_name.is_empty() {
             format!("repo_pkg:{}|{}|{}", cve_id, repo, pkg_name)
