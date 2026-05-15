@@ -63,7 +63,8 @@ pub struct App {
     pub scan_cursor: usize,
     pub scan_selected: HashSet<usize>, // indices into scan_list
     pub scan_filter: crate::tui::state::ScanTimeFilter,
-    pub selected_scan_ids: Vec<i64>, // committed on ScanSelection → Confirm
+    pub selected_scan_ids: Vec<i64>, // VM scan integer IDs committed on ScanSelection → Confirm
+    pub selected_was_scan_ids: Vec<String>, // WAS scan UUID strings committed on ScanSelection → Confirm
 
     // Options
     pub output_dir: TextInput,
@@ -257,6 +258,7 @@ impl App {
             scan_selected: HashSet::new(),
             scan_filter: crate::tui::state::ScanTimeFilter::default(),
             selected_scan_ids: Vec::new(),
+            selected_was_scan_ids: Vec::new(),
             output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,

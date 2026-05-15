@@ -69,6 +69,13 @@ impl TuiScan {
         }
     }
 
+    pub fn was_scan_id(&self) -> Option<&str> {
+        match self {
+            TuiScan::Vm(_) => None,
+            TuiScan::Was(s) => Some(&s.scan_id),
+        }
+    }
+
     pub fn is_vm(&self) -> bool {
         matches!(self, TuiScan::Vm(_))
     }

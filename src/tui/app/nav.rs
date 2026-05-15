@@ -59,6 +59,13 @@ impl App {
                         .filter_map(|&i| self.scan_list.get(i))
                         .filter_map(|s| s.vm_id())
                         .collect();
+                    self.selected_was_scan_ids = self
+                        .scan_selected
+                        .iter()
+                        .filter_map(|&i| self.scan_list.get(i))
+                        .filter_map(|s| s.was_scan_id())
+                        .map(String::from)
+                        .collect();
                 }
                 Screen::Confirm
             }
@@ -249,6 +256,7 @@ impl App {
         self.scan_selected.clear();
         self.scan_filter = crate::tui::state::ScanTimeFilter::default();
         self.selected_scan_ids.clear();
+        self.selected_was_scan_ids.clear();
         // scan_list intentionally preserved (pre-fetched once per session)
         self.poam_summary = None;
         self.selected_feature = Feature::Collectors;

@@ -639,6 +639,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         site_name.clone(),
                         selected_keys.clone(),
                         app.selected_scan_ids.clone(),
+                        app.selected_was_scan_ids.clone(),
                     );
                     let csv_cols = factory.csv_collectors();
                     let display_names: Vec<String> =

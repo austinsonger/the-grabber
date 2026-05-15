@@ -12,6 +12,7 @@ pub struct TenableProviderFactory {
     site_name: String,
     selected: Vec<String>,
     selected_scan_ids: Vec<i64>,
+    selected_was_scan_ids: Vec<String>,
 }
 
 impl TenableProviderFactory {
@@ -20,12 +21,14 @@ impl TenableProviderFactory {
         site_name: String,
         selected: Vec<String>,
         selected_scan_ids: Vec<i64>,
+        selected_was_scan_ids: Vec<String>,
     ) -> Self {
         Self {
             client,
             site_name,
             selected,
             selected_scan_ids,
+            selected_was_scan_ids,
         }
     }
 }
@@ -50,7 +53,10 @@ impl ProviderFactory for TenableProviderFactory {
             )));
         }
         if self.selected.iter().any(|s| s == "tenable-was") {
-            v.push(Box::new(TenableWasCollector::new(self.client.clone())));
+            v.push(Box::new(TenableWasCollector::new(
+                self.client.clone(),
+                self.selected_was_scan_ids.clone(),
+            )));
         }
         if self.selected.iter().any(|s| s == "tenable-pci-asv") {
             v.push(Box::new(TenablePciAsvCollector::new(self.client.clone())));
