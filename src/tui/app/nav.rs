@@ -54,7 +54,7 @@ impl App {
                         .scan_selected
                         .iter()
                         .filter_map(|&i| self.scan_list.get(i))
-                        .map(|s| s.id)
+                        .filter_map(|s| s.vm_id())
                         .collect();
                 }
                 Screen::Confirm

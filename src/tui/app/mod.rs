@@ -59,7 +59,7 @@ pub struct App {
 
     // ── Scan selection (Tenable only) ─────────────────────────────────────────
     #[cfg(feature = "tenable")]
-    pub scan_list: Vec<tenable_rs::types::scan::ScanSummary>,
+    pub scan_list: Vec<crate::tui::scan::TuiScan>,
     pub scan_cursor: usize,
     pub scan_selected: HashSet<usize>, // indices into scan_list
     pub scan_filter: crate::tui::state::ScanTimeFilter,

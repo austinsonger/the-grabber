@@ -6,12 +6,11 @@ use ratatui::Frame;
 
 use super::widgets::content_inset;
 use super::{
-    App, AMBER, BG_ELEVATED, BG_MAIN, BG_SELECTED, BORDER_SUBTLE, CYAN, GREEN, TEXT_BRIGHT,
-    TEXT_DIM, TEXT_NORMAL,
+    App, AMBER, BG_MAIN, BG_SELECTED, BORDER_SUBTLE, CYAN, GREEN, TEXT_BRIGHT, TEXT_DIM,
+    TEXT_NORMAL,
 };
 
 use crate::tui::state::ScanTimeFilter;
-use tenable_rs::types::scan::ScanStatus;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Scan Selection
@@ -127,35 +126,23 @@ pub(super) fn draw_scan_selection(f: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD)
         };
 
-        let status_str = match scan.status {
-            ScanStatus::Running => "RUNNING",
-            ScanStatus::Completed => "COMPLETED",
-            ScanStatus::Canceled => "CANCELED",
-            ScanStatus::Paused => "PAUSED",
-            ScanStatus::Pending => "PENDING",
-            ScanStatus::Stopping => "STOPPING",
-            ScanStatus::Unknown => "UNKNOWN",
-        };
-        let status_style = match scan.status {
-            ScanStatus::Running => Style::default().fg(CYAN),
-            ScanStatus::Completed => Style::default().fg(GREEN),
-            ScanStatus::Canceled | ScanStatus::Unknown => Style::default().fg(TEXT_DIM),
+        let status_str = scan.status_str();
+        let status_style = match scan.status_color_hint() {
+            "running" => Style::default().fg(CYAN),
+            "completed" => Style::default().fg(GREEN),
+            "canceled" => Style::default().fg(TEXT_DIM),
             _ => Style::default().fg(TEXT_NORMAL),
         };
 
-        let date_str = scan
-            .last_modification_date
-            .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0))
-            .map(|dt| dt.format("%Y-%m-%d").to_string())
-            .unwrap_or_default();
-
         items.push(ListItem::new(Line::from(vec![
             Span::styled(checkbox, checkbox_style),
-            Span::styled(&scan.name, name_style),
+            Span::styled(scan.display_name(), name_style),
             Span::styled("   ", Style::default()),
             Span::styled(status_str, status_style),
             Span::styled("   ", Style::default()),
-            Span::styled(date_str, Style::default().fg(TEXT_DIM)),
+            Span::styled(scan.date_str(), Style::default().fg(TEXT_DIM)),
+            Span::styled("   ", Style::default()),
+            Span::styled(scan.kind_label(), Style::default().fg(TEXT_DIM)),
         ])));
     }
 

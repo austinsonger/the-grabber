@@ -334,11 +334,23 @@ impl App {
             ScanTimeFilter::Past12Months => 365,
         };
         let cutoff = chrono::Utc::now().timestamp() - cutoff_days * 86400;
+
+        let selected = self.selected_collectors();
+        let show_vm = selected
+            .iter()
+            .any(|s| s == "tenable-vulns" || s == "tenable-pci-asv");
+        let show_was = selected.iter().any(|s| s == "tenable-was");
+        let show_all = !show_vm && !show_was;
+
         self.scan_list
             .iter()
             .enumerate()
             .filter(|(_, s)| {
-                s.last_modification_date
+                let type_ok = show_all || (show_vm && s.is_vm()) || (show_was && s.is_was());
+                if !type_ok {
+                    return false;
+                }
+                s.last_modified_timestamp()
                     .map(|ts| ts >= cutoff)
                     .unwrap_or(true)
             })

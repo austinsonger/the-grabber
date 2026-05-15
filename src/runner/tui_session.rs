@@ -28,6 +28,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
     #[cfg(feature = "tenable")]
     {
         use crate::providers::CloudProvider;
+        use crate::tui::scan::TuiScan;
         if let Some(acct) = app
             .accounts
             .iter()
@@ -44,9 +45,14 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     tenable_rs::TenableClient::tenable_sc(&base_url, &ak, &sk)
                 };
                 if let Ok(client) = client_result {
-                    if let Ok(scans) = client.scans().list().await {
-                        app.scan_list = scans;
+                    let mut combined: Vec<TuiScan> = Vec::new();
+                    if let Ok(vm_scans) = client.scans().list().await {
+                        combined.extend(vm_scans.into_iter().map(TuiScan::Vm));
                     }
+                    if let Ok(was_scans) = client.was().list_scans().await {
+                        combined.extend(was_scans.into_iter().map(TuiScan::Was));
+                    }
+                    app.scan_list = combined;
                 }
             }
         }
