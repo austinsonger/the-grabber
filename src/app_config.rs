@@ -72,15 +72,39 @@ pub struct CollectorConfig {
     pub enable_extra: Option<Vec<String>>,
 }
 
-/// A named AWS account that the tool can collect evidence from.
+/// Cloud provider tag for an account entry.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum CloudProvider {
+    Aws,
+    Azure,
+    Gcp,
+}
+
+impl Default for CloudProvider {
+    fn default() -> Self {
+        CloudProvider::Aws
+    }
+}
+
+fn default_provider() -> CloudProvider {
+    CloudProvider::Aws
+}
+
+/// A named cloud account that the tool can collect evidence from.
 ///
-/// Each account maps to an AWS CLI profile (typically an SSO role)
-/// and carries its own region, output directory, and collector
-/// override settings.
+/// Each account maps to credentials and carries its own region, output
+/// directory, and collector override settings.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Account {
     /// Human-readable display name (e.g. "Corporate Production").
     pub name: String,
+
+    /// Cloud provider for this account entry.  Defaults to `aws`.
+    #[serde(default = "default_provider")]
+    pub provider: CloudProvider,
+
+    // ── AWS ──────────────────────────────────────────────────────────────────
 
     /// AWS account ID, shown in the TUI for identification.
     pub account_id: Option<String>,
@@ -93,6 +117,16 @@ pub struct Account {
 
     /// Override the default region for this account.
     pub region: Option<String>,
+
+    // ── Azure ─────────────────────────────────────────────────────────────────
+
+    /// Azure Active Directory tenant ID (UUID).
+    pub tenant_id: Option<String>,
+
+    /// Azure subscription ID (UUID) to collect from.
+    pub subscription_id: Option<String>,
+
+    // ── Shared ────────────────────────────────────────────────────────────────
 
     /// Override the default output directory for this account.
     pub output_dir: Option<String>,

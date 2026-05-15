@@ -138,4 +138,7 @@ pub enum EvidenceSource {
     BackupApi,
     RdsApi,
     CloudTrailS3,
+    AzureActivityLog,
+    AzureSecurityCenter,
+    GcpAuditLog,
 }
