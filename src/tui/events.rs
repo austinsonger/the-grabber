@@ -66,6 +66,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::PoamYear => handle_poam_year(app, key),
         Screen::PoamMonth => handle_poam_month(app, key),
         Screen::SelectCollectors => handle_select_collectors(app, key),
+        Screen::ScanSelection => {}
         Screen::Inventory => handle_inventory(app, key),
         Screen::SetOptions => handle_set_options(app, key),
         Screen::Confirm => return handle_confirm(app, key),

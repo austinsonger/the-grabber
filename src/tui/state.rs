@@ -90,12 +90,20 @@ pub enum Screen {
     PoamYear,
     PoamMonth,
     SelectCollectors,
+    ScanSelection, // Tenable-only: pick which scans to include
     SetOptions,
     Confirm,
     /// Shown while building AWS SDK clients before collection starts.
     Preparing,
     Running,
     Results,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum ScanTimeFilter {
+    #[default]
+    Recent, // last 30 days
+    Past12Months, // last 365 days
 }
 
 // ---------------------------------------------------------------------------

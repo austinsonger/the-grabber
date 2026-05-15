@@ -41,6 +41,7 @@ impl App {
             Screen::PoamYear => Screen::PoamMonth,
             Screen::PoamMonth => Screen::Confirm,
             Screen::SelectCollectors => Screen::SetOptions,
+            Screen::ScanSelection => Screen::Confirm,
             Screen::SetOptions => Screen::Confirm,
             Screen::Confirm => Screen::Running,
             Screen::Preparing => Screen::Running,
@@ -94,6 +95,7 @@ impl App {
             Screen::PoamYear => Screen::PoamRegion,
             Screen::PoamMonth => Screen::PoamYear,
             Screen::SelectCollectors => Screen::SetDates,
+            Screen::ScanSelection => Screen::SelectCollectors,
             Screen::SetOptions => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,
                 Feature::Inventory => Screen::Inventory,

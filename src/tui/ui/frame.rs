@@ -81,6 +81,7 @@ pub(super) fn screen_to_step(
                     Screen::SetOptions => Some(3),
                     Screen::Confirm => Some(4),
                     Screen::Running => Some(5),
+                    Screen::ScanSelection => None,
                     _ => None,
                 }
             } else if has_accounts {
@@ -92,6 +93,7 @@ pub(super) fn screen_to_step(
                     Screen::SetOptions => Some(4),
                     Screen::Confirm => Some(5),
                     Screen::Running => Some(6),
+                    Screen::ScanSelection => None,
                     _ => None,
                 }
             } else {
@@ -104,6 +106,7 @@ pub(super) fn screen_to_step(
                     Screen::SetOptions => Some(5),
                     Screen::Confirm => Some(6),
                     Screen::Running => Some(7),
+                    Screen::ScanSelection => None,
                     _ => None,
                 }
             }
@@ -365,5 +368,6 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::Running => vec![],
         Screen::Results => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
         Screen::ProviderSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
+        Screen::ScanSelection => vec![],
     }
 }
