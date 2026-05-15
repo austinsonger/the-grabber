@@ -138,4 +138,5 @@ pub enum EvidenceSource {
     BackupApi,
     RdsApi,
     CloudTrailS3,
+    GcpAuditLog,
 }
