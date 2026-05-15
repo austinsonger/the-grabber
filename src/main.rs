@@ -2338,6 +2338,14 @@ async fn run_gcp_cli(cli: &Cli) -> Result<()> {
 
     let mut all_files: Vec<String> = Vec::new();
 
+    /// Convert a `CollectorOutcome` filename into an absolute path string.
+    fn outcome_to_path(outcome: &audit_log::CollectorOutcome, dir: &PathBuf) -> Option<String> {
+        outcome
+            .filename
+            .as_ref()
+            .map(|f| dir.join(f).to_string_lossy().into_owned())
+    }
+
     // CSV collectors
     let csv_outcomes = run_csv_collectors(
         &csv_collectors,
@@ -2348,11 +2356,7 @@ async fn run_gcp_cli(cli: &Cli) -> Result<()> {
         &timestamp,
     )
     .await?;
-    all_files.extend(
-        csv_outcomes
-            .iter()
-            .filter_map(|o| o.filename.as_ref().map(|f| output_dir.join(f).to_string_lossy().into_owned())),
-    );
+    all_files.extend(csv_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
 
     // JSON (snapshot) collectors
     let json_outcomes = run_json_inv_collectors(
@@ -2363,11 +2367,7 @@ async fn run_gcp_cli(cli: &Cli) -> Result<()> {
         &timestamp,
     )
     .await?;
-    all_files.extend(
-        json_outcomes
-            .iter()
-            .filter_map(|o| o.filename.as_ref().map(|f| output_dir.join(f).to_string_lossy().into_owned())),
-    );
+    all_files.extend(json_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
 
     // Evidence collectors (audit logs) — require a time window
     let evidence_collectors = factory.evidence_collectors();
@@ -2400,11 +2400,7 @@ async fn run_gcp_cli(cli: &Cli) -> Result<()> {
         let ev_outcomes =
             run_json_collectors(&evidence_collectors, &params, &region, &output_dir, &timestamp)
                 .await?;
-        all_files.extend(
-            ev_outcomes
-                .iter()
-                .filter_map(|o| o.filename.as_ref().map(|f| output_dir.join(f).to_string_lossy().into_owned())),
-        );
+        all_files.extend(ev_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
     }
 
     if cli.zip && !all_files.is_empty() {

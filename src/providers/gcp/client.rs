@@ -14,7 +14,7 @@ use anyhow::{Context, Result};
 use google_cloud_auth::project::Config as AuthConfig;
 use google_cloud_auth::token::DefaultTokenSourceProvider;
 use google_cloud_token::{TokenSource, TokenSourceProvider};
-use reqwest::{Client as HttpClient, Response, StatusCode};
+use reqwest::{Client as HttpClient, Response};
 use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::RwLock;
@@ -230,7 +230,7 @@ impl GcpClient {
             }
 
             let resp = self.post(url, &req).await?;
-            let status: StatusCode = resp.status();
+            let status = resp.status();
             let resp_body: Value = resp
                 .json()
                 .await
