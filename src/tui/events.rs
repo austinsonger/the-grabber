@@ -71,7 +71,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::Confirm => return handle_confirm(app, key),
         Screen::Running | Screen::Preparing => {}
         Screen::Results => return handle_results(app, key),
-        Screen::ProviderSelection => {}
+        Screen::ProviderSelection => handle_provider_selection(app, key),
     }
 
     let _ = modifiers;
@@ -110,6 +110,9 @@ fn handle_feature_selection(app: &mut App, key: KeyCode) {
 }
 
 fn handle_select_account(app: &mut App, key: KeyCode) {
+    let indices = app.provider_account_indices();
+    let filtered_len = indices.len();
+
     match key {
         KeyCode::Up => {
             if app.account_cursor > 0 {
@@ -117,26 +120,26 @@ fn handle_select_account(app: &mut App, key: KeyCode) {
             }
         }
         KeyCode::Down => {
-            let max = app.accounts.len();
-            if app.account_cursor < max {
+            if app.account_cursor < filtered_len {
                 app.account_cursor += 1;
             }
         }
         KeyCode::Char(' ') => {
-            let i = app.account_cursor;
-            if i < app.accounts.len() {
-                if app.selected_accounts.contains(&i) {
-                    app.selected_accounts.remove(&i);
+            if app.account_cursor < filtered_len {
+                let real = indices[app.account_cursor];
+                if app.selected_accounts.contains(&real) {
+                    app.selected_accounts.remove(&real);
                 } else {
-                    app.selected_accounts.insert(i);
+                    app.selected_accounts.insert(real);
                 }
             } else {
+                // "Other" — fall back to legacy profile picker
                 app.selected_accounts.clear();
                 app.screen = Screen::SelectProfile;
             }
         }
         KeyCode::Char('a') => {
-            for i in 0..app.accounts.len() {
+            for &i in &indices {
                 app.selected_accounts.insert(i);
             }
         }
@@ -144,12 +147,12 @@ fn handle_select_account(app: &mut App, key: KeyCode) {
             app.selected_accounts.clear();
         }
         KeyCode::Enter => {
-            if app.account_cursor == app.accounts.len() {
+            if app.account_cursor == filtered_len {
                 app.selected_accounts.clear();
                 app.screen = Screen::SelectProfile;
             } else {
                 if app.selected_accounts.is_empty() {
-                    app.selected_accounts.insert(app.account_cursor);
+                    app.selected_accounts.insert(indices[app.account_cursor]);
                 }
                 if app.validate_current() {
                     app.next_screen();
@@ -609,5 +612,40 @@ fn handle_results(_app: &mut App, key: KeyCode) -> Action {
         KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
         KeyCode::Char('n') => Action::NewCollection,
         _ => Action::Continue,
+    }
+}
+
+fn handle_provider_selection(app: &mut App, key: KeyCode) {
+    use crate::providers::CloudProvider;
+    let providers: Vec<CloudProvider> = {
+        let mut v = vec![CloudProvider::Aws];
+        #[cfg(feature = "azure")]
+        v.push(CloudProvider::Azure);
+        #[cfg(feature = "gcp")]
+        v.push(CloudProvider::Gcp);
+        #[cfg(feature = "tenable")]
+        v.push(CloudProvider::Tenable);
+        v
+    };
+    match key {
+        KeyCode::Up => {
+            if app.provider_cursor > 0 {
+                app.provider_cursor -= 1;
+                app.selected_provider = providers[app.provider_cursor];
+            }
+        }
+        KeyCode::Down => {
+            if app.provider_cursor + 1 < providers.len() {
+                app.provider_cursor += 1;
+                app.selected_provider = providers[app.provider_cursor];
+            }
+        }
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            if app.validate_current() {
+                app.next_screen();
+            }
+        }
+        KeyCode::Esc => app.prev_screen(),
+        _ => {}
     }
 }
