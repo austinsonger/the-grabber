@@ -363,7 +363,7 @@ fn sanitized_cli_args() -> String {
     let mut args = std::env::args().peekable();
     let mut out: Vec<String> = Vec::new();
     let mut redact_next = false;
-    while let Some(arg) = args.next() {
+    for arg in args {
         if redact_next {
             out.push("<redacted>".to_string());
             redact_next = false;

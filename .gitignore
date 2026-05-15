@@ -41,3 +41,6 @@ evidence-output/production/evidence-collection.log
 evidence-output/operations/evidence-collection.log
 evidence-output/master/evidence-collection.log
 evidence-output/development/evidence-collection.log
+
+# Tenable credentials — never commit
+tenable-config.toml
