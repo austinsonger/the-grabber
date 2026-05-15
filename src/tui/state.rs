@@ -111,7 +111,7 @@ pub enum ScanTimeFilter {
 // ---------------------------------------------------------------------------
 
 pub const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
-    (0, "App Layer & DNS"),
+    (0, "App & Network Services"),
     (6, "Audit Trail"),
     (23, "Compute"),
     (37, "Containers"),

@@ -5,7 +5,7 @@
 use crate::providers::CloudProvider;
 
 pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
-    // ── App Layer & DNS ── (0..6)
+    // ── App & Network Services ── (0..6)
     (
         "api-gateway",
         "API Gateway              ",
