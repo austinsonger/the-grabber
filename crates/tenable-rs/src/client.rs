@@ -7,11 +7,12 @@ use crate::error::TenableError;
 use crate::export::{check_response, ExportJob, ExportStarted};
 
 const DEFAULT_RETRY_AFTER_SECS: u64 = 60;
+const MAX_RETRIES: u32 = 5;
 
 /// Thin async HTTP client for the Tenable REST API.
 ///
-/// Injects `X-ApiKeys` auth headers on every request and transparently handles
-/// 429 rate-limit responses with a single retry after the `Retry-After` delay.
+/// Injects `X-ApiKeys` auth headers on every request and transparently retries
+/// 429 rate-limit responses with exponential backoff (up to 5 retries, honouring `Retry-After`).
 ///
 /// `TenableClient` is cheaply cloneable — `reqwest::Client` wraps an arc-pooled
 /// connection pool. Build one instance and clone into each collector.
@@ -54,32 +55,39 @@ impl TenableClient {
         format!("{}{}", self.base_url, path)
     }
 
-    /// Execute a GET request, retrying once on 429.
-    pub(crate) async fn get(&self, path: &str) -> Result<reqwest::Response, TenableError> {
-        let url = self.url(path);
-        let resp = self.http.get(&url).send().await?;
-        if resp.status() == 429 {
-            let retry_after = parse_retry_after(&resp);
-            sleep(Duration::from_secs(retry_after)).await;
-            return Ok(self.http.get(&url).send().await?);
+    async fn send_with_retry<F, Fut>(&self, make_req: F) -> Result<reqwest::Response, TenableError>
+    where
+        F: Fn() -> Fut,
+        Fut: std::future::Future<Output = Result<reqwest::Response, reqwest::Error>>,
+    {
+        let mut backoff = 1u64;
+        for attempt in 0..=MAX_RETRIES {
+            let resp = make_req().await?;
+            if resp.status() != 429 || attempt == MAX_RETRIES {
+                return Ok(resp);
+            }
+            let wait = parse_retry_after(&resp).max(backoff);
+            sleep(Duration::from_secs(wait)).await;
+            backoff = (backoff * 2).min(DEFAULT_RETRY_AFTER_SECS);
         }
-        Ok(resp)
+        unreachable!()
     }
 
-    /// Execute a POST request with a JSON body, retrying once on 429.
+    /// Execute a GET request, retrying up to 5 times on 429 with exponential backoff.
+    pub(crate) async fn get(&self, path: &str) -> Result<reqwest::Response, TenableError> {
+        let url = self.url(path);
+        self.send_with_retry(|| self.http.get(&url).send()).await
+    }
+
+    /// Execute a POST request with a JSON body, retrying up to 5 times on 429 with exponential backoff.
     pub(crate) async fn post(
         &self,
         path: &str,
         body: &serde_json::Value,
     ) -> Result<reqwest::Response, TenableError> {
         let url = self.url(path);
-        let resp = self.http.post(&url).json(body).send().await?;
-        if resp.status() == 429 {
-            let retry_after = parse_retry_after(&resp);
-            sleep(Duration::from_secs(retry_after)).await;
-            return Ok(self.http.post(&url).json(body).send().await?);
-        }
-        Ok(resp)
+        self.send_with_retry(|| self.http.post(&url).json(body).send())
+            .await
     }
 
     pub fn vulns(&self) -> VulnsApi<'_> {
