@@ -528,6 +528,16 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "PCI ASV Compliance       ",
         CloudProvider::Tenable,
     ),
+    (
+        "tenable-assets",
+        "Asset Inventory          ",
+        CloudProvider::Tenable,
+    ),
+    (
+        "tenable-compliance",
+        "Compliance Findings      ",
+        CloudProvider::Tenable,
+    ),
 ];
 
 // ---------------------------------------------------------------------------

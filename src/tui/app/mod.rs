@@ -146,6 +146,8 @@ impl App {
             "tenable-vulns",
             "tenable-was",
             "tenable-pci-asv",
+            "tenable-assets",
+            "tenable-compliance",
         ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {

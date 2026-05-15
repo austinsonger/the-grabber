@@ -3,6 +3,8 @@ use tenable_rs::TenableClient;
 use crate::evidence::{CsvCollector, EvidenceCollector, JsonCollector};
 use crate::providers::{CloudProvider, ProviderFactory};
 
+use super::assets::TenableAssetsCollector;
+use super::compliance::TenableComplianceCollector;
 use super::pci_asv::TenablePciAsvCollector;
 use super::vulnerabilities::TenableVulnerabilitiesCollector;
 use super::was::TenableWasCollector;
@@ -60,6 +62,14 @@ impl ProviderFactory for TenableProviderFactory {
         }
         if self.selected.iter().any(|s| s == "tenable-pci-asv") {
             v.push(Box::new(TenablePciAsvCollector::new(self.client.clone())));
+        }
+        if self.selected.iter().any(|s| s == "tenable-assets") {
+            v.push(Box::new(TenableAssetsCollector::new(self.client.clone())));
+        }
+        if self.selected.iter().any(|s| s == "tenable-compliance") {
+            v.push(Box::new(TenableComplianceCollector::new(
+                self.client.clone(),
+            )));
         }
         v
     }
