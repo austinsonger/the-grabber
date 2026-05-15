@@ -13,6 +13,7 @@ mod options;
 mod poam_screens;
 mod results;
 mod running;
+mod scan_selection;
 mod setup;
 pub(super) mod theme;
 mod widgets;
@@ -131,7 +132,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::SetDates => setup::draw_dates(f, content, app),
         Screen::Inventory => setup::draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => collectors::draw_collectors(f, content, app),
-        Screen::ScanSelection => {}
+        Screen::ScanSelection => scan_selection::draw_scan_selection(f, content, app),
 
         Screen::SetOptions => options::draw_options(f, content, app),
         Screen::Confirm => confirm::draw_confirm(f, content, app),

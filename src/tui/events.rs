@@ -66,7 +66,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::PoamYear => handle_poam_year(app, key),
         Screen::PoamMonth => handle_poam_month(app, key),
         Screen::SelectCollectors => handle_select_collectors(app, key),
-        Screen::ScanSelection => {}
+        Screen::ScanSelection => handle_scan_selection(app, key),
         Screen::Inventory => handle_inventory(app, key),
         Screen::SetOptions => handle_set_options(app, key),
         Screen::Confirm => return handle_confirm(app, key),
@@ -613,6 +613,49 @@ fn handle_results(_app: &mut App, key: KeyCode) -> Action {
         KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
         KeyCode::Char('n') => Action::NewCollection,
         _ => Action::Continue,
+    }
+}
+
+fn handle_scan_selection(app: &mut App, key: KeyCode) {
+    use crate::tui::state::ScanTimeFilter;
+
+    let visible = app.visible_scans();
+
+    match key {
+        KeyCode::Up => {
+            if app.scan_cursor > 0 {
+                app.scan_cursor -= 1;
+            }
+        }
+        KeyCode::Down => {
+            if app.scan_cursor + 1 < visible.len() {
+                app.scan_cursor += 1;
+            }
+        }
+        KeyCode::Tab => {
+            app.scan_filter = match app.scan_filter {
+                ScanTimeFilter::Recent => ScanTimeFilter::Past12Months,
+                ScanTimeFilter::Past12Months => ScanTimeFilter::Recent,
+            };
+            app.scan_cursor = 0;
+            app.scan_selected.clear();
+        }
+        KeyCode::Char(' ') => {
+            if let Some(&real_idx) = visible.get(app.scan_cursor) {
+                if app.scan_selected.contains(&real_idx) {
+                    app.scan_selected.remove(&real_idx);
+                } else {
+                    app.scan_selected.insert(real_idx);
+                }
+            }
+        }
+        KeyCode::Enter => {
+            if app.validate_current() {
+                app.next_screen();
+            }
+        }
+        KeyCode::Esc => app.prev_screen(),
+        _ => {}
     }
 }
 

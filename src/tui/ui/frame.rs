@@ -37,14 +37,7 @@ pub(super) const STEPS_PROVIDER_LEGACY: &[&str] = &[
 ];
 
 // Feature::Collectors — Tenable (skips account screen, skips profile/region)
-pub(super) const STEPS_TENABLE: &[&str] = &[
-    "Provider",
-    "Dates",
-    "Collectors",
-    "Options",
-    "Confirm",
-    "Run",
-];
+pub(super) const STEPS_TENABLE: &[&str] = &["Provider", "Collectors", "Scans", "Confirm", "Run"];
 pub(super) const STEPS_INV_ACCOUNTS: &[&str] =
     &["Account", "Dates", "Inventory", "Options", "Confirm", "Run"];
 pub(super) const STEPS_INV_LEGACY: &[&str] = &[
@@ -74,12 +67,10 @@ pub(super) fn screen_to_step(
             if selected_provider == crate::providers::CloudProvider::Tenable {
                 match screen {
                     Screen::ProviderSelection => Some(0),
-                    Screen::SetDates => Some(1),
-                    Screen::SelectCollectors => Some(2),
-                    Screen::SetOptions => Some(3),
-                    Screen::Confirm => Some(4),
-                    Screen::Running => Some(5),
-                    Screen::ScanSelection => None,
+                    Screen::SelectCollectors => Some(1),
+                    Screen::ScanSelection => Some(2),
+                    Screen::Confirm => Some(3),
+                    Screen::Running => Some(4),
                     _ => None,
                 }
             } else if has_accounts {
@@ -366,6 +357,13 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::Running => vec![],
         Screen::Results => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
         Screen::ProviderSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
-        Screen::ScanSelection => vec![],
+        Screen::ScanSelection => vec![
+            ("↑↓", "Navigate"),
+            ("␣", "Toggle"),
+            ("a", "Select All"),
+            ("d", "Deselect All"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
     }
 }

@@ -23,6 +23,35 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
     let profiles = read_aws_profiles();
     let mut app = App::new(profiles);
 
+    // Pre-populate scan list so the ScanSelection screen has data ready.
+    // Uses the first configured Tenable account's credentials.
+    #[cfg(feature = "tenable")]
+    {
+        use crate::providers::CloudProvider;
+        if let Some(acct) = app
+            .accounts
+            .iter()
+            .find(|a| a.provider == CloudProvider::Tenable)
+        {
+            if let (Some(ak), Some(sk)) = (
+                acct.tenable_access_key_resolved(),
+                acct.tenable_secret_key_resolved(),
+            ) {
+                let base_url = acct.tenable_url_resolved();
+                let client_result = if base_url == "https://cloud.tenable.com" {
+                    tenable_rs::TenableClient::tenable_io(&ak, &sk)
+                } else {
+                    tenable_rs::TenableClient::tenable_sc(&base_url, &ak, &sk)
+                };
+                if let Ok(client) = client_result {
+                    if let Ok(scans) = client.scans().list().await {
+                        app.scan_list = scans;
+                    }
+                }
+            }
+        }
+    }
+
     loop {
         app = match run_tui(app)? {
             None => {
@@ -75,26 +104,40 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
         }
         {
             // Build params from what the user configured in the TUI.
-            let start = NaiveDate::parse_from_str(&app.start_date.value, "%Y-%m-%d")
-                .context("invalid start date from TUI")?
-                .and_hms_opt(0, 0, 0)
-                .expect("valid midnight time")
-                .and_utc();
-            let end = NaiveDate::parse_from_str(&app.end_date.value, "%Y-%m-%d")
-                .context("invalid end date from TUI")?
-                .and_hms_opt(23, 59, 59)
-                .expect("valid end-of-day time")
-                .and_utc();
+            #[cfg(feature = "tenable")]
+            let is_tenable = app.selected_provider == crate::providers::CloudProvider::Tenable;
+            #[cfg(not(feature = "tenable"))]
+            let is_tenable = false;
 
-            let params = CollectParams {
-                start_time: start,
-                end_time: end,
-                filter: if app.filter_input.value.is_empty() {
-                    None
-                } else {
-                    Some(app.filter_input.value.clone())
-                },
-                include_raw: app.include_raw,
+            let params = if is_tenable {
+                // Tenable uses scan selection instead of date ranges; provide a sentinel.
+                crate::evidence::CollectParams {
+                    start_time: chrono::Utc::now(),
+                    end_time: chrono::Utc::now(),
+                    filter: None,
+                    include_raw: false,
+                }
+            } else {
+                let start = NaiveDate::parse_from_str(&app.start_date.value, "%Y-%m-%d")
+                    .context("invalid start date from TUI")?
+                    .and_hms_opt(0, 0, 0)
+                    .expect("valid midnight time")
+                    .and_utc();
+                let end = NaiveDate::parse_from_str(&app.end_date.value, "%Y-%m-%d")
+                    .context("invalid end date from TUI")?
+                    .and_hms_opt(23, 59, 59)
+                    .expect("valid end-of-day time")
+                    .and_utc();
+                crate::evidence::CollectParams {
+                    start_time: start,
+                    end_time: end,
+                    filter: if app.filter_input.value.is_empty() {
+                        None
+                    } else {
+                        Some(app.filter_input.value.clone())
+                    },
+                    include_raw: app.include_raw,
+                }
             };
 
             let base_output_path = if app.output_dir.value.is_empty() {
@@ -589,7 +632,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         client,
                         site_name.clone(),
                         selected_keys.clone(),
-                        Vec::new(), // scan ID filter — empty means export all scans
+                        app.selected_scan_ids.clone(),
                     );
                     let csv_cols = factory.csv_collectors();
                     let display_names: Vec<String> =

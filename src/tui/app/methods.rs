@@ -325,6 +325,31 @@ impl App {
             }
         }
     }
+
+    #[cfg(feature = "tenable")]
+    pub fn visible_scans(&self) -> Vec<usize> {
+        use crate::tui::state::ScanTimeFilter;
+        let cutoff_days: i64 = match self.scan_filter {
+            ScanTimeFilter::Recent => 30,
+            ScanTimeFilter::Past12Months => 365,
+        };
+        let cutoff = chrono::Utc::now().timestamp() - cutoff_days * 86400;
+        self.scan_list
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| {
+                s.last_modification_date
+                    .map(|ts| ts >= cutoff)
+                    .unwrap_or(true)
+            })
+            .map(|(i, _)| i)
+            .collect()
+    }
+
+    #[cfg(not(feature = "tenable"))]
+    pub fn visible_scans(&self) -> Vec<usize> {
+        Vec::new()
+    }
 }
 
 use crate::tui::state::TextInput;
