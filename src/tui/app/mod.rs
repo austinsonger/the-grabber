@@ -57,6 +57,14 @@ pub struct App {
     pub collector_focus: CollectorFocus,
     pub collector_search: TextInput,
 
+    // ── Scan selection (Tenable only) ─────────────────────────────────────────
+    #[cfg(feature = "tenable")]
+    pub scan_list: Vec<tenable_rs::types::scan::ScanSummary>,
+    pub scan_cursor: usize,
+    pub scan_selected: HashSet<usize>, // indices into scan_list
+    pub scan_filter: crate::tui::state::ScanTimeFilter,
+    pub selected_scan_ids: Vec<i64>, // committed on ScanSelection → Confirm
+
     // Options
     pub output_dir: TextInput,
     pub filter_input: TextInput,
@@ -240,6 +248,12 @@ impl App {
             collector_category_cursor: 0,
             collector_focus: CollectorFocus::Categories,
             collector_search: TextInput::default(),
+            #[cfg(feature = "tenable")]
+            scan_list: Vec::new(),
+            scan_cursor: 0,
+            scan_selected: HashSet::new(),
+            scan_filter: crate::tui::state::ScanTimeFilter::default(),
+            selected_scan_ids: Vec::new(),
             output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,

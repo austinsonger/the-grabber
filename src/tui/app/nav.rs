@@ -208,6 +208,11 @@ impl App {
         self.collector_category_cursor = 0;
         self.collector_focus = CollectorFocus::Categories;
         self.collector_search.clear();
+        self.scan_cursor = 0;
+        self.scan_selected.clear();
+        self.scan_filter = crate::tui::state::ScanTimeFilter::default();
+        self.selected_scan_ids.clear();
+        // scan_list intentionally preserved (pre-fetched once per session)
         self.poam_summary = None;
         self.selected_feature = Feature::Collectors;
         self.selected_provider = CloudProvider::Aws;
