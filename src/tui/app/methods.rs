@@ -1,3 +1,4 @@
+use crate::providers::CloudProvider;
 use crate::tui::state::COLLECTOR_CATEGORIES;
 
 use super::App;
@@ -297,6 +298,17 @@ impl App {
         let start = today - chrono::Months::new(self.time_frame_months());
         self.start_date = TextInput::new(&start.format("%Y-%m-%d").to_string());
         self.end_date = TextInput::new(&today.format("%Y-%m-%d").to_string());
+    }
+
+    /// Auto-select all TOML accounts that match `selected_provider`.
+    /// Called when navigating past ProviderSelection for Tenable (which skips SelectAccount).
+    pub fn auto_select_provider_accounts(&mut self) {
+        self.selected_accounts.clear();
+        for (i, acct) in self.accounts.iter().enumerate() {
+            if acct.provider == self.selected_provider {
+                self.selected_accounts.insert(i);
+            }
+        }
     }
 }
 

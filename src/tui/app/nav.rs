@@ -18,7 +18,8 @@ impl App {
                         Screen::PoamRegion
                     }
                 }
-                _ => {
+                Feature::Collectors => Screen::ProviderSelection,
+                Feature::Inventory => {
                     if self.has_accounts() {
                         Screen::SelectAccount
                     } else {
@@ -45,7 +46,16 @@ impl App {
             Screen::Preparing => Screen::Running,
             Screen::Running => Screen::Results,
             Screen::Results => Screen::Results,
-            Screen::ProviderSelection => Screen::FeatureSelection,
+            Screen::ProviderSelection => {
+                if self.selected_provider == CloudProvider::Tenable {
+                    self.auto_select_provider_accounts();
+                    Screen::SetDates
+                } else if self.has_accounts() {
+                    Screen::SelectAccount
+                } else {
+                    Screen::SelectProfile
+                }
+            }
         };
     }
 
@@ -53,17 +63,20 @@ impl App {
         self.error_msg = None;
         self.screen = match self.screen {
             Screen::FeatureSelection => Screen::Welcome,
-            Screen::SelectAccount => Screen::FeatureSelection,
+            Screen::ProviderSelection => Screen::FeatureSelection,
+            Screen::SelectAccount => Screen::ProviderSelection,
             Screen::SelectProfile => {
                 if self.has_accounts() {
-                    Screen::SelectAccount
+                    Screen::ProviderSelection
                 } else {
                     Screen::FeatureSelection
                 }
             }
             Screen::SelectRegion => Screen::SelectProfile,
             Screen::SetDates => {
-                if self.has_accounts() {
+                if self.selected_provider == CloudProvider::Tenable {
+                    Screen::ProviderSelection
+                } else if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
                     Screen::SelectRegion

@@ -426,4 +426,29 @@ mod tests {
         ));
         assert_eq!(app.provider_cursor, 0);
     }
+
+    #[test]
+    fn feature_collectors_goes_to_provider_selection() {
+        let mut app = make_app();
+        app.screen = crate::tui::Screen::FeatureSelection;
+        app.selected_feature = Feature::Collectors;
+        app.next_screen();
+        assert_eq!(app.screen, crate::tui::Screen::ProviderSelection);
+    }
+
+    #[test]
+    fn provider_selection_prev_goes_to_feature_selection() {
+        let mut app = make_app();
+        app.screen = crate::tui::Screen::ProviderSelection;
+        app.prev_screen();
+        assert_eq!(app.screen, crate::tui::Screen::FeatureSelection);
+    }
+
+    #[test]
+    fn select_account_prev_goes_to_provider_selection() {
+        let mut app = make_app();
+        app.screen = crate::tui::Screen::SelectAccount;
+        app.prev_screen();
+        assert_eq!(app.screen, crate::tui::Screen::ProviderSelection);
+    }
 }
