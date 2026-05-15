@@ -128,9 +128,34 @@ impl App {
                 true
             }
             Screen::SelectCollectors => {
-                if self.collector_selected.is_empty() {
+                // At least one visible (provider-matching) collector must be selected.
+                let any_provider_selected = self.collector_selected.iter().any(|&i| {
+                    self.collector_items
+                        .get(i)
+                        .map(|(_, _, p)| {
+                            self.selected_feature != Feature::Collectors
+                                || *p == self.selected_provider
+                        })
+                        .unwrap_or(false)
+                });
+                if !any_provider_selected {
                     self.error_msg = Some("Select at least one collector (Space to toggle)".into());
                     return false;
+                }
+                true
+            }
+            Screen::ProviderSelection => {
+                #[cfg(feature = "tenable")]
+                if self.selected_provider == CloudProvider::Tenable {
+                    let has_tenable = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::Tenable);
+                    if !has_tenable {
+                        self.error_msg =
+                            Some("No Tenable accounts configured in grabber.toml".into());
+                        return false;
+                    }
                 }
                 true
             }

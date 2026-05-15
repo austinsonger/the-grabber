@@ -530,8 +530,6 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     v.sort();
                     v
                 };
-                let multi_for_path = sorted_all.len() > 1;
-
                 for &idx in &sorted_all {
                     if app.accounts[idx].provider != crate::providers::CloudProvider::Tenable {
                         continue;
@@ -596,16 +594,15 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     let display_names: Vec<String> =
                         csv_cols.iter().map(|c| c.name().to_string()).collect();
 
-                    let output_path = if multi_for_path {
-                        Some(
-                            base_output_path
-                                .clone()
-                                .unwrap_or_else(|| PathBuf::from("."))
-                                .join(&site_name),
-                        )
-                    } else {
-                        base_output_path.clone()
-                    };
+                    // Always include site_name so the final layout is:
+                    // {base_output_dir}/{site_name}/{YYYY}/{MM-MMM}/
+                    // (date_path_suffix() is appended by run_accounts in multi_account.rs)
+                    let output_path = Some(
+                        base_output_path
+                            .clone()
+                            .unwrap_or_else(|| PathBuf::from("."))
+                            .join(&site_name),
+                    );
 
                     prepared.push(crate::runner::multi_account::AccountCollectors {
                         account_id: site_name.clone(),

@@ -297,11 +297,16 @@ mod tests {
 
     #[test]
     fn search_empty_matches_all_items() {
+        // With default AWS provider, all AWS items match and the single Tenable
+        // item (index 127) is filtered out by the provider filter.
         let app = make_app();
         for i in 0..app.collector_items.len() {
-            assert!(
+            let (_, _, provider) = &app.collector_items[i];
+            let is_provider_match = *provider == crate::providers::CloudProvider::Aws;
+            assert_eq!(
                 app.search_matches_item(i),
-                "item {i} should match empty search"
+                is_provider_match,
+                "item {i} provider-match expected={is_provider_match}"
             );
         }
     }
@@ -339,10 +344,22 @@ mod tests {
 
     #[test]
     fn visible_categories_empty_search_returns_all() {
+        // With the default AWS provider, the "Security Scanning" category (index 12)
+        // contains only the Tenable item, so it is hidden. All other 12 categories
+        // are visible.
         let app = make_app();
         let visible = app.visible_categories();
-        assert_eq!(visible.len(), COLLECTOR_CATEGORIES.len());
-        assert_eq!(visible, (0..COLLECTOR_CATEGORIES.len()).collect::<Vec<_>>());
+        // 13 categories total; 1 is Tenable-only → 12 visible for AWS
+        assert_eq!(visible.len(), COLLECTOR_CATEGORIES.len() - 1);
+        // Category 12 ("Security Scanning") must not be visible for AWS provider
+        assert!(!visible.contains(&12));
+        // All other categories must be visible
+        for cat_idx in 0..12 {
+            assert!(
+                visible.contains(&cat_idx),
+                "category {cat_idx} should be visible for AWS provider"
+            );
+        }
     }
 
     #[test]
@@ -409,6 +426,28 @@ mod tests {
         // No-op when search is empty — all categories visible
         assert_eq!(app.collector_category_cursor, 5);
         assert_eq!(app.collector_cursor, 50);
+    }
+
+    #[test]
+    fn tenable_provider_hides_aws_collectors() {
+        let mut app = make_app();
+        app.selected_feature = Feature::Collectors;
+        app.selected_provider = crate::providers::CloudProvider::Tenable;
+        // item 0 is "api-gateway" (CloudProvider::Aws) — must not match
+        assert!(!app.search_matches_item(0));
+        // item 127 is "tenable-vulns" (CloudProvider::Tenable) — must match
+        assert!(app.search_matches_item(127));
+    }
+
+    #[test]
+    fn aws_provider_hides_tenable_collectors() {
+        let mut app = make_app();
+        app.selected_feature = Feature::Collectors;
+        app.selected_provider = crate::providers::CloudProvider::Aws;
+        // item 127 is "tenable-vulns" — must not match when AWS selected
+        assert!(!app.search_matches_item(127));
+        // item 0 is "api-gateway" (Aws) — must match
+        assert!(app.search_matches_item(0));
     }
 
     #[test]

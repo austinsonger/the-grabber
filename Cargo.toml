@@ -84,7 +84,7 @@ google-cloud-auth = { version = "0.7", optional = true }
 tenable-rs = { path = "crates/tenable-rs", optional = true }
 
 [features]
-default = []
+default = ["tenable"]
 azure   = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
 gcp     = ["dep:google-cloud-auth"]
 tenable = ["dep:tenable-rs"]

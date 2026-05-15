@@ -140,7 +140,13 @@ pub async fn run_tui_multi_account(
                     .clone()
                     .unwrap_or_else(|| PathBuf::from("."));
                 if !is_inventory_mode && acct.discovered_regions.is_empty() {
-                    base.join(&acct.region).join(date_path_suffix())
+                    if acct.region.is_empty() {
+                        // Tenable (and any future regionless provider): site_name is already
+                        // embedded in `base` via output_path; just append the date hierarchy.
+                        base.join(date_path_suffix())
+                    } else {
+                        base.join(&acct.region).join(date_path_suffix())
+                    }
                 } else {
                     base
                 }

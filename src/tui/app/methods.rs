@@ -1,5 +1,5 @@
 use crate::providers::CloudProvider;
-use crate::tui::state::COLLECTOR_CATEGORIES;
+use crate::tui::state::{Feature, COLLECTOR_CATEGORIES};
 
 use super::App;
 
@@ -157,15 +157,31 @@ impl App {
         }
     }
 
-    /// True when `global_idx` passes the current collector search filter.
-    /// Always true when the search value is empty.
+    /// True when `global_idx` passes both the provider filter and the current
+    /// collector search filter.
     pub fn search_matches_item(&self, global_idx: usize) -> bool {
+        let (key, label, provider) = &self.collector_items[global_idx];
+        // Provider filter: only show collectors for the selected provider (Collectors feature only).
+        if self.selected_feature == Feature::Collectors && *provider != self.selected_provider {
+            return false;
+        }
+        // Search filter
         let term = self.collector_search.value.to_lowercase();
         if term.is_empty() {
             return true;
         }
-        let (key, label, _) = &self.collector_items[global_idx];
         key.to_lowercase().contains(&term) || label.to_lowercase().contains(&term)
+    }
+
+    /// Returns raw indices into `self.accounts` matching `self.selected_provider`.
+    /// Used by SelectAccount UI and event handler to show only provider-relevant accounts.
+    pub fn provider_account_indices(&self) -> Vec<usize> {
+        self.accounts
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| a.provider == self.selected_provider)
+            .map(|(i, _)| i)
+            .collect()
     }
 
     /// Returns indices of categories that contain at least one item matching the
