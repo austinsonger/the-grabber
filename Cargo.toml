@@ -68,5 +68,62 @@ dirs-next = "2"
 libc = "0.2"
 calamine = "0.26"
 
+[features]
+azure = [
+    "dep:azure_core",
+    "dep:azure_identity",
+    "dep:azure_mgmt_containerregistry",
+    "dep:azure_mgmt_web",
+    "dep:azure_mgmt_security",
+    "dep:azure_mgmt_keyvault",
+    "dep:azure_mgmt_policyinsights",
+    "dep:azure_mgmt_network",
+    "dep:azure_mgmt_monitor",
+    "dep:futures",
+]
+
+[dependencies.azure_core]
+version = "0.21"
+features = ["enable_reqwest"]
+optional = true
+
+[dependencies.azure_identity]
+version = "0.21"
+optional = true
+
+[dependencies.azure_mgmt_containerregistry]
+version = "0.21"
+optional = true
+
+[dependencies.azure_mgmt_web]
+version = "0.21"
+optional = true
+
+[dependencies.azure_mgmt_security]
+version = "0.21"
+optional = true
+
+[dependencies.azure_mgmt_keyvault]
+version = "0.21"
+optional = true
+
+[dependencies.azure_mgmt_policyinsights]
+version = "0.21"
+optional = true
+
+[dependencies.azure_mgmt_network]
+version = "0.21"
+optional = true
+
+[dependencies.azure_mgmt_monitor]
+version = "0.21"
+features = ["package-preview-2023-09"]
+default-features = false
+optional = true
+
+[dependencies.futures]
+version = "0.3"
+optional = true
+
 [dev-dependencies]
 tempfile = "3"

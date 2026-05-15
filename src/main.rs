@@ -1,3 +1,4 @@
+mod providers;
 mod access_analyzer;
 mod account_config;
 mod acm;
