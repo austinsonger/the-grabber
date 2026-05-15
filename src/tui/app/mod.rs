@@ -94,6 +94,10 @@ pub struct App {
     // Feature selection
     pub selected_feature: Feature,
 
+    // Provider selection (Collectors flow only)
+    pub selected_provider: CloudProvider, // which provider was chosen on ProviderSelection screen
+    pub provider_cursor: usize,           // cursor position on ProviderSelection screen
+
     // POAM inputs/results
     pub poam_account_cursor: usize,
     pub poam_region_cursor: usize,
@@ -262,6 +266,8 @@ impl App {
             prep_current: 0,
             prep_total: 0,
             selected_feature: Feature::Collectors,
+            selected_provider: CloudProvider::Aws,
+            provider_cursor: 0,
             poam_account_cursor: 0,
             poam_region_cursor: region_cursor,
             poam_year: TextInput::new(&chrono::Local::now().format("%Y").to_string()),
@@ -409,5 +415,15 @@ mod tests {
     fn provider_selection_screen_exists() {
         let s = crate::tui::Screen::ProviderSelection;
         assert!(matches!(s, crate::tui::Screen::ProviderSelection));
+    }
+
+    #[test]
+    fn app_has_provider_fields() {
+        let app = make_app();
+        assert!(matches!(
+            app.selected_provider,
+            crate::providers::CloudProvider::Aws
+        ));
+        assert_eq!(app.provider_cursor, 0);
     }
 }

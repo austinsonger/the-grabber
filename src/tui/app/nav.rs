@@ -1,5 +1,6 @@
 use super::App;
 
+use crate::providers::CloudProvider;
 use crate::tui::state::{
     CollectorFocus, CollectorState, CollectorStatus, Feature, Progress, Screen,
 };
@@ -169,6 +170,8 @@ impl App {
         self.collector_search.clear();
         self.poam_summary = None;
         self.selected_feature = Feature::Collectors;
+        self.selected_provider = CloudProvider::Aws;
+        self.provider_cursor = 0;
         // Preserve options_selected_regions so the user's choices carry over.
     }
 
