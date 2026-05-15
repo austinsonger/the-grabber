@@ -6,7 +6,7 @@ resolver = "2"
 name = "the-grabber"
 version = "0.1.0"
 edition = "2021"
-description = "The Grabber — Extensible AWS compliance evidence collector"
+description = "The Grabber — Extensible Security Compliance Evidence Collector"
 
 [[bin]]
 name = "grabber"

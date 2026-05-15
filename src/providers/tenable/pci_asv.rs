@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use serde_json::json;
 
 use tenable_rs::TenableClient;
 
@@ -46,8 +45,7 @@ impl CsvCollector for TenablePciAsvCollector {
         _region: &str,
         _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        let filters = json!({ "compliance.benchmark.name": "PCI DSS" });
-        let findings = self.client.compliance().export_all(Some(filters)).await?;
+        let findings = self.client.compliance().export_all(None).await?;
         let rows = findings
             .into_iter()
             .map(|f| {

@@ -167,7 +167,7 @@ pub(super) fn draw_header(
         ),
         Span::styled("   ", Style::default()),
         Span::styled(
-            "AWS Compliance Evidence Collector",
+            "Security Compliance Evidence Collector",
             Style::default().fg(TEXT_NORMAL),
         ),
     ];
@@ -359,9 +359,8 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::ProviderSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::ScanSelection => vec![
             ("↑↓", "Navigate"),
+            ("⇥", "Switch Filter"),
             ("␣", "Toggle"),
-            ("a", "Select All"),
-            ("d", "Deselect All"),
             ("⏎", "Confirm"),
             ("Esc", "Back"),
         ],

@@ -186,9 +186,21 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
     );
 
     // ── Right panel: visible items in selected category ───────────
+    // When collector_category_cursor points at a hidden category (e.g. the
+    // Tenable provider filters out all AWS categories leaving only Security
+    // Scanning), fall back to the first visible category so the right panel
+    // title and item list stay in sync with what is actually highlighted.
     let item_focused = app.collector_focus == CollectorFocus::Items;
-    let visible_items = app.visible_items_in_category(app.collector_category_cursor);
-    let cat_name = COLLECTOR_CATEGORIES[app.collector_category_cursor].1;
+    let effective_cat = if visible_cats.contains(&app.collector_category_cursor) {
+        app.collector_category_cursor
+    } else {
+        visible_cats
+            .first()
+            .copied()
+            .unwrap_or(app.collector_category_cursor)
+    };
+    let visible_items = app.visible_items_in_category(effective_cat);
+    let cat_name = COLLECTOR_CATEGORIES[effective_cat].1;
 
     let item_block = Block::bordered()
         .border_type(BorderType::Rounded)

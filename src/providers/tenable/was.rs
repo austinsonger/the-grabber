@@ -47,7 +47,13 @@ impl CsvCollector for TenableWasCollector {
         _region: &str,
         _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        let scans = self.client.was().list_scans().await?;
+        // A 404 means the tenant does not have WAS licensed; return an empty
+        // file rather than failing the whole collection run.
+        let scans = match self.client.was().list_scans().await {
+            Ok(s) => s,
+            Err(tenable_rs::TenableError::Api { status: 404, .. }) => return Ok(vec![]),
+            Err(e) => return Err(e.into()),
+        };
         let mut rows = Vec::new();
         for scan in &scans {
             let vulns = self

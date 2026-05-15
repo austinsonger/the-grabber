@@ -32,7 +32,10 @@ impl App {
             Screen::SelectProfile => Screen::SelectRegion,
             Screen::SelectRegion => Screen::SetDates,
             Screen::SetDates => match self.selected_feature {
-                Feature::Collectors => Screen::SelectCollectors,
+                Feature::Collectors => {
+                    self.clamp_collector_cursors();
+                    Screen::SelectCollectors
+                }
                 Feature::Inventory => Screen::Inventory,
                 Feature::Poam => Screen::PoamRegion,
             },
@@ -67,6 +70,7 @@ impl App {
             Screen::ProviderSelection => {
                 if self.selected_provider == CloudProvider::Tenable {
                     self.auto_select_provider_accounts();
+                    self.clamp_collector_cursors();
                     Screen::SelectCollectors
                 } else if self.has_accounts() {
                     Screen::SelectAccount

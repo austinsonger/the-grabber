@@ -78,12 +78,12 @@ impl CsvCollector for TenableVulnerabilitiesCollector {
         _region: &str,
         _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        let filters = if self.scan_ids.is_empty() {
-            None
-        } else {
-            Some(serde_json::json!({ "scan.id": self.scan_ids }))
-        };
-        let findings = self.client.vulns().export_all(filters).await?;
+        // The Tenable export API identifies scans by UUID (string), not the
+        // integer scan IDs stored in selected_scan_ids.  Passing integer IDs
+        // via "scan.id" causes a BAD_REQUEST_UNKNOWN_PROPERTY error.  Export
+        // all findings; the user's scan selection informs them what scans
+        // exist but does not restrict the export.
+        let findings = self.client.vulns().export_all(None).await?;
 
         let rows = findings
             .into_iter()
