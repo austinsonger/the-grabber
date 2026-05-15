@@ -153,7 +153,7 @@ impl App {
                         .any(|a| a.provider == CloudProvider::Tenable);
                     if !has_tenable {
                         self.error_msg =
-                            Some("No Tenable accounts configured in grabber.toml".into());
+                            Some("No Tenable accounts configured in tenable-config.toml".into());
                         return false;
                     }
                 }
