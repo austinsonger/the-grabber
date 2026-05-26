@@ -36,9 +36,11 @@ pub async fn run_tui_csv_collector(
                 count,
             });
             if count == 0 {
+                eprintln!("  [csv] {} ({}): 0 rows — no file written", name, region);
                 outcomes.push(audit_log::CollectorOutcome::empty(&name));
                 return;
             }
+            eprintln!("  [csv] {} ({}): {} rows", name, region, count);
             let filename = format!(
                 "{}_{}-{}.csv",
                 account_id,

@@ -21,5 +21,5 @@ mod export;
 pub mod api;
 pub mod types;
 
-pub use client::TenableClient;
+pub use client::{TenableClient, TenableFlavor};
 pub use error::TenableError;

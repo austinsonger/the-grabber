@@ -39,11 +39,8 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 acct.tenable_secret_key_resolved(),
             ) {
                 let base_url = acct.tenable_url_resolved();
-                let client_result = if base_url == "https://cloud.tenable.com" {
-                    tenable_rs::TenableClient::tenable_io(&ak, &sk)
-                } else {
-                    tenable_rs::TenableClient::tenable_sc(&base_url, &ak, &sk)
-                };
+                let client_result =
+                    tenable_rs::TenableClient::from_url(&base_url, &ak, &sk).map(|(c, _)| c);
                 if let Ok(client) = client_result {
                     let mut combined: Vec<TuiScan> = Vec::new();
                     if let Ok(vm_scans) = client.scans().list().await {
@@ -584,32 +581,43 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         continue;
                     }
                     let acct = &app.accounts[idx];
-                    let access_key = match acct.tenable_access_key_resolved() {
-                        Some(k) => k,
-                        None => {
-                            app.prep_log.push(format!(
-                                "  ✗ Tenable '{}' — missing access key \
-                                 (set TENABLE_ACCESS_KEY or tenable_access_key in config)",
-                                acct.name,
-                            ));
-                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
-                            continue;
-                        }
-                    };
-                    let secret_key = match acct.tenable_secret_key_resolved() {
-                        Some(k) => k,
-                        None => {
-                            app.prep_log.push(format!(
-                                "  ✗ Tenable '{}' — missing secret key \
-                                 (set TENABLE_SECRET_KEY or tenable_secret_key in config)",
-                                acct.name,
-                            ));
-                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
-                            continue;
-                        }
-                    };
                     let base_url = acct.tenable_url_resolved();
+                    let flavor = tenable_rs::TenableFlavor::for_url(&base_url);
                     let site_name = acct.name.clone();
+
+                    app.prep_log
+                        .push(format!("  Tenable '{}' → {}", site_name, flavor.label()));
+                    app.prep_log.push(format!("    URL: {}", base_url));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+                    let access_key_present = acct.tenable_access_key_resolved().is_some();
+                    let secret_key_present = acct.tenable_secret_key_resolved().is_some();
+                    if !access_key_present || !secret_key_present {
+                        let mut missing: Vec<&str> = Vec::new();
+                        if !access_key_present {
+                            missing
+                                .push("access key (TENABLE_ACCESS_KEY env or tenable_access_key)");
+                        }
+                        if !secret_key_present {
+                            missing
+                                .push("secret key (TENABLE_SECRET_KEY env or tenable_secret_key)");
+                        }
+                        app.prep_log.push(format!(
+                            "  ✗ Tenable '{}' — missing {} for {}",
+                            site_name,
+                            missing.join(" and "),
+                            flavor.label(),
+                        ));
+                        app.prep_log.push(format!("    {}", flavor.api_keys_hint()));
+                        terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                        continue;
+                    }
+                    let access_key = acct
+                        .tenable_access_key_resolved()
+                        .expect("checked above to be Some");
+                    let secret_key = acct
+                        .tenable_secret_key_resolved()
+                        .expect("checked above to be Some");
 
                     let selected_keys: Vec<String> = app
                         .selected_collectors()
@@ -617,13 +625,12 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         .filter(|k| k.starts_with("tenable-"))
                         .collect();
 
-                    let client_result = if base_url == "https://cloud.tenable.com" {
-                        tenable_rs::TenableClient::tenable_io(&access_key, &secret_key)
-                    } else {
-                        tenable_rs::TenableClient::tenable_sc(&base_url, &access_key, &secret_key)
-                    };
-                    let client = match client_result {
-                        Ok(c) => c,
+                    let client = match tenable_rs::TenableClient::from_url(
+                        &base_url,
+                        &access_key,
+                        &secret_key,
+                    ) {
+                        Ok((c, _)) => c,
                         Err(e) => {
                             app.prep_log.push(format!(
                                 "  ✗ Tenable '{}' — client build failed: {e}",

@@ -1,4 +1,3 @@
-use crate::api::export_body;
 use crate::client::TenableClient;
 use crate::error::TenableError;
 use crate::export::{check_response, ExportJob};
@@ -185,12 +184,15 @@ impl<'c> WasApi<'c> {
     ///
     /// Follows the same ExportJob<T> protocol as VM vulns:
     ///   POST /was/v1/export/vulns → poll status → download chunks.
-    /// Pass `None` to export all findings with no filter.
+    ///
+    /// Unlike VM/compliance exports, the WAS endpoint does NOT accept a
+    /// `{"filters": ...}` envelope — fields like `since` go at the top level.
+    /// Pass `None` to export with no parameters.
     pub async fn export(
         &self,
-        filters: Option<serde_json::Value>,
+        params: Option<serde_json::Value>,
     ) -> Result<ExportJob<WasFinding>, TenableError> {
-        let body = export_body(filters);
+        let body = params.unwrap_or_else(|| serde_json::json!({}));
         self.0
             .start_export("/was/v1/export/vulns", "/was/v1/export/vulns", &body)
             .await
@@ -199,9 +201,9 @@ impl<'c> WasApi<'c> {
     /// Convenience: trigger a WAS export and collect all findings in one call.
     pub async fn export_all(
         &self,
-        filters: Option<serde_json::Value>,
+        params: Option<serde_json::Value>,
     ) -> Result<Vec<WasFinding>, TenableError> {
-        self.export(filters).await?.collect_all().await
+        self.export(params).await?.collect_all().await
     }
 
     /// List vulnerabilities for a specific WAS scan.

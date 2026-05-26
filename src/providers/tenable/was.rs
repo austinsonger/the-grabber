@@ -70,7 +70,7 @@ impl CsvCollector for TenableWasCollector {
     ) -> Result<Vec<Vec<String>>> {
         // Pass since=0 to bypass the 30-day default; without this the export
         // only returns findings from the last 30 days.
-        let filter = serde_json::json!({"filters": {"since": 0}});
+        let filter = serde_json::json!({"since": 0});
         let mut findings = match self.client.was().export_all(Some(filter)).await {
             Ok(f) => f,
             Err(tenable_rs::TenableError::Api { status: 404, .. }) => return Ok(vec![]),

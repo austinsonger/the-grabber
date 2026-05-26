@@ -22,10 +22,65 @@ pub struct TenableClient {
     pub(crate) base_url: String,
 }
 
+/// Which Tenable deployment a given base URL maps to.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TenableFlavor {
+    /// Commercial Tenable.io — `https://cloud.tenable.com`.
+    TenableIoCommercial,
+    /// FedRAMP-hosted Tenable.io — `https://fedcloud.tenable.com`.
+    TenableIoFedramp,
+    /// Self-hosted Tenable.sc / Security Center.
+    TenableSc,
+}
+
+impl TenableFlavor {
+    /// Classify a base URL into a Tenable deployment flavor.
+    /// The check is case-insensitive on the host and ignores trailing slashes.
+    pub fn for_url(url: &str) -> Self {
+        let u = url.trim().trim_end_matches('/').to_lowercase();
+        if u == "https://cloud.tenable.com" || u == "http://cloud.tenable.com" {
+            Self::TenableIoCommercial
+        } else if u == "https://fedcloud.tenable.com" || u == "http://fedcloud.tenable.com" {
+            Self::TenableIoFedramp
+        } else {
+            Self::TenableSc
+        }
+    }
+
+    /// Human label for logs and TUI messages.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::TenableIoCommercial => "Tenable.io (commercial)",
+            Self::TenableIoFedramp => "Tenable.io (FedRAMP)",
+            Self::TenableSc => "Tenable.sc (on-prem)",
+        }
+    }
+
+    /// Where to generate API keys for this deployment.
+    pub fn api_keys_hint(self) -> &'static str {
+        match self {
+            Self::TenableIoCommercial => {
+                "Generate keys at https://cloud.tenable.com → Settings → My Account → API Keys"
+            }
+            Self::TenableIoFedramp => {
+                "Generate keys at https://fedcloud.tenable.com → Settings → My Account → API Keys"
+            }
+            Self::TenableSc => {
+                "Generate keys in Tenable.sc → Username → API Keys (admin enables under Users → Edit)"
+            }
+        }
+    }
+}
+
 impl TenableClient {
     /// Connect to Tenable.io (cloud-hosted, `https://cloud.tenable.com`).
     pub fn tenable_io(access_key: &str, secret_key: &str) -> Result<Self, TenableError> {
         Self::build("https://cloud.tenable.com", access_key, secret_key)
+    }
+
+    /// Connect to Tenable.io FedRAMP (`https://fedcloud.tenable.com`).
+    pub fn tenable_io_fedramp(access_key: &str, secret_key: &str) -> Result<Self, TenableError> {
+        Self::build("https://fedcloud.tenable.com", access_key, secret_key)
     }
 
     /// Connect to Tenable.sc (on-premises Security Center).
@@ -35,6 +90,23 @@ impl TenableClient {
         secret_key: &str,
     ) -> Result<Self, TenableError> {
         Self::build(base_url, access_key, secret_key)
+    }
+
+    /// Build a client by inferring the deployment flavor from `base_url`.
+    /// Recognizes `cloud.tenable.com` (commercial) and `fedcloud.tenable.com`
+    /// (FedRAMP); anything else is treated as Tenable.sc.
+    pub fn from_url(
+        base_url: &str,
+        access_key: &str,
+        secret_key: &str,
+    ) -> Result<(Self, TenableFlavor), TenableError> {
+        let flavor = TenableFlavor::for_url(base_url);
+        let client = match flavor {
+            TenableFlavor::TenableIoCommercial => Self::tenable_io(access_key, secret_key)?,
+            TenableFlavor::TenableIoFedramp => Self::tenable_io_fedramp(access_key, secret_key)?,
+            TenableFlavor::TenableSc => Self::tenable_sc(base_url, access_key, secret_key)?,
+        };
+        Ok((client, flavor))
     }
 
     fn build(base_url: &str, access_key: &str, secret_key: &str) -> Result<Self, TenableError> {
