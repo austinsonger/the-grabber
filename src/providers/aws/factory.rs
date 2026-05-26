@@ -39,7 +39,6 @@ use crate::providers::aws::{
     },
     ec2_detailed::Ec2DetailedCollector,
     ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector},
-    ecr::EcrScanCollector,
     ecr_config::EcrRepoConfigCollector,
     ecs::EcsClusterCollector,
     efs::EfsCollector,
@@ -375,9 +374,6 @@ impl ProviderFactory for AwsProviderFactory {
             v.push(Box::new(InspectorSbomCollector::new(
                 cfg, cfg, sbom_cfg, sbom_out,
             )));
-        }
-        if has("ecr-scan") {
-            v.push(Box::new(EcrScanCollector::new(cfg)));
         }
         if has("waf-logging") {
             v.push(Box::new(WafLoggingCollector::new(cfg)));

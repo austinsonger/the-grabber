@@ -569,7 +569,6 @@ When `--sign` is passed, an HMAC-SHA256 digest is computed for every output file
 |-----|--------|-------------|
 | `ecs` | CSV | ECS cluster inventory |
 | `eks` | CSV | EKS cluster inventory |
-| `ecr-scan` | CSV | ECR image scan findings |
 | `ecr-config` | CSV | ECR repository configuration |
 | `lambda-config` | CSV | Lambda function configuration |
 | `lambda-permissions` | CSV | Lambda resource-based policies |

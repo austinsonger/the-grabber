@@ -56,7 +56,6 @@ disable = [
     "config-snapshot",       # Config_Snapshot
     "dynamodb",              # DynamoDB
     "ecr-config",            # ECR_Config
-    "ecr-scan",              # ECR_ScanFindings
     "ecs",                   # ECS_Clusters
     "efs",                   # EFS
     "guardduty",             # GuardDuty_Findings
@@ -97,7 +96,6 @@ disable = [
     "config-snapshot",       # Config_Snapshot
     "dynamodb",              # DynamoDB
     "ecr-config",            # ECR_Config
-    "ecr-scan",              # ECR_ScanFindings
     "ecs",                   # ECS_Clusters
     "efs",                   # EFS
     "guardduty",             # GuardDuty_Findings
@@ -147,7 +145,6 @@ disable = [
     "config-snapshot",       # Config_Snapshot
     "dynamodb",              # DynamoDB
     "ecr-config",            # ECR_Config
-    "ecr-scan",              # ECR_ScanFindings
     "ecs",                   # ECS_Clusters
     "efs",                   # EFS
     "guardduty",             # GuardDuty_Findings

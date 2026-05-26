@@ -483,7 +483,6 @@ All 124+ collector keys organized by category. Pass any combination to `--collec
 
 | Key | Output | Description |
 |-----|--------|-------------|
-| `ecr-scan` | CSV | ECR image scan findings |
 | `ecr-config` | CSV | ECR repository configuration |
 | `ecs` | CSV | ECS clusters |
 | `eks` | CSV | EKS clusters |

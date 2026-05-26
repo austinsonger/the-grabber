@@ -103,7 +103,6 @@ pub(crate) async fn run_multi_region_standard(
             "inspector",
             "inspector-ecr-images",
             "inspector-history",
-            "ecr-scan",
             "waf-logging",
             "alb-logs",
             "iam-password-policy",

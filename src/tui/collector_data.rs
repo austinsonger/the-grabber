@@ -170,7 +170,6 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ("ssm-patch-summary", "SSM Patch Summary", CloudProvider::Aws),
     ("time-sync", "Time Sync Config (SSM)   ", CloudProvider::Aws),
     // ── Containers ── (37..41)
-    ("ecr-scan", "ECR Image Scan Findings  ", CloudProvider::Aws),
     (
         "ecr-config",
         "ECR Repo Config          ",

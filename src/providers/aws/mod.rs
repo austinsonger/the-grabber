@@ -28,7 +28,6 @@ pub mod ebs;
 pub mod ec2_config;
 pub mod ec2_detailed;
 pub mod ec2_inventory;
-pub mod ecr;
 pub mod ecr_config;
 pub mod ecs;
 pub mod efs;
