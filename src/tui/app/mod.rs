@@ -31,6 +31,8 @@ pub struct App {
     pub current_account_index: usize,
     pub total_account_count: usize,
     pub current_region_label: Option<String>,
+    /// Endpoint label for non-region-scoped providers (e.g. Tenable flavor + URL).
+    pub current_endpoint_label: Option<String>,
 
     // Profile selection (legacy flow or fallback)
     pub profiles: Vec<String>,
@@ -233,6 +235,7 @@ impl App {
             current_account_index: 0,
             total_account_count: 0,
             current_region_label: None,
+            current_endpoint_label: None,
             profiles,
             profile_cursor,
             regions,

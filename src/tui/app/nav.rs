@@ -241,6 +241,7 @@ impl App {
         self.current_account_index = 0;
         self.total_account_count = 0;
         self.current_region_label = None;
+        self.current_endpoint_label = None;
         self.result_scroll = 0;
         self.error_msg = None;
         self.prep_log.clear();
@@ -276,6 +277,7 @@ impl App {
                         total,
                         region,
                         collectors,
+                        endpoint_label,
                     } => {
                         self.current_account_label = Some(name);
                         self.current_account_index = index;
@@ -285,6 +287,7 @@ impl App {
                         } else {
                             Some(region)
                         };
+                        self.current_endpoint_label = endpoint_label;
                         self.collector_statuses = collectors
                             .into_iter()
                             .map(|n| CollectorStatus {

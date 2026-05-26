@@ -63,6 +63,9 @@ pub struct AccountCollectors {
     pub json_inv_collectors: Vec<Box<dyn JsonCollector>>,
     pub csv_collectors: Vec<Box<dyn CsvCollector>>,
     pub display_names: Vec<String>,
+    /// Optional endpoint label shown in the Running-screen header for providers
+    /// that aren't AWS-region-scoped (e.g. Tenable: "Tenable.io (FedRAMP) — https://fedcloud.tenable.com").
+    pub endpoint_label: Option<String>,
     /// Pre-discovered regions (if all-regions was requested). Empty = use single-region path.
     pub discovered_regions: Vec<String>,
     /// Pre-built regional collectors for each discovered region.
@@ -184,6 +187,7 @@ pub async fn run_tui_multi_account(
                 total: total_accounts,
                 region: acct.region.clone(),
                 collectors: acct.display_names,
+                endpoint_label: acct.endpoint_label.clone(),
             });
 
             let mut acct_outcomes: Vec<audit_log::CollectorOutcome> = Vec::new();

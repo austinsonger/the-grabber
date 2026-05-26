@@ -51,6 +51,15 @@ pub(super) fn draw_running(f: &mut Frame, area: Rect, app: &App) {
                 region.clone(),
                 Style::default().fg(CYAN).add_modifier(Modifier::BOLD),
             ));
+        } else if let Some(endpoint) = &app.current_endpoint_label {
+            if !spans.is_empty() {
+                spans.push(Span::styled("   ·   ", Style::default().fg(TEXT_DIM)));
+            }
+            spans.push(Span::styled("Endpoint: ", Style::default().fg(TEXT_DIM)));
+            spans.push(Span::styled(
+                endpoint.clone(),
+                Style::default().fg(CYAN).add_modifier(Modifier::BOLD),
+            ));
         }
 
         f.render_widget(Paragraph::new(Line::from(spans)), area);

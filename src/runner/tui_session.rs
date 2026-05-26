@@ -563,6 +563,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     discovered_regions,
                     regional_collectors,
                     inventory_multi_region,
+                    endpoint_label: None,
                 });
             }
 
@@ -677,6 +678,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         discovered_regions: Vec::new(),
                         regional_collectors: Vec::new(),
                         inventory_multi_region: Vec::new(),
+                        endpoint_label: Some(format!("{} — {}", flavor.label(), base_url)),
                     });
 
                     app.prep_log

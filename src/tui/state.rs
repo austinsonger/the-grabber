@@ -11,6 +11,10 @@ pub enum Progress {
         total: usize,
         region: String,
         collectors: Vec<String>,
+        /// Optional endpoint label (e.g. "Tenable.io (FedRAMP) — https://fedcloud.tenable.com").
+        /// Displayed in the Running-screen header in place of the region for
+        /// providers that aren't region-scoped.
+        endpoint_label: Option<String>,
     },
     /// Signals that collection for an account has finished.
     AccountFinished {
