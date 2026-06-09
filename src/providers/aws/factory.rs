@@ -5,6 +5,7 @@ use crate::providers::aws::{
     access_analyzer::AccessAnalyzerCollector,
     account_config::{AccountContactsCollector, IamAccountSummaryCollector, SamlProviderCollector},
     acm::AcmCertCollector,
+    acm_pca::AcmPrivateCaCollector,
     alb_logs::AlbLogsCollector,
     apigateway::ApiGatewayCollector,
     autoscaling::AutoScalingCollector,
@@ -215,6 +216,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("acm") {
             v.push(Box::new(AcmCertCollector::new(cfg)));
+        }
+        if has("acm-pca") {
+            v.push(Box::new(AcmPrivateCaCollector::new(cfg)));
         }
         if has("iam-users") {
             v.push(Box::new(IamUserCollector::new(cfg)));

@@ -3,6 +3,7 @@ pub mod factory;
 pub mod access_analyzer;
 pub mod account_config;
 pub mod acm;
+pub mod acm_pca;
 pub mod alb_logs;
 pub mod apigateway;
 pub mod autoscaling;
