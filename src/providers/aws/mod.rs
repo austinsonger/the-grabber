@@ -53,6 +53,7 @@ pub mod kms_config;
 pub mod kms_policies;
 pub mod lambda_config;
 pub mod launch_templates;
+pub mod license_manager;
 pub mod macie;
 pub mod network_gateways;
 pub mod org_config;

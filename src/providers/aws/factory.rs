@@ -68,6 +68,7 @@ use crate::providers::aws::{
     kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector},
     lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector},
     launch_templates::LaunchTemplateCollector,
+    license_manager::LicenseManagerCollector,
     macie::MacieCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     org_config::OrgConfigCollector,
@@ -441,6 +442,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("launch-templates") {
             v.push(Box::new(LaunchTemplateCollector::new(cfg)));
+        }
+        if has("license-manager") {
+            v.push(Box::new(LicenseManagerCollector::new(cfg)));
         }
         if has("vpc-endpoints") {
             v.push(Box::new(VpcEndpointCollector::new(cfg)));
