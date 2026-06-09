@@ -55,6 +55,7 @@ pub mod lambda_config;
 pub mod launch_templates;
 pub mod license_manager;
 pub mod macie;
+pub mod network_firewall;
 pub mod network_gateways;
 pub mod org_config;
 pub mod organizations;

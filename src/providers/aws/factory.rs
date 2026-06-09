@@ -70,6 +70,7 @@ use crate::providers::aws::{
     launch_templates::LaunchTemplateCollector,
     license_manager::LicenseManagerCollector,
     macie::MacieCollector,
+    network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     org_config::OrgConfigCollector,
     organizations::OrganizationsSCPCollector,
@@ -321,6 +322,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("sh-standards") {
             v.push(Box::new(SecurityHubStandardsCollector::new(cfg)));
+        }
+        if has("network-firewall") {
+            v.push(Box::new(NetworkFirewallCollector::new(cfg)));
         }
         if has("igw") {
             v.push(Box::new(InternetGatewayCollector::new(cfg)));
