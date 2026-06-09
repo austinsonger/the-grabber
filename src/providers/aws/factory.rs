@@ -109,6 +109,7 @@ use crate::providers::aws::{
         SsmMaintenanceWindowCollector, SsmPatchDetailCollector, SsmPatchExecutionCollector,
         SsmPatchSummaryCollector,
     },
+    ssm_sessions::SsmSessionsCollector,
     ssm_software_inventory::SsmSoftwareInventoryCollector,
     tagging_config::ResourceTaggingCollector,
     vpc::{NetworkAclCollector, VpcCollector},
@@ -560,6 +561,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("change-event-rules") {
             v.push(Box::new(ChangeEventRulesCollector::new(cfg)));
+        }
+        if has("ssm-sessions") {
+            v.push(Box::new(SsmSessionsCollector::new(cfg)));
         }
         if has("ssm-software-inventory") {
             v.push(Box::new(SsmSoftwareInventoryCollector::new(cfg)));
