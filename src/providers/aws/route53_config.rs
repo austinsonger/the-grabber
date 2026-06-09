@@ -220,3 +220,134 @@ impl CsvCollector for Route53ResolverRulesCollector {
         Ok(rows)
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 3. Route53 DNSSEC
+// ══════════════════════════════════════════════════════════════════════════════
+
+pub struct Route53DnssecCollector {
+    client: R53Client,
+}
+
+impl Route53DnssecCollector {
+    pub fn new(config: &aws_config::SdkConfig) -> Self {
+        Self {
+            client: R53Client::new(config),
+        }
+    }
+}
+
+#[async_trait]
+impl CsvCollector for Route53DnssecCollector {
+    fn name(&self) -> &str {
+        "Route53 DNSSEC"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Route53_DNSSEC"
+    }
+    fn headers(&self) -> &'static [&'static str] {
+        &[
+            "Zone ID",
+            "Zone Name",
+            "Private Zone",
+            "Signing Status",
+            "Status Message",
+            "KSK Count",
+            "KSK Names",
+        ]
+    }
+
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
+        let mut rows = Vec::new();
+        let mut marker: Option<String> = None;
+
+        loop {
+            let mut req = self.client.list_hosted_zones();
+            if let Some(ref m) = marker {
+                req = req.marker(m);
+            }
+            let resp = req
+                .send()
+                .await
+                .context("Route53 list_hosted_zones (dnssec)")?;
+
+            for zone in resp.hosted_zones() {
+                let zone_id = zone.id().trim_start_matches("/hostedzone/").to_string();
+                let name = zone.name().to_string();
+                let private = zone
+                    .config()
+                    .map(|c| c.private_zone().to_string())
+                    .unwrap_or_else(|| "false".to_string());
+
+                if private == "true" {
+                    rows.push(vec![
+                        zone_id,
+                        name,
+                        private,
+                        "NOT_APPLICABLE".into(),
+                        "Private zone".into(),
+                        "0".into(),
+                        String::new(),
+                    ]);
+                    continue;
+                }
+
+                match self
+                    .client
+                    .get_dnssec()
+                    .hosted_zone_id(&zone_id)
+                    .send()
+                    .await
+                {
+                    Ok(d) => {
+                        let (status, msg) = match d.status() {
+                            Some(s) => (
+                                s.serve_signature().unwrap_or("").to_string(),
+                                s.status_message().unwrap_or("").to_string(),
+                            ),
+                            None => (String::new(), String::new()),
+                        };
+                        let ksks = d.key_signing_keys();
+                        let ksk_count = ksks.len().to_string();
+                        let ksk_names = ksks
+                            .iter()
+                            .map(|k| k.name().unwrap_or("").to_string())
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        rows.push(vec![
+                            zone_id, name, private, status, msg, ksk_count, ksk_names,
+                        ]);
+                    }
+                    Err(e) => {
+                        eprintln!("  WARN: Route53 get_dnssec({zone_id}): {e:#}");
+                        rows.push(vec![
+                            zone_id,
+                            name,
+                            private,
+                            "ERROR".into(),
+                            format!("{e}"),
+                            String::new(),
+                            String::new(),
+                        ]);
+                    }
+                }
+            }
+
+            marker = if resp.is_truncated() {
+                resp.next_marker().map(|s| s.to_string())
+            } else {
+                None
+            };
+            if marker.is_none() {
+                break;
+            }
+        }
+
+        Ok(rows)
+    }
+}

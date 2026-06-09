@@ -77,7 +77,9 @@ use crate::providers::aws::{
     rds::RdsCollector,
     rds_inventory::RdsInventoryCollector,
     rds_snapshots::RdsSnapshotCollector,
-    route53_config::{Route53ResolverRulesCollector, Route53ZonesCollector},
+    route53_config::{
+        Route53DnssecCollector, Route53ResolverRulesCollector, Route53ZonesCollector,
+    },
     s3_config::S3BucketConfigCollector,
     s3_detail::{
         S3BucketPolicyDetailCollector, S3EncryptionConfigCollector, S3LoggingConfigCollector,
@@ -512,6 +514,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("route53-resolver") {
             v.push(Box::new(Route53ResolverRulesCollector::new(cfg)));
+        }
+        if has("route53-dnssec") {
+            v.push(Box::new(Route53DnssecCollector::new(cfg)));
         }
         if has("resource-tags") {
             v.push(Box::new(ResourceTaggingCollector::new(cfg)));
