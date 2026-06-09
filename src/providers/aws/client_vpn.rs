@@ -177,9 +177,7 @@ impl CsvCollector for AwsClientVpnCollector {
                         .count()
                         .to_string(),
                     Err(e) => {
-                        eprintln!(
-                            "  WARN: ClientVPN describe_client_vpn_connections({id}): {e:#}"
-                        );
+                        eprintln!("  WARN: ClientVPN describe_client_vpn_connections({id}): {e:#}");
                         String::new()
                     }
                 };

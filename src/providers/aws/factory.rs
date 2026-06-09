@@ -12,6 +12,7 @@ use crate::providers::aws::{
     backup_config::{
         BackupPlanConfigCollector, BackupVaultConfigCollector, RdsBackupConfigCollector,
     },
+    client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
     cloudfront::CloudFrontCollector,
     cloudtrail::CloudTrailCollector,
@@ -485,6 +486,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ecr-config") {
             v.push(Box::new(EcrRepoConfigCollector::new(cfg)));
+        }
+        if has("client-vpn") {
+            v.push(Box::new(AwsClientVpnCollector::new(cfg)));
         }
         if has("route53-zones") {
             v.push(Box::new(Route53ZonesCollector::new(cfg)));

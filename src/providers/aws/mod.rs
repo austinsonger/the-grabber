@@ -8,6 +8,7 @@ pub mod apigateway;
 pub mod autoscaling;
 pub mod backup;
 pub mod backup_config;
+pub mod client_vpn;
 pub mod cloudformation_drift;
 pub mod cloudfront;
 pub mod cloudtrail;
