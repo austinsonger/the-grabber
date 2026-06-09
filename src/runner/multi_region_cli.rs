@@ -156,6 +156,16 @@ pub(crate) async fn run_multi_region_standard(
             "cw-config-alarms",
             "change-event-rules",
             "inspector-sbom",
+            // ── New collectors (2026-06) ──
+            "client-vpn",
+            "acm-pca",
+            "ssm-software-inventory",
+            "shield",
+            "license-manager",
+            "service-quotas",
+            "route53-dnssec",
+            "network-firewall",
+            "ssm-sessions",
         ];
         full.iter()
             .copied()

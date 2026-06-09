@@ -30,6 +30,10 @@ disable = [
     "elasticache-global", # most accounts don't use global datastores
 ]
 
+# Newly added collectors (2026-06; enabled by default):
+#   client-vpn, acm-pca, ssm-software-inventory, shield, license-manager,
+#   service-quotas, route53-dnssec, network-firewall, ssm-sessions
+
 # ── Accounts ─────────────────────────────────────────────────────────────────
 # One [[account]] block per AWS account you want to collect from.
 # `profile` must match a [profile NAME] entry in ~/.aws/config.

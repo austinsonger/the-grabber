@@ -40,6 +40,9 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     // Route53 (global)
     "route53-zones",
     "route53-resolver",
+    "route53-dnssec",
+    // Shield (global)
+    "shield",
     // Organizations / account (global)
     "scp",
     "org-config",
