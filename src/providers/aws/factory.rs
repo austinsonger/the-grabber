@@ -91,6 +91,7 @@ use crate::providers::aws::{
     },
     securityhub::SecurityHubCollector,
     securityhub_standards::SecurityHubStandardsCollector,
+    shield::ShieldCollector,
     sns::SnsSubscriptionCollector,
     sns_eventbridge::{
         ChangeEventRulesCollector, EventBridgeRulesCollector, SnsTopicPoliciesCollector,
@@ -235,6 +236,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("securityhub") {
             v.push(Box::new(SecurityHubCollector::new(cfg)));
+        }
+        if has("shield") {
+            v.push(Box::new(ShieldCollector::new(cfg)));
         }
         if has("config-rules") {
             v.push(Box::new(ConfigRulesCollector::new(cfg)));
