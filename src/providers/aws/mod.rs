@@ -72,6 +72,7 @@ pub mod secretsmanager;
 pub mod security_svc_config;
 pub mod securityhub;
 pub mod securityhub_standards;
+pub mod service_quotas;
 pub mod shield;
 pub mod sns;
 pub mod sns_eventbridge;
