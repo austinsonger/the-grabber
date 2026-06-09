@@ -6,7 +6,7 @@ use chrono::NaiveDate;
 use tokio::sync::mpsc;
 
 use crate::cli::Cli;
-use crate::evidence::{CollectParams, CsvCollector};
+use crate::evidence::CsvCollector;
 use crate::inventory_orchestrator::InventoryCollector;
 use crate::runner::collector_registry;
 use crate::runner::multi_account::{

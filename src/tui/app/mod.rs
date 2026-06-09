@@ -33,6 +33,10 @@ pub struct App {
     pub current_region_label: Option<String>,
     /// Endpoint label for non-region-scoped providers (e.g. Tenable flavor + URL).
     pub current_endpoint_label: Option<String>,
+    /// User-selected Tenable endpoint (Commercial vs FedRAMP). Overrides per-account `tenable_url`.
+    pub tenable_endpoint: crate::tui::state::TenableEndpointChoice,
+    /// Cursor on the TenableEndpoint screen.
+    pub tenable_endpoint_cursor: usize,
 
     // Profile selection (legacy flow or fallback)
     pub profiles: Vec<String>,
@@ -236,6 +240,8 @@ impl App {
             total_account_count: 0,
             current_region_label: None,
             current_endpoint_label: None,
+            tenable_endpoint: crate::tui::state::TenableEndpointChoice::default(),
+            tenable_endpoint_cursor: 0,
             profiles,
             profile_cursor,
             regions,

@@ -322,3 +322,65 @@ pub(super) fn draw_dates(f: &mut Frame, area: Rect, app: &App) {
         &mut state,
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tenable Endpoint Selection
+// ═══════════════════════════════════════════════════════════════════════════
+
+pub(super) fn draw_tenable_endpoint(f: &mut Frame, area: Rect, app: &App) {
+    let chunks =
+        Layout::vertical([Constraint::Length(2), Constraint::Fill(1)]).split(content_inset(area));
+
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            "Choose the Tenable endpoint:",
+            Style::default().fg(TEXT_DIM),
+        )),
+        chunks[0],
+    );
+
+    const OPTIONS: [crate::tui::state::TenableEndpointChoice; 2] = [
+        crate::tui::state::TenableEndpointChoice::Commercial,
+        crate::tui::state::TenableEndpointChoice::Fedramp,
+    ];
+
+    let items: Vec<ListItem> = OPTIONS
+        .iter()
+        .enumerate()
+        .map(|(i, endpoint)| {
+            let selected = i == app.tenable_endpoint_cursor;
+            let icon = if selected { "▸ " } else { "  " };
+            let style = if selected {
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+
+            ListItem::new(Line::from(vec![
+                Span::styled(icon, Style::default().fg(AMBER)),
+                Span::styled(endpoint.label(), style),
+            ]))
+        })
+        .collect();
+
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .title(Span::styled(" Endpoint ", Style::default().fg(CYAN_DIM)))
+        .padding(Padding::horizontal(1));
+
+    let mut state = ListState::default();
+    state.select(Some(app.tenable_endpoint_cursor));
+
+    f.render_stateful_widget(
+        List::new(items)
+            .highlight_style(Style::default())
+            .highlight_symbol("")
+            .block(block),
+        chunks[1],
+        &mut state,
+    );
+}

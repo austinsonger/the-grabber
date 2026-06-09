@@ -43,6 +43,10 @@ impl App {
             Screen::PoamRegion => Screen::PoamYear,
             Screen::PoamYear => Screen::PoamMonth,
             Screen::PoamMonth => Screen::Confirm,
+            Screen::TenableEndpoint => {
+                self.clamp_collector_cursors();
+                Screen::SelectCollectors
+            }
             Screen::SelectCollectors => {
                 if self.selected_provider == CloudProvider::Tenable {
                     Screen::ScanSelection
@@ -78,7 +82,7 @@ impl App {
                 if self.selected_provider == CloudProvider::Tenable {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
-                    Screen::SelectCollectors
+                    Screen::TenableEndpoint
                 } else if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
@@ -124,11 +128,12 @@ impl App {
             Screen::PoamMonth => Screen::PoamYear,
             Screen::SelectCollectors => {
                 if self.selected_provider == CloudProvider::Tenable {
-                    Screen::ProviderSelection
+                    Screen::TenableEndpoint
                 } else {
                     Screen::SetDates
                 }
             }
+            Screen::TenableEndpoint => Screen::ProviderSelection,
             Screen::ScanSelection => Screen::SelectCollectors,
             Screen::SetOptions => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,

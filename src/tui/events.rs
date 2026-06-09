@@ -73,6 +73,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::Running | Screen::Preparing => {}
         Screen::Results => return handle_results(app, key),
         Screen::ProviderSelection => handle_provider_selection(app, key),
+        Screen::TenableEndpoint => handle_tenable_endpoint(app, key),
     }
 
     let _ = modifiers;
@@ -686,6 +687,36 @@ fn handle_provider_selection(app: &mut App, key: KeyCode) {
             }
         }
         KeyCode::Enter | KeyCode::Char(' ') => {
+            if app.validate_current() {
+                app.next_screen();
+            }
+        }
+        KeyCode::Esc => app.prev_screen(),
+        _ => {}
+    }
+}
+
+fn handle_tenable_endpoint(app: &mut App, key: KeyCode) {
+    use crate::tui::state::TenableEndpointChoice;
+    const OPTIONS: [TenableEndpointChoice; 2] = [
+        TenableEndpointChoice::Commercial,
+        TenableEndpointChoice::Fedramp,
+    ];
+    match key {
+        KeyCode::Up => {
+            if app.tenable_endpoint_cursor > 0 {
+                app.tenable_endpoint_cursor -= 1;
+                app.tenable_endpoint = OPTIONS[app.tenable_endpoint_cursor];
+            }
+        }
+        KeyCode::Down => {
+            if app.tenable_endpoint_cursor + 1 < OPTIONS.len() {
+                app.tenable_endpoint_cursor += 1;
+                app.tenable_endpoint = OPTIONS[app.tenable_endpoint_cursor];
+            }
+        }
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            app.tenable_endpoint = OPTIONS[app.tenable_endpoint_cursor];
             if app.validate_current() {
                 app.next_screen();
             }

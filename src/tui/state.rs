@@ -94,6 +94,8 @@ pub enum Screen {
     PoamYear,
     PoamMonth,
     SelectCollectors,
+    /// Tenable-only: pick commercial cloud.tenable.com vs FedRAMP fedcloud.tenable.com.
+    TenableEndpoint,
     ScanSelection, // Tenable-only: pick which scans to include
     SetOptions,
     Confirm,
@@ -101,6 +103,29 @@ pub enum Screen {
     Preparing,
     Running,
     Results,
+}
+
+/// User-selected Tenable endpoint. Overrides per-account `tenable_url`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TenableEndpointChoice {
+    #[default]
+    Commercial,
+    Fedramp,
+}
+
+impl TenableEndpointChoice {
+    pub fn url(self) -> &'static str {
+        match self {
+            Self::Commercial => "https://cloud.tenable.com",
+            Self::Fedramp => "https://fedcloud.tenable.com",
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Commercial => "Commercial — Tenable.io (cloud.tenable.com)",
+            Self::Fedramp => "FedRAMP — Tenable.io (fedcloud.tenable.com)",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]

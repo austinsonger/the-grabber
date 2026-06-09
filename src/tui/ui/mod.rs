@@ -132,6 +132,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::SetDates => setup::draw_dates(f, content, app),
         Screen::Inventory => setup::draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => collectors::draw_collectors(f, content, app),
+        Screen::TenableEndpoint => setup::draw_tenable_endpoint(f, content, app),
         Screen::ScanSelection => scan_selection::draw_scan_selection(f, content, app),
 
         Screen::SetOptions => options::draw_options(f, content, app),
