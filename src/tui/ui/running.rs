@@ -166,6 +166,13 @@ fn draw_running_list(f: &mut Frame, area: Rect, app: &App) {
                     Style::default().fg(TEXT_NORMAL),
                     Style::default().fg(RED),
                 ),
+                CollectorState::Skipped(r) => (
+                    "⊘ ",
+                    r.clone(),
+                    Style::default().fg(AMBER),
+                    Style::default().fg(TEXT_DIM),
+                    Style::default().fg(TEXT_DIM),
+                ),
             };
 
             // Dot leader between name and status

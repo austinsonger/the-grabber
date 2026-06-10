@@ -35,6 +35,13 @@ pub enum Progress {
         collector: String,
         message: String,
     },
+    /// Sent when a collector failed in a known-benign way (e.g. service not enabled,
+    /// account lacks permission, expected timeout). Displayed in the "Skipped" panel
+    /// rather than the red "Errors" panel.
+    Skipped {
+        collector: String,
+        reason: String,
+    },
     /// Sent once all collectors finish.
     Finished {
         files: Vec<String>,
@@ -223,6 +230,7 @@ pub enum CollectorState {
     Running,
     Done(usize),
     Failed(String),
+    Skipped(String),
 }
 
 #[derive(Debug, Clone, Default)]

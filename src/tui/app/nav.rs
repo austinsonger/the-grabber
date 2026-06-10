@@ -337,6 +337,17 @@ impl App {
                             s.state = CollectorState::Failed(message);
                         }
                     }
+                    Progress::Skipped { collector, reason } => {
+                        self.skipped_messages
+                            .push((collector.clone(), reason.clone()));
+                        if let Some(s) = self
+                            .collector_statuses
+                            .iter_mut()
+                            .find(|s| s.name == collector)
+                        {
+                            s.state = CollectorState::Skipped(reason);
+                        }
+                    }
                     Progress::Finished {
                         files,
                         zip_path,

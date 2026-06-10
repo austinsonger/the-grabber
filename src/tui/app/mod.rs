@@ -94,6 +94,7 @@ pub struct App {
     pub result_signing_manifest: Option<String>, // path to SIGNING-MANIFEST-*.json
     pub result_signing_key_path: Option<String>, // path to SIGNING-*.key
     pub error_messages: Vec<(String, String)>, // (collector_name, error_message)
+    pub skipped_messages: Vec<(String, String)>, // (collector_name, reason)
     pub progress_rx: Option<mpsc::UnboundedReceiver<Progress>>,
 
     // Validation error shown at bottom of a screen
@@ -287,6 +288,7 @@ impl App {
             result_signing_manifest: None,
             result_signing_key_path: None,
             error_messages: vec![],
+            skipped_messages: vec![],
             progress_rx: None,
             error_msg: None,
             tick: 0,

@@ -1,6 +1,7 @@
 pub mod cli_runners;
 pub mod collect_ops;
 pub mod collector_registry;
+pub mod failure_classifier;
 pub mod multi_account;
 pub mod multi_region_cli;
 pub mod output;

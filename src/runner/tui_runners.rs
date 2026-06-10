@@ -9,6 +9,7 @@ use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, JsonCollector,
     JsonInventoryReport, ReportMetadata,
 };
+use crate::runner::failure_classifier;
 use crate::runner::output::write_csv_bytes;
 use crate::tui::{App, PoamSummary, Progress, Screen};
 
@@ -68,19 +69,35 @@ pub async fn run_tui_csv_collector(
         Ok(Err(e)) => {
             let msg = format!("{:#}", e);
             eprintln!("  ERROR [csv] {}: {}", name, msg);
-            let _ = tx.send(Progress::Error {
-                collector: name.clone(),
-                message: msg.clone(),
-            });
-            outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
+            if let Some(reason) = failure_classifier::classify_failure(&name, &msg) {
+                let _ = tx.send(Progress::Skipped {
+                    collector: name.clone(),
+                    reason: reason.to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::skipped(&name, reason));
+            } else {
+                let _ = tx.send(Progress::Error {
+                    collector: name.clone(),
+                    message: msg.clone(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
+            }
         }
         Err(_) => {
             eprintln!("  ERROR [csv] {}: timed out after 3 minutes", name);
-            let _ = tx.send(Progress::Error {
-                collector: name.clone(),
-                message: "timed out after 3 minutes".to_string(),
-            });
-            outcomes.push(audit_log::CollectorOutcome::timeout(&name));
+            if let Some(reason) = failure_classifier::classify_timeout(&name) {
+                let _ = tx.send(Progress::Skipped {
+                    collector: name.clone(),
+                    reason: reason.to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::skipped(&name, reason));
+            } else {
+                let _ = tx.send(Progress::Error {
+                    collector: name.clone(),
+                    message: "timed out after 3 minutes".to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::timeout(&name));
+            }
         }
     }
 }
@@ -146,19 +163,35 @@ pub async fn run_tui_inv_collector(
         Ok(Err(e)) => {
             let msg = format!("{:#}", e);
             eprintln!("  ERROR [inv] {}: {}", name, msg);
-            let _ = tx.send(Progress::Error {
-                collector: name.clone(),
-                message: msg.clone(),
-            });
-            outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
+            if let Some(reason) = failure_classifier::classify_failure(&name, &msg) {
+                let _ = tx.send(Progress::Skipped {
+                    collector: name.clone(),
+                    reason: reason.to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::skipped(&name, reason));
+            } else {
+                let _ = tx.send(Progress::Error {
+                    collector: name.clone(),
+                    message: msg.clone(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
+            }
         }
         Err(_) => {
             eprintln!("  ERROR [inv] {}: timed out after 3 minutes", name);
-            let _ = tx.send(Progress::Error {
-                collector: name.clone(),
-                message: "timed out after 3 minutes".to_string(),
-            });
-            outcomes.push(audit_log::CollectorOutcome::timeout(&name));
+            if let Some(reason) = failure_classifier::classify_timeout(&name) {
+                let _ = tx.send(Progress::Skipped {
+                    collector: name.clone(),
+                    reason: reason.to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::skipped(&name, reason));
+            } else {
+                let _ = tx.send(Progress::Error {
+                    collector: name.clone(),
+                    message: "timed out after 3 minutes".to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::timeout(&name));
+            }
         }
     }
 }
@@ -229,19 +262,35 @@ pub async fn run_tui_json_collector(
         Ok(Err(e)) => {
             let msg = format!("{:#}", e);
             eprintln!("  ERROR [json] {}: {}", name, msg);
-            let _ = tx.send(Progress::Error {
-                collector: name.clone(),
-                message: msg.clone(),
-            });
-            outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
+            if let Some(reason) = failure_classifier::classify_failure(&name, &msg) {
+                let _ = tx.send(Progress::Skipped {
+                    collector: name.clone(),
+                    reason: reason.to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::skipped(&name, reason));
+            } else {
+                let _ = tx.send(Progress::Error {
+                    collector: name.clone(),
+                    message: msg.clone(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::error(&name, msg));
+            }
         }
         Err(_) => {
             eprintln!("  ERROR [json] {}: timed out after 3 minutes", name);
-            let _ = tx.send(Progress::Error {
-                collector: name.clone(),
-                message: "timed out after 3 minutes".to_string(),
-            });
-            outcomes.push(audit_log::CollectorOutcome::timeout(&name));
+            if let Some(reason) = failure_classifier::classify_timeout(&name) {
+                let _ = tx.send(Progress::Skipped {
+                    collector: name.clone(),
+                    reason: reason.to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::skipped(&name, reason));
+            } else {
+                let _ = tx.send(Progress::Error {
+                    collector: name.clone(),
+                    message: "timed out after 3 minutes".to_string(),
+                });
+                outcomes.push(audit_log::CollectorOutcome::timeout(&name));
+            }
         }
     }
 }

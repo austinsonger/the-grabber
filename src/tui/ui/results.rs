@@ -19,6 +19,7 @@ pub(super) fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     let inset = content_inset(area);
 
     let has_errors = !app.error_messages.is_empty();
+    let has_skipped = !app.skipped_messages.is_empty();
     let has_zip = app.result_zip.is_some();
     let has_sign = app.result_signing_manifest.is_some();
     let error_height = if has_errors {
@@ -27,19 +28,26 @@ pub(super) fn draw_results(f: &mut Frame, area: Rect, app: &App) {
     } else {
         0
     };
+    let skipped_height = if has_skipped {
+        (app.skipped_messages.len().min(6) as u16) + 2
+    } else {
+        0
+    };
 
     let chunks = Layout::vertical([
-        Constraint::Length(3),                              // [0] success banner
-        Constraint::Length(1),                              // [1] blank
-        Constraint::Length(5),                              // [2] stat cards
-        Constraint::Length(1),                              // [3] blank
-        Constraint::Fill(1),                                // [4] file list
-        Constraint::Length(if has_zip { 1 } else { 0 }),    // [5] blank before zip
-        Constraint::Length(if has_zip { 3 } else { 0 }),    // [6] zip path banner
-        Constraint::Length(if has_sign { 1 } else { 0 }),   // [7] blank before sign
-        Constraint::Length(if has_sign { 4 } else { 0 }),   // [8] sign manifest+key banner
-        Constraint::Length(if has_errors { 1 } else { 0 }), // [9] blank before errors
-        Constraint::Length(error_height),                   // [10] error list
+        Constraint::Length(3),                               // [0] success banner
+        Constraint::Length(1),                               // [1] blank
+        Constraint::Length(5),                               // [2] stat cards
+        Constraint::Length(1),                               // [3] blank
+        Constraint::Fill(1),                                 // [4] file list
+        Constraint::Length(if has_zip { 1 } else { 0 }),     // [5] blank before zip
+        Constraint::Length(if has_zip { 3 } else { 0 }),     // [6] zip path banner
+        Constraint::Length(if has_sign { 1 } else { 0 }),    // [7] blank before sign
+        Constraint::Length(if has_sign { 4 } else { 0 }),    // [8] sign manifest+key banner
+        Constraint::Length(if has_errors { 1 } else { 0 }),  // [9] blank before errors
+        Constraint::Length(error_height),                    // [10] error list
+        Constraint::Length(if has_skipped { 1 } else { 0 }), // [11] blank before skipped
+        Constraint::Length(skipped_height),                  // [12] skipped list
     ])
     .split(inset);
 
@@ -230,6 +238,32 @@ pub(super) fn draw_results(f: &mut Frame, area: Rect, app: &App) {
             ));
 
         f.render_widget(List::new(error_items).block(error_block), chunks[10]);
+    }
+
+    if has_skipped {
+        let skipped_count = app.skipped_messages.len();
+        let skipped_items: Vec<ListItem> = app
+            .skipped_messages
+            .iter()
+            .map(|(name, reason)| {
+                ListItem::new(Line::from(vec![
+                    Span::styled("  ⊘ ", Style::default().fg(AMBER)),
+                    Span::styled(format!("{}: ", name), Style::default().fg(AMBER)),
+                    Span::styled(reason.as_str(), Style::default().fg(TEXT_DIM)),
+                ]))
+                .style(Style::default().bg(BG_MAIN))
+            })
+            .collect();
+
+        let skipped_block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(AMBER))
+            .title(Span::styled(
+                format!(" Skipped ({}) ", skipped_count),
+                Style::default().fg(AMBER),
+            ));
+
+        f.render_widget(List::new(skipped_items).block(skipped_block), chunks[12]);
     }
 }
 
