@@ -687,6 +687,116 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 }
             }
 
+            // ── Okta accounts ────────────────────────────────────────────────────
+            #[cfg(feature = "okta")]
+            if !app.selected_accounts.is_empty() {
+                use crate::providers::ProviderFactory as _;
+
+                let sorted_all: Vec<usize> = {
+                    let mut v: Vec<usize> = app.selected_accounts.iter().copied().collect();
+                    v.sort();
+                    v
+                };
+                for &idx in &sorted_all {
+                    if app.accounts[idx].provider != crate::providers::CloudProvider::Okta {
+                        continue;
+                    }
+                    let acct = &app.accounts[idx];
+                    let tenant_name = acct.name.clone();
+
+                    let domain = match acct.okta_domain_resolved() {
+                        Some(d) => d,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Okta '{}' — missing okta_domain (or OKTA_DOMAIN env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let token = match acct.okta_api_token_resolved() {
+                        Some(t) => t,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Okta '{}' — missing okta_api_token (or OKTA_API_TOKEN env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    app.prep_log
+                        .push(format!("  Okta '{}' → {}", tenant_name, domain));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+                    let client = match okta_rs::OktaClient::new(&domain, &token) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            app.prep_log.push(format!(
+                                "  ✗ Okta '{}' — client build failed: {e}",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    let selected_keys: Vec<String> = app
+                        .selected_collectors()
+                        .into_iter()
+                        .filter(|k| k.starts_with("okta-"))
+                        .collect();
+
+                    let factory = crate::providers::okta::factory::OktaProviderFactory::new(
+                        client,
+                        tenant_name.clone(),
+                        selected_keys.clone(),
+                    );
+                    let csv_cols = factory.csv_collectors();
+                    let json_inv_cols = factory.json_collectors();
+                    let evidence_cols = factory.evidence_collectors();
+                    let display_names: Vec<String> = csv_cols
+                        .iter()
+                        .map(|c| c.name().to_string())
+                        .chain(json_inv_cols.iter().map(|c| c.name().to_string()))
+                        .chain(evidence_cols.iter().map(|c| c.name().to_string()))
+                        .collect();
+
+                    // Always include tenant_name so the final layout is:
+                    // {base_output_dir}/{tenant_name}/{YYYY}/{MM-MMM}/
+                    let output_path = Some(
+                        base_output_path
+                            .clone()
+                            .unwrap_or_else(|| PathBuf::from("."))
+                            .join(&tenant_name),
+                    );
+
+                    prepared.push(crate::runner::multi_account::AccountCollectors {
+                        account_id: tenant_name.clone(),
+                        aws_caller_arn: String::new(),
+                        aws_user_id: String::new(),
+                        profile: String::new(),
+                        region: String::new(),
+                        output_path,
+                        collector_keys: selected_keys,
+                        json_collectors: evidence_cols,
+                        json_inv_collectors: json_inv_cols,
+                        csv_collectors: csv_cols,
+                        display_names,
+                        discovered_regions: Vec::new(),
+                        regional_collectors: Vec::new(),
+                        inventory_multi_region: Vec::new(),
+                        endpoint_label: Some(format!("Okta — {}", domain)),
+                    });
+
+                    app.prep_log
+                        .push(format!("  ✓ Okta '{}' ready.", tenant_name));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                }
+            }
+
             // Guard: if every account failed the canary check, prepared is empty.
             // Show an error on the Preparing screen and return cleanly instead of
             // panicking at prepared[0].

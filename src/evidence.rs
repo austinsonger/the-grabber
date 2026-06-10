@@ -151,4 +151,6 @@ pub enum EvidenceSource {
     TenableScans,
     TenableAuditLog,
     TenableCompliance,
+    // Okta
+    OktaSystemLog,
 }

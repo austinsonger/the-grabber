@@ -83,6 +83,10 @@ impl App {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
                     Screen::TenableEndpoint
+                } else if self.selected_provider == CloudProvider::Okta {
+                    self.auto_select_provider_accounts();
+                    self.clamp_collector_cursors();
+                    Screen::SelectCollectors
                 } else if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
@@ -129,6 +133,8 @@ impl App {
             Screen::SelectCollectors => {
                 if self.selected_provider == CloudProvider::Tenable {
                     Screen::TenableEndpoint
+                } else if self.selected_provider == CloudProvider::Okta {
+                    Screen::ProviderSelection
                 } else {
                     Screen::SetDates
                 }
@@ -198,6 +204,18 @@ impl App {
                     if !has_tenable {
                         self.error_msg =
                             Some("No Tenable accounts configured in tenable-config.toml".into());
+                        return false;
+                    }
+                }
+                #[cfg(feature = "okta")]
+                if self.selected_provider == CloudProvider::Okta {
+                    let has_okta = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::Okta);
+                    if !has_okta {
+                        self.error_msg =
+                            Some("No Okta accounts configured in okta-config.toml".into());
                         return false;
                     }
                 }

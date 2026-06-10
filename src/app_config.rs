@@ -137,6 +137,16 @@ pub struct Account {
     pub tenable_url: Option<String>,
 
     // ------------------------------------------------------------------
+    // Okta fields
+    // ------------------------------------------------------------------
+    /// Okta tenant base URL (e.g. `https://acme.okta.com` or `https://acme.oktapreview.com`).
+    pub okta_domain: Option<String>,
+
+    /// Okta API token (SSWS).
+    /// Can also be supplied via `OKTA_API_TOKEN` env var (env wins over TOML).
+    pub okta_api_token: Option<String>,
+
+    // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
     /// Per-account collector overrides (enable_extra / disable).
@@ -165,14 +175,30 @@ impl Account {
             .clone()
             .unwrap_or_else(|| "https://cloud.tenable.com".to_string())
     }
+
+    /// Resolve Okta API token: env var takes precedence over TOML.
+    pub fn okta_api_token_resolved(&self) -> Option<String> {
+        std::env::var("OKTA_API_TOKEN")
+            .ok()
+            .or_else(|| self.okta_api_token.clone())
+    }
+
+    /// Resolve Okta domain, trimming any trailing slash. Returns None if unset.
+    pub fn okta_domain_resolved(&self) -> Option<String> {
+        std::env::var("OKTA_DOMAIN")
+            .ok()
+            .or_else(|| self.okta_domain.clone())
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+    }
 }
 
 /// Best-effort load of config, checking in order:
 ///   1. `./config.toml`  (project-local)
 ///   2. `~/.config/evidence/config.toml`  (user-global)
 ///
-/// After loading the primary config, `./tenable-config.toml` is merged in
-/// (accounts only) if the file exists.
+/// After loading the primary config, `./tenable-config.toml` and
+/// `./okta-config.toml` are merged in (accounts only) if those files exist.
 pub fn load_config() -> Option<AppConfig> {
     let mut cfg: AppConfig = {
         let local = PathBuf::from("config.toml");
@@ -199,6 +225,16 @@ pub fn load_config() -> Option<AppConfig> {
         if let Ok(contents) = fs::read_to_string(&tenable_path) {
             if let Ok(tenable_cfg) = toml::from_str::<AppConfig>(&contents) {
                 cfg.account.extend(tenable_cfg.account);
+            }
+        }
+    }
+
+    // Merge okta-config.toml accounts if present
+    let okta_path = PathBuf::from("okta-config.toml");
+    if okta_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&okta_path) {
+            if let Ok(okta_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(okta_cfg.account);
             }
         }
     }

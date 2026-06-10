@@ -155,6 +155,13 @@ impl App {
             "tenable-pci-asv",
             "tenable-assets",
             "tenable-compliance",
+            "okta-users",
+            "okta-groups",
+            "okta-group-members",
+            "okta-apps",
+            "okta-policies",
+            "okta-factors",
+            "okta-system-log",
         ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {

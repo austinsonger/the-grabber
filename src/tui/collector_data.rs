@@ -537,6 +537,42 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Compliance Findings      ",
         CloudProvider::Tenable,
     ),
+    // ── Identity Provider (Okta) ──
+    (
+        "okta-users",
+        "Users                    ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-groups",
+        "Groups                   ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-group-members",
+        "Group Members            ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-apps",
+        "Applications             ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-policies",
+        "Policies                 ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-factors",
+        "MFA Factors              ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-system-log",
+        "System Log Events        ",
+        CloudProvider::Okta,
+    ),
 ];
 
 // ---------------------------------------------------------------------------

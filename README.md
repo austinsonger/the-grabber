@@ -662,6 +662,51 @@ The collecting identity needs read-only access to the services it queries. A min
 
 ---
 
+## Okta
+
+Optional feature — build with `--features okta` (enabled by default).
+
+### Configuration
+
+Create `okta-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name           = "Okta"
+provider       = "okta"
+description    = "Okta production tenant"
+output_dir     = "./evidence-output/okta"
+okta_domain    = "https://acme.okta.com"
+okta_api_token = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `OKTA_DOMAIN` — e.g. `https://acme.okta.com`
+- `OKTA_API_TOKEN` — SSWS API token
+
+Create an API token in the Okta admin console: **Security → API → Tokens → Create token**.
+
+The token inherits the role of the user that created it; for evidence collection the user needs at least the **Read-only Administrator** role.
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `okta-users` | CSV | All users with status, login, MFA-relevant timestamps |
+| `okta-groups` | CSV | Groups with type, description, membership-updated timestamps |
+| `okta-group-members` | JSON | Per-group membership lists |
+| `okta-apps` | CSV | Applications with sign-on mode, status |
+| `okta-policies` | JSON | Sign-on, password, MFA enrollment, IDP discovery, access, profile enrollment policies |
+| `okta-factors` | CSV | Per-user enrolled MFA factors |
+| `okta-system-log` | JSON | Time-windowed system log events (logins, MFA, admin actions) |
+
+### Required Okta API scopes
+
+The SSWS token is bound to a user; minimum role: **Read-only Administrator**. For the System Log specifically, the user must also have permission to view the System Log (granted by the Read-only Administrator role by default).
+
+---
+
 ## Troubleshooting
 
 **SSO token expired**
