@@ -44,3 +44,6 @@ evidence-output/development/evidence-collection.log
 
 # Tenable credentials — never commit
 tenable-config.toml
+
+# Okta credentials — never commit
+okta-config.toml

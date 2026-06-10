@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs"]
 resolver = "2"
 
 [package]
@@ -88,11 +88,15 @@ google-cloud-auth = { version = "0.7", optional = true }
 # Tenable — only compiled with `--features tenable`
 tenable-rs = { path = "crates/tenable-rs", optional = true }
 
+# Okta — only compiled with `--features okta`
+okta-rs = { path = "crates/okta-rs", optional = true }
+
 [features]
-default = ["tenable"]
+default = ["tenable", "okta"]
 azure   = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
 gcp     = ["dep:google-cloud-auth"]
 tenable = ["dep:tenable-rs"]
+okta    = ["dep:okta-rs"]
 
 [dev-dependencies]
 tempfile = "3"
