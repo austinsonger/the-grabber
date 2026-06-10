@@ -22,3 +22,6 @@ pub mod types;
 
 pub use client::OktaClient;
 pub use error::OktaError;
+
+#[doc(hidden)]
+pub use client::next_link as __test_next_link;
