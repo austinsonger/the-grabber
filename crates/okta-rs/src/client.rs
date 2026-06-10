@@ -121,23 +121,57 @@ fn parse_retry_after(resp: &Response) -> u64 {
 }
 
 /// Parse RFC 5988 `Link` headers and return the URL with `rel="next"` if any.
+///
+/// Splits multi-link headers on `,` only when outside `<...>` brackets, so
+/// URLs containing commas (e.g. `?filter=a,b`) are preserved intact.
 #[doc(hidden)]
 pub fn next_link(resp: &Response) -> Option<String> {
-    let headers = resp.headers().get_all("link");
-    for v in headers.iter() {
-        let s = v.to_str().ok()?;
-        for part in s.split(',') {
-            let trimmed = part.trim();
+    for v in resp.headers().get_all("link").iter() {
+        let s = match v.to_str() {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+        for entry in split_link_entries(s) {
+            let trimmed = entry.trim();
             // Format: <https://...>; rel="next"
-            if let Some(angle_close) = trimmed.find('>') {
-                let url_part = &trimmed[..angle_close];
-                let url = url_part.trim_start_matches('<').trim();
-                let rest = &trimmed[angle_close + 1..];
-                if rest.contains("rel=\"next\"") {
-                    return Some(url.to_string());
-                }
+            let Some(open) = trimmed.find('<') else {
+                continue;
+            };
+            let Some(close_rel) = trimmed[open + 1..].find('>') else {
+                continue;
+            };
+            let close = open + 1 + close_rel;
+            let url = &trimmed[open + 1..close];
+            let rest = &trimmed[close + 1..];
+            if rest.contains("rel=\"next\"") {
+                return Some(url.to_string());
             }
         }
     }
     None
+}
+
+/// Split a Link header value into individual entries, treating `,` as a
+/// separator only when outside `<...>` brackets.
+fn split_link_entries(s: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut depth = 0;
+    let mut start = 0;
+    for (i, c) in s.char_indices() {
+        match c {
+            '<' => depth += 1,
+            '>' => {
+                if depth > 0 {
+                    depth -= 1;
+                }
+            }
+            ',' if depth == 0 => {
+                out.push(&s[start..i]);
+                start = i + c.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    out.push(&s[start..]);
+    out
 }
