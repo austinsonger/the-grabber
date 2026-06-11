@@ -573,6 +573,17 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "System Log Events        ",
         CloudProvider::Okta,
     ),
+    // ── Issue Tracker (Jira) ──
+    (
+        "jira-projects",
+        "Projects                 ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-issues",
+        "Issues                   ",
+        CloudProvider::Jira,
+    ),
 ];
 
 // ---------------------------------------------------------------------------

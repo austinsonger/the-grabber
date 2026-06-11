@@ -162,6 +162,8 @@ impl App {
             "okta-policies",
             "okta-factors",
             "okta-system-log",
+            "jira-projects",
+            "jira-issues",
         ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {
