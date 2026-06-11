@@ -147,6 +147,20 @@ pub struct Account {
     pub okta_api_token: Option<String>,
 
     // ------------------------------------------------------------------
+    // Jira fields
+    // ------------------------------------------------------------------
+    /// Jira Cloud tenant base URL (e.g. `https://acme.atlassian.net`).
+    pub jira_domain: Option<String>,
+
+    /// Jira account email (used as the username half of Basic auth).
+    /// Can also be supplied via `JIRA_EMAIL` env var (env wins over TOML).
+    pub jira_email: Option<String>,
+
+    /// Jira API token.
+    /// Can also be supplied via `JIRA_API_TOKEN` env var (env wins over TOML).
+    pub jira_api_token: Option<String>,
+
+    // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
     /// Per-account collector overrides (enable_extra / disable).
@@ -191,14 +205,37 @@ impl Account {
             .map(|s| s.trim().trim_end_matches('/').to_string())
             .filter(|s| !s.is_empty())
     }
+
+    /// Resolve Jira API token: env var takes precedence over TOML.
+    pub fn jira_api_token_resolved(&self) -> Option<String> {
+        std::env::var("JIRA_API_TOKEN")
+            .ok()
+            .or_else(|| self.jira_api_token.clone())
+    }
+
+    /// Resolve Jira email: env var takes precedence over TOML.
+    pub fn jira_email_resolved(&self) -> Option<String> {
+        std::env::var("JIRA_EMAIL")
+            .ok()
+            .or_else(|| self.jira_email.clone())
+    }
+
+    /// Resolve Jira domain, trimming any trailing slash. Returns None if unset.
+    pub fn jira_domain_resolved(&self) -> Option<String> {
+        std::env::var("JIRA_DOMAIN")
+            .ok()
+            .or_else(|| self.jira_domain.clone())
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+    }
 }
 
 /// Best-effort load of config, checking in order:
 ///   1. `./config.toml`  (project-local)
 ///   2. `~/.config/evidence/config.toml`  (user-global)
 ///
-/// After loading the primary config, `./tenable-config.toml` and
-/// `./okta-config.toml` are merged in (accounts only) if those files exist.
+/// After loading the primary config, `./tenable-config.toml`, `./okta-config.toml`,
+/// and `./jira-config.toml` are merged in (accounts only) if those files exist.
 pub fn load_config() -> Option<AppConfig> {
     let mut cfg: AppConfig = {
         let local = PathBuf::from("config.toml");
@@ -235,6 +272,16 @@ pub fn load_config() -> Option<AppConfig> {
         if let Ok(contents) = fs::read_to_string(&okta_path) {
             if let Ok(okta_cfg) = toml::from_str::<AppConfig>(&contents) {
                 cfg.account.extend(okta_cfg.account);
+            }
+        }
+    }
+
+    // Merge jira-config.toml accounts if present
+    let jira_path = PathBuf::from("jira-config.toml");
+    if jira_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&jira_path) {
+            if let Ok(jira_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(jira_cfg.account);
             }
         }
     }
