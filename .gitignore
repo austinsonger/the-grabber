@@ -48,3 +48,6 @@ tenable-config.toml
 
 # Okta credentials — never commit
 okta-config.toml
+
+# Jira credentials — never commit
+jira-config.toml

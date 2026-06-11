@@ -1,0 +1,14 @@
+# Jira credentials — keep this file out of version control
+# Add to .gitignore: jira-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN
+
+[[account]]
+name           = "Jira"
+provider       = "jira"
+description    = "Jira Cloud production tenant"
+output_dir     = "./evidence-output/jira"
+jira_domain    = "https://acme.atlassian.net"
+jira_email     = "automation@acme.com"
+jira_api_token = ""
