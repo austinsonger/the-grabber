@@ -344,5 +344,6 @@ fn provider_badge(provider: &CloudProvider) -> (&'static str, Color) {
         CloudProvider::Gcp => ("GCP", Color::Rgb(66, 133, 244)),
         CloudProvider::Tenable => ("TEN", Color::Rgb(0, 175, 80)),
         CloudProvider::Okta => ("OKT", Color::Rgb(0, 125, 193)),
+        CloudProvider::Jira => ("JIRA", Color::Rgb(38, 132, 255)),
     }
 }
