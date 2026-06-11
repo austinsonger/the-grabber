@@ -797,6 +797,125 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 }
             }
 
+            // ── Jira accounts ─────────────────────────────────────────────────────
+            #[cfg(feature = "jira")]
+            if !app.selected_accounts.is_empty() {
+                use crate::providers::ProviderFactory as _;
+
+                let sorted_all: Vec<usize> = {
+                    let mut v: Vec<usize> = app.selected_accounts.iter().copied().collect();
+                    v.sort();
+                    v
+                };
+                for &idx in &sorted_all {
+                    if app.accounts[idx].provider != crate::providers::CloudProvider::Jira {
+                        continue;
+                    }
+                    let acct = &app.accounts[idx];
+                    let tenant_name = acct.name.clone();
+
+                    let domain = match acct.jira_domain_resolved() {
+                        Some(d) => d,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jira '{}' — missing jira_domain (or JIRA_DOMAIN env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let email = match acct.jira_email_resolved() {
+                        Some(e) => e,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jira '{}' — missing jira_email (or JIRA_EMAIL env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let token = match acct.jira_api_token_resolved() {
+                        Some(t) => t,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jira '{}' — missing jira_api_token (or JIRA_API_TOKEN env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    app.prep_log
+                        .push(format!("  Jira '{}' → {}", tenant_name, domain));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+                    let client = match jira_rs::JiraClient::new(&domain, &email, &token) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jira '{}' — client build failed: {e}",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    let selected_keys: Vec<String> = app
+                        .selected_collectors()
+                        .into_iter()
+                        .filter(|k| k.starts_with("jira-"))
+                        .collect();
+
+                    let factory = crate::providers::jira::factory::JiraProviderFactory::new(
+                        client,
+                        tenant_name.clone(),
+                        selected_keys.clone(),
+                    );
+                    let csv_cols = factory.csv_collectors();
+                    let json_inv_cols = factory.json_collectors();
+                    let evidence_cols = factory.evidence_collectors();
+                    let display_names: Vec<String> = csv_cols
+                        .iter()
+                        .map(|c| c.name().to_string())
+                        .chain(json_inv_cols.iter().map(|c| c.name().to_string()))
+                        .chain(evidence_cols.iter().map(|c| c.name().to_string()))
+                        .collect();
+
+                    let output_path = Some(
+                        base_output_path
+                            .clone()
+                            .unwrap_or_else(|| PathBuf::from("."))
+                            .join(&tenant_name),
+                    );
+
+                    prepared.push(crate::runner::multi_account::AccountCollectors {
+                        account_id: tenant_name.clone(),
+                        aws_caller_arn: String::new(),
+                        aws_user_id: String::new(),
+                        profile: String::new(),
+                        region: String::new(),
+                        output_path,
+                        collector_keys: selected_keys,
+                        json_collectors: evidence_cols,
+                        json_inv_collectors: json_inv_cols,
+                        csv_collectors: csv_cols,
+                        display_names,
+                        discovered_regions: Vec::new(),
+                        regional_collectors: Vec::new(),
+                        inventory_multi_region: Vec::new(),
+                        endpoint_label: Some(format!("Jira — {}", domain)),
+                    });
+
+                    app.prep_log
+                        .push(format!("  ✓ Jira '{}' ready.", tenant_name));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                }
+            }
+
             // Guard: if every account failed the canary check, prepared is empty.
             // Show an error on the Preparing screen and return cleanly instead of
             // panicking at prepared[0].
