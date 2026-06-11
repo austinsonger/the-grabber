@@ -1,6 +1,5 @@
-// Populated in Task 5.
+pub mod issues;
+pub mod projects;
 
-use crate::client::JiraClient;
-
-pub struct ProjectsApi<'c>(pub(crate) &'c JiraClient);
-pub struct IssuesApi<'c>(pub(crate) &'c JiraClient);
+pub use issues::IssuesApi;
+pub use projects::ProjectsApi;
