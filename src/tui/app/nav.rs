@@ -87,6 +87,10 @@ impl App {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
                     Screen::SelectCollectors
+                } else if self.selected_provider == CloudProvider::Jira {
+                    self.auto_select_provider_accounts();
+                    self.clamp_collector_cursors();
+                    Screen::SelectCollectors
                 } else if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
@@ -133,7 +137,9 @@ impl App {
             Screen::SelectCollectors => {
                 if self.selected_provider == CloudProvider::Tenable {
                     Screen::TenableEndpoint
-                } else if self.selected_provider == CloudProvider::Okta {
+                } else if self.selected_provider == CloudProvider::Okta
+                    || self.selected_provider == CloudProvider::Jira
+                {
                     Screen::ProviderSelection
                 } else {
                     Screen::SetDates
@@ -216,6 +222,18 @@ impl App {
                     if !has_okta {
                         self.error_msg =
                             Some("No Okta accounts configured in okta-config.toml".into());
+                        return false;
+                    }
+                }
+                #[cfg(feature = "jira")]
+                if self.selected_provider == CloudProvider::Jira {
+                    let has_jira = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::Jira);
+                    if !has_jira {
+                        self.error_msg =
+                            Some("No Jira accounts configured in jira-config.toml".into());
                         return false;
                     }
                 }
