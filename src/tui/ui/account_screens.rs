@@ -41,6 +41,12 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
             "◆  Tenable",
             "Export vulnerability findings from Tenable.io or Tenable.sc",
         ));
+        #[cfg(feature = "okta")]
+        v.push((
+            CloudProvider::Okta,
+            "◆  Okta",
+            "Collect users, groups, apps, policies, MFA factors, and system log events",
+        ));
         v
     };
 
