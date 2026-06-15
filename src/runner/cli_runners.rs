@@ -382,7 +382,7 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
         &sr_coll_end,
         sr_outcomes,
     );
-    if !cli.skip_run_manifest {
+    if cli.write_run_manifest {
         match audit_log::write_run_manifest(&output_dir, &sr_manifest) {
             Ok(p) => eprintln!("Run manifest written: {}", p.display()),
             Err(e) => eprintln!("WARN: could not write run manifest: {e}"),
@@ -390,7 +390,7 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
     }
 
     // ── Write chain-of-custody (single-region) ───────────────────────────────
-    if !cli.skip_chain_of_custody {
+    if cli.write_chain_of_custody {
         let identity = cli_identity.unwrap_or(audit_log::AwsIdentity {
             account_id: account_id.clone(),
             caller_arn: "unknown".to_string(),

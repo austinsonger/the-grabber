@@ -974,8 +974,8 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
             let do_zip = app.zip;
             let do_sign = app.sign;
             let skip_inventory_csv = app.skip_inventory_csv;
-            let skip_run_manifest = app.skip_run_manifest;
-            let skip_chain_of_custody = app.skip_chain_of_custody;
+            let write_run_manifest = app.write_run_manifest;
+            let write_chain_of_custody = app.write_chain_of_custody;
             let restart = run_tui_multi_account(
                 &mut terminal,
                 &mut app,
@@ -985,8 +985,8 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 do_zip,
                 do_sign,
                 skip_inventory_csv,
-                skip_run_manifest,
-                skip_chain_of_custody,
+                write_run_manifest,
+                write_chain_of_custody,
             )
             .await?;
             restore_terminal(&mut terminal)?;

@@ -13,7 +13,7 @@ use super::{App, Feature, AMBER, BORDER_SUBTLE, CYAN, GREEN, PURPLE, TEXT_DIM, T
 
 pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // Collectors: 8 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
-    //   5=skip_run_manifest 6=skip_chain_of_custody 7=region list)
+    //   5=write_run_manifest 6=write_chain_of_custody 7=region list)
     // Inventory:  7 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
     //   5=skip_inventory_csv 6=region list)
     let is_inventory = matches!(app.selected_feature, Feature::Inventory);
@@ -30,9 +30,9 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         Constraint::Length(3), // [9] sign output toggle
         Constraint::Length(1), // [10] spacer
         // Collectors-only (collapsed to 0 in Inventory mode):
-        Constraint::Length(if is_inventory { 0 } else { 3 }), // [11] skip_run_manifest
+        Constraint::Length(if is_inventory { 0 } else { 3 }), // [11] write_run_manifest
         Constraint::Length(if is_inventory { 0 } else { 1 }), // [12] spacer
-        Constraint::Length(if is_inventory { 0 } else { 3 }), // [13] skip_chain_of_custody
+        Constraint::Length(if is_inventory { 0 } else { 3 }), // [13] write_chain_of_custody
         Constraint::Length(if is_inventory { 0 } else { 1 }), // [14] spacer
         // Inventory-only (collapsed to 0 in Collectors mode):
         Constraint::Length(if is_inventory { 3 } else { 0 }), // [15] skip_inventory_csv
@@ -233,7 +233,7 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         );
     }
 
-    // ── Skip Run Manifest toggle (Collectors only, field 5) ──────────────────
+    // ── Run Manifest toggle (Collectors only, field 5) ───────────────────────
     if !is_inventory {
         let focused = app.options_field == 5;
         let border_style = if focused {
@@ -246,7 +246,7 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         } else {
             Style::default().fg(TEXT_DIM)
         };
-        let (off_style, on_style) = if app.skip_run_manifest {
+        let (off_style, on_style) = if app.write_run_manifest {
             (
                 Style::default().fg(TEXT_DIM),
                 Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
@@ -257,15 +257,19 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(TEXT_DIM),
             )
         };
-        let off_icon = if !app.skip_run_manifest { "●" } else { "○" };
-        let on_icon = if app.skip_run_manifest { "●" } else { "○" };
+        let off_icon = if !app.write_run_manifest {
+            "●"
+        } else {
+            "○"
+        };
+        let on_icon = if app.write_run_manifest { "●" } else { "○" };
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
-                Span::styled("Enabled", off_style),
+                Span::styled("Disabled", off_style),
                 Span::styled("    ", Style::default()),
                 Span::styled(format!("{} ", on_icon), on_style),
-                Span::styled("Disabled — skip RUN-MANIFEST file", on_style),
+                Span::styled("Enabled — write RUN-MANIFEST file", on_style),
             ]))
             .block(
                 Block::bordered()
@@ -277,7 +281,7 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         );
     }
 
-    // ── Skip Chain of Custody toggle (Collectors only, field 6) ──────────────
+    // ── Chain of Custody toggle (Collectors only, field 6) ───────────────────
     if !is_inventory {
         let focused = app.options_field == 6;
         let border_style = if focused {
@@ -290,7 +294,7 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         } else {
             Style::default().fg(TEXT_DIM)
         };
-        let (off_style, on_style) = if app.skip_chain_of_custody {
+        let (off_style, on_style) = if app.write_chain_of_custody {
             (
                 Style::default().fg(TEXT_DIM),
                 Style::default().fg(AMBER).add_modifier(Modifier::BOLD),
@@ -301,12 +305,12 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(TEXT_DIM),
             )
         };
-        let off_icon = if !app.skip_chain_of_custody {
+        let off_icon = if !app.write_chain_of_custody {
             "●"
         } else {
             "○"
         };
-        let on_icon = if app.skip_chain_of_custody {
+        let on_icon = if app.write_chain_of_custody {
             "●"
         } else {
             "○"
@@ -314,10 +318,10 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         f.render_widget(
             Paragraph::new(Line::from(vec![
                 Span::styled(format!("   {} ", off_icon), off_style),
-                Span::styled("Enabled", off_style),
+                Span::styled("Disabled", off_style),
                 Span::styled("    ", Style::default()),
                 Span::styled(format!("{} ", on_icon), on_style),
-                Span::styled("Disabled — skip CHAIN-OF-CUSTODY file", on_style),
+                Span::styled("Enabled — write CHAIN-OF-CUSTODY file", on_style),
             ]))
             .block(
                 Block::bordered()

@@ -554,13 +554,13 @@ fn handle_set_options(app: &mut App, key: KeyCode) {
             if app.selected_feature == Feature::Inventory {
                 app.skip_inventory_csv = !app.skip_inventory_csv;
             } else {
-                app.skip_run_manifest = !app.skip_run_manifest;
+                app.write_run_manifest = !app.write_run_manifest;
             }
         }
         KeyCode::Char(' ')
             if app.options_field == 6 && app.selected_feature == Feature::Collectors =>
         {
-            app.skip_chain_of_custody = !app.skip_chain_of_custody;
+            app.write_chain_of_custody = !app.write_chain_of_custody;
         }
         KeyCode::Up if app.options_field == region_field => {
             if app.options_region_cursor > 0 {

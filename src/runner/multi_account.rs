@@ -103,8 +103,8 @@ pub async fn run_tui_multi_account(
     do_zip: bool,
     do_sign: bool,
     skip_inventory_csv: bool,
-    skip_run_manifest: bool,
-    skip_chain_of_custody: bool,
+    write_run_manifest: bool,
+    write_chain_of_custody: bool,
 ) -> Result<bool> {
     use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
@@ -414,7 +414,7 @@ pub async fn run_tui_multi_account(
             }
 
             // ── Write run manifest ───────────────────────────────────────────────
-            if !is_inventory_mode && !skip_run_manifest {
+            if !is_inventory_mode && write_run_manifest {
                 let manifest = audit_log::RunManifest::build(
                     &run_id,
                     &acct.account_id,
@@ -430,7 +430,7 @@ pub async fn run_tui_multi_account(
             }
 
             // ── Write chain-of-custody log ───────────────────────────────────────
-            if !is_inventory_mode && !skip_chain_of_custody {
+            if !is_inventory_mode && write_chain_of_custody {
                 let identity = audit_log::AwsIdentity {
                     account_id: acct.account_id.clone(),
                     caller_arn: acct.aws_caller_arn.clone(),

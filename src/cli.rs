@@ -116,14 +116,17 @@ pub struct Cli {
     #[arg(long)]
     pub verify_manifest: Option<String>,
 
-    // ------- Skip options -------
-    /// Skip writing the run-manifest JSON after collection (collectors mode only).
+    // ------- Audit artifact opt-ins -------
+    /// Opt in to writing the run-manifest JSON after collection (collectors mode only).
+    /// Disabled by default; pass this flag to emit RUN-MANIFEST-<run_id>.json.
     #[arg(long, default_value_t = false)]
-    pub skip_run_manifest: bool,
+    pub write_run_manifest: bool,
 
-    /// Skip writing the chain-of-custody log after collection (collectors mode only).
+    /// Opt in to writing the chain-of-custody log after collection (collectors mode only).
+    /// Disabled by default; pass this flag to emit CHAIN-OF-CUSTODY-<run_id>.json
+    /// and append to CHAIN-OF-CUSTODY.jsonl.
     #[arg(long, default_value_t = false)]
-    pub skip_chain_of_custody: bool,
+    pub write_chain_of_custody: bool,
 
     /// Skip writing the inventory CSV after collection (inventory mode only).
     #[arg(long, default_value_t = false)]

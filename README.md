@@ -301,6 +301,8 @@ For copy-paste CLI and inventory examples, see [cli-examples.md](cli-examples.md
 | `--sign` | off | HMAC-SHA256 sign all files; writes a manifest and key file |
 | `--signing-key` | auto-generated | 64-char hex key to use instead of auto-generating |
 | `--verify-manifest` | — | Verify a `SIGNING-MANIFEST-*.json` (runs verification only, no collection) |
+| `--write-run-manifest` | off | Opt in to writing `RUN-MANIFEST-<run_id>.json` after collection (collectors mode) |
+| `--write-chain-of-custody` | off | Opt in to writing `CHAIN-OF-CUSTODY-<run_id>.json` and appending to `CHAIN-OF-CUSTODY.jsonl` (collectors mode) |
 
 ### CLI mode notes
 

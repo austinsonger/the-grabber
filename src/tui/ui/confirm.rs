@@ -177,18 +177,18 @@ pub(super) fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
                 ),
                 kv_line(
                     "Run Manifest",
-                    if app.skip_run_manifest {
-                        "disabled"
-                    } else {
+                    if app.write_run_manifest {
                         "enabled"
+                    } else {
+                        "disabled"
                     },
                 ),
                 kv_line(
                     "Chain of Custody",
-                    if app.skip_chain_of_custody {
-                        "disabled"
-                    } else {
+                    if app.write_chain_of_custody {
                         "enabled"
+                    } else {
+                        "disabled"
                     },
                 ),
                 regions_line,

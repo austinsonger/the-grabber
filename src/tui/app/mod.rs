@@ -84,8 +84,8 @@ pub struct App {
     pub zip: bool,
     pub sign: bool,
     pub skip_inventory_csv: bool,
-    pub skip_run_manifest: bool,
-    pub skip_chain_of_custody: bool,
+    pub write_run_manifest: bool,
+    pub write_chain_of_custody: bool,
 
     // Running / results
     pub collector_statuses: Vec<CollectorStatus>,
@@ -286,8 +286,8 @@ impl App {
             zip,
             sign,
             skip_inventory_csv: false,
-            skip_run_manifest: false,
-            skip_chain_of_custody: false,
+            write_run_manifest: false,
+            write_chain_of_custody: false,
             options_field: 0,
             options_region_cursor: 0,
             options_selected_regions: HashSet::new(),
