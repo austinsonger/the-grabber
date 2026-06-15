@@ -67,6 +67,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::PoamMonth => handle_poam_month(app, key),
         Screen::SelectCollectors => handle_select_collectors(app, key),
         Screen::ScanSelection => handle_scan_selection(app, key),
+        Screen::JiraProjectSelection => handle_jira_project_selection(app, key),
         Screen::Inventory => handle_inventory(app, key),
         Screen::SetOptions => handle_set_options(app, key),
         Screen::Confirm => return handle_confirm(app, key),
@@ -655,6 +656,47 @@ fn handle_scan_selection(app: &mut App, key: KeyCode) {
             if app.validate_current() {
                 app.next_screen();
             }
+        }
+        KeyCode::Esc => app.prev_screen(),
+        _ => {}
+    }
+}
+
+fn handle_jira_project_selection(app: &mut App, key: KeyCode) {
+    let len = app.jira_project_list.len();
+    match key {
+        KeyCode::Up => {
+            if app.jira_project_cursor > 0 {
+                app.jira_project_cursor -= 1;
+            }
+        }
+        KeyCode::Down => {
+            if app.jira_project_cursor + 1 < len {
+                app.jira_project_cursor += 1;
+            }
+        }
+        KeyCode::Char(' ') => {
+            if app.jira_project_cursor < len {
+                let idx = app.jira_project_cursor;
+                if app.jira_project_selected.contains(&idx) {
+                    app.jira_project_selected.remove(&idx);
+                } else {
+                    app.jira_project_selected.insert(idx);
+                }
+            }
+        }
+        KeyCode::Enter => {
+            if app.jira_project_selected.is_empty() {
+                app.error_msg = Some("Select at least one Jira project (Space to toggle)".into());
+                return;
+            }
+            app.selected_jira_project_keys = app
+                .jira_project_selected
+                .iter()
+                .filter_map(|&i| app.jira_project_list.get(i))
+                .map(|p| p.key.clone())
+                .collect();
+            app.next_screen();
         }
         KeyCode::Esc => app.prev_screen(),
         _ => {}

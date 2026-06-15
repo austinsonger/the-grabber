@@ -9,6 +9,7 @@ mod account_screens;
 mod collectors;
 mod confirm;
 mod frame;
+mod jira_project_selection;
 mod options;
 mod poam_screens;
 mod results;
@@ -134,6 +135,9 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::SelectCollectors => collectors::draw_collectors(f, content, app),
         Screen::TenableEndpoint => setup::draw_tenable_endpoint(f, content, app),
         Screen::ScanSelection => scan_selection::draw_scan_selection(f, content, app),
+        Screen::JiraProjectSelection => {
+            jira_project_selection::draw_jira_project_selection(f, content, app)
+        }
 
         Screen::SetOptions => options::draw_options(f, content, app),
         Screen::Confirm => confirm::draw_confirm(f, content, app),

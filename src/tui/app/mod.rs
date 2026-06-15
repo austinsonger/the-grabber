@@ -72,6 +72,12 @@ pub struct App {
     pub selected_scan_ids: Vec<i64>, // VM scan integer IDs committed on ScanSelection → Confirm
     pub selected_was_scan_ids: Vec<String>, // WAS scan UUID strings committed on ScanSelection → Confirm
 
+    // ── Jira project selection ────────────────────────────────────────────────
+    pub jira_project_list: Vec<crate::tui::state::JiraProjectItem>,
+    pub jira_project_cursor: usize,
+    pub jira_project_selected: HashSet<usize>,
+    pub selected_jira_project_keys: Vec<String>,
+
     // Options
     pub output_dir: TextInput,
     pub filter_input: TextInput,
@@ -280,6 +286,10 @@ impl App {
             scan_filter: crate::tui::state::ScanTimeFilter::default(),
             selected_scan_ids: Vec::new(),
             selected_was_scan_ids: Vec::new(),
+            jira_project_list: Vec::new(),
+            jira_project_cursor: 0,
+            jira_project_selected: HashSet::new(),
+            selected_jira_project_keys: Vec::new(),
             output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,

@@ -23,6 +23,37 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
     let profiles = read_aws_profiles();
     let mut app = App::new(profiles);
 
+    // Pre-populate Jira project list so the JiraProjectSelection screen has data ready.
+    // Uses the first configured Jira account's credentials.
+    #[cfg(feature = "jira")]
+    {
+        use crate::providers::CloudProvider;
+        use crate::tui::state::JiraProjectItem;
+        if let Some(acct) = app
+            .accounts
+            .iter()
+            .find(|a| a.provider == CloudProvider::Jira)
+        {
+            if let (Some(domain), Some(email), Some(token)) = (
+                acct.jira_domain_resolved(),
+                acct.jira_email_resolved(),
+                acct.jira_api_token_resolved(),
+            ) {
+                if let Ok(client) = jira_rs::JiraClient::new(&domain, &email, &token) {
+                    if let Ok(projects) = client.projects().list_all().await {
+                        app.jira_project_list = projects
+                            .into_iter()
+                            .map(|p| JiraProjectItem {
+                                key: p.key,
+                                name: p.name,
+                            })
+                            .collect();
+                    }
+                }
+            }
+        }
+    }
+
     // Pre-populate scan list so the ScanSelection screen has data ready.
     // Uses the first configured Tenable account's credentials.
     #[cfg(feature = "tenable")]
@@ -874,7 +905,8 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         client,
                         tenant_name.clone(),
                         selected_keys.clone(),
-                    );
+                    )
+                    .with_project_keys(app.selected_jira_project_keys.clone());
                     let csv_cols = factory.csv_collectors();
                     let json_inv_cols = factory.json_collectors();
                     let evidence_cols = factory.evidence_collectors();

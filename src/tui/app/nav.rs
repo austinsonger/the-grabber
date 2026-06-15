@@ -50,10 +50,18 @@ impl App {
             Screen::SelectCollectors => {
                 if self.selected_provider == CloudProvider::Tenable {
                     Screen::ScanSelection
+                } else if self.selected_provider == CloudProvider::Jira
+                    && self
+                        .selected_collectors()
+                        .iter()
+                        .any(|k| k == "jira-issues")
+                {
+                    Screen::JiraProjectSelection
                 } else {
                     Screen::SetOptions
                 }
             }
+            Screen::JiraProjectSelection => Screen::SetOptions,
             Screen::ScanSelection => {
                 #[cfg(feature = "tenable")]
                 {
@@ -147,6 +155,7 @@ impl App {
             }
             Screen::TenableEndpoint => Screen::ProviderSelection,
             Screen::ScanSelection => Screen::SelectCollectors,
+            Screen::JiraProjectSelection => Screen::SelectCollectors,
             Screen::SetOptions => match self.selected_feature {
                 Feature::Collectors => Screen::SelectCollectors,
                 Feature::Inventory => Screen::Inventory,

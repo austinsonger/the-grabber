@@ -104,6 +104,8 @@ pub enum Screen {
     /// Tenable-only: pick commercial cloud.tenable.com vs FedRAMP fedcloud.tenable.com.
     TenableEndpoint,
     ScanSelection, // Tenable-only: pick which scans to include
+    /// Jira-only: pick which projects to scope Issues collection to.
+    JiraProjectSelection,
     SetOptions,
     Confirm,
     /// Shown while building AWS SDK clients before collection starts.
@@ -243,4 +245,10 @@ pub struct PoamSummary {
     pub added_open_count: usize,
     pub moved_closed_count: usize,
     pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct JiraProjectItem {
+    pub key: String,
+    pub name: String,
 }

@@ -6,11 +6,22 @@ use crate::evidence::CsvCollector;
 
 pub struct JiraIssuesCollector {
     client: JiraClient,
+    project_keys: Vec<String>,
 }
 
 impl JiraIssuesCollector {
     pub fn new(client: JiraClient) -> Self {
-        Self { client }
+        Self {
+            client,
+            project_keys: Vec::new(),
+        }
+    }
+
+    pub fn with_projects(client: JiraClient, project_keys: Vec<String>) -> Self {
+        Self {
+            client,
+            project_keys,
+        }
     }
 }
 
@@ -43,18 +54,29 @@ impl CsvCollector for JiraIssuesCollector {
         _region: &str,
         dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        let jql = match dates {
-            Some((start_secs, end_secs)) => {
-                let start = chrono::DateTime::<chrono::Utc>::from_timestamp(start_secs, 0)
-                    .map(|d| d.format("%Y-%m-%d").to_string())
-                    .unwrap_or_default();
-                let end = chrono::DateTime::<chrono::Utc>::from_timestamp(end_secs, 0)
-                    .map(|d| d.format("%Y-%m-%d").to_string())
-                    .unwrap_or_default();
-                format!("updated >= \"{}\" AND updated <= \"{}\"", start, end)
-            }
-            None => String::new(),
-        };
+        let mut clauses: Vec<String> = Vec::new();
+        if !self.project_keys.is_empty() {
+            let list = self
+                .project_keys
+                .iter()
+                .map(|k| format!("\"{}\"", k))
+                .collect::<Vec<_>>()
+                .join(", ");
+            clauses.push(format!("project in ({})", list));
+        }
+        if let Some((start_secs, end_secs)) = dates {
+            let start = chrono::DateTime::<chrono::Utc>::from_timestamp(start_secs, 0)
+                .map(|d| d.format("%Y-%m-%d").to_string())
+                .unwrap_or_default();
+            let end = chrono::DateTime::<chrono::Utc>::from_timestamp(end_secs, 0)
+                .map(|d| d.format("%Y-%m-%d").to_string())
+                .unwrap_or_default();
+            clauses.push(format!(
+                "updated >= \"{}\" AND updated <= \"{}\"",
+                start, end
+            ));
+        }
+        let jql = clauses.join(" AND ");
         let issues = match self.client.issues().search(&jql).await {
             Ok(i) => i,
             Err(jira_rs::JiraError::Api { status: 404, .. }) => return Ok(vec![]),

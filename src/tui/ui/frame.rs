@@ -365,5 +365,11 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
             ("⏎", "Confirm"),
             ("Esc", "Back"),
         ],
+        Screen::JiraProjectSelection => vec![
+            ("↑↓", "Navigate"),
+            ("␣", "Toggle"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
     }
 }

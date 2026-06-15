@@ -7,6 +7,7 @@ pub struct JiraProviderFactory {
     client: JiraClient,
     tenant_name: String,
     selected: Vec<String>,
+    project_keys: Vec<String>,
 }
 
 impl JiraProviderFactory {
@@ -15,7 +16,13 @@ impl JiraProviderFactory {
             client,
             tenant_name,
             selected,
+            project_keys: Vec::new(),
         }
+    }
+
+    pub fn with_project_keys(mut self, project_keys: Vec<String>) -> Self {
+        self.project_keys = project_keys;
+        self
     }
 }
 
@@ -38,8 +45,9 @@ impl ProviderFactory for JiraProviderFactory {
             )));
         }
         if self.selected.iter().any(|s| s == "jira-issues") {
-            v.push(Box::new(super::issues::JiraIssuesCollector::new(
+            v.push(Box::new(super::issues::JiraIssuesCollector::with_projects(
                 self.client.clone(),
+                self.project_keys.clone(),
             )));
         }
         v
