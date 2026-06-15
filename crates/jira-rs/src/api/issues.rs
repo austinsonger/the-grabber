@@ -30,6 +30,14 @@ impl<'c> IssuesApi<'c> {
             "created",
             "updated",
             "resolutiondate",
+            "duedate",
+            "resolution",
+            "labels",
+            "components",
+            "fixVersions",
+            "parent",
+            "description",
+            "comment",
         ];
         let mut all = Vec::new();
         let mut next_token: Option<String> = None;

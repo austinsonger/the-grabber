@@ -98,7 +98,7 @@ impl App {
                 } else if self.selected_provider == CloudProvider::Jira {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
-                    Screen::SelectCollectors
+                    Screen::SetDates
                 } else if self.has_accounts() {
                     Screen::SelectAccount
                 } else {
@@ -123,7 +123,9 @@ impl App {
             }
             Screen::SelectRegion => Screen::SelectProfile,
             Screen::SetDates => {
-                if self.selected_provider == CloudProvider::Tenable {
+                if self.selected_provider == CloudProvider::Tenable
+                    || self.selected_provider == CloudProvider::Jira
+                {
                     Screen::ProviderSelection
                 } else if self.has_accounts() {
                     Screen::SelectAccount
@@ -145,9 +147,7 @@ impl App {
             Screen::SelectCollectors => {
                 if self.selected_provider == CloudProvider::Tenable {
                     Screen::TenableEndpoint
-                } else if self.selected_provider == CloudProvider::Okta
-                    || self.selected_provider == CloudProvider::Jira
-                {
+                } else if self.selected_provider == CloudProvider::Okta {
                     Screen::ProviderSelection
                 } else {
                     Screen::SetDates

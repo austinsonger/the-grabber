@@ -40,11 +40,19 @@ impl CsvCollector for JiraIssuesCollector {
             "Type",
             "Status",
             "Priority",
+            "Resolution",
             "Assignee",
             "Reporter",
+            "Parent",
+            "Labels",
+            "Components",
+            "Fix Versions",
             "Created",
             "Updated",
             "Resolved",
+            "Due Date",
+            "Description",
+            "Comments",
         ]
     }
 
@@ -86,17 +94,67 @@ impl CsvCollector for JiraIssuesCollector {
             .into_iter()
             .map(|i| {
                 let f = i.fields;
+                let description = f
+                    .description
+                    .as_ref()
+                    .map(jira_rs::types::issue::adf_to_plain_text)
+                    .unwrap_or_default();
+                let comments = f
+                    .comment
+                    .as_ref()
+                    .map(|c| {
+                        c.comments
+                            .iter()
+                            .map(|cmt| {
+                                let author = cmt
+                                    .author
+                                    .as_ref()
+                                    .map(|a| a.display_name.as_str())
+                                    .unwrap_or("");
+                                let when = cmt.created.as_deref().unwrap_or("");
+                                let body = cmt
+                                    .body
+                                    .as_ref()
+                                    .map(jira_rs::types::issue::adf_to_plain_text)
+                                    .unwrap_or_default();
+                                format!("[{} @ {}] {}", author, when, body)
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n---\n")
+                    })
+                    .unwrap_or_default();
+                let labels = f.labels.join(", ");
+                let components = f
+                    .components
+                    .iter()
+                    .map(|c| c.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let fix_versions = f
+                    .fix_versions
+                    .iter()
+                    .map(|c| c.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 vec![
                     i.key,
                     f.summary.unwrap_or_default(),
                     f.issuetype.map(|t| t.name).unwrap_or_default(),
                     f.status.map(|s| s.name).unwrap_or_default(),
                     f.priority.map(|p| p.name).unwrap_or_default(),
+                    f.resolution.map(|r| r.name).unwrap_or_default(),
                     f.assignee.map(|u| u.display_name).unwrap_or_default(),
                     f.reporter.map(|u| u.display_name).unwrap_or_default(),
+                    f.parent.map(|p| p.key).unwrap_or_default(),
+                    labels,
+                    components,
+                    fix_versions,
                     f.created.unwrap_or_default(),
                     f.updated.unwrap_or_default(),
                     f.resolutiondate.unwrap_or_default(),
+                    f.duedate.unwrap_or_default(),
+                    description,
+                    comments,
                 ]
             })
             .collect();
