@@ -7,6 +7,8 @@ use crate::evidence::CsvCollector;
 pub struct JiraIssuesCollector {
     client: JiraClient,
     project_keys: Vec<String>,
+    display_name: String,
+    filename_prefix: String,
 }
 
 impl JiraIssuesCollector {
@@ -14,6 +16,8 @@ impl JiraIssuesCollector {
         Self {
             client,
             project_keys: Vec::new(),
+            display_name: "Jira Issues".to_string(),
+            filename_prefix: "Jira_Issues".to_string(),
         }
     }
 
@@ -21,17 +25,44 @@ impl JiraIssuesCollector {
         Self {
             client,
             project_keys,
+            display_name: "Jira Issues".to_string(),
+            filename_prefix: "Jira_Issues".to_string(),
         }
     }
+
+    /// Build a collector scoped to a single project. The display name and CSV
+    /// filename include the project key so multiple projects produce one file each.
+    pub fn for_project(client: JiraClient, project_key: String) -> Self {
+        let display_name = format!("Jira Issues — {}", project_key);
+        let filename_prefix = format!("Jira_Issues_{}", sanitize_for_filename(&project_key));
+        Self {
+            client,
+            project_keys: vec![project_key],
+            display_name,
+            filename_prefix,
+        }
+    }
+}
+
+fn sanitize_for_filename(s: &str) -> String {
+    s.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
 }
 
 #[async_trait]
 impl CsvCollector for JiraIssuesCollector {
     fn name(&self) -> &str {
-        "Jira Issues"
+        &self.display_name
     }
     fn filename_prefix(&self) -> &str {
-        "Jira_Issues"
+        &self.filename_prefix
     }
     fn headers(&self) -> &'static [&'static str] {
         &[

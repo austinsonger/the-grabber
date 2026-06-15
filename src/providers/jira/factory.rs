@@ -45,10 +45,18 @@ impl ProviderFactory for JiraProviderFactory {
             )));
         }
         if self.selected.iter().any(|s| s == "jira-issues") {
-            v.push(Box::new(super::issues::JiraIssuesCollector::with_projects(
-                self.client.clone(),
-                self.project_keys.clone(),
-            )));
+            if self.project_keys.is_empty() {
+                v.push(Box::new(super::issues::JiraIssuesCollector::new(
+                    self.client.clone(),
+                )));
+            } else {
+                for key in &self.project_keys {
+                    v.push(Box::new(super::issues::JiraIssuesCollector::for_project(
+                        self.client.clone(),
+                        key.clone(),
+                    )));
+                }
+            }
         }
         v
     }
