@@ -707,6 +707,46 @@ The SSWS token is bound to a user; minimum role: **Read-only Administrator**. Fo
 
 ---
 
+## Jira
+
+Optional feature — build with `--features jira` (enabled by default).
+
+### Configuration
+
+Create `jira-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name           = "Jira"
+provider       = "jira"
+description    = "Jira Cloud production tenant"
+output_dir     = "./evidence-output/jira"
+jira_domain    = "https://acme.atlassian.net"
+jira_email     = "you@acme.com"
+jira_api_token = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `JIRA_DOMAIN` — e.g. `https://acme.atlassian.net`
+- `JIRA_EMAIL` — the Atlassian account email used for Basic auth
+- `JIRA_API_TOKEN` — API token
+
+Create an API token at: **Atlassian account → Security → Create and manage API tokens**.
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `jira-projects` | CSV | All projects with key, name, type, lead, and category |
+| `jira-issues` | CSV | All issues across projects with status, assignee, reporter, and timestamps |
+
+### Required Jira permissions
+
+The user behind the API token needs **Browse Projects** permission on every project that should be collected. For full coverage, use an account with site-admin / org-admin read rights.
+
+---
+
 ## Troubleshooting
 
 **SSO token expired**

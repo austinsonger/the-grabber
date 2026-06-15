@@ -47,6 +47,12 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
             "◆  Okta",
             "Collect users, groups, apps, policies, MFA factors, and system log events",
         ));
+        #[cfg(feature = "jira")]
+        v.push((
+            CloudProvider::Jira,
+            "◆  Jira",
+            "Collect projects and issues from Jira Cloud or Jira Server",
+        ));
         v
     };
 
