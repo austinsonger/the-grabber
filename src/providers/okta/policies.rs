@@ -1,9 +1,9 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use okta_rs::OktaClient;
-use serde_json::json;
+use serde_json::Value;
 
-use crate::evidence::JsonCollector;
+use crate::evidence::CsvCollector;
 
 const POLICY_TYPES: &[&str] = &[
     "OKTA_SIGN_ON",
@@ -23,8 +23,20 @@ impl OktaPoliciesCollector {
     }
 }
 
+/// Serialize a `serde_json::Value` for a CSV cell. Returns an empty string for
+/// `Null`, empty objects, or empty arrays so the column stays clean for
+/// policies that don't populate the field.
+fn json_cell(v: &Value) -> String {
+    match v {
+        Value::Null => String::new(),
+        Value::Object(m) if m.is_empty() => String::new(),
+        Value::Array(a) if a.is_empty() => String::new(),
+        other => serde_json::to_string(other).unwrap_or_default(),
+    }
+}
+
 #[async_trait]
-impl JsonCollector for OktaPoliciesCollector {
+impl CsvCollector for OktaPoliciesCollector {
     fn name(&self) -> &str {
         "Okta Policies"
     }
@@ -32,12 +44,29 @@ impl JsonCollector for OktaPoliciesCollector {
         "Okta_Policies"
     }
 
-    async fn collect_records(
+    fn headers(&self) -> &'static [&'static str] {
+        &[
+            "Policy ID",
+            "Type",
+            "Name",
+            "Status",
+            "Description",
+            "Priority",
+            "System",
+            "Created",
+            "Last Updated",
+            "Conditions (JSON)",
+            "Settings (JSON)",
+        ]
+    }
+
+    async fn collect_rows(
         &self,
         _account_id: &str,
         _region: &str,
-    ) -> Result<Vec<serde_json::Value>> {
-        let mut out = Vec::new();
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
+        let mut rows: Vec<Vec<String>> = Vec::new();
         for &policy_type in POLICY_TYPES {
             let policies = match self.client.policies().list_by_type(policy_type).await {
                 Ok(p) => p,
@@ -49,21 +78,25 @@ impl JsonCollector for OktaPoliciesCollector {
                 Err(e) => return Err(e.into()),
             };
             for p in policies {
-                out.push(json!({
-                    "id": p.id,
-                    "type": p.policy_type,
-                    "name": p.name,
-                    "status": p.status,
-                    "description": p.description,
-                    "priority": p.priority,
-                    "system": p.system,
-                    "created": p.created,
-                    "last_updated": p.last_updated,
-                    "conditions": p.conditions,
-                    "settings": p.settings,
-                }));
+                rows.push(vec![
+                    p.id,
+                    p.policy_type,
+                    p.name,
+                    p.status,
+                    p.description.unwrap_or_default(),
+                    p.priority.map(|n| n.to_string()).unwrap_or_default(),
+                    match p.system {
+                        Some(true) => "YES".to_string(),
+                        Some(false) => "NO".to_string(),
+                        None => String::new(),
+                    },
+                    p.created.unwrap_or_default(),
+                    p.last_updated.unwrap_or_default(),
+                    json_cell(&p.conditions),
+                    json_cell(&p.settings),
+                ]);
             }
         }
-        Ok(out)
+        Ok(rows)
     }
 }

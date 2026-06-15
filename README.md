@@ -697,11 +697,11 @@ The token inherits the role of the user that created it; for evidence collection
 |-----|--------|-------------|
 | `okta-users` | CSV | All users with status, login, MFA-relevant timestamps |
 | `okta-groups` | CSV | Groups with type, description, membership-updated timestamps |
-| `okta-group-members` | JSON | Per-group membership lists |
+| `okta-group-members` | CSV | Per-group membership lists |
 | `okta-apps` | CSV | Applications with sign-on mode, status |
-| `okta-policies` | JSON | Sign-on, password, MFA enrollment, IDP discovery, access, profile enrollment policies |
+| `okta-policies` | CSV | Sign-on, password, MFA enrollment, IDP discovery, access, profile enrollment policies |
 | `okta-factors` | CSV | Per-user enrolled MFA factors |
-| `okta-system-log` | JSON | Time-windowed system log events (logins, MFA, admin actions) |
+| `okta-system-log` | CSV | Time-windowed system log events (logins, MFA, admin actions) |
 
 ### Required Okta API scopes
 
