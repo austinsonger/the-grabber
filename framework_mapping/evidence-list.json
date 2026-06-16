@@ -4450,6 +4450,34 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV131",
+      "name": "IAM Credential Report",
+      "description": "AWS IAM credential report — per-user MFA, password age, access key age, last-used timestamps and services (via GenerateCredentialReport + GetCredentialReport)",
+      "detail": "AWS IAM credential report — per-user MFA, password age, access key age, last-used timestamps and services (via GenerateCredentialReport + GetCredentialReport)",
+      "filename_prefix": "IAM_Credential_Report",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-2",
+            "AC-2(3)",
+            "AC-2(13)",
+            "IA-4",
+            "IA-5",
+            "IA-5(1)"
+          ]
+        }
+      ]
     }
   ]
 }

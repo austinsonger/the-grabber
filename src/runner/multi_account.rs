@@ -21,6 +21,7 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "iam-policies",
     "iam-access-keys",
     "iam-certs",
+    "iam-credential-report",
     "iam-trusts",
     "iam-role-policies",
     "iam-user-policies",

@@ -277,6 +277,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("iam-certs", "IAM Certificates         ", CloudProvider::Aws),
     (
+        "iam-credential-report",
+        "IAM Credential Report    ",
+        CloudProvider::Aws,
+    ),
+    (
         "iam-password-policy",
         "IAM Password Policy      ",
         CloudProvider::Aws,
