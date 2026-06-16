@@ -356,6 +356,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "cw-anomaly",
+        "CW Anomaly Detectors     ",
+        CloudProvider::Aws,
+    ),
+    (
         "cw-log-config",
         "CW Log Group Config      ",
         CloudProvider::Aws,

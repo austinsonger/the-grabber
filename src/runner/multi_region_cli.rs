@@ -161,6 +161,7 @@ pub(crate) async fn run_multi_region_standard(
             "ssm-patch-exec",
             "ssm-maint-windows",
             "cw-config-alarms",
+            "cw-anomaly",
             "change-event-rules",
             "inspector-sbom",
             // ── New collectors (2026-06) ──

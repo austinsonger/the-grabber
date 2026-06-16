@@ -4772,6 +4772,31 @@
       ]
     },
     {
+      "evidence_id": "EV144",
+      "name": "CloudWatch Anomaly Detectors",
+      "description": "CloudWatch metric anomaly detectors (single-metric, metric-math, characteristics)",
+      "detail": "CloudWatch metric anomaly detectors (single-metric, metric-math, characteristics)",
+      "filename_prefix": "CloudWatch_AnomalyDetectors",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SI-4",
+            "SI-4(2)",
+            "SI-4(11)"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV143",
       "name": "GuardDuty Coverage",
       "description": "GuardDuty data-source coverage per resource (EKS, RDS, S3, EBS, Lambda enrollment status)",

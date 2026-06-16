@@ -41,6 +41,7 @@ use crate::providers::aws::{
         ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector,
     },
     contributor_insights::ContributorInsightsCollector,
+    cw_anomaly_detectors::CloudWatchAnomalyDetectorsCollector,
     detective_graphs::DetectiveGraphsCollector,
     dynamodb::DynamoDbCollector,
     ebs::EbsCollector,
@@ -628,6 +629,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("cw-config-alarms") {
             v.push(Box::new(CloudWatchConfigAlarmsCollector::new(cfg)));
+        }
+        if has("cw-anomaly") {
+            v.push(Box::new(CloudWatchAnomalyDetectorsCollector::new(cfg)));
         }
         if has("change-event-rules") {
             v.push(Box::new(ChangeEventRulesCollector::new(cfg)));
