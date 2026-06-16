@@ -151,6 +151,7 @@ pub(crate) async fn run_multi_region_standard(
             "r53-arc",
             "rds-pitr",
             "s3-replication",
+            "s3-object-lock",
             "lambda-config",
             "lambda-permissions",
             "ecr-config",

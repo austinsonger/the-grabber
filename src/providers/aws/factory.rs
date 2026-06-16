@@ -112,6 +112,7 @@ use crate::providers::aws::{
         S3PublicAccessBlockCollector,
     },
     s3_inventory::S3BucketLoggingCollector,
+    s3_object_lock::S3ObjectLockCollector,
     s3_policies::S3PoliciesCollector,
     s3_replication::S3ReplicationCollector,
     secrets_extended::SecretsManagerPoliciesCollector,
@@ -604,6 +605,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("s3-replication") {
             v.push(Box::new(S3ReplicationCollector::new(cfg)));
+        }
+        if has("s3-object-lock") {
+            v.push(Box::new(S3ObjectLockCollector::new(cfg)));
         }
         if has("lambda-config") {
             v.push(Box::new(LambdaConfigCollector::new(cfg)));

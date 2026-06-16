@@ -639,6 +639,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "S3 Replication           ",
         CloudProvider::Aws,
     ),
+    (
+        "s3-object-lock",
+        "S3 Object Lock           ",
+        CloudProvider::Aws,
+    ),
     // ── Security Scanning (Tenable) ── (127..130)
     (
         "tenable-vulns",

@@ -5033,6 +5033,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV153",
+      "name": "S3 Object Lock Configuration",
+      "description": "S3 bucket Object Lock configuration (Compliance/Governance mode, default retention)",
+      "detail": "S3 bucket Object Lock configuration (Compliance/Governance mode, default retention)",
+      "filename_prefix": "S3_ObjectLock_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Storage",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-9",
+            "AU-11",
+            "CP-9(5)",
+            "SC-28",
+            "SI-7"
+          ]
+        }
+      ]
     }
   ]
 }
