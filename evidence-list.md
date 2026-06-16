@@ -248,6 +248,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV120 | SSM Patch Execution History | `SSM_Patch_Execution` | Command ID, Instance ID, Requested Date Time, Completed Date Time, Status |
 | EV121 | SSM Maintenance Windows | `SSM_Maintenance_Window` | Window ID, Name, Enabled, Schedule, Duration (hrs), Targets, Tasks |
 | EV154 | SSM Compliance Summary | `SSM_Compliance_Summary` | Resource ID, Resource Type, Compliance Type, Overall Severity, Compliant Count, Non-Compliant Count, Last Execution Time |
+| EV155 | SSM Associations | `SSM_Association_Compliance` | Association ID, Document Name, Targets, Schedule Expression, Last Execution Status, Last Execution Time |
 
 ### Backup
 

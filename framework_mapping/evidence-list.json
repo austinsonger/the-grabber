@@ -5087,6 +5087,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV155",
+      "name": "SSM Associations",
+      "description": "SSM State Manager associations with targets, schedule, and last-execution status",
+      "detail": "SSM State Manager associations with targets, schedule, and last-execution status",
+      "filename_prefix": "SSM_Association_Compliance",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-2",
+            "CM-6",
+            "CM-7",
+            "SI-2",
+            "SI-7"
+          ]
+        }
+      ]
     }
   ]
 }
