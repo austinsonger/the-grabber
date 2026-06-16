@@ -4849,6 +4849,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV146",
+      "name": "Backup Vault Lock Configuration",
+      "description": "AWS Backup vault-lock configuration (immutable retention via Vault Lock Compliance/Governance mode)",
+      "detail": "AWS Backup vault-lock configuration (immutable retention via Vault Lock Compliance/Governance mode)",
+      "filename_prefix": "Backup_VaultLock_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-9",
+            "CP-9(5)",
+            "CP-9(8)",
+            "SC-28",
+            "SI-7"
+          ]
+        }
+      ]
     }
   ]
 }

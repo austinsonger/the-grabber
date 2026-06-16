@@ -221,6 +221,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "backup-vaultlock",
+        "Backup Vault Lock        ",
+        CloudProvider::Aws,
+    ),
+    (
         "rds-inventory",
         "RDS Inventory            ",
         CloudProvider::Aws,
