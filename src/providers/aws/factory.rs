@@ -123,6 +123,7 @@ use crate::providers::aws::{
     },
     ssm_sessions::SsmSessionsCollector,
     ssm_software_inventory::SsmSoftwareInventoryCollector,
+    sts_federation::StsFederationCollector,
     tagging_config::ResourceTaggingCollector,
     vpc::{NetworkAclCollector, VpcCollector},
     vpc_endpoints::VpcEndpointCollector,
@@ -615,6 +616,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));
+        }
+        if has("sts-federation") {
+            v.push(Box::new(StsFederationCollector::new(cfg)));
         }
 
         v

@@ -94,6 +94,7 @@ pub mod ssm_extended;
 pub mod ssm_patch_detail;
 pub mod ssm_sessions;
 pub mod ssm_software_inventory;
+pub mod sts_federation;
 pub mod tagging_config;
 pub mod vpc;
 pub mod vpc_endpoints;

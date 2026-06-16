@@ -4614,6 +4614,34 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV137",
+      "name": "STS Federation Sources",
+      "description": "SAML 2.0 and OIDC identity providers configured for AWS STS federation",
+      "detail": "SAML 2.0 and OIDC identity providers configured for AWS STS federation",
+      "filename_prefix": "STS_Federation_Sources",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-2",
+            "AC-14",
+            "IA-2",
+            "IA-5(2)",
+            "IA-8",
+            "IA-8(2)"
+          ]
+        }
+      ]
     }
   ]
 }

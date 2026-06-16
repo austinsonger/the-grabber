@@ -338,6 +338,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "SAML IdP Config          ",
         CloudProvider::Aws,
     ),
+    (
+        "sts-federation",
+        "STS Federation Sources   ",
+        CloudProvider::Aws,
+    ),
     // ── Monitoring & Events ── (68..78)
     ("cw-alarms", "CloudWatch Alarms        ", CloudProvider::Aws),
     (

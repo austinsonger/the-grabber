@@ -54,6 +54,7 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     // Identity Center / SSO (global — home region only)
     "identity-center",
     "identity-store",
+    "sts-federation",
 ];
 
 /// Pre-built account data ready for the background collection task.
