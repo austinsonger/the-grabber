@@ -10,6 +10,7 @@ pub mod athena_saved_queries;
 pub mod autoscaling;
 pub mod backup;
 pub mod backup_config;
+pub mod backup_copy_actions;
 pub mod backup_vaultlock;
 pub mod client_vpn;
 pub mod cloudformation_drift;

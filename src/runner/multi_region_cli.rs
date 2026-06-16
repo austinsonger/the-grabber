@@ -145,6 +145,7 @@ pub(crate) async fn run_multi_region_standard(
             "backup-vaults",
             "rds-backup-config",
             "backup-vaultlock",
+            "backup-copy-actions",
             "lambda-config",
             "lambda-permissions",
             "ecr-config",

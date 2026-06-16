@@ -4876,6 +4876,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV147",
+      "name": "Backup Plan Copy Actions",
+      "description": "AWS Backup plan cross-region / cross-account copy actions with lifecycle policies",
+      "detail": "AWS Backup plan cross-region / cross-account copy actions with lifecycle policies",
+      "filename_prefix": "Backup_Plan_Copy_Actions",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-6",
+            "CP-6(1)",
+            "CP-6(3)",
+            "CP-9(5)"
+          ]
+        }
+      ]
     }
   ]
 }
