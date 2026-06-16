@@ -60,6 +60,7 @@ use crate::providers::aws::{
     eventbridge_archives::EventBridgeArchivesCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
+    guardduty_coverage::GuardDutyCoverageCollector,
     iam_access_advisor::IamAccessAdvisorCollector,
     iam_certs::IamCertCollector,
     iam_credential_report::IamCredentialReportCollector,
@@ -386,6 +387,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("guardduty-rules") {
             v.push(Box::new(GuardDutySuppressionCollector::new(cfg)));
+        }
+        if has("guardduty-coverage") {
+            v.push(Box::new(GuardDutyCoverageCollector::new(cfg)));
         }
         if has("sh-standards") {
             v.push(Box::new(SecurityHubStandardsCollector::new(cfg)));

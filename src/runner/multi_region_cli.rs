@@ -92,6 +92,7 @@ pub(crate) async fn run_multi_region_standard(
             "athena-log-queries",
             "s3-data-events",
             "guardduty-config",
+            "guardduty-coverage",
             "guardduty-rules",
             "sh-standards",
             "igw",

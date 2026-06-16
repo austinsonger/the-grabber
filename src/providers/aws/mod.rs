@@ -49,6 +49,7 @@ pub mod elb_config;
 pub mod eventbridge_archives;
 pub mod guardduty;
 pub mod guardduty_config;
+pub mod guardduty_coverage;
 pub mod iam_access_advisor;
 pub mod iam_certs;
 pub mod iam_credential_report;

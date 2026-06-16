@@ -4770,6 +4770,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV143",
+      "name": "GuardDuty Coverage",
+      "description": "GuardDuty data-source coverage per resource (EKS, RDS, S3, EBS, Lambda enrollment status)",
+      "detail": "GuardDuty data-source coverage per resource (EKS, RDS, S3, EBS, Lambda enrollment status)",
+      "filename_prefix": "GuardDuty_Coverage",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "RA-5",
+            "SI-3",
+            "SI-4",
+            "SI-4(2)",
+            "SI-4(4)"
+          ]
+        }
+      ]
     }
   ]
 }

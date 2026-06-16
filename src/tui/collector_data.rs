@@ -498,6 +498,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "GuardDuty Config         ",
         CloudProvider::Aws,
     ),
+    (
+        "guardduty-coverage",
+        "GuardDuty Coverage       ",
+        CloudProvider::Aws,
+    ),
     ("guardduty", "GuardDuty Findings       ", CloudProvider::Aws),
     (
         "gd-full-config",

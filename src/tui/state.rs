@@ -161,10 +161,10 @@ pub const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
     (93, "Network"),
     (113, "Organization & Account"),
     (117, "Security Detection"),
-    (132, "Storage"),
-    (145, "Vulnerability Scanning"),
-    (150, "Identity Provider"),
-    (157, "Issue Tracker"),
+    (133, "Storage"),
+    (146, "Vulnerability Scanning"),
+    (151, "Identity Provider"),
+    (158, "Issue Tracker"),
 ];
 
 // ---------------------------------------------------------------------------
