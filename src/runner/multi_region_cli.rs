@@ -173,6 +173,7 @@ pub(crate) async fn run_multi_region_standard(
             "network-firewall",
             "ssm-sessions",
             "cognito-pools",
+            "logs-insights-queries",
         ];
         full.iter()
             .copied()

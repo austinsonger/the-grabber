@@ -81,6 +81,7 @@ use crate::providers::aws::{
     lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector},
     launch_templates::LaunchTemplateCollector,
     license_manager::LicenseManagerCollector,
+    logs_insights_queries::LogsInsightsSavedQueriesCollector,
     macie::MacieCollector,
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
@@ -357,6 +358,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("athena-log-queries") {
             v.push(Box::new(AthenaSavedQueriesCollector::new(cfg)));
+        }
+        if has("logs-insights-queries") {
+            v.push(Box::new(LogsInsightsSavedQueriesCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));

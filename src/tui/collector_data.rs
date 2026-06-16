@@ -361,6 +361,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "logs-insights-queries",
+        "CW Logs Insights Queries ",
+        CloudProvider::Aws,
+    ),
+    (
         "change-event-rules",
         "EventBridge Change Rules (event-pattern, CSV)",
         CloudProvider::Aws,

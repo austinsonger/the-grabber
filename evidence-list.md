@@ -102,6 +102,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV40 | CloudWatch Alarms | `CloudWatch_Alarms` | Alarm Name, Metric, Threshold, Comparison Operator, Actions Enabled, State |
 | EV41 | CloudWatch Log Groups | `CloudWatch_Log_Groups` | Log Group Name, Retention Days, KMS Key ARN, Stored Bytes, Region |
 | EV42 | CloudWatch Alarms for Config Changes | `Change_Alerts_Config` | Alarm Name, Metric Name, Namespace, Threshold, Comparison Operator, Actions Enabled, Alarm Actions |
+| EV138 | CloudWatch Logs Insights Saved Queries | `CloudWatch_LogsInsights_SavedQueries` | Query Name, Query Definition ID, Last Modified, Log Groups, Query String Excerpt |
 
 ### Compute — EC2
 

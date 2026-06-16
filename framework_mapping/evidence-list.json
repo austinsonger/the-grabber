@@ -4642,6 +4642,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV138",
+      "name": "CloudWatch Logs Insights Saved Queries",
+      "description": "Saved CloudWatch Logs Insights query definitions — evidence of automated log-review procedures",
+      "detail": "Saved CloudWatch Logs Insights query definitions — evidence of automated log-review procedures",
+      "filename_prefix": "CloudWatch_LogsInsights_SavedQueries",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6",
+            "AU-6(1)",
+            "AU-7",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }

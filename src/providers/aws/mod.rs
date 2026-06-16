@@ -66,6 +66,7 @@ pub mod kms_policies;
 pub mod lambda_config;
 pub mod launch_templates;
 pub mod license_manager;
+pub mod logs_insights_queries;
 pub mod macie;
 pub mod network_firewall;
 pub mod network_gateways;
