@@ -4745,6 +4745,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV142",
+      "name": "Security Hub Insights",
+      "description": "Custom Security Hub insights for cross-account correlation of findings",
+      "detail": "Custom Security Hub insights for cross-account correlation of findings",
+      "filename_prefix": "SecurityHub_Insights",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "RA-5",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }

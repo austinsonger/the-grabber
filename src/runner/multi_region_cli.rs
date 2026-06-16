@@ -177,6 +177,7 @@ pub(crate) async fn run_multi_region_standard(
             "eb-archives",
             "cw-contributor-insights",
             "detective-graphs",
+            "sh-insights",
         ];
         full.iter()
             .copied()

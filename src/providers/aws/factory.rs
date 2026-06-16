@@ -110,6 +110,7 @@ use crate::providers::aws::{
         AwsConfigRecorderCollector, GuardDutyFullConfigCollector, SecurityHubConfigCollector,
     },
     securityhub::SecurityHubCollector,
+    securityhub_insights::SecurityHubInsightsCollector,
     securityhub_standards::SecurityHubStandardsCollector,
     service_quotas::ServiceQuotasCollector,
     shield::ShieldCollector,
@@ -373,6 +374,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("detective-graphs") {
             v.push(Box::new(DetectiveGraphsCollector::new(cfg)));
+        }
+        if has("sh-insights") {
+            v.push(Box::new(SecurityHubInsightsCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));

@@ -538,6 +538,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "sh-insights",
+        "Security Hub Insights    ",
+        CloudProvider::Aws,
+    ),
+    (
         "inspector-sbom",
         "Inspector2 SBOM Export   ",
         CloudProvider::Aws,

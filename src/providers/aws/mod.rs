@@ -88,6 +88,7 @@ pub mod secrets_extended;
 pub mod secretsmanager;
 pub mod security_svc_config;
 pub mod securityhub;
+pub mod securityhub_insights;
 pub mod securityhub_standards;
 pub mod service_quotas;
 pub mod shield;
