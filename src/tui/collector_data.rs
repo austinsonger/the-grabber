@@ -36,7 +36,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Route53 Resolver Rules   ",
         CloudProvider::Aws,
     ),
-    // ── Audit Trail ── (6..23)
+    // ── Audit Trail ── (6..24)
     (
         "config-recorder",
         "AWS Config Recorder      ",
@@ -50,6 +50,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ("cfn-drift", "CloudFormation Drift     ", CloudProvider::Aws),
     ("cloudtrail", "CloudTrail API", CloudProvider::Aws),
     ("ct-changes", "CloudTrail Change Events", CloudProvider::Aws),
+    (
+        "ct-account-mgmt",
+        "CT Account Mgmt Events   ",
+        CloudProvider::Aws,
+    ),
     (
         "cloudtrail-config",
         "CloudTrail Configuration ",

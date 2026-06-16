@@ -84,6 +84,7 @@ pub(crate) async fn run_multi_region_standard(
             "ct-validation",
             "ct-s3-policy",
             "ct-changes",
+            "ct-account-mgmt",
             "s3-data-events",
             "guardduty-config",
             "guardduty-rules",

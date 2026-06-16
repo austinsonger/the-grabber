@@ -13,6 +13,7 @@ pub mod client_vpn;
 pub mod cloudformation_drift;
 pub mod cloudfront;
 pub mod cloudtrail;
+pub mod cloudtrail_accountmgmt;
 pub mod cloudtrail_config;
 pub mod cloudtrail_details;
 pub mod cloudtrail_iam;

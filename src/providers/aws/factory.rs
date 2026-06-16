@@ -17,6 +17,7 @@ use crate::providers::aws::{
     cloudformation_drift::CloudFormationDriftCollector,
     cloudfront::CloudFrontCollector,
     cloudtrail::CloudTrailCollector,
+    cloudtrail_accountmgmt::CloudTrailAccountMgmtCollector,
     cloudtrail_config::CloudTrailFullConfigCollector,
     cloudtrail_details::{
         CloudTrailChangeEventsCollector, CloudTrailEventSelectorsCollector,
@@ -311,6 +312,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ct-changes") {
             v.push(Box::new(CloudTrailChangeEventsCollector::new(cfg)));
+        }
+        if has("ct-account-mgmt") {
+            v.push(Box::new(CloudTrailAccountMgmtCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));

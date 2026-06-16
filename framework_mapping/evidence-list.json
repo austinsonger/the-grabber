@@ -4279,6 +4279,38 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV125",
+      "name": "CloudTrail Account Management Events",
+      "description": "CloudTrail events for IAM account lifecycle (CreateUser, DeleteUser, MFA, policy attach/detach, group membership, access keys) via LookupEvents API",
+      "detail": "CloudTrail events for IAM account lifecycle (CreateUser, DeleteUser, MFA, policy attach/detach, group membership, access keys) via LookupEvents API",
+      "filename_prefix": "CloudTrail_AccountMgmt_Events",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-2",
+            "AC-2(1)",
+            "AC-2(3)",
+            "AC-2(4)",
+            "AC-6(9)",
+            "AU-2",
+            "AU-12",
+            "IA-4",
+            "PS-4",
+            "PS-5"
+          ]
+        }
+      ]
     }
   ]
 }
