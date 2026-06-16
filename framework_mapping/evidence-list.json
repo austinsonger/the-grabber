@@ -4955,6 +4955,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV150",
+      "name": "Route53 ARC Routing Controls & Readiness",
+      "description": "Route53 Application Recovery Controller (ARC) routing controls and readiness check status",
+      "detail": "Route53 Application Recovery Controller (ARC) routing controls and readiness check status",
+      "filename_prefix": "Route53_ARC_Controls",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-6",
+            "CP-7",
+            "CP-10",
+            "SC-5"
+          ]
+        }
+      ]
     }
   ]
 }

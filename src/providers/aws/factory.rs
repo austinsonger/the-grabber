@@ -101,6 +101,7 @@ use crate::providers::aws::{
     rds::RdsCollector,
     rds_inventory::RdsInventoryCollector,
     rds_snapshots::RdsSnapshotCollector,
+    route53_arc::Route53ArcCollector,
     route53_config::{
         Route53DnssecCollector, Route53ResolverRulesCollector, Route53ZonesCollector,
     },
@@ -592,6 +593,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("drs-replication") {
             v.push(Box::new(DrsReplicationCollector::new(cfg)));
+        }
+        if has("r53-arc") {
+            v.push(Box::new(Route53ArcCollector::new(cfg)));
         }
         if has("lambda-config") {
             v.push(Box::new(LambdaConfigCollector::new(cfg)));
