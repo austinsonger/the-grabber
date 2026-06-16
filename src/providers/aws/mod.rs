@@ -53,6 +53,7 @@ pub mod iam_policies;
 pub mod iam_roles_lastused;
 pub mod iam_trusts;
 pub mod identity_center;
+pub mod identity_store;
 pub mod inspector;
 pub mod inspector_config;
 pub mod inspector_ecr;

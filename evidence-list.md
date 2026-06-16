@@ -45,6 +45,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV132 | IAM Access Advisor | `IAM_Access_Advisor` | Principal ARN, Principal Type, Service Name, Service Namespace, Last Authenticated, Last Authenticated Entity, Last Authenticated Region, Total Authenticated Entities *(capped at first 200 principals)* |
 | EV133 | IAM Roles Last Used | `IAM_Roles_LastUsed` | Role Name, ARN, Created Date, Last Used Date, Last Used Region, Days Since Last Use *(excludes service-linked roles)* |
 | EV134 | Identity Center Assignments | `IdentityCenter_Assignments` | Instance ARN, Permission Set Name, Permission Set ARN, Session Duration, Relay State, Inline Policy Present, Managed Policies, Assigned Account ID, Principal Type, Principal ID |
+| EV135 | Identity Store Users & Groups | `IdentityStore_Users_Groups` | Identity Store ID, Type, ID, User/Group Name, Display Name, Email, Group Memberships |
 
 ### Certificates & PKI
 
