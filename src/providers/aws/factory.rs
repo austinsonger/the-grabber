@@ -26,6 +26,7 @@ use crate::providers::aws::{
     cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector},
     cloudtrail_insights::CloudTrailInsightsCollector,
     cloudtrail_inventory::CloudTrailInventoryCollector,
+    cloudtrail_lake::CloudTrailLakeCollector,
     cloudtrail_privileged::CloudTrailPrivilegedCollector,
     cloudtrail_sessions::CloudTrailSessionEventsCollector,
     cloudwatch::MetricFilterAlarmCollector,
@@ -327,6 +328,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ct-insights") {
             v.push(Box::new(CloudTrailInsightsCollector::new(cfg)));
+        }
+        if has("ct-lake") {
+            v.push(Box::new(CloudTrailLakeCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));

@@ -65,6 +65,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "CT Insights              ",
         CloudProvider::Aws,
     ),
+    ("ct-lake", "CT Lake Data Stores      ", CloudProvider::Aws),
     (
         "ct-privileged",
         "CT Privileged Events     ",

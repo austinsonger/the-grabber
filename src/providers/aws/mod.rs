@@ -19,6 +19,7 @@ pub mod cloudtrail_details;
 pub mod cloudtrail_iam;
 pub mod cloudtrail_insights;
 pub mod cloudtrail_inventory;
+pub mod cloudtrail_lake;
 pub mod cloudtrail_privileged;
 pub mod cloudtrail_s3;
 pub mod cloudtrail_sessions;

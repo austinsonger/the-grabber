@@ -65,6 +65,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV126 | CloudTrail Session Events | `CloudTrail_Session_Events` | Event Name, Event Time, User Identity, Source IP, User Agent, MFA Used, Success, Error Message *(last 90 days unless date window provided)* |
 | EV127 | CloudTrail Privileged Action Events | `CloudTrail_PrivilegedAction_Events` | Event Name, Event Source, Event Time, User Identity, Source IP, Request Parameters *(last 90 days unless date window provided — IAM policy/role, KMS disable, CloudTrail/Config tamper, Org changes, S3 policy)* |
 | EV128 | CloudTrail Insights | `CloudTrail_Insights` | Trail Name, Insight Type, Event Time, Insight State, Source, Baseline Average, Insight Value *(last 90 days unless date window provided)* |
+| EV129 | CloudTrail Lake Event Data Stores | `CloudTrail_Lake_Queries` | Event Data Store Name, ARN, Retention Period (days), Multi-Region, Org Enabled, Status, KMS Key, Recent Query Count (30d) |
 
 ### AWS Config
 

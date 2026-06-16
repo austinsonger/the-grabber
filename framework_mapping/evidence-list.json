@@ -4397,6 +4397,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV129",
+      "name": "CloudTrail Lake Event Data Stores",
+      "description": "CloudTrail Lake event data stores with retention, multi-region/org status, encryption, and recent query activity",
+      "detail": "CloudTrail Lake event data stores with retention, multi-region/org status, encryption, and recent query activity",
+      "filename_prefix": "CloudTrail_Lake_Queries",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6",
+            "AU-7",
+            "AU-9",
+            "AU-11",
+            "AU-12(1)"
+          ]
+        }
+      ]
     }
   ]
 }
