@@ -8,6 +8,7 @@ use crate::providers::aws::{
     acm_pca::AcmPrivateCaCollector,
     alb_logs::AlbLogsCollector,
     apigateway::ApiGatewayCollector,
+    athena_saved_queries::AthenaSavedQueriesCollector,
     autoscaling::AutoScalingCollector,
     backup::BackupCollector,
     backup_config::{
@@ -331,6 +332,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ct-lake") {
             v.push(Box::new(CloudTrailLakeCollector::new(cfg)));
+        }
+        if has("athena-log-queries") {
+            v.push(Box::new(AthenaSavedQueriesCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));

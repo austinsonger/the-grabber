@@ -89,6 +89,7 @@ pub(crate) async fn run_multi_region_standard(
             "ct-privileged",
             "ct-insights",
             "ct-lake",
+            "athena-log-queries",
             "s3-data-events",
             "guardduty-config",
             "guardduty-rules",

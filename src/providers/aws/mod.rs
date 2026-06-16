@@ -6,6 +6,7 @@ pub mod acm;
 pub mod acm_pca;
 pub mod alb_logs;
 pub mod apigateway;
+pub mod athena_saved_queries;
 pub mod autoscaling;
 pub mod backup;
 pub mod backup_config;

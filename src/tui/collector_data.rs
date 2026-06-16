@@ -36,7 +36,12 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Route53 Resolver Rules   ",
         CloudProvider::Aws,
     ),
-    // ── Audit Trail ── (6..27)
+    // ── Audit Trail ── (6..29)
+    (
+        "athena-log-queries",
+        "Athena Log Queries       ",
+        CloudProvider::Aws,
+    ),
     (
         "config-recorder",
         "AWS Config Recorder      ",

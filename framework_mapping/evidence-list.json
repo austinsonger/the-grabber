@@ -4424,6 +4424,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV130",
+      "name": "Athena Log-Review Saved Queries",
+      "description": "Athena named queries that target audit-log tables (CloudTrail, VPC Flow Logs, WAF logs, SecurityHub, GuardDuty) — evidence of automated log-review procedures",
+      "detail": "Athena named queries that target audit-log tables (CloudTrail, VPC Flow Logs, WAF logs, SecurityHub, GuardDuty) — evidence of automated log-review procedures",
+      "filename_prefix": "Athena_LogReview_Queries",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6",
+            "AU-6(1)",
+            "AU-7",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }
