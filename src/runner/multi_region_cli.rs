@@ -150,6 +150,7 @@ pub(crate) async fn run_multi_region_standard(
             "drs-replication",
             "r53-arc",
             "rds-pitr",
+            "s3-replication",
             "lambda-config",
             "lambda-permissions",
             "ecr-config",

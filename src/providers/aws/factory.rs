@@ -113,6 +113,7 @@ use crate::providers::aws::{
     },
     s3_inventory::S3BucketLoggingCollector,
     s3_policies::S3PoliciesCollector,
+    s3_replication::S3ReplicationCollector,
     secrets_extended::SecretsManagerPoliciesCollector,
     secretsmanager::SecretsManagerCollector,
     security_svc_config::{
@@ -600,6 +601,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("rds-pitr") {
             v.push(Box::new(RdsPitrCollector::new(cfg)));
+        }
+        if has("s3-replication") {
+            v.push(Box::new(S3ReplicationCollector::new(cfg)));
         }
         if has("lambda-config") {
             v.push(Box::new(LambdaConfigCollector::new(cfg)));

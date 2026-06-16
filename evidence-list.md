@@ -209,6 +209,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV97 | S3 Bucket Policy | `S3_Bucket_Policy` | Bucket Name, Has Policy, Policy Document |
 | EV98 | S3 Public Access Block | `S3_Public_Access_Block` | Bucket Name, Block Public ACLs, Ignore Public ACLs, Block Public Policy, Restrict Public Buckets |
 | EV99 | S3 Logging Configuration | `S3_Logging_Config` | Bucket Name, Logging Enabled, Target Bucket, Target Prefix |
+| EV152 | S3 Bucket Replication | `S3_Replication_Config` | Source Bucket, Rule ID, Status, Priority, Destination Bucket, Destination Account, KMS Key, RTC Enabled |
 
 ### Security Services
 
