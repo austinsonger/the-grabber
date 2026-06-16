@@ -43,6 +43,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV19 | AWS Organizations Configuration | `AWS_Organizations_Config` | Org ID, Master Account ID, Master Account Email, Feature Set, Total Accounts, Root ID, SCPs Enabled |
 | EV131 | IAM Credential Report | `IAM_Credential_Report` | User, ARN, User Creation Time, Password Enabled, Password Last Used, Password Last Changed, Password Next Rotation, MFA Active, Access Key 1 Active, Access Key 1 Last Rotated, Access Key 1 Last Used Date, Access Key 1 Last Used Service, Access Key 2 Active, Access Key 2 Last Rotated, Access Key 2 Last Used Date, Cert 1 Active, Cert 2 Active |
 | EV132 | IAM Access Advisor | `IAM_Access_Advisor` | Principal ARN, Principal Type, Service Name, Service Namespace, Last Authenticated, Last Authenticated Entity, Last Authenticated Region, Total Authenticated Entities *(capped at first 200 principals)* |
+| EV133 | IAM Roles Last Used | `IAM_Roles_LastUsed` | Role Name, ARN, Created Date, Last Used Date, Last Used Region, Days Since Last Use *(excludes service-linked roles)* |
 | EV134 | Identity Center Assignments | `IdentityCenter_Assignments` | Instance ARN, Permission Set Name, Permission Set ARN, Session Duration, Relay State, Inline Policy Present, Managed Policies, Assigned Account ID, Principal Type, Principal ID |
 
 ### Certificates & PKI
