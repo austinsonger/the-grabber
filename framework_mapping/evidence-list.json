@@ -4902,6 +4902,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV148",
+      "name": "Backup Restore Testing Plans",
+      "description": "AWS Backup restore-testing plans with schedule and last-execution results",
+      "detail": "AWS Backup restore-testing plans with schedule and last-execution results",
+      "filename_prefix": "Backup_RestoreTesting",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-4",
+            "CP-4(1)",
+            "CP-9(1)",
+            "CP-10"
+          ]
+        }
+      ]
     }
   ]
 }

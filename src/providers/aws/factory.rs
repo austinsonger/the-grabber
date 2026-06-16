@@ -15,6 +15,7 @@ use crate::providers::aws::{
         BackupPlanConfigCollector, BackupVaultConfigCollector, RdsBackupConfigCollector,
     },
     backup_copy_actions::BackupCopyActionsCollector,
+    backup_restore_testing::BackupRestoreTestingCollector,
     backup_vaultlock::BackupVaultLockCollector,
     client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
@@ -584,6 +585,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("backup-copy-actions") {
             v.push(Box::new(BackupCopyActionsCollector::new(cfg)));
+        }
+        if has("backup-restore-testing") {
+            v.push(Box::new(BackupRestoreTestingCollector::new(cfg)));
         }
         if has("lambda-config") {
             v.push(Box::new(LambdaConfigCollector::new(cfg)));

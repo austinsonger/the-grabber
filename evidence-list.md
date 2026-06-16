@@ -253,6 +253,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV123 | Backup Vault Configuration | `Backup_Vault_Config` | Vault Name, Vault ARN, Encryption Key ARN, Recovery Points, Has Access Policy |
 | EV146 | Backup Vault Lock Configuration | `Backup_VaultLock_Config` | Vault Name, Vault ARN, Locked, Lock Date, Min Retention (days), Max Retention (days) |
 | EV147 | Backup Plan Copy Actions | `Backup_Plan_Copy_Actions` | Plan ID, Plan Name, Rule Name, Destination Vault ARN, Destination Region, Destination Account, Cold Storage After (days), Delete After (days) |
+| EV148 | Backup Restore Testing Plans | `Backup_RestoreTesting` | Test Plan Name, Schedule, Selection Window (days), Last Execution Time, Last Status, Selections |
 
 ### Tagging & Inventory
 

@@ -231,6 +231,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "backup-restore-testing",
+        "Backup Restore Testing   ",
+        CloudProvider::Aws,
+    ),
+    (
         "rds-inventory",
         "RDS Inventory            ",
         CloudProvider::Aws,
