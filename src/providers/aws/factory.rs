@@ -56,6 +56,7 @@ use crate::providers::aws::{
     elb_config::ElbFullConfigCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
+    iam_access_advisor::IamAccessAdvisorCollector,
     iam_certs::IamCertCollector,
     iam_credential_report::IamCredentialReportCollector,
     iam_inventory::{
@@ -225,6 +226,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("iam-credential-report") {
             v.push(Box::new(IamCredentialReportCollector::new(cfg)));
+        }
+        if has("iam-access-advisor") {
+            v.push(Box::new(IamAccessAdvisorCollector::new(cfg)));
         }
         if has("elb") {
             v.push(Box::new(LoadBalancerCollector::new(cfg)));

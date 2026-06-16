@@ -16,6 +16,7 @@ use crate::tui::{App, Progress, Screen};
 /// these run once against the primary region rather than once per region.
 pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     // IAM (global)
+    "iam-access-advisor",
     "iam-users",
     "iam-roles",
     "iam-policies",

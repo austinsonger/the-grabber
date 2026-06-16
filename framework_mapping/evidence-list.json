@@ -4478,6 +4478,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV132",
+      "name": "IAM Access Advisor",
+      "description": "AWS IAM Access Advisor — per-principal × per-service last-authenticated timestamps (via GenerateServiceLastAccessedDetails / GetServiceLastAccessedDetails). Identifies unused services and stale permissions. Capped at first 200 principals.",
+      "detail": "AWS IAM Access Advisor — per-principal × per-service last-authenticated timestamps (via GenerateServiceLastAccessedDetails / GetServiceLastAccessedDetails). Identifies unused services and stale permissions. Capped at first 200 principals.",
+      "filename_prefix": "IAM_Access_Advisor",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-2(7)",
+            "AC-2(12)",
+            "AC-6",
+            "AC-6(7)",
+            "AC-6(9)"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -45,6 +45,7 @@ pub mod elb;
 pub mod elb_config;
 pub mod guardduty;
 pub mod guardduty_config;
+pub mod iam_access_advisor;
 pub mod iam_certs;
 pub mod iam_credential_report;
 pub mod iam_inventory;

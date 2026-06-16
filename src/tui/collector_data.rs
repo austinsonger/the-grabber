@@ -259,7 +259,12 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Secrets Manager Policies ",
         CloudProvider::Aws,
     ),
-    // ── Identity & Access ── (55..67)
+    // ── Identity & Access ── (55..68)
+    (
+        "iam-access-advisor",
+        "IAM Access Advisor       ",
+        CloudProvider::Aws,
+    ),
     (
         "access-analyzer",
         "IAM Access Analyzer      ",
