@@ -176,6 +176,7 @@ pub(crate) async fn run_multi_region_standard(
             "client-vpn",
             "acm-pca",
             "ssm-software-inventory",
+            "ssm-compliance-summary",
             "shield",
             "license-manager",
             "service-quotas",

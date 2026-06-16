@@ -5060,6 +5060,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV154",
+      "name": "SSM Compliance Summary",
+      "description": "SSM compliance summaries per resource (patch/association compliance counts)",
+      "detail": "SSM compliance summaries per resource (patch/association compliance counts)",
+      "filename_prefix": "SSM_Compliance_Summary",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-6",
+            "CM-8",
+            "RA-5",
+            "SI-2",
+            "SI-2(2)"
+          ]
+        }
+      ]
     }
   ]
 }

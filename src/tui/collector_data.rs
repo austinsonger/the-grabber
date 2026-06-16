@@ -194,6 +194,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("ssm-patch-summary", "SSM Patch Summary", CloudProvider::Aws),
+    (
+        "ssm-compliance-summary",
+        "SSM Compliance Summary   ",
+        CloudProvider::Aws,
+    ),
     ("time-sync", "Time Sync Config (SSM)   ", CloudProvider::Aws),
     // ── Containers ── (37..41)
     (

@@ -130,6 +130,7 @@ use crate::providers::aws::{
         ChangeEventRulesCollector, EventBridgeRulesCollector, SnsTopicPoliciesCollector,
     },
     ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector},
+    ssm_compliance_summary::SsmComplianceSummaryCollector,
     ssm_extended::{
         SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
     },
@@ -677,6 +678,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-software-inventory") {
             v.push(Box::new(SsmSoftwareInventoryCollector::new(cfg)));
+        }
+        if has("ssm-compliance-summary") {
+            v.push(Box::new(SsmComplianceSummaryCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));
