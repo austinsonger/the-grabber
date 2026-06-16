@@ -172,6 +172,7 @@ pub(crate) async fn run_multi_region_standard(
             "route53-dnssec",
             "network-firewall",
             "ssm-sessions",
+            "cognito-pools",
         ];
         full.iter()
             .copied()

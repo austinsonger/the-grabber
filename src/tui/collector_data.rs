@@ -261,6 +261,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     // ── Identity & Access ── (55..69)
     (
+        "cognito-pools",
+        "Cognito User Pools       ",
+        CloudProvider::Aws,
+    ),
+    (
         "iam-access-advisor",
         "IAM Access Advisor       ",
         CloudProvider::Aws,

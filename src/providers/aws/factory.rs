@@ -34,6 +34,7 @@ use crate::providers::aws::{
     cloudwatch_alarms::CloudWatchConfigAlarmsCollector,
     cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector},
     cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector},
+    cognito::CognitoUserPoolCollector,
     config_history::ConfigHistoryCollector,
     config_rules::ConfigRulesCollector,
     config_timeline::{
@@ -611,6 +612,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-software-inventory") {
             v.push(Box::new(SsmSoftwareInventoryCollector::new(cfg)));
+        }
+        if has("cognito-pools") {
+            v.push(Box::new(CognitoUserPoolCollector::new(cfg)));
         }
 
         v

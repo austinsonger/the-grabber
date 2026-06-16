@@ -4586,6 +4586,34 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV136",
+      "name": "Cognito User Pool Configuration",
+      "description": "AWS Cognito user pools — MFA, password policy, advanced security, account recovery settings",
+      "detail": "AWS Cognito user pools — MFA, password policy, advanced security, account recovery settings",
+      "filename_prefix": "Cognito_UserPool_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "IA-2",
+            "IA-2(1)",
+            "IA-2(2)",
+            "IA-5",
+            "IA-5(1)",
+            "IA-8"
+          ]
+        }
+      ]
     }
   ]
 }

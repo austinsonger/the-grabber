@@ -46,6 +46,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV133 | IAM Roles Last Used | `IAM_Roles_LastUsed` | Role Name, ARN, Created Date, Last Used Date, Last Used Region, Days Since Last Use *(excludes service-linked roles)* |
 | EV134 | Identity Center Assignments | `IdentityCenter_Assignments` | Instance ARN, Permission Set Name, Permission Set ARN, Session Duration, Relay State, Inline Policy Present, Managed Policies, Assigned Account ID, Principal Type, Principal ID |
 | EV135 | Identity Store Users & Groups | `IdentityStore_Users_Groups` | Identity Store ID, Type, ID, User/Group Name, Display Name, Email, Group Memberships |
+| EV136 | Cognito User Pool Configuration | `Cognito_UserPool_Config` | Pool ID, Pool Name, MFA Configuration, Min Password Length, Require Symbols, Require Numbers, Require Upper, Require Lower, Advanced Security Mode, Account Recovery, Created Date |
 
 ### Certificates & PKI
 
