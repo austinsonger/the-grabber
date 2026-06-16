@@ -319,6 +319,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("iam-users", "IAM Users                ", CloudProvider::Aws),
     (
+        "identity-center",
+        "Identity Center          ",
+        CloudProvider::Aws,
+    ),
+    (
         "saml-providers",
         "SAML IdP Config          ",
         CloudProvider::Aws,

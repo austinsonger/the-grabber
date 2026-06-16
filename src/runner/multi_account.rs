@@ -51,6 +51,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "org-config",
     "account-contacts",
     "saml-providers",
+    // Identity Center / SSO (global — home region only)
+    "identity-center",
 ];
 
 /// Pre-built account data ready for the background collection task.

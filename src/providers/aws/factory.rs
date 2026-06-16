@@ -67,6 +67,7 @@ use crate::providers::aws::{
     },
     iam_roles_lastused::IamRolesLastUsedCollector,
     iam_trusts::IamTrustsCollector,
+    identity_center::IdentityCenterCollector,
     inspector::InspectorCollector,
     inspector_config::InspectorConfigCollector,
     inspector_ecr::InspectorEcrImagesCollector,
@@ -233,6 +234,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("iam-roles-lastused") {
             v.push(Box::new(IamRolesLastUsedCollector::new(cfg)));
+        }
+        if has("identity-center") {
+            v.push(Box::new(IdentityCenterCollector::new(cfg)));
         }
         if has("elb") {
             v.push(Box::new(LoadBalancerCollector::new(cfg)));
