@@ -225,6 +225,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV110 | WAF Regional Web ACL Rules | `WAF_Regional_Web_ACL_Rules` | Name, Web ACL Name, Managed Rule, Default Action, Region |
 | EV111 | WAF Web ACL Configuration | `WAF_Config` | Web ACL Name, Web ACL ARN, Default Action, Rules Count, Rule Names, CloudWatch Metric, Sampled Requests Enabled |
 | EV112 | WAFv2 Logging Configuration | `WAF_Logging` | Web ACL Name, Web ACL ARN, Logging Enabled, Log Destination, Sampled Requests Enabled |
+| EV141 | Detective Graphs | `Detective_Graphs_Config` | Graph ARN, Created Time, Member Account ID, Member Status, Datasource Packages |
 
 ### Systems Manager (SSM)
 

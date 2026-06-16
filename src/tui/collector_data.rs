@@ -489,6 +489,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     // ── Security Detection ── (101..113)
     (
+        "detective-graphs",
+        "Detective Graphs         ",
+        CloudProvider::Aws,
+    ),
+    (
         "guardduty-config",
         "GuardDuty Config         ",
         CloudProvider::Aws,

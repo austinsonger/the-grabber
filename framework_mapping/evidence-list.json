@@ -4720,6 +4720,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV141",
+      "name": "Detective Graphs",
+      "description": "Amazon Detective investigation graphs with members and enabled datasource packages",
+      "detail": "Amazon Detective investigation graphs with members and enabled datasource packages",
+      "filename_prefix": "Detective_Graphs_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6",
+            "IR-4",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }
