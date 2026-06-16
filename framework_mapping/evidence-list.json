@@ -4311,6 +4311,92 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV126",
+      "name": "CloudTrail Session Events",
+      "description": "CloudTrail authentication and session events (ConsoleLogin, AssumeRole, federation token, SSM StartSession) including failures, via LookupEvents API",
+      "detail": "CloudTrail authentication and session events (ConsoleLogin, AssumeRole, federation token, SSM StartSession) including failures, via LookupEvents API",
+      "filename_prefix": "CloudTrail_Session_Events",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-7",
+            "AC-12",
+            "AU-2",
+            "AU-12",
+            "IA-2",
+            "IA-2(1)",
+            "IA-2(2)",
+            "IA-8"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV127",
+      "name": "CloudTrail Privileged Action Events",
+      "description": "CloudTrail events for high-risk privileged actions (IAM policy/role changes, KMS key disable/delete, CloudTrail/Config tampering, Organizations changes, S3 bucket policy changes) via LookupEvents API",
+      "detail": "CloudTrail events for high-risk privileged actions (IAM policy/role changes, KMS key disable/delete, CloudTrail/Config tampering, Organizations changes, S3 bucket policy changes) via LookupEvents API",
+      "filename_prefix": "CloudTrail_PrivilegedAction_Events",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-2(7)",
+            "AC-6",
+            "AC-6(9)",
+            "AC-6(10)",
+            "AU-2",
+            "AU-6",
+            "AU-12"
+          ]
+        }
+      ]
+    },
+    {
+      "evidence_id": "EV128",
+      "name": "CloudTrail Insights",
+      "description": "CloudTrail Insights events (API call rate anomalies, API error rate anomalies) per trail with insight selectors enabled",
+      "detail": "CloudTrail Insights events (API call rate anomalies, API error rate anomalies) per trail with insight selectors enabled",
+      "filename_prefix": "CloudTrail_Insights",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudTrail & Audit",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6(1)",
+            "AU-6(3)",
+            "SI-4",
+            "SI-4(2)",
+            "SI-4(4)"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -36,7 +36,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Route53 Resolver Rules   ",
         CloudProvider::Aws,
     ),
-    // ── Audit Trail ── (6..24)
+    // ── Audit Trail ── (6..27)
     (
         "config-recorder",
         "AWS Config Recorder      ",
@@ -53,6 +53,21 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     (
         "ct-account-mgmt",
         "CT Account Mgmt Events   ",
+        CloudProvider::Aws,
+    ),
+    (
+        "ct-sessions",
+        "CT Session Events        ",
+        CloudProvider::Aws,
+    ),
+    (
+        "ct-insights",
+        "CT Insights              ",
+        CloudProvider::Aws,
+    ),
+    (
+        "ct-privileged",
+        "CT Privileged Events     ",
         CloudProvider::Aws,
     ),
     (
@@ -115,7 +130,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "CT IAM Changes (Hi-Risk) ",
         CloudProvider::Aws,
     ),
-    // ── Compute ── (23..37)
+    // ── Compute ── (27..41)
     ("asg", "Auto Scaling Groups      ", CloudProvider::Aws),
     (
         "ec2-detailed",

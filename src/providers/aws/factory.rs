@@ -24,7 +24,10 @@ use crate::providers::aws::{
         CloudTrailLogValidationCollector, CloudTrailS3PolicyCollector, S3DataEventsCollector,
     },
     cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector},
+    cloudtrail_insights::CloudTrailInsightsCollector,
     cloudtrail_inventory::CloudTrailInventoryCollector,
+    cloudtrail_privileged::CloudTrailPrivilegedCollector,
+    cloudtrail_sessions::CloudTrailSessionEventsCollector,
     cloudwatch::MetricFilterAlarmCollector,
     cloudwatch_alarms::CloudWatchConfigAlarmsCollector,
     cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector},
@@ -315,6 +318,15 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ct-account-mgmt") {
             v.push(Box::new(CloudTrailAccountMgmtCollector::new(cfg)));
+        }
+        if has("ct-sessions") {
+            v.push(Box::new(CloudTrailSessionEventsCollector::new(cfg)));
+        }
+        if has("ct-privileged") {
+            v.push(Box::new(CloudTrailPrivilegedCollector::new(cfg)));
+        }
+        if has("ct-insights") {
+            v.push(Box::new(CloudTrailInsightsCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));

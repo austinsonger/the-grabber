@@ -62,6 +62,9 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV28 | CloudTrail Configuration Change Events | `CloudTrail_Config_Changes` | Event Name, Event Time, User Identity, Source IP Address, Request Parameters, Response Elements *(last 90 days)* |
 | EV29 | CloudTrail IAM Changes (High-Risk) | `CloudTrail_IAM_Changes` | Event Name, User Identity, Event Time, Request Parameters *(last 90 days — CreateUser, CreateRole, AttachPolicy, AssumeRole, etc.)* |
 | EV125 | CloudTrail Account Management Events | `CloudTrail_AccountMgmt_Events` | Event Name, Event Time, User Identity, Source IP, Target User, Request Parameters, Response Elements *(last 90 days unless date window provided)* |
+| EV126 | CloudTrail Session Events | `CloudTrail_Session_Events` | Event Name, Event Time, User Identity, Source IP, User Agent, MFA Used, Success, Error Message *(last 90 days unless date window provided)* |
+| EV127 | CloudTrail Privileged Action Events | `CloudTrail_PrivilegedAction_Events` | Event Name, Event Source, Event Time, User Identity, Source IP, Request Parameters *(last 90 days unless date window provided — IAM policy/role, KMS disable, CloudTrail/Config tamper, Org changes, S3 policy)* |
+| EV128 | CloudTrail Insights | `CloudTrail_Insights` | Trail Name, Insight Type, Event Time, Insight State, Source, Baseline Average, Insight Value *(last 90 days unless date window provided)* |
 
 ### AWS Config
 
