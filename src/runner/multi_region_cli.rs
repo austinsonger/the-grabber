@@ -177,6 +177,7 @@ pub(crate) async fn run_multi_region_standard(
             "cognito-pools",
             "logs-insights-queries",
             "eb-archives",
+            "firehose-streams",
             "cw-contributor-insights",
             "detective-graphs",
             "sh-insights",

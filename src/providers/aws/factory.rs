@@ -59,6 +59,7 @@ use crate::providers::aws::{
     elb::{LoadBalancerCollector, LoadBalancerListenerCollector},
     elb_config::ElbFullConfigCollector,
     eventbridge_archives::EventBridgeArchivesCollector,
+    firehose::FirehoseDeliveryStreamsCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
     guardduty_coverage::GuardDutyCoverageCollector,
@@ -370,6 +371,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("eb-archives") {
             v.push(Box::new(EventBridgeArchivesCollector::new(cfg)));
+        }
+        if has("firehose-streams") {
+            v.push(Box::new(FirehoseDeliveryStreamsCollector::new(cfg)));
         }
         if has("cw-contributor-insights") {
             v.push(Box::new(ContributorInsightsCollector::new(cfg)));

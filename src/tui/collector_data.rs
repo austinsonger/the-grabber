@@ -386,6 +386,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "firehose-streams",
+        "Firehose Streams         ",
+        CloudProvider::Aws,
+    ),
+    (
         "cw-contributor-insights",
         "CW Contributor Insights  ",
         CloudProvider::Aws,
