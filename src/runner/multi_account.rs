@@ -19,6 +19,7 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "iam-access-advisor",
     "iam-users",
     "iam-roles",
+    "iam-roles-lastused",
     "iam-policies",
     "iam-access-keys",
     "iam-certs",

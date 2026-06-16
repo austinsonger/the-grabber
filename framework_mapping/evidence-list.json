@@ -4505,6 +4505,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV133",
+      "name": "IAM Roles Last Used",
+      "description": "Per-role last-used timestamp and region (via GetRole RoleLastUsed). Excludes AWS service-linked roles. Identifies stale roles for cleanup.",
+      "detail": "Per-role last-used timestamp and region (via GetRole RoleLastUsed). Excludes AWS service-linked roles. Identifies stale roles for cleanup.",
+      "filename_prefix": "IAM_Roles_LastUsed",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-2(3)",
+            "AC-2(13)",
+            "AC-6(7)"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -259,7 +259,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Secrets Manager Policies ",
         CloudProvider::Aws,
     ),
-    // ── Identity & Access ── (55..68)
+    // ── Identity & Access ── (55..69)
     (
         "iam-access-advisor",
         "IAM Access Advisor       ",
@@ -308,6 +308,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("iam-roles", "IAM Roles                ", CloudProvider::Aws),
     (
+        "iam-roles-lastused",
+        "IAM Roles Last Used      ",
+        CloudProvider::Aws,
+    ),
+    (
         "iam-user-policies",
         "IAM User Policies        ",
         CloudProvider::Aws,
@@ -318,7 +323,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "SAML IdP Config          ",
         CloudProvider::Aws,
     ),
-    // ── Monitoring & Events ── (67..77)
+    // ── Monitoring & Events ── (68..78)
     ("cw-alarms", "CloudWatch Alarms        ", CloudProvider::Aws),
     (
         "cw-log-groups",

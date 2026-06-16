@@ -65,6 +65,7 @@ use crate::providers::aws::{
     iam_policies::{
         IamPasswordPolicyCollector, IamRolePoliciesCollector, IamUserPoliciesCollector,
     },
+    iam_roles_lastused::IamRolesLastUsedCollector,
     iam_trusts::IamTrustsCollector,
     inspector::InspectorCollector,
     inspector_config::InspectorConfigCollector,
@@ -229,6 +230,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("iam-access-advisor") {
             v.push(Box::new(IamAccessAdvisorCollector::new(cfg)));
+        }
+        if has("iam-roles-lastused") {
+            v.push(Box::new(IamRolesLastUsedCollector::new(cfg)));
         }
         if has("elb") {
             v.push(Box::new(LoadBalancerCollector::new(cfg)));

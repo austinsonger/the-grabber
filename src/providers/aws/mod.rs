@@ -50,6 +50,7 @@ pub mod iam_certs;
 pub mod iam_credential_report;
 pub mod iam_inventory;
 pub mod iam_policies;
+pub mod iam_roles_lastused;
 pub mod iam_trusts;
 pub mod inspector;
 pub mod inspector_config;
