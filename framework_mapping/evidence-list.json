@@ -4694,6 +4694,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV140",
+      "name": "CloudWatch Contributor Insights Rules",
+      "description": "CloudWatch Contributor Insights rules for top-N anomaly tracking",
+      "detail": "CloudWatch Contributor Insights rules for top-N anomaly tracking",
+      "filename_prefix": "CloudWatch_ContributorInsights",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6(3)",
+            "SI-4",
+            "SI-4(2)",
+            "SI-4(4)"
+          ]
+        }
+      ]
     }
   ]
 }

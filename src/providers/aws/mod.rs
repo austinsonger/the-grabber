@@ -32,6 +32,7 @@ pub mod cognito;
 pub mod config_history;
 pub mod config_rules;
 pub mod config_timeline;
+pub mod contributor_insights;
 pub mod dynamodb;
 pub mod ebs;
 pub mod ec2_config;

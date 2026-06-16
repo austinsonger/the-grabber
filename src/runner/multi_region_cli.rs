@@ -175,6 +175,7 @@ pub(crate) async fn run_multi_region_standard(
             "cognito-pools",
             "logs-insights-queries",
             "eb-archives",
+            "cw-contributor-insights",
         ];
         full.iter()
             .copied()

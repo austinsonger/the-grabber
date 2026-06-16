@@ -381,6 +381,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "cw-contributor-insights",
+        "CW Contributor Insights  ",
+        CloudProvider::Aws,
+    ),
+    (
         "metric-filters",
         "Log Metric Filters/Alarms",
         CloudProvider::Aws,

@@ -40,6 +40,7 @@ use crate::providers::aws::{
     config_timeline::{
         ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector,
     },
+    contributor_insights::ContributorInsightsCollector,
     dynamodb::DynamoDbCollector,
     ebs::EbsCollector,
     ec2_config::{
@@ -365,6 +366,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("eb-archives") {
             v.push(Box::new(EventBridgeArchivesCollector::new(cfg)));
+        }
+        if has("cw-contributor-insights") {
+            v.push(Box::new(ContributorInsightsCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));
