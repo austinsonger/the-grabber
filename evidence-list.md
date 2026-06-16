@@ -161,6 +161,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV69 | SNS Topic Policies | `SNS_Topic_Config` | Topic ARN, Display Name, Subscriptions Confirmed, Subscriptions Pending, KMS Key ID, Has Policy |
 | EV70 | EventBridge Rules | `EventBridge_Rules_Config` | Rule Name, Event Bus, State, Schedule / Event Pattern, Targets |
 | EV71 | EventBridge Rules for Changes | `Change_Event_Rules` | Rule Name, Event Bus, State, Event Pattern, Targets *(event-pattern rules only)* |
+| EV139 | EventBridge Archives & Replays | `EventBridge_Archives_Replays` | Archive Name, Event Source ARN, State, Retention Days, Size (bytes), Event Count, Recent Replay Count |
 
 ### Network
 

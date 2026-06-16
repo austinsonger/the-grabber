@@ -55,6 +55,7 @@ use crate::providers::aws::{
     elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector},
     elb::{LoadBalancerCollector, LoadBalancerListenerCollector},
     elb_config::ElbFullConfigCollector,
+    eventbridge_archives::EventBridgeArchivesCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
     iam_access_advisor::IamAccessAdvisorCollector,
@@ -361,6 +362,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("logs-insights-queries") {
             v.push(Box::new(LogsInsightsSavedQueriesCollector::new(cfg)));
+        }
+        if has("eb-archives") {
+            v.push(Box::new(EventBridgeArchivesCollector::new(cfg)));
         }
         if has("s3-data-events") {
             v.push(Box::new(S3DataEventsCollector::new(cfg)));

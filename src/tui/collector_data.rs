@@ -376,6 +376,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "eb-archives",
+        "EventBridge Archives     ",
+        CloudProvider::Aws,
+    ),
+    (
         "metric-filters",
         "Log Metric Filters/Alarms",
         CloudProvider::Aws,

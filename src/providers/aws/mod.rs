@@ -44,6 +44,7 @@ pub mod eks;
 pub mod elasticache;
 pub mod elb;
 pub mod elb_config;
+pub mod eventbridge_archives;
 pub mod guardduty;
 pub mod guardduty_config;
 pub mod iam_access_advisor;

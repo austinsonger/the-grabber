@@ -4668,6 +4668,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV139",
+      "name": "EventBridge Archives & Replays",
+      "description": "EventBridge event archives with retention and recent replay activity",
+      "detail": "EventBridge event archives with retention and recent replay activity",
+      "filename_prefix": "EventBridge_Archives_Replays",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Messaging & Events",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-9",
+            "AU-11",
+            "CP-9",
+            "IR-4"
+          ]
+        }
+      ]
     }
   ]
 }

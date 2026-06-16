@@ -174,6 +174,7 @@ pub(crate) async fn run_multi_region_standard(
             "ssm-sessions",
             "cognito-pools",
             "logs-insights-queries",
+            "eb-archives",
         ];
         full.iter()
             .copied()
