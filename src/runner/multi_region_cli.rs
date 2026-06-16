@@ -149,6 +149,7 @@ pub(crate) async fn run_multi_region_standard(
             "backup-restore-testing",
             "drs-replication",
             "r53-arc",
+            "rds-pitr",
             "lambda-config",
             "lambda-permissions",
             "ecr-config",

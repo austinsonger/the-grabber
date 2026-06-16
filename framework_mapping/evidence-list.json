@@ -4981,6 +4981,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV151",
+      "name": "RDS PITR & Cluster Backtrack",
+      "description": "RDS point-in-time recovery windows and Aurora cluster backtrack windows per DB instance and cluster",
+      "detail": "RDS point-in-time recovery windows and Aurora cluster backtrack windows per DB instance and cluster",
+      "filename_prefix": "RDS_PITR_Backtrack",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-9",
+            "CP-9(1)",
+            "CP-10",
+            "CP-10(2)"
+          ]
+        }
+      ]
     }
   ]
 }

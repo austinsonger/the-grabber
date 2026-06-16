@@ -252,6 +252,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "RDS Snapshots            ",
         CloudProvider::Aws,
     ),
+    ("rds-pitr", "RDS PITR & Backtrack     ", CloudProvider::Aws),
     // ── Encryption & Secrets ── (48..55)
     (
         "ebs-encryption",

@@ -144,6 +144,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV60 | DynamoDB Tables | `DynamoDB` | Table ARN, Table Name, Encryption Status, Encryption Type, KMS Key ARN, Region |
 | EV61 | ElastiCache Clusters | `ElastiCache` | Cluster Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, Availability Zone, Cluster ARN, KMS Key ARN, Region |
 | EV62 | ElastiCache Global Datastores | `ElastiCache_Global_Datastore` | Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, ARN, Region |
+| EV151 | RDS PITR & Cluster Backtrack | `RDS_PITR_Backtrack` | Identifier, Type, Engine, Backup Retention (days), Earliest Restorable, Latest Restorable, Backtrack Window (s), Earliest Backtrack |
 
 ### Encryption & Key Management
 

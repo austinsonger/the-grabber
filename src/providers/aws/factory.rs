@@ -100,6 +100,7 @@ use crate::providers::aws::{
     public_resources::PublicResourceCollector,
     rds::RdsCollector,
     rds_inventory::RdsInventoryCollector,
+    rds_pitr::RdsPitrCollector,
     rds_snapshots::RdsSnapshotCollector,
     route53_arc::Route53ArcCollector,
     route53_config::{
@@ -596,6 +597,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));
+        }
+        if has("rds-pitr") {
+            v.push(Box::new(RdsPitrCollector::new(cfg)));
         }
         if has("lambda-config") {
             v.push(Box::new(LambdaConfigCollector::new(cfg)));

@@ -85,6 +85,7 @@ pub mod organizations;
 pub mod public_resources;
 pub mod rds;
 pub mod rds_inventory;
+pub mod rds_pitr;
 pub mod rds_snapshots;
 pub mod route53_arc;
 pub mod route53_config;
