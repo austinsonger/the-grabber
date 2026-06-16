@@ -38,6 +38,7 @@ pub mod config_timeline;
 pub mod contributor_insights;
 pub mod cw_anomaly_detectors;
 pub mod detective_graphs;
+pub mod drs_replication;
 pub mod dynamodb;
 pub mod ebs;
 pub mod ec2_config;

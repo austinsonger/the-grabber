@@ -4928,6 +4928,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV149",
+      "name": "DRS Source Server Replication",
+      "description": "Elastic Disaster Recovery (DRS) source server replication status (state, lag, last snapshot)",
+      "detail": "Elastic Disaster Recovery (DRS) source server replication status (state, lag, last snapshot)",
+      "filename_prefix": "DRS_Replication_Status",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-6",
+            "CP-9",
+            "CP-9(1)",
+            "CP-10",
+            "CP-10(2)"
+          ]
+        }
+      ]
     }
   ]
 }

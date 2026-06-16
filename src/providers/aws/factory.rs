@@ -46,6 +46,7 @@ use crate::providers::aws::{
     contributor_insights::ContributorInsightsCollector,
     cw_anomaly_detectors::CloudWatchAnomalyDetectorsCollector,
     detective_graphs::DetectiveGraphsCollector,
+    drs_replication::DrsReplicationCollector,
     dynamodb::DynamoDbCollector,
     ebs::EbsCollector,
     ec2_config::{
@@ -588,6 +589,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("backup-restore-testing") {
             v.push(Box::new(BackupRestoreTestingCollector::new(cfg)));
+        }
+        if has("drs-replication") {
+            v.push(Box::new(DrsReplicationCollector::new(cfg)));
         }
         if has("lambda-config") {
             v.push(Box::new(LambdaConfigCollector::new(cfg)));

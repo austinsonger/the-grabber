@@ -147,6 +147,7 @@ pub(crate) async fn run_multi_region_standard(
             "backup-vaultlock",
             "backup-copy-actions",
             "backup-restore-testing",
+            "drs-replication",
             "lambda-config",
             "lambda-permissions",
             "ecr-config",
