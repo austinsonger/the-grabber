@@ -20,6 +20,7 @@ use crate::providers::aws::{
     backup_copy_actions::BackupCopyActionsCollector,
     backup_restore_testing::BackupRestoreTestingCollector,
     backup_vaultlock::BackupVaultLockCollector,
+    budgets_collector::BudgetsCollector,
     client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
     cloudfront::CloudFrontCollector,
@@ -653,6 +654,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("cost-anomaly") {
             v.push(Box::new(CostAnomalyCollector::new(cfg)));
+        }
+        if has("budgets") {
+            v.push(Box::new(BudgetsCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

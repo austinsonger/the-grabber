@@ -16,6 +16,7 @@ pub mod backup_config;
 pub mod backup_copy_actions;
 pub mod backup_restore_testing;
 pub mod backup_vaultlock;
+pub mod budgets_collector;
 pub mod client_vpn;
 pub mod cloudformation_drift;
 pub mod cloudfront;
