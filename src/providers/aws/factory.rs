@@ -11,6 +11,7 @@ use crate::providers::aws::{
     appmesh_tls::AppMeshTlsCollector,
     artifact_reports::ArtifactReportsCollector,
     athena_saved_queries::AthenaSavedQueriesCollector,
+    audit_manager::AuditManagerCollector,
     autoscaling::AutoScalingCollector,
     backup::BackupCollector,
     backup_config::{
@@ -48,6 +49,7 @@ use crate::providers::aws::{
         ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector,
     },
     contributor_insights::ContributorInsightsCollector,
+    control_tower::ControlTowerCollector,
     cw_anomaly_detectors::CloudWatchAnomalyDetectorsCollector,
     detective_graphs::DetectiveGraphsCollector,
     drs_replication::DrsReplicationCollector,
@@ -69,6 +71,7 @@ use crate::providers::aws::{
     elb_config::ElbFullConfigCollector,
     eventbridge_archives::EventBridgeArchivesCollector,
     firehose::FirehoseDeliveryStreamsCollector,
+    fis::FisCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
     guardduty_coverage::GuardDutyCoverageCollector,
@@ -102,6 +105,7 @@ use crate::providers::aws::{
     license_manager::LicenseManagerCollector,
     logs_insights_queries::LogsInsightsSavedQueriesCollector,
     macie::MacieCollector,
+    macie_jobs::MacieJobsCollector,
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     org_config::OrgConfigCollector,
@@ -114,6 +118,7 @@ use crate::providers::aws::{
     rds_inventory::RdsInventoryCollector,
     rds_pitr::RdsPitrCollector,
     rds_snapshots::RdsSnapshotCollector,
+    resource_explorer::ResourceExplorerCollector,
     route53_arc::Route53ArcCollector,
     route53_config::{
         Route53DnssecCollector, Route53ResolverRulesCollector, Route53ZonesCollector,
@@ -156,6 +161,7 @@ use crate::providers::aws::{
     ssm_sessions::SsmSessionsCollector,
     ssm_software_inventory::SsmSoftwareInventoryCollector,
     sts_federation::StsFederationCollector,
+    synthetics::SyntheticsCanariesCollector,
     tagging_config::ResourceTaggingCollector,
     tgw_routes::TgwRoutesCollector,
     trusted_advisor::TrustedAdvisorCollector,
@@ -625,6 +631,24 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("org-delegated") {
             v.push(Box::new(OrgDelegatedCollector::new(cfg)));
+        }
+        if has("control-tower") {
+            v.push(Box::new(ControlTowerCollector::new(cfg)));
+        }
+        if has("audit-manager") {
+            v.push(Box::new(AuditManagerCollector::new(cfg)));
+        }
+        if has("resource-explorer") {
+            v.push(Box::new(ResourceExplorerCollector::new(cfg)));
+        }
+        if has("fis-experiments") {
+            v.push(Box::new(FisCollector::new(cfg)));
+        }
+        if has("synthetics-canaries") {
+            v.push(Box::new(SyntheticsCanariesCollector::new(cfg)));
+        }
+        if has("macie-jobs") {
+            v.push(Box::new(MacieJobsCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

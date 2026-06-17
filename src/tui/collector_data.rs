@@ -458,6 +458,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("sns", "SNS Topic Subscribers    ", CloudProvider::Aws),
+    (
+        "synthetics-canaries",
+        "Synthetics Canaries      ",
+        CloudProvider::Aws,
+    ),
     // ── Network ── (77..97)
     ("acm", "ACM Certificates         ", CloudProvider::Aws),
     ("alb-logs", "ALB Access Log Config    ", CloudProvider::Aws),
@@ -579,6 +584,16 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Resource Tags            ",
         CloudProvider::Aws,
     ),
+    (
+        "control-tower",
+        "Control Tower            ",
+        CloudProvider::Aws,
+    ),
+    (
+        "resource-explorer",
+        "Resource Explorer        ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",
@@ -682,6 +697,21 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     (
         "inspector-sbom",
         "Inspector2 SBOM Export   ",
+        CloudProvider::Aws,
+    ),
+    (
+        "audit-manager",
+        "Audit Manager            ",
+        CloudProvider::Aws,
+    ),
+    (
+        "fis-experiments",
+        "FIS Experiments          ",
+        CloudProvider::Aws,
+    ),
+    (
+        "macie-jobs",
+        "Macie Jobs               ",
         CloudProvider::Aws,
     ),
     // ── Storage ── (114..127)

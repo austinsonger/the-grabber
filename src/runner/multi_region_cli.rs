@@ -205,6 +205,12 @@ pub(crate) async fn run_multi_region_standard(
             "ecr-signatures",
             "codeartifact-repos",
             "codepipeline-codebuild",
+            "control-tower",
+            "audit-manager",
+            "resource-explorer",
+            "fis-experiments",
+            "synthetics-canaries",
+            "macie-jobs",
         ];
         full.iter()
             .copied()

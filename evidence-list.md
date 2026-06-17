@@ -42,6 +42,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV18 | Organizations Service Control Policies | `Organizations_SCPs` | Policy Name, Policy ID, Attached Targets, AWS Managed, Actions Summary |
 | EV19 | AWS Organizations Configuration | `AWS_Organizations_Config` | Org ID, Master Account ID, Master Account Email, Feature Set, Total Accounts, Root ID, SCPs Enabled |
 | EV173 | Organizations Delegated Admins & Services | `Organizations_Delegated_Services` | Type, Service Principal, Account ID, Account Email, Delegation Date |
+| EV174 | Control Tower Baselines & Guardrails | `ControlTower_Guardrails` | Type, Target Identifier, Baseline/Control ARN, Baseline Version, Status, Drift Status |
 | EV131 | IAM Credential Report | `IAM_Credential_Report` | User, ARN, User Creation Time, Password Enabled, Password Last Used, Password Last Changed, Password Next Rotation, MFA Active, Access Key 1 Active, Access Key 1 Last Rotated, Access Key 1 Last Used Date, Access Key 1 Last Used Service, Access Key 2 Active, Access Key 2 Last Rotated, Access Key 2 Last Used Date, Cert 1 Active, Cert 2 Active |
 | EV132 | IAM Access Advisor | `IAM_Access_Advisor` | Principal ARN, Principal Type, Service Name, Service Namespace, Last Authenticated, Last Authenticated Entity, Last Authenticated Region, Total Authenticated Entities *(capped at first 200 principals)* |
 | EV133 | IAM Roles Last Used | `IAM_Roles_LastUsed` | Role Name, ARN, Created Date, Last Used Date, Last Used Region, Days Since Last Use *(excludes service-linked roles)* |
@@ -106,6 +107,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV138 | CloudWatch Logs Insights Saved Queries | `CloudWatch_LogsInsights_SavedQueries` | Query Name, Query Definition ID, Last Modified, Log Groups, Query String Excerpt |
 | EV140 | CloudWatch Contributor Insights Rules | `CloudWatch_ContributorInsights` | Rule Name, State, Schema, Definition Excerpt, Managed Rule |
 | EV144 | CloudWatch Anomaly Detectors | `CloudWatch_AnomalyDetectors` | Detector Type, Metric Namespace, Metric Name, Dimensions, Stat, State, Configuration Excerpt |
+| EV178 | CloudWatch Synthetics Canaries | `Synthetics_Canaries` | Canary Name, Runtime Version, Schedule, State, Last Started, Last Modified |
 
 ### Compute — EC2
 
@@ -250,6 +252,9 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV170 | CodePipeline & CodeBuild Config | `CodePipeline_CodeBuild` | Resource Type, Name, Source Provider, Source Location, Has Manual Approval, Privileged Mode, Logs Destination, Service Role |
 | EV171 | Trusted Advisor Checks | `TrustedAdvisor_Checks` | Check ID, Name, Category, Status, Resources Flagged, Timestamp *(requires Business/Enterprise Support)* |
 | EV172 | AWS Health Events | `AWS_Health_Events` | Event ARN, Service, Event Type Code, Region, Start Time, End Time, Status, Category *(last 90 days; requires Business+ support)* |
+| EV175 | Audit Manager Assessments | `AuditManager_Assessments` | Assessment ID, Name, Framework, Status, Last Updated, Total Control Sets |
+| EV177 | FIS Experiments | `FIS_Experiments` | Type, ID, Template ID / Description, State / Creation Time |
+| EV179 | Macie Classification Jobs | `Macie_Classification_Jobs` | Job ID, Name, Job Type, Status, Created At, Last Run, Bucket Definitions Count |
 
 ### Systems Manager (SSM)
 
@@ -285,6 +290,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | # | Name | Filename Prefix | Columns |
 |---|------|----------------|---------|
 | EV124 | Resource Tagging Configuration | `Resource_Tagging_Config` | Resource ARN, Resource Type, Owner, Environment, Data Classification, All Tags |
+| EV176 | Resource Explorer Indexes & Views | `ResourceExplorer_Indexes` | Type, ARN, Index Type, Region, State, Created At |
 
 ---
 
@@ -333,15 +339,18 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Category | Count |
 |----------|-------|
 | JSON evidence collectors (time-windowed) | 4 |
-| CSV evidence collectors (current-state snapshots) | 120 |
+| CSV evidence collectors (current-state snapshots) | 175 |
 | Asset Inventory asset types (Inventory feature) | 8 |
-| **Total evidence collectors** | **124** |
+| **Total evidence collectors** | **179** |
 
 ### AWS Services Covered
 
-Access Analyzer · ACM · API Gateway · Auto Scaling · Backup · CloudFormation ·
-CloudFront · CloudTrail · CloudWatch · CloudWatch Logs · Config · DynamoDB ·
-EBS · EC2 · ECR · ECS · EFS · EKS · ElastiCache · ELB/ALB/NLB · EventBridge ·
-GuardDuty · IAM · Inspector2 · KMS · Lambda · Macie · Organizations ·
-RDS · Route53 · Route53 Resolver · S3 · Secrets Manager · Security Hub ·
-SNS · SSM · VPC · WAF / WAFv2
+Access Analyzer · ACM · AppMesh · API Gateway · Artifact · Athena · Audit Manager ·
+Auto Scaling · Backup · CloudFormation · CloudFront · CloudTrail · CloudWatch ·
+CloudWatch Logs · CodeArtifact · CodeBuild · CodePipeline · Cognito · Config ·
+Control Tower · Detective · DRS · DynamoDB · EBS · EC2 · ECR · ECS · EFS · EKS ·
+ElastiCache · ELB/ALB/NLB · EventBridge · EventBridge Archives · FIS · Firehose ·
+GuardDuty · Health · IAM · Identity Center · Identity Store · Inspector2 · KMS ·
+Lambda · Macie · Organizations · RDS · Resource Explorer · Route53 ·
+Route53 ARC · Route53 Resolver · S3 · Secrets Manager · Security Hub · Signer ·
+SNS · SSM · Support · Synthetics · VPC · WAF / WAFv2
