@@ -591,6 +591,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "trusted-advisor",
+        "Trusted Advisor          ",
+        CloudProvider::Aws,
+    ),
+    (
         "codepipeline-codebuild",
         "CodePipeline & Build     ",
         CloudProvider::Aws,

@@ -156,6 +156,7 @@ use crate::providers::aws::{
     sts_federation::StsFederationCollector,
     tagging_config::ResourceTaggingCollector,
     tgw_routes::TgwRoutesCollector,
+    trusted_advisor::TrustedAdvisorCollector,
     vpc::{NetworkAclCollector, VpcCollector},
     vpc_endpoints::VpcEndpointCollector,
     vpc_traffic_mirror::VpcTrafficMirrorCollector,
@@ -583,6 +584,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("artifact-reports") {
             v.push(Box::new(ArtifactReportsCollector::new(cfg)));
+        }
+        if has("trusted-advisor") {
+            v.push(Box::new(TrustedAdvisorCollector::new(cfg)));
         }
         if has("codepipeline-codebuild") {
             v.push(Box::new(CodePipelineCodeBuildCollector::new(cfg)));

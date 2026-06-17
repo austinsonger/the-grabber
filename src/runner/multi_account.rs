@@ -57,6 +57,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "sts-federation",
     // AWS Artifact (global)
     "artifact-reports",
+    // AWS Support — Trusted Advisor (global)
+    "trusted-advisor",
 ];
 
 /// Pre-built account data ready for the background collection task.

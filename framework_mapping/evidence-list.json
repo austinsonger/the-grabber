@@ -5518,6 +5518,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV171",
+      "name": "Trusted Advisor Checks",
+      "description": "AWS Trusted Advisor check results (security, fault tolerance, performance). Requires Business/Enterprise support.",
+      "detail": "AWS Trusted Advisor check results (security, fault tolerance, performance). Requires Business/Enterprise support.",
+      "filename_prefix": "TrustedAdvisor_Checks",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "CM-8",
+            "RA-5",
+            "SI-2",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }
