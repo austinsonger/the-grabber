@@ -5490,6 +5490,34 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV170",
+      "name": "CodePipeline & CodeBuild Config",
+      "description": "CodePipeline pipelines (stages, manual-approval actions) and CodeBuild projects (source, privileged mode, logs)",
+      "detail": "CodePipeline pipelines (stages, manual-approval actions) and CodeBuild projects (source, privileged mode, logs)",
+      "filename_prefix": "CodePipeline_CodeBuild",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-3",
+            "CM-3(2)",
+            "SA-10",
+            "SA-11",
+            "SR-3",
+            "SR-4"
+          ]
+        }
+      ]
     }
   ]
 }

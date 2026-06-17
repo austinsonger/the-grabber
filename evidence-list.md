@@ -246,6 +246,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV166 | AWS Signer Profiles & Jobs | `Signer_Profiles_Jobs` | Type, Profile Name, Profile Version, Platform ID, Status, Job ID, Source S3, Signed At |
 | EV168 | CodeArtifact Repositories | `CodeArtifact_Repos_Sources` | Domain, Repository, Description, Upstreams, External Connections, Created Time |
 | EV169 | AWS Artifact Reports | `Artifact_Reports` | Report ID, Name, Series, Category, State, Periodic Update, Last Modified, Acceptance Type |
+| EV170 | CodePipeline & CodeBuild Config | `CodePipeline_CodeBuild` | Resource Type, Name, Source Provider, Source Location, Has Manual Approval, Privileged Mode, Logs Destination, Service Role |
 
 ### Systems Manager (SSM)
 

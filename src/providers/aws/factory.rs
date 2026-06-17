@@ -40,6 +40,7 @@ use crate::providers::aws::{
     cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector},
     cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector},
     codeartifact::CodeArtifactCollector,
+    codepipeline_codebuild::CodePipelineCodeBuildCollector,
     cognito::CognitoUserPoolCollector,
     config_history::ConfigHistoryCollector,
     config_rules::ConfigRulesCollector,
@@ -582,6 +583,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("artifact-reports") {
             v.push(Box::new(ArtifactReportsCollector::new(cfg)));
+        }
+        if has("codepipeline-codebuild") {
+            v.push(Box::new(CodePipelineCodeBuildCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));
