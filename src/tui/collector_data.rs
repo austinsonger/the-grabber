@@ -610,6 +610,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Resource Explorer        ",
         CloudProvider::Aws,
     ),
+    (
+        "tagging-compliance",
+        "Tagging Compliance       ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

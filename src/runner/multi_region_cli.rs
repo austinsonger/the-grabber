@@ -213,6 +213,7 @@ pub(crate) async fn run_multi_region_standard(
             "macie-jobs",
             "savings-plans-ri",
             "compute-optimizer",
+            "tagging-compliance",
         ];
         full.iter()
             .copied()

@@ -7111,6 +7111,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV184",
+      "name": "Tagging Compliance",
+      "description": "AWS Resource Groups Tagging API compliance summary + per-resource non-compliance",
+      "detail": "AWS Resource Groups Tagging API compliance summary + per-resource non-compliance",
+      "filename_prefix": "Tagging_Compliance",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Tagging & Inventory",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-8",
+            "CM-8(1)",
+            "CM-6"
+          ]
+        }
+      ]
     }
   ]
 }

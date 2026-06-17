@@ -295,6 +295,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV180 | Cost Anomaly Detection | `Cost_Anomaly` | Type, ID / Monitor Name, Detail, Start Date, Impact ($) *(last 90 days)* |
 | EV181 | Budgets | `Budgets` | Budget Name, Type, Time Unit, Limit, Actual Spend, Forecasted Spend |
 | EV182 | Savings Plans & Reserved Instances | `Savings_Plans_RIs` | Type, ID, Instance Type / Plan Type, State, Start, End, Commitment / Price |
+| EV184 | Tagging Compliance | `Tagging_Compliance` | Type, Target / Resource ARN, Resource Type / Status, Region, Non-Compliant Count / Keys |
 
 ---
 

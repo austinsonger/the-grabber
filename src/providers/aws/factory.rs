@@ -166,6 +166,7 @@ use crate::providers::aws::{
     ssm_software_inventory::SsmSoftwareInventoryCollector,
     sts_federation::StsFederationCollector,
     synthetics::SyntheticsCanariesCollector,
+    tagging_compliance::TaggingComplianceCollector,
     tagging_config::ResourceTaggingCollector,
     tgw_routes::TgwRoutesCollector,
     trusted_advisor::TrustedAdvisorCollector,
@@ -665,6 +666,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("compute-optimizer") {
             v.push(Box::new(ComputeOptimizerCollector::new(cfg)));
+        }
+        if has("tagging-compliance") {
+            v.push(Box::new(TaggingComplianceCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));
