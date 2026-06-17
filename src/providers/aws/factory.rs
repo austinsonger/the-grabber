@@ -9,6 +9,7 @@ use crate::providers::aws::{
     alb_logs::AlbLogsCollector,
     apigateway::ApiGatewayCollector,
     appmesh_tls::AppMeshTlsCollector,
+    artifact_reports::ArtifactReportsCollector,
     athena_saved_queries::AthenaSavedQueriesCollector,
     autoscaling::AutoScalingCollector,
     backup::BackupCollector,
@@ -578,6 +579,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("codeartifact-repos") {
             v.push(Box::new(CodeArtifactCollector::new(cfg)));
+        }
+        if has("artifact-reports") {
+            v.push(Box::new(ArtifactReportsCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));

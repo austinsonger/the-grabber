@@ -5463,6 +5463,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV169",
+      "name": "AWS Artifact Reports",
+      "description": "AWS Artifact compliance report inventory (SOC, FedRAMP, ISO, PCI packages available)",
+      "detail": "AWS Artifact compliance report inventory (SOC, FedRAMP, ISO, PCI packages available)",
+      "filename_prefix": "Artifact_Reports",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SA-9",
+            "SA-9(2)",
+            "SR-3",
+            "SR-6",
+            "CA-2(2)"
+          ]
+        }
+      ]
     }
   ]
 }

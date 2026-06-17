@@ -245,6 +245,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV159 | WAF Logging Destinations | `WAF_LoggingDestinations_Sampled` | Web ACL Name, Web ACL ARN, Logging Enabled, Log Destinations, Redacted Fields Count, Logging Filter Present |
 | EV166 | AWS Signer Profiles & Jobs | `Signer_Profiles_Jobs` | Type, Profile Name, Profile Version, Platform ID, Status, Job ID, Source S3, Signed At |
 | EV168 | CodeArtifact Repositories | `CodeArtifact_Repos_Sources` | Domain, Repository, Description, Upstreams, External Connections, Created Time |
+| EV169 | AWS Artifact Reports | `Artifact_Reports` | Report ID, Name, Series, Category, State, Periodic Update, Last Modified, Acceptance Type |
 
 ### Systems Manager (SSM)
 

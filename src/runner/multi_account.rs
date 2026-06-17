@@ -55,6 +55,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "identity-center",
     "identity-store",
     "sts-federation",
+    // AWS Artifact (global)
+    "artifact-reports",
 ];
 
 /// Pre-built account data ready for the background collection task.
