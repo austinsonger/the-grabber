@@ -195,6 +195,7 @@ pub(crate) async fn run_multi_region_standard(
             "detective-graphs",
             "sh-insights",
             "waf-destinations",
+            "vpc-mirror",
         ];
         full.iter()
             .copied()

@@ -148,6 +148,7 @@ use crate::providers::aws::{
     tagging_config::ResourceTaggingCollector,
     vpc::{NetworkAclCollector, VpcCollector},
     vpc_endpoints::VpcEndpointCollector,
+    vpc_traffic_mirror::VpcTrafficMirrorCollector,
     vpcflowlogs::VpcFlowLogCollector,
     waf::WafCollector,
     waf_destinations::WafDestinationsCollector,
@@ -707,6 +708,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("waf-destinations") {
             v.push(Box::new(WafDestinationsCollector::new(cfg)));
+        }
+        if has("vpc-mirror") {
+            v.push(Box::new(VpcTrafficMirrorCollector::new(cfg)));
         }
 
         v

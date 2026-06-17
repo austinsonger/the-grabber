@@ -501,6 +501,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "VPC Flow Logging         ",
         CloudProvider::Aws,
     ),
+    (
+        "vpc-mirror",
+        "VPC Traffic Mirror       ",
+        CloudProvider::Aws,
+    ),
     ("vpc", "VPCs                     ", CloudProvider::Aws),
     (
         "waf-config",

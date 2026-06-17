@@ -119,6 +119,7 @@ pub mod sts_federation;
 pub mod tagging_config;
 pub mod vpc;
 pub mod vpc_endpoints;
+pub mod vpc_traffic_mirror;
 pub mod vpcflowlogs;
 pub mod waf;
 pub mod waf_destinations;

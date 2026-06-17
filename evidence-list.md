@@ -187,6 +187,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV85 | Route53 Resolver Rules | `Route53_Resolver_Config` | Rule ID, Name, Domain Name, Rule Type, Status, Target IPs |
 | EV86 | API Gateway | `API_Gateway` | API Name, Endpoint Type, Authorization Type, Logging Enabled, Region |
 | EV87 | CloudFront Distributions | `CloudFront_Distributions` | Distribution ID, Domain Name, WAF Enabled, Logging Enabled, TLS Version |
+| EV160 | VPC Traffic Mirroring Sessions | `VPC_TrafficMirroring` | Session ID, Network Interface, Target ID, Filter ID, Session Number, VNI |
 
 ### Load Balancing
 

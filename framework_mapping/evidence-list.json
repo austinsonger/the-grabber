@@ -5218,6 +5218,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV160",
+      "name": "VPC Traffic Mirroring Sessions",
+      "description": "VPC traffic mirroring session inventory (source ENI, target, filter, VNI)",
+      "detail": "VPC traffic mirroring session inventory (source ENI, target, filter, VNI)",
+      "filename_prefix": "VPC_TrafficMirroring",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-2",
+            "AU-6",
+            "SI-4",
+            "SI-4(2)",
+            "SC-7"
+          ]
+        }
+      ]
     }
   ]
 }
