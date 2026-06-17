@@ -74,6 +74,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "iam-simulator",
     // Identity Center inline policies (global)
     "idc-inline-policies",
+    // IAM Permissions Boundary coverage (global)
+    "iam-boundaries",
 ];
 
 /// Pre-built account data ready for the background collection task.

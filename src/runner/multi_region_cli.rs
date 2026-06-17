@@ -218,6 +218,7 @@ pub(crate) async fn run_multi_region_standard(
             "iam-simulator",
             "idc-inline-policies",
             "roles-anywhere",
+            "iam-boundaries",
         ];
         full.iter()
             .copied()

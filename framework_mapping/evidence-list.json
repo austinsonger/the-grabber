@@ -7263,6 +7263,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV190",
+      "name": "IAM Permissions Boundaries",
+      "description": "Per-principal IAM permissions boundary coverage (which users/roles have a boundary attached)",
+      "detail": "Per-principal IAM permissions boundary coverage (which users/roles have a boundary attached)",
+      "filename_prefix": "IAM_Boundaries",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AC-6",
+            "AC-6(9)"
+          ]
+        }
+      ]
     }
   ]
 }

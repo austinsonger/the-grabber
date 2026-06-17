@@ -80,6 +80,7 @@ use crate::providers::aws::{
     guardduty_coverage::GuardDutyCoverageCollector,
     health::AwsHealthCollector,
     iam_access_advisor::IamAccessAdvisorCollector,
+    iam_boundaries::IamBoundariesCollector,
     iam_certs::IamCertCollector,
     iam_credential_report::IamCredentialReportCollector,
     iam_inventory::{
@@ -689,6 +690,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("roles-anywhere") {
             v.push(Box::new(IamRolesAnywhereCollector::new(cfg)));
+        }
+        if has("iam-boundaries") {
+            v.push(Box::new(IamBoundariesCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

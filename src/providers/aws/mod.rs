@@ -69,6 +69,7 @@ pub mod guardduty_config;
 pub mod guardduty_coverage;
 pub mod health;
 pub mod iam_access_advisor;
+pub mod iam_boundaries;
 pub mod iam_certs;
 pub mod iam_credential_report;
 pub mod iam_inventory;

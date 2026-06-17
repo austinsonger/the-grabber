@@ -640,6 +640,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "IAM Roles Anywhere       ",
         CloudProvider::Aws,
     ),
+    (
+        "iam-boundaries",
+        "IAM Perm Boundaries      ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",
