@@ -68,6 +68,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "budgets",
     // Organizations tag policies (global)
     "org-tag-policies",
+    // SCP attachments graph (global)
+    "scp-attachments",
 ];
 
 /// Pre-built account data ready for the background collection task.

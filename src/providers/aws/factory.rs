@@ -137,6 +137,7 @@ use crate::providers::aws::{
     s3_policies::S3PoliciesCollector,
     s3_replication::S3ReplicationCollector,
     savings_plans::SavingsPlansCollector,
+    scp_attachments::ScpAttachmentsCollector,
     secrets_extended::SecretsManagerPoliciesCollector,
     secretsmanager::SecretsManagerCollector,
     security_svc_config::{
@@ -673,6 +674,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("org-tag-policies") {
             v.push(Box::new(OrgTagPoliciesCollector::new(cfg)));
+        }
+        if has("scp-attachments") {
+            v.push(Box::new(ScpAttachmentsCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

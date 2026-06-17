@@ -620,6 +620,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Org Tag Policies         ",
         CloudProvider::Aws,
     ),
+    (
+        "scp-attachments",
+        "SCP Attachments          ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

@@ -51,6 +51,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV136 | Cognito User Pool Configuration | `Cognito_UserPool_Config` | Pool ID, Pool Name, MFA Configuration, Min Password Length, Require Symbols, Require Numbers, Require Upper, Require Lower, Advanced Security Mode, Account Recovery, Created Date |
 | EV137 | STS Federation Sources | `STS_Federation_Sources` | Provider Type, Provider ARN, URL or Issuer, Audiences/Clients, Thumbprints, Valid Until, Created Date |
 | EV185 | Organizations Tag Policies | `Org_Tag_Policies` | Policy ID, Policy Name, AWS Managed, Target ID, Target Name, Target Type, Content Excerpt |
+| EV186 | SCP Attachments | `SCP_Attachments` | SCP ID, SCP Name, Target ID, Target Type, Target Name, OU Path |
 
 ### Certificates & PKI
 

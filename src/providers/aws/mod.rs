@@ -117,6 +117,7 @@ pub mod s3_object_lock;
 pub mod s3_policies;
 pub mod s3_replication;
 pub mod savings_plans;
+pub mod scp_attachments;
 pub mod secrets_extended;
 pub mod secretsmanager;
 pub mod security_svc_config;
