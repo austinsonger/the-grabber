@@ -7086,6 +7086,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV183",
+      "name": "Compute Optimizer Recommendations",
+      "description": "AWS Compute Optimizer rightsizing recommendations for EC2, Lambda, and EBS",
+      "detail": "AWS Compute Optimizer rightsizing recommendations for EC2, Lambda, and EBS",
+      "filename_prefix": "Compute_Optimizer",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute — EC2",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-7",
+            "PM-3",
+            "SA-2"
+          ]
+        }
+      ]
     }
   ]
 }

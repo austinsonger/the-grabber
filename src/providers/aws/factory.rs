@@ -44,6 +44,7 @@ use crate::providers::aws::{
     codeartifact::CodeArtifactCollector,
     codepipeline_codebuild::CodePipelineCodeBuildCollector,
     cognito::CognitoUserPoolCollector,
+    compute_optimizer::ComputeOptimizerCollector,
     config_history::ConfigHistoryCollector,
     config_rules::ConfigRulesCollector,
     config_timeline::{
@@ -661,6 +662,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("savings-plans-ri") {
             v.push(Box::new(SavingsPlansCollector::new(cfg)));
+        }
+        if has("compute-optimizer") {
+            v.push(Box::new(ComputeOptimizerCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

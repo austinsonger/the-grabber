@@ -210,6 +210,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("time-sync", "Time Sync Config (SSM)   ", CloudProvider::Aws),
+    (
+        "compute-optimizer",
+        "Compute Optimizer        ",
+        CloudProvider::Aws,
+    ),
     // ── Containers ── (37..41)
     (
         "ecr-config",

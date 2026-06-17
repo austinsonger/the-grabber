@@ -212,6 +212,7 @@ pub(crate) async fn run_multi_region_standard(
             "synthetics-canaries",
             "macie-jobs",
             "savings-plans-ri",
+            "compute-optimizer",
         ];
         full.iter()
             .copied()

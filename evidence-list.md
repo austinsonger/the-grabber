@@ -121,6 +121,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV48 | EBS Volumes | `EBS` | Volume ID, Volume ARN, Availability Zone, Encryption Status, KMS Key ARN, Region |
 | EV49 | EBS Default Encryption | `EBS_DefaultEncryption` | Region, Default Encryption Enabled, KMS Key ID |
 | EV50 | EBS Encryption Config | `EBS_Encryption_Config` | Region, EBS Encryption By Default, Default KMS Key ID |
+| EV183 | Compute Optimizer Recommendations | `Compute_Optimizer` | Resource Type, ARN, Current Config, Finding, Recommended Config, Est. Monthly Savings ($) |
 
 ### Compute — Containers
 
