@@ -178,6 +178,7 @@ pub(crate) async fn run_multi_region_standard(
             "ssm-software-inventory",
             "ssm-compliance-summary",
             "ssm-associations",
+            "ssm-automation",
             "shield",
             "license-manager",
             "service-quotas",

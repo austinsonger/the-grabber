@@ -204,6 +204,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "SSM Associations         ",
         CloudProvider::Aws,
     ),
+    (
+        "ssm-automation",
+        "SSM Automation Exec      ",
+        CloudProvider::Aws,
+    ),
     ("time-sync", "Time Sync Config (SSM)   ", CloudProvider::Aws),
     // ── Containers ── (37..41)
     (
