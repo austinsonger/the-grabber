@@ -105,6 +105,7 @@ use crate::providers::aws::{
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     org_config::OrgConfigCollector,
+    org_delegated::OrgDelegatedCollector,
     organizations::OrganizationsSCPCollector,
     privatelink_services::PrivateLinkServicesCollector,
     public_resources::PublicResourceCollector,
@@ -621,6 +622,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("org-config") {
             v.push(Box::new(OrgConfigCollector::new(cfg)));
+        }
+        if has("org-delegated") {
+            v.push(Box::new(OrgDelegatedCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

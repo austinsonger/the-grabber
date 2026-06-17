@@ -90,6 +90,7 @@ pub mod macie;
 pub mod network_firewall;
 pub mod network_gateways;
 pub mod org_config;
+pub mod org_delegated;
 pub mod organizations;
 pub mod privatelink_services;
 pub mod public_resources;

@@ -49,6 +49,7 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     // Organizations / account (global)
     "scp",
     "org-config",
+    "org-delegated",
     "account-contacts",
     "saml-providers",
     // Identity Center / SSO (global — home region only)

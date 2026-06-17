@@ -570,6 +570,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "org-delegated",
+        "Org Delegated Admins     ",
+        CloudProvider::Aws,
+    ),
+    (
         "resource-tags",
         "Resource Tags            ",
         CloudProvider::Aws,
