@@ -155,6 +155,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV65 | KMS Key Configuration | `KMS_Key_Configuration` | Key ID, Key ARN, Enabled, Key Usage, Origin, Key State, Rotation Enabled, Key Policy |
 | EV66 | Secrets Manager | `Secrets_Manager` | Secret Name, ARN, Rotation Enabled, Last Rotated, Region |
 | EV67 | Secrets Manager Resource Policies | `Secrets_Manager_Policies` | Secret Name, Secret ARN, KMS Key ID, Rotation Enabled, Rotation Interval (days), Last Rotated, Has Resource Policy |
+| EV164 | KMS Grants & Rotation | `KMS_Grants_Rotation` | Key ID, Key ARN, Creation Date, Rotation Enabled, Grant ID, Grantee Principal, Operations, Grant Created |
 
 ### Messaging & Events
 

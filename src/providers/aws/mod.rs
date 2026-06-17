@@ -74,6 +74,7 @@ pub mod inspector_sbom;
 pub mod inspector_suppression;
 pub mod kms;
 pub mod kms_config;
+pub mod kms_grants;
 pub mod kms_policies;
 pub mod lambda_config;
 pub mod launch_templates;

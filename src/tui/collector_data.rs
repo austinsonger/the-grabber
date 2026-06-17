@@ -289,6 +289,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "KMS Key Policies         ",
         CloudProvider::Aws,
     ),
+    (
+        "kms-grants",
+        "KMS Grants & Rotation    ",
+        CloudProvider::Aws,
+    ),
     ("kms", "KMS Keys                 ", CloudProvider::Aws),
     ("secrets", "Secrets Manager          ", CloudProvider::Aws),
     (

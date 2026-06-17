@@ -89,6 +89,7 @@ use crate::providers::aws::{
     inspector_suppression::Inspector2SuppressionCollector,
     kms::KmsKeyCollector,
     kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector},
+    kms_grants::KmsGrantsCollector,
     kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector},
     lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector},
     launch_templates::LaunchTemplateCollector,
@@ -558,6 +559,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("r53-dns-firewall") {
             v.push(Box::new(R53DnsFirewallCollector::new(cfg)));
+        }
+        if has("kms-grants") {
+            v.push(Box::new(KmsGrantsCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));

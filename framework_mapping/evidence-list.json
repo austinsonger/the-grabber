@@ -5325,6 +5325,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV164",
+      "name": "KMS Grants & Rotation",
+      "description": "KMS customer-managed key grants and rotation status (skips AWS-managed keys)",
+      "detail": "KMS customer-managed key grants and rotation status (skips AWS-managed keys)",
+      "filename_prefix": "KMS_Grants_Rotation",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Encryption & Key Management",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SC-12",
+            "SC-12(1)",
+            "SC-12(2)",
+            "SC-13",
+            "AU-2"
+          ]
+        }
+      ]
     }
   ]
 }

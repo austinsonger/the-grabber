@@ -199,6 +199,7 @@ pub(crate) async fn run_multi_region_standard(
             "tgw-routes",
             "privatelink-services",
             "r53-dns-firewall",
+            "kms-grants",
         ];
         full.iter()
             .copied()
