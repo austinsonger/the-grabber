@@ -291,6 +291,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 |---|------|----------------|---------|
 | EV124 | Resource Tagging Configuration | `Resource_Tagging_Config` | Resource ARN, Resource Type, Owner, Environment, Data Classification, All Tags |
 | EV176 | Resource Explorer Indexes & Views | `ResourceExplorer_Indexes` | Type, ARN, Index Type, Region, State, Created At |
+| EV180 | Cost Anomaly Detection | `Cost_Anomaly` | Type, ID / Monitor Name, Detail, Start Date, Impact ($) *(last 90 days)* |
 
 ---
 

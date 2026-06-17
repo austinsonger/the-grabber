@@ -585,6 +585,17 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "cost-anomaly",
+        "Cost Anomaly Detection   ",
+        CloudProvider::Aws,
+    ),
+    ("budgets", "Budgets                  ", CloudProvider::Aws),
+    (
+        "savings-plans-ri",
+        "Savings Plans & RIs      ",
+        CloudProvider::Aws,
+    ),
+    (
         "control-tower",
         "Control Tower            ",
         CloudProvider::Aws,

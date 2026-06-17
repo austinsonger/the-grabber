@@ -50,6 +50,7 @@ use crate::providers::aws::{
     },
     contributor_insights::ContributorInsightsCollector,
     control_tower::ControlTowerCollector,
+    cost_anomaly::CostAnomalyCollector,
     cw_anomaly_detectors::CloudWatchAnomalyDetectorsCollector,
     detective_graphs::DetectiveGraphsCollector,
     drs_replication::DrsReplicationCollector,
@@ -649,6 +650,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("macie-jobs") {
             v.push(Box::new(MacieJobsCollector::new(cfg)));
+        }
+        if has("cost-anomaly") {
+            v.push(Box::new(CostAnomalyCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

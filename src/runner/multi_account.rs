@@ -62,6 +62,10 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "trusted-advisor",
     // AWS Health (global)
     "aws-health",
+    // Cost Explorer (global)
+    "cost-anomaly",
+    // Budgets (global)
+    "budgets",
 ];
 
 /// Pre-built account data ready for the background collection task.

@@ -7010,6 +7010,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV180",
+      "name": "Cost Anomaly Detection",
+      "description": "AWS Cost Anomaly Detection monitors and detected anomalies (last 90 days)",
+      "detail": "AWS Cost Anomaly Detection monitors and detected anomalies (last 90 days)",
+      "filename_prefix": "Cost_Anomaly",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Tagging & Inventory",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "RA-3",
+            "SI-4",
+            "SI-4(11)",
+            "AU-6(3)"
+          ]
+        }
+      ]
     }
   ]
 }

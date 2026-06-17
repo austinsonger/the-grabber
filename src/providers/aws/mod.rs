@@ -42,6 +42,7 @@ pub mod config_rules;
 pub mod config_timeline;
 pub mod contributor_insights;
 pub mod control_tower;
+pub mod cost_anomaly;
 pub mod cw_anomaly_detectors;
 pub mod detective_graphs;
 pub mod drs_replication;
