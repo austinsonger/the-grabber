@@ -572,6 +572,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "inspector-coverage",
+        "Inspector2 Coverage      ",
+        CloudProvider::Aws,
+    ),
+    (
         "inspector-ecr-images",
         "Inspector2 ECR Images    ",
         CloudProvider::Aws,

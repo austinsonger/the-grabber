@@ -82,6 +82,7 @@ use crate::providers::aws::{
     identity_store::IdentityStoreCollector,
     inspector::InspectorCollector,
     inspector_config::InspectorConfigCollector,
+    inspector_coverage::Inspector2CoverageCollector,
     inspector_ecr::InspectorEcrImagesCollector,
     inspector_history::InspectorFindingsHistoryCollector,
     inspector_sbom::{InspectorSbomCollector, InspectorSbomConfig},
@@ -557,6 +558,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("inspector-config") {
             v.push(Box::new(InspectorConfigCollector::new(cfg)));
+        }
+        if has("inspector-coverage") {
+            v.push(Box::new(Inspector2CoverageCollector::new(cfg)));
         }
         if has("waf-config") {
             v.push(Box::new(WafFullConfigCollector::new(cfg)));

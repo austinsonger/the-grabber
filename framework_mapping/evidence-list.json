@@ -5140,6 +5140,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV157",
+      "name": "Inspector2 Coverage",
+      "description": "Inspector2 per-resource scan coverage (EC2/ECR/Lambda enrollment + status)",
+      "detail": "Inspector2 per-resource scan coverage (EC2/ECR/Lambda enrollment + status)",
+      "filename_prefix": "Inspector2_Coverage",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-8",
+            "RA-5",
+            "RA-5(2)",
+            "SI-2"
+          ]
+        }
+      ]
     }
   ]
 }

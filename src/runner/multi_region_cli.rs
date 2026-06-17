@@ -134,6 +134,7 @@ pub(crate) async fn run_multi_region_standard(
             "ssm-params",
             "time-sync",
             "inspector-config",
+            "inspector-coverage",
             "waf-config",
             "elb-full-config",
             "org-config",
