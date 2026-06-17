@@ -7136,6 +7136,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV185",
+      "name": "Organizations Tag Policies",
+      "description": "AWS Organizations tag policies with attached targets and content excerpts",
+      "detail": "AWS Organizations tag policies with attached targets and content excerpts",
+      "filename_prefix": "Org_Tag_Policies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-6",
+            "CM-8",
+            "AC-3"
+          ]
+        }
+      ]
     }
   ]
 }

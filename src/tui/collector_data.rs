@@ -615,6 +615,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Tagging Compliance       ",
         CloudProvider::Aws,
     ),
+    (
+        "org-tag-policies",
+        "Org Tag Policies         ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

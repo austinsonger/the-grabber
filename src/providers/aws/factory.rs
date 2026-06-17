@@ -113,6 +113,7 @@ use crate::providers::aws::{
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     org_config::OrgConfigCollector,
     org_delegated::OrgDelegatedCollector,
+    org_tag_policies::OrgTagPoliciesCollector,
     organizations::OrganizationsSCPCollector,
     privatelink_services::PrivateLinkServicesCollector,
     public_resources::PublicResourceCollector,
@@ -669,6 +670,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("tagging-compliance") {
             v.push(Box::new(TaggingComplianceCollector::new(cfg)));
+        }
+        if has("org-tag-policies") {
+            v.push(Box::new(OrgTagPoliciesCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

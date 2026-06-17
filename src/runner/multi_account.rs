@@ -66,6 +66,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "cost-anomaly",
     // Budgets (global)
     "budgets",
+    // Organizations tag policies (global)
+    "org-tag-policies",
 ];
 
 /// Pre-built account data ready for the background collection task.
