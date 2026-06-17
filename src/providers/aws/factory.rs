@@ -38,6 +38,7 @@ use crate::providers::aws::{
     cloudwatch_alarms::CloudWatchConfigAlarmsCollector,
     cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector},
     cloudwatch_resources::{CloudWatchAlarmCollector, CloudWatchLogGroupCollector},
+    codeartifact::CodeArtifactCollector,
     cognito::CognitoUserPoolCollector,
     config_history::ConfigHistoryCollector,
     config_rules::ConfigRulesCollector,
@@ -574,6 +575,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ecr-signatures") {
             v.push(Box::new(EcrSignaturesCollector::new(cfg)));
+        }
+        if has("codeartifact-repos") {
+            v.push(Box::new(CodeArtifactCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));

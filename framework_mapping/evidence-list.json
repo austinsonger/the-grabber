@@ -5435,6 +5435,34 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV168",
+      "name": "CodeArtifact Repositories",
+      "description": "CodeArtifact repositories with upstream chains and external (public) package source connections",
+      "detail": "CodeArtifact repositories with upstream chains and external (public) package source connections",
+      "filename_prefix": "CodeArtifact_Repos_Sources",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SR-3",
+            "SR-3(1)",
+            "SR-4",
+            "SR-11",
+            "CM-7",
+            "CM-7(4)"
+          ]
+        }
+      ]
     }
   ]
 }

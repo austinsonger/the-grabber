@@ -203,6 +203,7 @@ pub(crate) async fn run_multi_region_standard(
             "appmesh-tls",
             "signer-profiles",
             "ecr-signatures",
+            "codeartifact-repos",
         ];
         full.iter()
             .copied()

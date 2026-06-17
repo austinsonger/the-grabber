@@ -32,6 +32,7 @@ pub mod cloudwatch;
 pub mod cloudwatch_alarms;
 pub mod cloudwatch_config;
 pub mod cloudwatch_resources;
+pub mod codeartifact;
 pub mod cognito;
 pub mod config_history;
 pub mod config_rules;

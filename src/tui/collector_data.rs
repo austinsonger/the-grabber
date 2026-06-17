@@ -581,6 +581,21 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "codeartifact-repos",
+        "CodeArtifact Repos       ",
+        CloudProvider::Aws,
+    ),
+    (
+        "artifact-reports",
+        "AWS Artifact Reports     ",
+        CloudProvider::Aws,
+    ),
+    (
+        "codepipeline-codebuild",
+        "CodePipeline & Build     ",
+        CloudProvider::Aws,
+    ),
+    (
         "detective-graphs",
         "Detective Graphs         ",
         CloudProvider::Aws,
