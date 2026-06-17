@@ -198,6 +198,7 @@ pub(crate) async fn run_multi_region_standard(
             "vpc-mirror",
             "tgw-routes",
             "privatelink-services",
+            "r53-dns-firewall",
         ];
         full.iter()
             .copied()

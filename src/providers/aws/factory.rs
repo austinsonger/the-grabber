@@ -101,6 +101,7 @@ use crate::providers::aws::{
     organizations::OrganizationsSCPCollector,
     privatelink_services::PrivateLinkServicesCollector,
     public_resources::PublicResourceCollector,
+    r53_dns_firewall::R53DnsFirewallCollector,
     rds::RdsCollector,
     rds_inventory::RdsInventoryCollector,
     rds_pitr::RdsPitrCollector,
@@ -554,6 +555,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("privatelink-services") {
             v.push(Box::new(PrivateLinkServicesCollector::new(cfg)));
+        }
+        if has("r53-dns-firewall") {
+            v.push(Box::new(R53DnsFirewallCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));

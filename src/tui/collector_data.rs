@@ -479,6 +479,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Publicly Exposed Res.    ",
         CloudProvider::Aws,
     ),
+    (
+        "r53-dns-firewall",
+        "R53 DNS Firewall         ",
+        CloudProvider::Aws,
+    ),
     ("rt-config", "Route Table Config       ", CloudProvider::Aws),
     (
         "route-tables",

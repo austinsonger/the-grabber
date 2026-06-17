@@ -86,6 +86,7 @@ pub mod org_config;
 pub mod organizations;
 pub mod privatelink_services;
 pub mod public_resources;
+pub mod r53_dns_firewall;
 pub mod rds;
 pub mod rds_inventory;
 pub mod rds_pitr;

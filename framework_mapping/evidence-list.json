@@ -5298,6 +5298,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV163",
+      "name": "Route53 Resolver DNS Firewall",
+      "description": "Route53 Resolver DNS Firewall rule groups, rules, VPC associations, query log configs, and DNSSEC configs",
+      "detail": "Route53 Resolver DNS Firewall rule groups, rules, VPC associations, query log configs, and DNSSEC configs",
+      "filename_prefix": "Route53_DNSFirewall",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SC-7",
+            "SC-7(8)",
+            "SC-20",
+            "SC-21",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }

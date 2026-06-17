@@ -190,6 +190,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV160 | VPC Traffic Mirroring Sessions | `VPC_TrafficMirroring` | Session ID, Network Interface, Target ID, Filter ID, Session Number, VNI |
 | EV161 | Transit Gateway Route Tables | `TGW_RouteTables` | TGW ID, Route Table ID, RT State, Default Assoc, Default Prop, Destination CIDR, Route State, Route Type, Target Attachment |
 | EV162 | PrivateLink Endpoint Services | `PrivateLink_Services` | Service ID, Service Name, NLB ARNs, Acceptance Required, Allowed Principals, Availability Zones |
+| EV163 | Route53 Resolver DNS Firewall | `Route53_DNSFirewall` | Type, ID, Name, Status / Action, VPC ID, Owner / Priority, Details |
 
 ### Load Balancing
 
