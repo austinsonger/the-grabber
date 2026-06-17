@@ -571,6 +571,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     // ── Security Detection ── (101..113)
     (
+        "signer-profiles",
+        "AWS Signer               ",
+        CloudProvider::Aws,
+    ),
+    (
         "detective-graphs",
         "Detective Graphs         ",
         CloudProvider::Aws,

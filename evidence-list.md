@@ -242,6 +242,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV157 | Inspector2 Coverage | `Inspector2_Coverage` | Resource ID, Resource Type, Scan Status, Scan Status Reason, Scan Type, Account ID |
 | EV158 | Inspector2 Suppression Rules | `Inspector2_Suppression_Rules` | Filter ARN, Name, Created At, Updated At, Owner, Reason, Filter Criteria Fields |
 | EV159 | WAF Logging Destinations | `WAF_LoggingDestinations_Sampled` | Web ACL Name, Web ACL ARN, Logging Enabled, Log Destinations, Redacted Fields Count, Logging Filter Present |
+| EV166 | AWS Signer Profiles & Jobs | `Signer_Profiles_Jobs` | Type, Profile Name, Profile Version, Platform ID, Status, Job ID, Source S3, Signed At |
 
 ### Systems Manager (SSM)
 

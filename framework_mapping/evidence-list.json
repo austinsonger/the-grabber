@@ -5379,6 +5379,34 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV166",
+      "name": "AWS Signer Profiles & Jobs",
+      "description": "AWS Signer signing profiles and recent signing jobs (code signing for Lambda, IoT, container images)",
+      "detail": "AWS Signer signing profiles and recent signing jobs (code signing for Lambda, IoT, container images)",
+      "filename_prefix": "Signer_Profiles_Jobs",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SR-4",
+            "SR-4(1)",
+            "SR-4(2)",
+            "SR-10",
+            "SR-11",
+            "SI-7"
+          ]
+        }
+      ]
     }
   ]
 }

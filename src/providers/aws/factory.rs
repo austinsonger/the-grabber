@@ -131,6 +131,7 @@ use crate::providers::aws::{
     securityhub_standards::SecurityHubStandardsCollector,
     service_quotas::ServiceQuotasCollector,
     shield::ShieldCollector,
+    signer::SignerCollector,
     sns::SnsSubscriptionCollector,
     sns_eventbridge::{
         ChangeEventRulesCollector, EventBridgeRulesCollector, SnsTopicPoliciesCollector,
@@ -566,6 +567,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("appmesh-tls") {
             v.push(Box::new(AppMeshTlsCollector::new(cfg)));
+        }
+        if has("signer-profiles") {
+            v.push(Box::new(SignerCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));

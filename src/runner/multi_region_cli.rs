@@ -201,6 +201,7 @@ pub(crate) async fn run_multi_region_standard(
             "r53-dns-firewall",
             "kms-grants",
             "appmesh-tls",
+            "signer-profiles",
         ];
         full.iter()
             .copied()
