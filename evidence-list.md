@@ -188,6 +188,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV86 | API Gateway | `API_Gateway` | API Name, Endpoint Type, Authorization Type, Logging Enabled, Region |
 | EV87 | CloudFront Distributions | `CloudFront_Distributions` | Distribution ID, Domain Name, WAF Enabled, Logging Enabled, TLS Version |
 | EV160 | VPC Traffic Mirroring Sessions | `VPC_TrafficMirroring` | Session ID, Network Interface, Target ID, Filter ID, Session Number, VNI |
+| EV161 | Transit Gateway Route Tables | `TGW_RouteTables` | TGW ID, Route Table ID, RT State, Default Assoc, Default Prop, Destination CIDR, Route State, Route Type, Target Attachment |
 
 ### Load Balancing
 

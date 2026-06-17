@@ -5245,6 +5245,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV161",
+      "name": "Transit Gateway Route Tables",
+      "description": "Transit Gateway route tables and active routes for network-segmentation evidence",
+      "detail": "Transit Gateway route tables and active routes for network-segmentation evidence",
+      "filename_prefix": "TGW_RouteTables",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-4",
+            "AC-4(21)",
+            "SC-7",
+            "SC-7(5)",
+            "SC-7(21)"
+          ]
+        }
+      ]
     }
   ]
 }

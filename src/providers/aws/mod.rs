@@ -117,6 +117,7 @@ pub mod ssm_sessions;
 pub mod ssm_software_inventory;
 pub mod sts_federation;
 pub mod tagging_config;
+pub mod tgw_routes;
 pub mod vpc;
 pub mod vpc_endpoints;
 pub mod vpc_traffic_mirror;

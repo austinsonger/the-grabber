@@ -146,6 +146,7 @@ use crate::providers::aws::{
     ssm_software_inventory::SsmSoftwareInventoryCollector,
     sts_federation::StsFederationCollector,
     tagging_config::ResourceTaggingCollector,
+    tgw_routes::TgwRoutesCollector,
     vpc::{NetworkAclCollector, VpcCollector},
     vpc_endpoints::VpcEndpointCollector,
     vpc_traffic_mirror::VpcTrafficMirrorCollector,
@@ -711,6 +712,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("vpc-mirror") {
             v.push(Box::new(VpcTrafficMirrorCollector::new(cfg)));
+        }
+        if has("tgw-routes") {
+            v.push(Box::new(TgwRoutesCollector::new(cfg)));
         }
 
         v

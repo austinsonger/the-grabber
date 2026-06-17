@@ -487,6 +487,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "tgw-routes",
+        "TGW Route Tables         ",
+        CloudProvider::Aws,
+    ),
+    (
         "vpc-config",
         "VPC Configuration        ",
         CloudProvider::Aws,
