@@ -456,6 +456,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     // ── Network ── (77..97)
     ("acm", "ACM Certificates         ", CloudProvider::Aws),
     ("alb-logs", "ALB Access Log Config    ", CloudProvider::Aws),
+    (
+        "appmesh-tls",
+        "AppMesh TLS              ",
+        CloudProvider::Aws,
+    ),
     ("igw", "Internet Gateways        ", CloudProvider::Aws),
     (
         "elb-full-config",

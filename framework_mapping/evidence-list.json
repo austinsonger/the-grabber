@@ -5352,6 +5352,33 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV165",
+      "name": "AppMesh TLS Configuration",
+      "description": "AWS App Mesh virtual node/gateway listener TLS configuration (mode, certificate source)",
+      "detail": "AWS App Mesh virtual node/gateway listener TLS configuration (mode, certificate source)",
+      "filename_prefix": "AppMesh_TLS_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SC-8",
+            "SC-8(1)",
+            "SC-12",
+            "SC-13",
+            "SC-23"
+          ]
+        }
+      ]
     }
   ]
 }

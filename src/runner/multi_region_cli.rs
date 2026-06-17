@@ -200,6 +200,7 @@ pub(crate) async fn run_multi_region_standard(
             "privatelink-services",
             "r53-dns-firewall",
             "kms-grants",
+            "appmesh-tls",
         ];
         full.iter()
             .copied()
