@@ -596,6 +596,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "aws-health",
+        "AWS Health Events        ",
+        CloudProvider::Aws,
+    ),
+    (
         "codepipeline-codebuild",
         "CodePipeline & Build     ",
         CloudProvider::Aws,

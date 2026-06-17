@@ -5545,6 +5545,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV172",
+      "name": "AWS Health Events",
+      "description": "AWS Health Dashboard events (issues, scheduled changes, account notifications, last 90 days)",
+      "detail": "AWS Health Dashboard events (issues, scheduled changes, account notifications, last 90 days)",
+      "filename_prefix": "AWS_Health_Events",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-2",
+            "IR-4",
+            "IR-6",
+            "SI-5"
+          ]
+        }
+      ]
     }
   ]
 }

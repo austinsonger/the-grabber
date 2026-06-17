@@ -72,6 +72,7 @@ use crate::providers::aws::{
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
     guardduty_coverage::GuardDutyCoverageCollector,
+    health::AwsHealthCollector,
     iam_access_advisor::IamAccessAdvisorCollector,
     iam_certs::IamCertCollector,
     iam_credential_report::IamCredentialReportCollector,
@@ -587,6 +588,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("trusted-advisor") {
             v.push(Box::new(TrustedAdvisorCollector::new(cfg)));
+        }
+        if has("aws-health") {
+            v.push(Box::new(AwsHealthCollector::new(cfg)));
         }
         if has("codepipeline-codebuild") {
             v.push(Box::new(CodePipelineCodeBuildCollector::new(cfg)));

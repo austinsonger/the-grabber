@@ -248,6 +248,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV169 | AWS Artifact Reports | `Artifact_Reports` | Report ID, Name, Series, Category, State, Periodic Update, Last Modified, Acceptance Type |
 | EV170 | CodePipeline & CodeBuild Config | `CodePipeline_CodeBuild` | Resource Type, Name, Source Provider, Source Location, Has Manual Approval, Privileged Mode, Logs Destination, Service Role |
 | EV171 | Trusted Advisor Checks | `TrustedAdvisor_Checks` | Check ID, Name, Category, Status, Resources Flagged, Timestamp *(requires Business/Enterprise Support)* |
+| EV172 | AWS Health Events | `AWS_Health_Events` | Event ARN, Service, Event Type Code, Region, Start Time, End Time, Status, Category *(last 90 days; requires Business+ support)* |
 
 ### Systems Manager (SSM)
 

@@ -59,6 +59,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "artifact-reports",
     // AWS Support — Trusted Advisor (global)
     "trusted-advisor",
+    // AWS Health (global)
+    "aws-health",
 ];
 
 /// Pre-built account data ready for the background collection task.
