@@ -197,6 +197,7 @@ pub(crate) async fn run_multi_region_standard(
             "waf-destinations",
             "vpc-mirror",
             "tgw-routes",
+            "privatelink-services",
         ];
         full.iter()
             .copied()

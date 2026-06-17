@@ -5272,6 +5272,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV162",
+      "name": "PrivateLink Endpoint Services",
+      "description": "VPC endpoint service configurations published by this account (PrivateLink providers)",
+      "detail": "VPC endpoint service configurations published by this account (PrivateLink providers)",
+      "filename_prefix": "PrivateLink_Services",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-4",
+            "AC-4(21)",
+            "SC-7",
+            "SC-7(5)"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -99,6 +99,7 @@ use crate::providers::aws::{
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     org_config::OrgConfigCollector,
     organizations::OrganizationsSCPCollector,
+    privatelink_services::PrivateLinkServicesCollector,
     public_resources::PublicResourceCollector,
     rds::RdsCollector,
     rds_inventory::RdsInventoryCollector,
@@ -550,6 +551,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("vpc-endpoints") {
             v.push(Box::new(VpcEndpointCollector::new(cfg)));
+        }
+        if has("privatelink-services") {
+            v.push(Box::new(PrivateLinkServicesCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));

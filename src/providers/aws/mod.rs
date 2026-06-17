@@ -84,6 +84,7 @@ pub mod network_firewall;
 pub mod network_gateways;
 pub mod org_config;
 pub mod organizations;
+pub mod privatelink_services;
 pub mod public_resources;
 pub mod rds;
 pub mod rds_inventory;

@@ -470,6 +470,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("nacl", "Network ACLs             ", CloudProvider::Aws),
     (
+        "privatelink-services",
+        "PrivateLink Services     ",
+        CloudProvider::Aws,
+    ),
+    (
         "public-resources",
         "Publicly Exposed Res.    ",
         CloudProvider::Aws,
