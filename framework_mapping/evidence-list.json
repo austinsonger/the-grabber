@@ -7237,6 +7237,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV189",
+      "name": "IAM Roles Anywhere",
+      "description": "IAM Roles Anywhere trust anchors and profiles for workload identity federation",
+      "detail": "IAM Roles Anywhere trust anchors and profiles for workload identity federation",
+      "filename_prefix": "IAM_RolesAnywhere",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "IA-3",
+            "IA-5(2)",
+            "AC-2",
+            "AC-14"
+          ]
+        }
+      ]
     }
   ]
 }

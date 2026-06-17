@@ -635,6 +635,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "IdC Inline Policies      ",
         CloudProvider::Aws,
     ),
+    (
+        "roles-anywhere",
+        "IAM Roles Anywhere       ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

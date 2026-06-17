@@ -54,6 +54,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV186 | SCP Attachments | `SCP_Attachments` | SCP ID, SCP Name, Target ID, Target Type, Target Name, OU Path |
 | EV187 | IAM Policy Simulator | `IAM_Simulator` | Principal ARN, Principal Type, Action, Decision, Matched Statements Count *(capped at 200 principals)* |
 | EV188 | Identity Center Inline Policies | `IdentityCenter_InlinePolicies` | Permission Set ARN, Permission Set Name, Type, Policy Name / Inline Content, Policy Path |
+| EV189 | IAM Roles Anywhere | `IAM_RolesAnywhere` | Type, ID, Name, Enabled, Source / Role ARNs, Notification / Session Policy |
 
 ### Certificates & PKI
 

@@ -73,6 +73,7 @@ pub mod iam_certs;
 pub mod iam_credential_report;
 pub mod iam_inventory;
 pub mod iam_policies;
+pub mod iam_roles_anywhere;
 pub mod iam_roles_lastused;
 pub mod iam_simulator;
 pub mod iam_trusts;

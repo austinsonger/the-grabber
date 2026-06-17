@@ -217,6 +217,7 @@ pub(crate) async fn run_multi_region_standard(
             "scp-attachments",
             "iam-simulator",
             "idc-inline-policies",
+            "roles-anywhere",
         ];
         full.iter()
             .copied()

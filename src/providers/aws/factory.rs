@@ -88,6 +88,7 @@ use crate::providers::aws::{
     iam_policies::{
         IamPasswordPolicyCollector, IamRolePoliciesCollector, IamUserPoliciesCollector,
     },
+    iam_roles_anywhere::IamRolesAnywhereCollector,
     iam_roles_lastused::IamRolesLastUsedCollector,
     iam_simulator::IamSimulatorCollector,
     iam_trusts::IamTrustsCollector,
@@ -685,6 +686,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("idc-inline-policies") {
             v.push(Box::new(IdentityCenterInlineCollector::new(cfg)));
+        }
+        if has("roles-anywhere") {
+            v.push(Box::new(IamRolesAnywhereCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));
