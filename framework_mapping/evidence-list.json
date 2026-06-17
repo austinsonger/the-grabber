@@ -5166,6 +5166,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV158",
+      "name": "Inspector2 Suppression Rules",
+      "description": "Inspector2 finding-suppression filter rules (with criteria fields summary)",
+      "detail": "Inspector2 finding-suppression filter rules (with criteria fields summary)",
+      "filename_prefix": "Inspector2_Suppression_Rules",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "RA-5",
+            "RA-5(2)",
+            "SI-2",
+            "SI-2(3)"
+          ]
+        }
+      ]
     }
   ]
 }

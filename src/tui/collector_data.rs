@@ -582,6 +582,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("inspector", "Inspector2 Findings      ", CloudProvider::Aws),
+    (
+        "inspector-suppression",
+        "Inspector2 Suppression   ",
+        CloudProvider::Aws,
+    ),
     ("macie", "Macie Findings           ", CloudProvider::Aws),
     (
         "securityhub",

@@ -86,6 +86,7 @@ use crate::providers::aws::{
     inspector_ecr::InspectorEcrImagesCollector,
     inspector_history::InspectorFindingsHistoryCollector,
     inspector_sbom::{InspectorSbomCollector, InspectorSbomConfig},
+    inspector_suppression::Inspector2SuppressionCollector,
     kms::KmsKeyCollector,
     kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector},
     kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector},
@@ -561,6 +562,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("inspector-coverage") {
             v.push(Box::new(Inspector2CoverageCollector::new(cfg)));
+        }
+        if has("inspector-suppression") {
+            v.push(Box::new(Inspector2SuppressionCollector::new(cfg)));
         }
         if has("waf-config") {
             v.push(Box::new(WafFullConfigCollector::new(cfg)));

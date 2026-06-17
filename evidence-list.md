@@ -234,6 +234,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV142 | Security Hub Insights | `SecurityHub_Insights` | Insight ARN, Name, Group By Attribute, Filters Summary |
 | EV143 | GuardDuty Coverage | `GuardDuty_Coverage` | Detector ID, Resource ID, Resource Type, Coverage Status, Issue, Updated At |
 | EV157 | Inspector2 Coverage | `Inspector2_Coverage` | Resource ID, Resource Type, Scan Status, Scan Status Reason, Scan Type, Account ID |
+| EV158 | Inspector2 Suppression Rules | `Inspector2_Suppression_Rules` | Filter ARN, Name, Created At, Updated At, Owner, Reason, Filter Criteria Fields |
 
 ### Systems Manager (SSM)
 
