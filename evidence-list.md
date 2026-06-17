@@ -293,6 +293,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV176 | Resource Explorer Indexes & Views | `ResourceExplorer_Indexes` | Type, ARN, Index Type, Region, State, Created At |
 | EV180 | Cost Anomaly Detection | `Cost_Anomaly` | Type, ID / Monitor Name, Detail, Start Date, Impact ($) *(last 90 days)* |
 | EV181 | Budgets | `Budgets` | Budget Name, Type, Time Unit, Limit, Actual Spend, Forecasted Spend |
+| EV182 | Savings Plans & Reserved Instances | `Savings_Plans_RIs` | Type, ID, Instance Type / Plan Type, State, Start, End, Commitment / Price |
 
 ---
 

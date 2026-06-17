@@ -134,6 +134,7 @@ use crate::providers::aws::{
     s3_object_lock::S3ObjectLockCollector,
     s3_policies::S3PoliciesCollector,
     s3_replication::S3ReplicationCollector,
+    savings_plans::SavingsPlansCollector,
     secrets_extended::SecretsManagerPoliciesCollector,
     secretsmanager::SecretsManagerCollector,
     security_svc_config::{
@@ -657,6 +658,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("budgets") {
             v.push(Box::new(BudgetsCollector::new(cfg)));
+        }
+        if has("savings-plans-ri") {
+            v.push(Box::new(SavingsPlansCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

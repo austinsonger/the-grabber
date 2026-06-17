@@ -7061,6 +7061,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV182",
+      "name": "Savings Plans & Reserved Instances",
+      "description": "AWS Savings Plans and EC2 Reserved Instances inventory",
+      "detail": "AWS Savings Plans and EC2 Reserved Instances inventory",
+      "filename_prefix": "Savings_Plans_RIs",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Tagging & Inventory",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-2",
+            "PM-3",
+            "SA-2"
+          ]
+        }
+      ]
     }
   ]
 }
