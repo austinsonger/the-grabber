@@ -121,5 +121,6 @@ pub mod vpc;
 pub mod vpc_endpoints;
 pub mod vpcflowlogs;
 pub mod waf;
+pub mod waf_destinations;
 pub mod waf_full_config;
 pub mod waf_logging;

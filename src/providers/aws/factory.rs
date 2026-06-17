@@ -150,6 +150,7 @@ use crate::providers::aws::{
     vpc_endpoints::VpcEndpointCollector,
     vpcflowlogs::VpcFlowLogCollector,
     waf::WafCollector,
+    waf_destinations::WafDestinationsCollector,
     waf_full_config::WafFullConfigCollector,
     waf_logging::WafLoggingCollector,
 };
@@ -703,6 +704,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("sts-federation") {
             v.push(Box::new(StsFederationCollector::new(cfg)));
+        }
+        if has("waf-destinations") {
+            v.push(Box::new(WafDestinationsCollector::new(cfg)));
         }
 
         v

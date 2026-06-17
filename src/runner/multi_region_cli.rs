@@ -194,6 +194,7 @@ pub(crate) async fn run_multi_region_standard(
             "cw-contributor-insights",
             "detective-graphs",
             "sh-insights",
+            "waf-destinations",
         ];
         full.iter()
             .copied()

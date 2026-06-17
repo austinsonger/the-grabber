@@ -5192,6 +5192,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV159",
+      "name": "WAF Logging Destinations",
+      "description": "WAFv2 web ACL logging configuration (Firehose/CloudWatch/S3 destinations, redacted fields, filters)",
+      "detail": "WAFv2 web ACL logging configuration (Firehose/CloudWatch/S3 destinations, redacted fields, filters)",
+      "filename_prefix": "WAF_LoggingDestinations_Sampled",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-2",
+            "AU-6",
+            "SC-7",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }

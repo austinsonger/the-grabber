@@ -508,6 +508,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "waf-destinations",
+        "WAF Logging Dest         ",
+        CloudProvider::Aws,
+    ),
+    (
         "waf-logging",
         "WAF Logging Config       ",
         CloudProvider::Aws,
