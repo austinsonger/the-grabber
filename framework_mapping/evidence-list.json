@@ -7212,6 +7212,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV188",
+      "name": "Identity Center Inline Policies",
+      "description": "AWS Identity Center permission-set inline policies and customer-managed policy references",
+      "detail": "AWS Identity Center permission-set inline policies and customer-managed policy references",
+      "filename_prefix": "IdentityCenter_InlinePolicies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-2",
+            "AC-3",
+            "AC-6"
+          ]
+        }
+      ]
     }
   ]
 }

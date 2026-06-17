@@ -216,6 +216,7 @@ pub(crate) async fn run_multi_region_standard(
             "tagging-compliance",
             "scp-attachments",
             "iam-simulator",
+            "idc-inline-policies",
         ];
         full.iter()
             .copied()

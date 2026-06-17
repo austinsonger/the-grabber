@@ -72,6 +72,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "scp-attachments",
     // IAM Policy Simulator (global)
     "iam-simulator",
+    // Identity Center inline policies (global)
+    "idc-inline-policies",
 ];
 
 /// Pre-built account data ready for the background collection task.

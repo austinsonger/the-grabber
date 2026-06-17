@@ -92,6 +92,7 @@ use crate::providers::aws::{
     iam_simulator::IamSimulatorCollector,
     iam_trusts::IamTrustsCollector,
     identity_center::IdentityCenterCollector,
+    identity_center_inline::IdentityCenterInlineCollector,
     identity_store::IdentityStoreCollector,
     inspector::InspectorCollector,
     inspector_config::InspectorConfigCollector,
@@ -681,6 +682,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("iam-simulator") {
             v.push(Box::new(IamSimulatorCollector::new(cfg)));
+        }
+        if has("idc-inline-policies") {
+            v.push(Box::new(IdentityCenterInlineCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

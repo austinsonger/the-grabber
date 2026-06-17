@@ -630,6 +630,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "IAM Policy Simulator     ",
         CloudProvider::Aws,
     ),
+    (
+        "idc-inline-policies",
+        "IdC Inline Policies      ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",
