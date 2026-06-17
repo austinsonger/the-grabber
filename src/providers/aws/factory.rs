@@ -57,6 +57,7 @@ use crate::providers::aws::{
     ec2_detailed::Ec2DetailedCollector,
     ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector},
     ecr_config::EcrRepoConfigCollector,
+    ecr_signatures::EcrSignaturesCollector,
     ecs::EcsClusterCollector,
     efs::EfsCollector,
     eks::EksClusterCollector,
@@ -570,6 +571,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("signer-profiles") {
             v.push(Box::new(SignerCollector::new(cfg)));
+        }
+        if has("ecr-signatures") {
+            v.push(Box::new(EcrSignaturesCollector::new(cfg)));
         }
         if has("ssm-baselines") {
             v.push(Box::new(SsmPatchBaselineCollector::new(cfg)));

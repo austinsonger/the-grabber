@@ -216,6 +216,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "ECR Repo Config          ",
         CloudProvider::Aws,
     ),
+    (
+        "ecr-signatures",
+        "ECR Signatures           ",
+        CloudProvider::Aws,
+    ),
     ("ecs", "ECS Clusters             ", CloudProvider::Aws),
     ("eks", "EKS Clusters             ", CloudProvider::Aws),
     // ── Database & Backup ── (41..48)

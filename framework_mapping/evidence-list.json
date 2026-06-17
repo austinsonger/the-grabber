@@ -5407,6 +5407,34 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV167",
+      "name": "ECR Image Signatures & Scanning",
+      "description": "ECR registry scanning config and per-image signature presence (Cosign/Notary)",
+      "detail": "ECR registry scanning config and per-image signature presence (Cosign/Notary)",
+      "filename_prefix": "ECR_Signatures_ScanConfig",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute — Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SR-4",
+            "SR-4(3)",
+            "SR-10",
+            "SR-11",
+            "SI-7",
+            "SI-7(15)"
+          ]
+        }
+      ]
     }
   ]
 }

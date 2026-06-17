@@ -202,6 +202,7 @@ pub(crate) async fn run_multi_region_standard(
             "kms-grants",
             "appmesh-tls",
             "signer-profiles",
+            "ecr-signatures",
         ];
         full.iter()
             .copied()

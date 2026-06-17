@@ -126,6 +126,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV51 | ECS Clusters | `ECS_Clusters` | Cluster Name, Status, Running Tasks, Container Insights Enabled |
 | EV52 | EKS Clusters | `EKS_Clusters` | Cluster Name, Version, Endpoint Public Access, Logging Enabled |
 | EV53 | ECR Repository Configuration | `ECR_Config` | Repository Name, Registry ID, URI, Image Tag Mutability, Scan On Push, Encryption Type, KMS Key, Has Lifecycle Policy |
+| EV167 | ECR Image Signatures & Scanning | `ECR_Signatures_ScanConfig` | Repository, Registry Scan Type, Enhanced Filters, Image Digest, Image Tags, Signature Present, Signature Type |
 
 ### Compute — Serverless
 
