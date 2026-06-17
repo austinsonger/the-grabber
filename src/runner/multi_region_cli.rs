@@ -215,6 +215,7 @@ pub(crate) async fn run_multi_region_standard(
             "compute-optimizer",
             "tagging-compliance",
             "scp-attachments",
+            "iam-simulator",
         ];
         full.iter()
             .copied()

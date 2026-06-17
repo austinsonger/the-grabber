@@ -7186,6 +7186,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV187",
+      "name": "IAM Policy Simulator",
+      "description": "IAM SimulatePrincipalPolicy results for high-risk actions across users + roles (capped 200 principals)",
+      "detail": "IAM SimulatePrincipalPolicy results for high-risk actions across users + roles (capped 200 principals)",
+      "filename_prefix": "IAM_Simulator",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AC-6",
+            "AC-6(9)",
+            "CA-7"
+          ]
+        }
+      ]
     }
   ]
 }

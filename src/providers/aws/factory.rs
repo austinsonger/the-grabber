@@ -89,6 +89,7 @@ use crate::providers::aws::{
         IamPasswordPolicyCollector, IamRolePoliciesCollector, IamUserPoliciesCollector,
     },
     iam_roles_lastused::IamRolesLastUsedCollector,
+    iam_simulator::IamSimulatorCollector,
     iam_trusts::IamTrustsCollector,
     identity_center::IdentityCenterCollector,
     identity_store::IdentityStoreCollector,
@@ -677,6 +678,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("scp-attachments") {
             v.push(Box::new(ScpAttachmentsCollector::new(cfg)));
+        }
+        if has("iam-simulator") {
+            v.push(Box::new(IamSimulatorCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

@@ -70,6 +70,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "org-tag-policies",
     // SCP attachments graph (global)
     "scp-attachments",
+    // IAM Policy Simulator (global)
+    "iam-simulator",
 ];
 
 /// Pre-built account data ready for the background collection task.

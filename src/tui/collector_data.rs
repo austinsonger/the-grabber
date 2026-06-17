@@ -625,6 +625,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "SCP Attachments          ",
         CloudProvider::Aws,
     ),
+    (
+        "iam-simulator",
+        "IAM Policy Simulator     ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",
