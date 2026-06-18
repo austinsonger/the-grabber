@@ -771,6 +771,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "GuardDuty Protection     ",
         CloudProvider::Aws,
     ),
+    (
+        "waf-rulegroups-deep",
+        "WAF Rule Groups Deep     ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

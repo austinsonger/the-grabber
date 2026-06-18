@@ -211,6 +211,7 @@ use crate::providers::aws::{
     waf_destinations::WafDestinationsCollector,
     waf_full_config::WafFullConfigCollector,
     waf_logging::WafLoggingCollector,
+    waf_rulegroups_deep::WafRuleGroupsDeepCollector,
 };
 
 pub struct AwsProviderFactory {
@@ -732,6 +733,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("fms-policies") {
             v.push(Box::new(FmsPoliciesCollector::new(cfg)));
+        }
+        if has("waf-rulegroups-deep") {
+            v.push(Box::new(WafRuleGroupsDeepCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

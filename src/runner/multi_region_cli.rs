@@ -246,6 +246,7 @@ pub(crate) async fn run_multi_region_standard(
             "sfn-executions",
             "kinesis-streams",
             "vpc-lattice",
+            "waf-rulegroups-deep",
         ];
         full.iter()
             .copied()
