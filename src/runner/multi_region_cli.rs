@@ -262,6 +262,7 @@ pub(crate) async fn run_multi_region_standard(
             "resource-drift",
             "cfn-stacksets",
             "ta-priority",
+            "apprunner",
         ];
         full.iter()
             .copied()

@@ -251,6 +251,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "ECR Signatures           ",
         CloudProvider::Aws,
     ),
+    ("apprunner", "App Runner               ", CloudProvider::Aws),
     ("ecs", "ECS Clusters             ", CloudProvider::Aws),
     ("eks", "EKS Clusters             ", CloudProvider::Aws),
     (

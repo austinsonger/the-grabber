@@ -9,6 +9,7 @@ pub mod apigateway;
 pub mod apigateway_deep;
 pub mod appconfig;
 pub mod appmesh_tls;
+pub mod apprunner;
 pub mod artifact_reports;
 pub mod athena_saved_queries;
 pub mod audit_manager;

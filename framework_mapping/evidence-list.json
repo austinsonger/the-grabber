@@ -7675,6 +7675,32 @@
       ]
     },
     {
+      "evidence_id": "EV234",
+      "name": "App Runner Services",
+      "description": "AWS App Runner services with status, source type, egress configuration, KMS key, and health check protocol",
+      "detail": "AWS App Runner services with status, source type, egress configuration, KMS key, and health check protocol",
+      "filename_prefix": "AppRunner_Services",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute — Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-6",
+            "SC-7",
+            "SC-12",
+            "SC-28"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV233",
       "name": "Trusted Advisor Priority Recommendations",
       "description": "Trusted Advisor Priority recommendations with services, pillars, status, lifecycle stage, and aggregate error/warning counts",

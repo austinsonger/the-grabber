@@ -11,6 +11,7 @@ use crate::providers::aws::{
     apigateway_deep::ApiGatewayDeepCollector,
     appconfig::AppConfigDeploymentsCollector,
     appmesh_tls::AppMeshTlsCollector,
+    apprunner::AppRunnerCollector,
     artifact_reports::ArtifactReportsCollector,
     athena_saved_queries::AthenaSavedQueriesCollector,
     audit_manager::AuditManagerCollector,
@@ -396,6 +397,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ta-priority") {
             v.push(Box::new(TaPriorityCollector::new(cfg)));
+        }
+        if has("apprunner") {
+            v.push(Box::new(AppRunnerCollector::new(cfg)));
         }
         if has("security-groups") {
             v.push(Box::new(SecurityGroupCollector::new(cfg)));
