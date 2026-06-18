@@ -250,6 +250,7 @@ pub(crate) async fn run_multi_region_standard(
             "mgn-source-servers",
             "dms",
             "snowball-jobs",
+            "sagemaker-posture",
         ];
         full.iter()
             .copied()

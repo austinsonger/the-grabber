@@ -105,6 +105,7 @@ aws-sdk-fms = "1"
 aws-sdk-mgn = "1"
 aws-sdk-databasemigration = "1"
 aws-sdk-snowball = "1"
+aws-sdk-sagemaker = "1"
 csv = "1"
 tokio = { version = "1", features = ["full"] }
 flate2 = "1"

@@ -7675,6 +7675,33 @@
       ]
     },
     {
+      "evidence_id": "EV222",
+      "name": "SageMaker Posture",
+      "description": "SageMaker notebook instances (IMDS, KMS, root access, direct internet, subnet), endpoint config KMS, and model VPC config presence",
+      "detail": "SageMaker notebook instances (IMDS, KMS, root access, direct internet, subnet), endpoint config KMS, and model VPC config presence",
+      "filename_prefix": "SageMaker_Posture",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute — Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AC-6",
+            "SC-7",
+            "SC-12",
+            "SC-28"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV221",
       "name": "Snowball Jobs",
       "description": "Snowball jobs with job ID, state, job type (IMPORT/EXPORT/LOCAL_USE), snowball type, creation date, and description",

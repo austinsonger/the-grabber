@@ -163,6 +163,7 @@ use crate::providers::aws::{
     s3_object_lock::S3ObjectLockCollector,
     s3_policies::S3PoliciesCollector,
     s3_replication::S3ReplicationCollector,
+    sagemaker::SageMakerPostureCollector,
     savings_plans::SavingsPlansCollector,
     scp_attachments::ScpAttachmentsCollector,
     secrets_extended::SecretsManagerPoliciesCollector,
@@ -781,6 +782,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("snowball-jobs") {
             v.push(Box::new(SnowballJobsCollector::new(cfg)));
+        }
+        if has("sagemaker-posture") {
+            v.push(Box::new(SageMakerPostureCollector::new(cfg)));
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));

@@ -268,6 +268,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "ECR Replication          ",
         CloudProvider::Aws,
     ),
+    (
+        "sagemaker-posture",
+        "SageMaker Posture        ",
+        CloudProvider::Aws,
+    ),
     // ── Database & Backup ── (41..48)
     ("backup", "AWS Backup API", CloudProvider::Aws),
     (

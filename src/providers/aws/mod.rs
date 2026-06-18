@@ -143,6 +143,7 @@ pub mod s3_inventory;
 pub mod s3_object_lock;
 pub mod s3_policies;
 pub mod s3_replication;
+pub mod sagemaker;
 pub mod savings_plans;
 pub mod scp_attachments;
 pub mod secrets_extended;
