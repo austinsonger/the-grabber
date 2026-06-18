@@ -195,6 +195,7 @@ use crate::providers::aws::{
     trusted_advisor::TrustedAdvisorCollector,
     vpc::{NetworkAclCollector, VpcCollector},
     vpc_endpoints::VpcEndpointCollector,
+    vpc_lattice::VpcLatticeCollector,
     vpc_traffic_mirror::VpcTrafficMirrorCollector,
     vpcflowlogs::VpcFlowLogCollector,
     waf::WafCollector,
@@ -899,6 +900,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("kinesis-streams") {
             v.push(Box::new(KinesisStreamsCollector::new(cfg)));
+        }
+        if has("vpc-lattice") {
+            v.push(Box::new(VpcLatticeCollector::new(cfg)));
         }
 
         v

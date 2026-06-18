@@ -7650,6 +7650,32 @@
       ]
     },
     {
+      "evidence_id": "EV208",
+      "name": "VPC Lattice",
+      "description": "VPC Lattice services + service networks with auth-type and auth-policy excerpts",
+      "detail": "VPC Lattice services + service networks with auth-type and auth-policy excerpts",
+      "filename_prefix": "VPC_Lattice",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AC-4",
+            "IA-2",
+            "SC-7"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV207",
       "name": "Kinesis Data Streams",
       "description": "Kinesis Data Streams with encryption, retention, and stream mode",

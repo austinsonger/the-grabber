@@ -217,6 +217,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV162 | PrivateLink Endpoint Services | `PrivateLink_Services` | Service ID, Service Name, NLB ARNs, Acceptance Required, Allowed Principals, Availability Zones |
 | EV163 | Route53 Resolver DNS Firewall | `Route53_DNSFirewall` | Type, ID, Name, Status / Action, VPC ID, Owner / Priority, Details |
 | EV165 | AppMesh TLS Configuration | `AppMesh_TLS_Config` | Mesh Name, Resource Type, Resource Name, Listener Port, TLS Mode, Certificate Type |
+| EV208 | VPC Lattice | `VPC_Lattice` | Type, ID, Name, Auth Type, Status, Policy Excerpt |
 
 ### Load Balancing
 

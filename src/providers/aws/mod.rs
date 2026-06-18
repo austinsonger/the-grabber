@@ -166,6 +166,7 @@ pub mod tgw_routes;
 pub mod trusted_advisor;
 pub mod vpc;
 pub mod vpc_endpoints;
+pub mod vpc_lattice;
 pub mod vpc_traffic_mirror;
 pub mod vpcflowlogs;
 pub mod waf;

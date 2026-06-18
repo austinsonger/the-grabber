@@ -236,6 +236,7 @@ pub(crate) async fn run_multi_region_standard(
             "msk-clusters",
             "sfn-executions",
             "kinesis-streams",
+            "vpc-lattice",
         ];
         full.iter()
             .copied()

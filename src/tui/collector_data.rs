@@ -648,6 +648,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("waf", "WAF Regional Web ACLs    ", CloudProvider::Aws),
+    (
+        "vpc-lattice",
+        "VPC Lattice              ",
+        CloudProvider::Aws,
+    ),
     // ── Organization & Account ── (97..101)
     (
         "account-contacts",
