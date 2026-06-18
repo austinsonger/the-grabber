@@ -221,6 +221,7 @@ pub(crate) async fn run_multi_region_standard(
             "iam-boundaries",
             "ssm-opsitems",
             "ssm-change-requests",
+            "resilience-hub",
         ];
         full.iter()
             .copied()

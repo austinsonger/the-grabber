@@ -271,6 +271,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "resilience-hub",
+        "Resilience Hub           ",
+        CloudProvider::Aws,
+    ),
+    (
         "drs-replication",
         "DRS Replication          ",
         CloudProvider::Aws,

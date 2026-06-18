@@ -126,6 +126,7 @@ use crate::providers::aws::{
     rds_inventory::RdsInventoryCollector,
     rds_pitr::RdsPitrCollector,
     rds_snapshots::RdsSnapshotCollector,
+    resilience_hub::ResilienceHubCollector,
     resource_explorer::ResourceExplorerCollector,
     route53_arc::Route53ArcCollector,
     route53_config::{
@@ -824,6 +825,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-change-requests") {
             v.push(Box::new(SsmChangeRequestsCollector::new(cfg)));
+        }
+        if has("resilience-hub") {
+            v.push(Box::new(ResilienceHubCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));

@@ -7339,6 +7339,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV193",
+      "name": "Resilience Hub Apps",
+      "description": "AWS Resilience Hub applications with compliance status, resiliency score, and recent assessments",
+      "detail": "AWS Resilience Hub applications with compliance status, resiliency score, and recent assessments",
+      "filename_prefix": "ResilienceHub_Apps",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-2",
+            "CP-2(1)",
+            "CP-4",
+            "CP-10"
+          ]
+        }
+      ]
     }
   ]
 }

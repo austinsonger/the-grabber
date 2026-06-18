@@ -293,6 +293,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV148 | Backup Restore Testing Plans | `Backup_RestoreTesting` | Test Plan Name, Schedule, Selection Window (days), Last Execution Time, Last Status, Selections |
 | EV149 | DRS Source Server Replication | `DRS_Replication_Status` | Source Server ID, Source Hostname, Replication State, Lag Duration, Last Snapshot, Recovery Instance ID |
 | EV150 | Route53 ARC Routing Controls & Readiness | `Route53_ARC_Controls` | Type, Cluster/Check ARN, Control Panel / Resource, Name, Status / Routing State |
+| EV193 | Resilience Hub Apps | `ResilienceHub_Apps` | App ARN, App Name, Compliance Status, Resiliency Score, Last Eval, Recent Assessment Status |
 
 ### Tagging & Inventory
 
