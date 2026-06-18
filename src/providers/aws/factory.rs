@@ -110,6 +110,7 @@ use crate::providers::aws::{
     inspector_history::InspectorFindingsHistoryCollector,
     inspector_sbom::{InspectorSbomCollector, InspectorSbomConfig},
     inspector_suppression::Inspector2SuppressionCollector,
+    kinesis::KinesisStreamsCollector,
     kms::KmsKeyCollector,
     kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector},
     kms_grants::KmsGrantsCollector,
@@ -895,6 +896,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("sfn-executions") {
             v.push(Box::new(StepFunctionsExecutionsCollector::new(cfg)));
+        }
+        if has("kinesis-streams") {
+            v.push(Box::new(KinesisStreamsCollector::new(cfg)));
         }
 
         v

@@ -190,6 +190,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV139 | EventBridge Archives & Replays | `EventBridge_Archives_Replays` | Archive Name, Event Source ARN, State, Retention Days, Size (bytes), Event Count, Recent Replay Count |
 | EV145 | Firehose Delivery Streams | `Firehose_DeliveryStreams` | Stream Name, Stream ARN, Stream Status, Source Type, Destination Type, Destination Bucket/Endpoint, Encryption (KMS Key), Created Time |
 | EV206 | Step Functions Executions | `StepFunctions_Executions` | State Machine ARN, Name, Type, Logging Level, Recent Failed Count, Latest Failure Time |
+| EV207 | Kinesis Data Streams | `Kinesis_DataStreams` | Stream Name, Stream ARN, Mode, Retention (hours), Encryption Type, KMS Key |
 
 ### Network
 

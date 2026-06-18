@@ -235,6 +235,7 @@ pub(crate) async fn run_multi_region_standard(
             "opensearch-domains",
             "msk-clusters",
             "sfn-executions",
+            "kinesis-streams",
         ];
         full.iter()
             .copied()

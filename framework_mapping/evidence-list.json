@@ -7650,6 +7650,31 @@
       ]
     },
     {
+      "evidence_id": "EV207",
+      "name": "Kinesis Data Streams",
+      "description": "Kinesis Data Streams with encryption, retention, and stream mode",
+      "detail": "Kinesis Data Streams with encryption, retention, and stream mode",
+      "filename_prefix": "Kinesis_DataStreams",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Messaging & Events",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-9",
+            "SC-12",
+            "SC-28"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV206",
       "name": "Step Functions Executions",
       "description": "Step Functions state machines with logging config and recent failed-execution counts",
