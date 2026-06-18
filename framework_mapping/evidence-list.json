@@ -7418,6 +7418,31 @@
       ]
     },
     {
+      "evidence_id": "EV199",
+      "name": "ECS Task Definitions",
+      "description": "ECS task definitions — privileged, network mode, run-as user, readonly root FS, Linux capabilities per container",
+      "detail": "ECS task definitions — privileged, network mode, run-as user, readonly root FS, Linux capabilities per container",
+      "filename_prefix": "ECS_TaskDefinitions",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute — Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-6",
+            "CM-7",
+            "SC-2"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV195",
       "name": "AppConfig Deployments",
       "description": "AWS AppConfig deployment history per application × environment (recent 5)",

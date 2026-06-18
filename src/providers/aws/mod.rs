@@ -57,6 +57,7 @@ pub mod ec2_inventory;
 pub mod ecr_config;
 pub mod ecr_signatures;
 pub mod ecs;
+pub mod ecs_task_defs;
 pub mod efs;
 pub mod eks;
 pub mod eks_access_entries;

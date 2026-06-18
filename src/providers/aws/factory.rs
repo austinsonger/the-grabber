@@ -68,6 +68,7 @@ use crate::providers::aws::{
     ecr_config::EcrRepoConfigCollector,
     ecr_signatures::EcrSignaturesCollector,
     ecs::EcsClusterCollector,
+    ecs_task_defs::EcsTaskDefsCollector,
     efs::EfsCollector,
     eks::EksClusterCollector,
     eks_access_entries::EksAccessEntriesCollector,
@@ -848,6 +849,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("eks-pod-identity") {
             v.push(Box::new(EksPodIdentityCollector::new(cfg)));
+        }
+        if has("ecs-task-defs") {
+            v.push(Box::new(EcsTaskDefsCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));

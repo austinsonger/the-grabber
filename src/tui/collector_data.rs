@@ -258,6 +258,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "EKS Pod Identity         ",
         CloudProvider::Aws,
     ),
+    (
+        "ecs-task-defs",
+        "ECS Task Definitions     ",
+        CloudProvider::Aws,
+    ),
     // ── Database & Backup ── (41..48)
     ("backup", "AWS Backup API", CloudProvider::Aws),
     (
