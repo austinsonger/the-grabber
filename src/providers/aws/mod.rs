@@ -22,6 +22,7 @@ pub mod budgets_collector;
 pub mod client_vpn;
 pub mod cloudformation_drift;
 pub mod cloudfront;
+pub mod cloudfront_oac;
 pub mod cloudtrail;
 pub mod cloudtrail_accountmgmt;
 pub mod cloudtrail_config;

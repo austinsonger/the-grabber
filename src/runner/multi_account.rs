@@ -78,6 +78,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "iam-boundaries",
     // Global Accelerator (global — us-west-2 home region)
     "global-accelerator",
+    // CloudFront Origin Access Controls (global)
+    "cloudfront-oac",
 ];
 
 /// Pre-built account data ready for the background collection task.

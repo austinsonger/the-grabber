@@ -222,6 +222,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV210 | Direct Connect & VPN | `DirectConnect_VPN` | Type, ID, State, Bandwidth / VLAN, Location / Tunnel CIDR, Encryption / Customer Addr |
 | EV211 | Global Accelerator | `GlobalAccelerator` | Type, ARN, Name, Status, Protocol / Region, Port Ranges / Traffic Dial |
 | EV212 | API Gateway Deep Config | `APIGateway_Deep` | API Type, API ID, Stage, Endpoint Type, WAF ACL, Logging Level, Tracing, Has Resource Policy, Disable Execute-API |
+| EV213 | CloudFront Origin Access Controls | `CloudFront_OAC` | OAC ID, Name, Signing Protocol, Signing Behavior, Origin Type, Used By Distribution IDs |
 
 ### Load Balancing
 

@@ -26,6 +26,7 @@ use crate::providers::aws::{
     client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
     cloudfront::CloudFrontCollector,
+    cloudfront_oac::CloudFrontOacCollector,
     cloudtrail::CloudTrailCollector,
     cloudtrail_accountmgmt::CloudTrailAccountMgmtCollector,
     cloudtrail_config::CloudTrailFullConfigCollector,
@@ -919,6 +920,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("apigw-deep") {
             v.push(Box::new(ApiGatewayDeepCollector::new(cfg)));
+        }
+        if has("cloudfront-oac") {
+            v.push(Box::new(CloudFrontOacCollector::new(cfg)));
         }
 
         v

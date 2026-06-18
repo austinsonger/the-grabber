@@ -664,6 +664,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "API Gateway Deep         ",
         CloudProvider::Aws,
     ),
+    (
+        "cloudfront-oac",
+        "CloudFront OAC           ",
+        CloudProvider::Aws,
+    ),
     // ── Organization & Account ── (97..101)
     (
         "account-contacts",

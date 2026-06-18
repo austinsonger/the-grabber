@@ -223,6 +223,7 @@ pub(crate) async fn run_multi_region_standard(
             "dx-vpn",
             "global-accelerator",
             "apigw-deep",
+            "cloudfront-oac",
             "ssm-opsitems",
             "ssm-change-requests",
             "resilience-hub",
