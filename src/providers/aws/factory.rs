@@ -82,6 +82,7 @@ use crate::providers::aws::{
     eventbridge_archives::EventBridgeArchivesCollector,
     firehose::FirehoseDeliveryStreamsCollector,
     fis::FisCollector,
+    global_accelerator::GlobalAcceleratorCollector,
     glue_catalog::GlueCatalogCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
@@ -911,6 +912,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("dx-vpn") {
             v.push(Box::new(DxVpnCollector::new(cfg)));
+        }
+        if has("global-accelerator") {
+            v.push(Box::new(GlobalAcceleratorCollector::new(cfg)));
         }
 
         v

@@ -220,6 +220,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV165 | AppMesh TLS Configuration | `AppMesh_TLS_Config` | Mesh Name, Resource Type, Resource Name, Listener Port, TLS Mode, Certificate Type |
 | EV208 | VPC Lattice | `VPC_Lattice` | Type, ID, Name, Auth Type, Status, Policy Excerpt |
 | EV210 | Direct Connect & VPN | `DirectConnect_VPN` | Type, ID, State, Bandwidth / VLAN, Location / Tunnel CIDR, Encryption / Customer Addr |
+| EV211 | Global Accelerator | `GlobalAccelerator` | Type, ARN, Name, Status, Protocol / Region, Port Ranges / Traffic Dial |
 
 ### Load Balancing
 

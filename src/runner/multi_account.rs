@@ -76,6 +76,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "idc-inline-policies",
     // IAM Permissions Boundary coverage (global)
     "iam-boundaries",
+    // Global Accelerator (global — us-west-2 home region)
+    "global-accelerator",
 ];
 
 /// Pre-built account data ready for the background collection task.

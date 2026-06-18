@@ -7650,6 +7650,31 @@
       ]
     },
     {
+      "evidence_id": "EV211",
+      "name": "Global Accelerator",
+      "description": "Global Accelerator accelerators, listeners, and endpoint groups with status, protocol, port ranges, and traffic dial",
+      "detail": "Global Accelerator accelerators, listeners, and endpoint groups with status, protocol, port ranges, and traffic dial",
+      "filename_prefix": "GlobalAccelerator",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-4",
+            "CP-7",
+            "SC-7"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV210",
       "name": "Direct Connect & VPN",
       "description": "Direct Connect connections, virtual interfaces, and Site-to-Site VPN connections with state and tunnel details",

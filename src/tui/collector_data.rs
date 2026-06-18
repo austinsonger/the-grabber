@@ -654,6 +654,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("dx-vpn", "DX & VPN                 ", CloudProvider::Aws),
+    (
+        "global-accelerator",
+        "Global Accelerator       ",
+        CloudProvider::Aws,
+    ),
     // ── Organization & Account ── (97..101)
     (
         "account-contacts",
