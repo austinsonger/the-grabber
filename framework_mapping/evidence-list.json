@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV229",
+      "name": "Well-Architected Workloads",
+      "description": "AWS Well-Architected Tool workloads with high/medium/unanswered risk counts and per-lens review summaries",
+      "detail": "AWS Well-Architected Tool workloads with high/medium/unanswered risk counts and per-lens review summaries",
+      "filename_prefix": "WellArchitected_Workloads",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-2",
+            "CA-7",
+            "PM-31"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV228",
       "name": "Config Aggregators",
       "description": "AWS Config configuration aggregators with source type (Accounts vs Organization), aggregated account/region counts, and role ARN presence",

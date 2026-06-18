@@ -913,6 +913,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "well-architected",
+        "Well-Architected         ",
+        CloudProvider::Aws,
+    ),
+    (
         "fis-experiments",
         "FIS Experiments          ",
         CloudProvider::Aws,

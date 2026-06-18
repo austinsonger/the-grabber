@@ -257,6 +257,7 @@ pub(crate) async fn run_multi_region_standard(
             "iot-defender",
             "config-conformance",
             "config-aggregators",
+            "well-architected",
         ];
         full.iter()
             .copied()

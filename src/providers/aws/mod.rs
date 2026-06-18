@@ -193,3 +193,4 @@ pub mod waf_destinations;
 pub mod waf_full_config;
 pub mod waf_logging;
 pub mod waf_rulegroups_deep;
+pub mod well_architected;

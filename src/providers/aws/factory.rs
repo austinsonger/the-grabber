@@ -222,6 +222,7 @@ use crate::providers::aws::{
     waf_full_config::WafFullConfigCollector,
     waf_logging::WafLoggingCollector,
     waf_rulegroups_deep::WafRuleGroupsDeepCollector,
+    well_architected::WellArchitectedCollector,
 };
 
 pub struct AwsProviderFactory {
@@ -376,6 +377,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("config-aggregators") {
             v.push(Box::new(ConfigAggregatorsCollector::new(cfg)));
+        }
+        if has("well-architected") {
+            v.push(Box::new(WellArchitectedCollector::new(cfg)));
         }
         if has("security-groups") {
             v.push(Box::new(SecurityGroupCollector::new(cfg)));
