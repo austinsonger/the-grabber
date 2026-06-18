@@ -84,6 +84,7 @@ use crate::providers::aws::{
     eventbridge_archives::EventBridgeArchivesCollector,
     firehose::FirehoseDeliveryStreamsCollector,
     fis::FisCollector,
+    fms_policies::FmsPoliciesCollector,
     global_accelerator::GlobalAcceleratorCollector,
     glue_catalog::GlueCatalogCollector,
     guardduty::GuardDutyCollector,
@@ -724,6 +725,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("security-lake") {
             v.push(Box::new(SecurityLakeCollector::new(cfg)));
+        }
+        if has("fms-policies") {
+            v.push(Box::new(FmsPoliciesCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

@@ -7675,6 +7675,32 @@
       ]
     },
     {
+      "evidence_id": "EV216",
+      "name": "Firewall Manager Policies",
+      "description": "AWS Firewall Manager policies with resource type, security service type, and remediation status",
+      "detail": "AWS Firewall Manager policies with resource type, security service type, and remediation status",
+      "filename_prefix": "FirewallManager_Policies",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-4",
+            "CA-7",
+            "CM-6",
+            "SC-7"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV215",
       "name": "Security Lake Config",
       "description": "AWS Security Lake data lakes, log sources, and subscribers with KMS encryption keys and access types",

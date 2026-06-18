@@ -73,6 +73,7 @@ pub mod elb_config;
 pub mod eventbridge_archives;
 pub mod firehose;
 pub mod fis;
+pub mod fms_policies;
 pub mod global_accelerator;
 pub mod glue_catalog;
 pub mod guardduty;

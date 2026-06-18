@@ -761,6 +761,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Security Lake            ",
         CloudProvider::Aws,
     ),
+    (
+        "fms-policies",
+        "Firewall Manager         ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

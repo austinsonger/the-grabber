@@ -80,6 +80,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "global-accelerator",
     // CloudFront Origin Access Controls (global)
     "cloudfront-oac",
+    // Firewall Manager policies (global — us-east-1 admin)
+    "fms-policies",
 ];
 
 /// Pre-built account data ready for the background collection task.
