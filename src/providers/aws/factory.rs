@@ -119,6 +119,7 @@ use crate::providers::aws::{
     inspector_history::InspectorFindingsHistoryCollector,
     inspector_sbom::{InspectorSbomCollector, InspectorSbomConfig},
     inspector_suppression::Inspector2SuppressionCollector,
+    iot_things::IotThingsCollector,
     kinesis::KinesisStreamsCollector,
     kms::KmsKeyCollector,
     kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector},
@@ -793,6 +794,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("bedrock-kb") {
             v.push(Box::new(BedrockKbCollector::new(cfg)));
+        }
+        if has("iot-things") {
+            v.push(Box::new(IotThingsCollector::new(cfg)));
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));

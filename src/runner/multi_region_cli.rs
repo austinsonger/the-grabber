@@ -253,6 +253,7 @@ pub(crate) async fn run_multi_region_standard(
             "sagemaker-posture",
             "bedrock",
             "bedrock-kb",
+            "iot-things",
         ];
         full.iter()
             .copied()

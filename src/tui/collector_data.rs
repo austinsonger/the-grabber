@@ -919,6 +919,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Bedrock KB               ",
         CloudProvider::Aws,
     ),
+    (
+        "iot-things",
+        "IoT Things & Policies    ",
+        CloudProvider::Aws,
+    ),
     // ── Storage ── (114..127)
     ("dynamodb", "DynamoDB Tables          ", CloudProvider::Aws),
     ("ebs", "EBS Volumes              ", CloudProvider::Aws),
