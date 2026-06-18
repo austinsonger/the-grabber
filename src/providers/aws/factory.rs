@@ -181,6 +181,7 @@ use crate::providers::aws::{
     securityhub::SecurityHubCollector,
     securityhub_insights::SecurityHubInsightsCollector,
     securityhub_standards::SecurityHubStandardsCollector,
+    service_catalog::ServiceCatalogCollector,
     service_quotas::ServiceQuotasCollector,
     shield::ShieldCollector,
     signer::SignerCollector,
@@ -380,6 +381,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("well-architected") {
             v.push(Box::new(WellArchitectedCollector::new(cfg)));
+        }
+        if has("service-catalog") {
+            v.push(Box::new(ServiceCatalogCollector::new(cfg)));
         }
         if has("security-groups") {
             v.push(Box::new(SecurityGroupCollector::new(cfg)));

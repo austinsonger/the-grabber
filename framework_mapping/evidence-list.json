@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV230",
+      "name": "Service Catalog Products",
+      "description": "AWS Service Catalog admin product portfolio and provisioned products with type, owner, and status",
+      "detail": "AWS Service Catalog admin product portfolio and provisioned products with type, owner, and status",
+      "filename_prefix": "ServiceCatalog_Products",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Tagging & Inventory",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-2",
+            "CM-3",
+            "SA-10"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV229",
       "name": "Well-Architected Workloads",
       "description": "AWS Well-Architected Tool workloads with high/medium/unanswered risk counts and per-lens review summaries",

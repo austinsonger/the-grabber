@@ -258,6 +258,7 @@ pub(crate) async fn run_multi_region_standard(
             "config-conformance",
             "config-aggregators",
             "well-architected",
+            "service-catalog",
         ];
         full.iter()
             .copied()
