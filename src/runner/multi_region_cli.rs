@@ -230,6 +230,7 @@ pub(crate) async fn run_multi_region_standard(
             "ecs-task-defs",
             "ecr-replication",
             "glue-catalog",
+            "lakeformation-perms",
         ];
         full.iter()
             .copied()

@@ -163,6 +163,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV62 | ElastiCache Global Datastores | `ElastiCache_Global_Datastore` | Name, Engine, Engine Version, Encryption In Transit, Encryption At Rest, ARN, Region |
 | EV151 | RDS PITR & Cluster Backtrack | `RDS_PITR_Backtrack` | Identifier, Type, Engine, Backup Retention (days), Earliest Restorable, Latest Restorable, Backtrack Window (s), Earliest Backtrack |
 | EV201 | Glue Catalog | `Glue_Catalog` | Database, Table, Owner, Type, Storage Location, Input Format |
+| EV202 | Lake Formation Permissions | `LakeFormation_Permissions` | Principal, Resource Type, Resource Identifier, Permissions, Grantable Permissions |
 
 ### Encryption & Key Management
 

@@ -99,6 +99,7 @@ pub mod kms;
 pub mod kms_config;
 pub mod kms_grants;
 pub mod kms_policies;
+pub mod lakeformation_perms;
 pub mod lambda_config;
 pub mod launch_templates;
 pub mod license_manager;

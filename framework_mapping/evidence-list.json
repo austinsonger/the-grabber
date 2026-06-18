@@ -7443,6 +7443,31 @@
       ]
     },
     {
+      "evidence_id": "EV202",
+      "name": "Lake Formation Permissions",
+      "description": "AWS Lake Formation grants — principal × resource × permissions matrix",
+      "detail": "AWS Lake Formation grants — principal × resource × permissions matrix",
+      "filename_prefix": "LakeFormation_Permissions",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AC-6",
+            "AU-2"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV201",
       "name": "Glue Catalog",
       "description": "AWS Glue Data Catalog databases and tables (data-lake inventory)",

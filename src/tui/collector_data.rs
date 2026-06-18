@@ -328,6 +328,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Glue Catalog             ",
         CloudProvider::Aws,
     ),
+    (
+        "lakeformation-perms",
+        "Lake Formation Perms     ",
+        CloudProvider::Aws,
+    ),
     // ── Encryption & Secrets ── (48..55)
     (
         "ebs-encryption",

@@ -114,6 +114,7 @@ use crate::providers::aws::{
     kms_config::{EbsEncryptionConfigCollector, KmsKeyConfigCollector},
     kms_grants::KmsGrantsCollector,
     kms_policies::{EbsDefaultEncryptionCollector, KmsKeyPolicyCollector},
+    lakeformation_perms::LakeFormationPermsCollector,
     lambda_config::{LambdaConfigCollector, LambdaPermissionsCollector},
     launch_templates::LaunchTemplateCollector,
     license_manager::LicenseManagerCollector,
@@ -860,6 +861,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("glue-catalog") {
             v.push(Box::new(GlueCatalogCollector::new(cfg)));
+        }
+        if has("lakeformation-perms") {
+            v.push(Box::new(LakeFormationPermsCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));
