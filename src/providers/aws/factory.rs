@@ -15,6 +15,7 @@ use crate::providers::aws::{
     artifact_reports::ArtifactReportsCollector,
     athena_saved_queries::AthenaSavedQueriesCollector,
     audit_manager::AuditManagerCollector,
+    audit_manager_evidence::AuditManagerEvidenceCollector,
     autoscaling::AutoScalingCollector,
     backup::BackupCollector,
     backup_config::{

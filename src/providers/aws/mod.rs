@@ -13,6 +13,7 @@ pub mod apprunner;
 pub mod artifact_reports;
 pub mod athena_saved_queries;
 pub mod audit_manager;
+pub mod audit_manager_evidence;
 pub mod autoscaling;
 pub mod backup;
 pub mod backup_config;
