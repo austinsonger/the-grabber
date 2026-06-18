@@ -7341,6 +7341,31 @@
       ]
     },
     {
+      "evidence_id": "EV194",
+      "name": "OAM Sinks & Links",
+      "description": "CloudWatch Observability Access Manager sinks and links for cross-account observability",
+      "detail": "CloudWatch Observability Access Manager sinks and links for cross-account observability",
+      "filename_prefix": "OAM_Sinks_Links",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudWatch & Monitoring",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6",
+            "AU-12(1)",
+            "SI-4"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV193",
       "name": "Resilience Hub Apps",
       "description": "AWS Resilience Hub applications with compliance status, resiliency score, and recent assessments",

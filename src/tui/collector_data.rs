@@ -483,6 +483,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Synthetics Canaries      ",
         CloudProvider::Aws,
     ),
+    (
+        "oam-observability",
+        "OAM Observability        ",
+        CloudProvider::Aws,
+    ),
     // ── Network ── (77..97)
     ("acm", "ACM Certificates         ", CloudProvider::Aws),
     ("alb-logs", "ALB Access Log Config    ", CloudProvider::Aws),

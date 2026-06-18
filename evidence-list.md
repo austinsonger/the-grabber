@@ -114,6 +114,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV140 | CloudWatch Contributor Insights Rules | `CloudWatch_ContributorInsights` | Rule Name, State, Schema, Definition Excerpt, Managed Rule |
 | EV144 | CloudWatch Anomaly Detectors | `CloudWatch_AnomalyDetectors` | Detector Type, Metric Namespace, Metric Name, Dimensions, Stat, State, Configuration Excerpt |
 | EV178 | CloudWatch Synthetics Canaries | `Synthetics_Canaries` | Canary Name, Runtime Version, Schedule, State, Last Started, Last Modified |
+| EV194 | OAM Sinks & Links | `OAM_Sinks_Links` | Type, ARN, Name / Label, Sink ARN, Resource Types |
 
 ### Compute — EC2
 

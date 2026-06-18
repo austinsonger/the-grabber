@@ -115,6 +115,7 @@ use crate::providers::aws::{
     macie_jobs::MacieJobsCollector,
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
+    oam_observability::OamObservabilityCollector,
     org_config::OrgConfigCollector,
     org_delegated::OrgDelegatedCollector,
     org_tag_policies::OrgTagPoliciesCollector,
@@ -828,6 +829,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("resilience-hub") {
             v.push(Box::new(ResilienceHubCollector::new(cfg)));
+        }
+        if has("oam-observability") {
+            v.push(Box::new(OamObservabilityCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));

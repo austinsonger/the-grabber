@@ -222,6 +222,7 @@ pub(crate) async fn run_multi_region_standard(
             "ssm-opsitems",
             "ssm-change-requests",
             "resilience-hub",
+            "oam-observability",
         ];
         full.iter()
             .copied()
