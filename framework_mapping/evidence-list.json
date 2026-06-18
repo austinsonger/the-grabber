@@ -7443,6 +7443,31 @@
       ]
     },
     {
+      "evidence_id": "EV201",
+      "name": "Glue Catalog",
+      "description": "AWS Glue Data Catalog databases and tables (data-lake inventory)",
+      "detail": "AWS Glue Data Catalog databases and tables (data-lake inventory)",
+      "filename_prefix": "Glue_Catalog",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-8",
+            "AC-3",
+            "AU-9"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV200",
       "name": "ECR Replication",
       "description": "ECR cross-region / cross-account replication rules and destinations",

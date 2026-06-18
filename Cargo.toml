@@ -88,6 +88,7 @@ aws-sdk-computeoptimizer = "1"
 aws-sdk-rolesanywhere = "1"
 aws-sdk-oam = "1"
 aws-sdk-appconfig = "1"
+aws-sdk-glue = "1"
 csv = "1"
 tokio = { version = "1", features = ["full"] }
 flate2 = "1"

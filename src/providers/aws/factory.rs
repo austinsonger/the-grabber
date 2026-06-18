@@ -81,6 +81,7 @@ use crate::providers::aws::{
     eventbridge_archives::EventBridgeArchivesCollector,
     firehose::FirehoseDeliveryStreamsCollector,
     fis::FisCollector,
+    glue_catalog::GlueCatalogCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
     guardduty_coverage::GuardDutyCoverageCollector,
@@ -856,6 +857,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ecr-replication") {
             v.push(Box::new(EcrReplicationCollector::new(cfg)));
+        }
+        if has("glue-catalog") {
+            v.push(Box::new(GlueCatalogCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));

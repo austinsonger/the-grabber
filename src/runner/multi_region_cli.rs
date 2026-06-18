@@ -229,6 +229,7 @@ pub(crate) async fn run_multi_region_standard(
             "eks-pod-identity",
             "ecs-task-defs",
             "ecr-replication",
+            "glue-catalog",
         ];
         full.iter()
             .copied()

@@ -70,6 +70,7 @@ pub mod elb_config;
 pub mod eventbridge_archives;
 pub mod firehose;
 pub mod fis;
+pub mod glue_catalog;
 pub mod guardduty;
 pub mod guardduty_config;
 pub mod guardduty_coverage;
