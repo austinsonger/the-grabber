@@ -23,6 +23,7 @@ use crate::providers::aws::{
     backup_restore_testing::BackupRestoreTestingCollector,
     backup_vaultlock::BackupVaultLockCollector,
     bedrock::BedrockCollector,
+    bedrock_kb::BedrockKbCollector,
     budgets_collector::BudgetsCollector,
     client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
@@ -789,6 +790,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("bedrock") {
             v.push(Box::new(BedrockCollector::new(cfg)));
+        }
+        if has("bedrock-kb") {
+            v.push(Box::new(BedrockKbCollector::new(cfg)));
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));

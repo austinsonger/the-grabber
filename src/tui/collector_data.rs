@@ -914,6 +914,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("nfw-rules", "Network Firewall Rules   ", CloudProvider::Aws),
     ("bedrock", "Bedrock                  ", CloudProvider::Aws),
+    (
+        "bedrock-kb",
+        "Bedrock KB               ",
+        CloudProvider::Aws,
+    ),
     // ── Storage ── (114..127)
     ("dynamodb", "DynamoDB Tables          ", CloudProvider::Aws),
     ("ebs", "EBS Volumes              ", CloudProvider::Aws),

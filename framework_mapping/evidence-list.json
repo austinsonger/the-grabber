@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV224",
+      "name": "Bedrock Knowledge Bases",
+      "description": "Bedrock knowledge base inventory with embedding model, storage backend, and role ARN",
+      "detail": "Bedrock knowledge base inventory with embedding model, storage backend, and role ARN",
+      "filename_prefix": "Bedrock_KnowledgeBases",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "CM-8",
+            "MP-4"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV223",
       "name": "Bedrock Posture",
       "description": "Bedrock guardrails (content/topic/word policies, KMS) and model invocation logging destinations (CloudWatch, S3, image/text delivery)",

@@ -252,6 +252,7 @@ pub(crate) async fn run_multi_region_standard(
             "snowball-jobs",
             "sagemaker-posture",
             "bedrock",
+            "bedrock-kb",
         ];
         full.iter()
             .copied()
