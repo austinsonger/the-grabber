@@ -7675,6 +7675,32 @@
       ]
     },
     {
+      "evidence_id": "EV212",
+      "name": "API Gateway Deep Config",
+      "description": "REST + HTTP API Gateway stages with endpoint type, WAF, logging level, tracing, resource policy, and execute-api endpoint state",
+      "detail": "REST + HTTP API Gateway stages with endpoint type, WAF, logging level, tracing, resource policy, and execute-api endpoint state",
+      "filename_prefix": "APIGateway_Deep",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Network",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AU-2",
+            "AU-12",
+            "SC-7"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV210",
       "name": "Direct Connect & VPN",
       "description": "Direct Connect connections, virtual interfaces, and Site-to-Site VPN connections with state and tunnel details",

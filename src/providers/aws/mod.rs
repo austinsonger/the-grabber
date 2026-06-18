@@ -6,6 +6,7 @@ pub mod acm;
 pub mod acm_pca;
 pub mod alb_logs;
 pub mod apigateway;
+pub mod apigateway_deep;
 pub mod appconfig;
 pub mod appmesh_tls;
 pub mod artifact_reports;

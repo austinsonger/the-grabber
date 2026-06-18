@@ -8,6 +8,7 @@ use crate::providers::aws::{
     acm_pca::AcmPrivateCaCollector,
     alb_logs::AlbLogsCollector,
     apigateway::ApiGatewayCollector,
+    apigateway_deep::ApiGatewayDeepCollector,
     appconfig::AppConfigDeploymentsCollector,
     appmesh_tls::AppMeshTlsCollector,
     artifact_reports::ArtifactReportsCollector,
@@ -915,6 +916,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("global-accelerator") {
             v.push(Box::new(GlobalAcceleratorCollector::new(cfg)));
+        }
+        if has("apigw-deep") {
+            v.push(Box::new(ApiGatewayDeepCollector::new(cfg)));
         }
 
         v

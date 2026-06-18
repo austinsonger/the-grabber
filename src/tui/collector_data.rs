@@ -659,6 +659,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Global Accelerator       ",
         CloudProvider::Aws,
     ),
+    (
+        "apigw-deep",
+        "API Gateway Deep         ",
+        CloudProvider::Aws,
+    ),
     // ── Organization & Account ── (97..101)
     (
         "account-contacts",
