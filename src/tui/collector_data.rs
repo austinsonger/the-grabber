@@ -57,6 +57,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Config Conformance Packs ",
         CloudProvider::Aws,
     ),
+    (
+        "config-aggregators",
+        "Config Aggregators       ",
+        CloudProvider::Aws,
+    ),
     ("cfn-drift", "CloudFormation Drift     ", CloudProvider::Aws),
     ("cloudtrail", "CloudTrail API", CloudProvider::Aws),
     ("ct-changes", "CloudTrail Change Events", CloudProvider::Aws),

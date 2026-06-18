@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV228",
+      "name": "Config Aggregators",
+      "description": "AWS Config configuration aggregators with source type (Accounts vs Organization), aggregated account/region counts, and role ARN presence",
+      "detail": "AWS Config configuration aggregators with source type (Accounts vs Organization), aggregated account/region counts, and role ARN presence",
+      "filename_prefix": "Config_Aggregators",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "CM-8",
+            "CM-8(3)"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV227",
       "name": "Config Conformance Packs",
       "description": "AWS Config conformance packs with per-rule compliance status, pack ARN, and creator metadata",
