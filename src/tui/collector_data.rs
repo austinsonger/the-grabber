@@ -756,6 +756,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Verified Permissions     ",
         CloudProvider::Aws,
     ),
+    (
+        "security-lake",
+        "Security Lake            ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

@@ -220,6 +220,7 @@ pub(crate) async fn run_multi_region_standard(
             "roles-anywhere",
             "iam-boundaries",
             "verified-permissions",
+            "security-lake",
             "dx-vpn",
             "global-accelerator",
             "apigw-deep",

@@ -163,6 +163,7 @@ use crate::providers::aws::{
     scp_attachments::ScpAttachmentsCollector,
     secrets_extended::SecretsManagerPoliciesCollector,
     secretsmanager::SecretsManagerCollector,
+    security_lake::SecurityLakeCollector,
     security_svc_config::{
         AwsConfigRecorderCollector, GuardDutyFullConfigCollector, SecurityHubConfigCollector,
     },
@@ -720,6 +721,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("verified-permissions") {
             v.push(Box::new(VerifiedPermissionsCollector::new(cfg)));
+        }
+        if has("security-lake") {
+            v.push(Box::new(SecurityLakeCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

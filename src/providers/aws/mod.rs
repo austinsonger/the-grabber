@@ -143,6 +143,7 @@ pub mod savings_plans;
 pub mod scp_attachments;
 pub mod secrets_extended;
 pub mod secretsmanager;
+pub mod security_lake;
 pub mod security_svc_config;
 pub mod securityhub;
 pub mod securityhub_insights;

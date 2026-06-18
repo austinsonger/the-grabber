@@ -7675,6 +7675,33 @@
       ]
     },
     {
+      "evidence_id": "EV215",
+      "name": "Security Lake Config",
+      "description": "AWS Security Lake data lakes, log sources, and subscribers with KMS encryption keys and access types",
+      "detail": "AWS Security Lake data lakes, log sources, and subscribers with KMS encryption keys and access types",
+      "filename_prefix": "SecurityLake_Config",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-6",
+            "AU-7",
+            "AU-9",
+            "AU-11",
+            "SI-4"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV214",
       "name": "Network Firewall Policies & Rules",
       "description": "AWS Network Firewall policies and rule groups (stateful + stateless) with capacity, default actions, and rules excerpt",
