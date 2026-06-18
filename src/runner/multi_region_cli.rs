@@ -255,6 +255,7 @@ pub(crate) async fn run_multi_region_standard(
             "bedrock-kb",
             "iot-things",
             "iot-defender",
+            "config-conformance",
         ];
         full.iter()
             .copied()

@@ -44,6 +44,7 @@ pub mod codeartifact;
 pub mod codepipeline_codebuild;
 pub mod cognito;
 pub mod compute_optimizer;
+pub mod config_conformance;
 pub mod config_history;
 pub mod config_rules;
 pub mod config_timeline;

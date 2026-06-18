@@ -50,6 +50,7 @@ use crate::providers::aws::{
     codepipeline_codebuild::CodePipelineCodeBuildCollector,
     cognito::CognitoUserPoolCollector,
     compute_optimizer::ComputeOptimizerCollector,
+    config_conformance::ConfigConformanceCollector,
     config_history::ConfigHistoryCollector,
     config_rules::ConfigRulesCollector,
     config_timeline::{
@@ -368,6 +369,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("config-rules") {
             v.push(Box::new(ConfigRulesCollector::new(cfg)));
+        }
+        if has("config-conformance") {
+            v.push(Box::new(ConfigConformanceCollector::new(cfg)));
         }
         if has("security-groups") {
             v.push(Box::new(SecurityGroupCollector::new(cfg)));

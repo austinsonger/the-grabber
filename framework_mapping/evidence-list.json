@@ -7675,6 +7675,32 @@
       ]
     },
     {
+      "evidence_id": "EV227",
+      "name": "Config Conformance Packs",
+      "description": "AWS Config conformance packs with per-rule compliance status, pack ARN, and creator metadata",
+      "detail": "AWS Config conformance packs with per-rule compliance status, pack ARN, and creator metadata",
+      "filename_prefix": "Config_ConformancePacks",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "CM-2",
+            "CM-6",
+            "CM-8"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV226",
       "name": "IoT Device Defender Findings",
       "description": "AWS IoT Device Defender audit findings over the last 90 days with severity, check name, and non-compliant resource details",
