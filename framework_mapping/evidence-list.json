@@ -7314,6 +7314,31 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV192",
+      "name": "SSM Change Requests",
+      "description": "SSM Change Manager change requests (OpsItems with type /aws/changerequest)",
+      "detail": "SSM Change Manager change requests (OpsItems with type /aws/changerequest)",
+      "filename_prefix": "SSM_ChangeRequests",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CM-3",
+            "CM-3(2)",
+            "CM-5"
+          ]
+        }
+      ]
     }
   ]
 }

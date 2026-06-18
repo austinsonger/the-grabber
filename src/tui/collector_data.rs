@@ -214,6 +214,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "SSM OpsItems             ",
         CloudProvider::Aws,
     ),
+    (
+        "ssm-change-requests",
+        "SSM Change Requests      ",
+        CloudProvider::Aws,
+    ),
     ("time-sync", "Time Sync Config (SSM)   ", CloudProvider::Aws),
     (
         "compute-optimizer",

@@ -160,6 +160,7 @@ use crate::providers::aws::{
     ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector},
     ssm_associations::SsmAssociationsCollector,
     ssm_automation::SsmAutomationCollector,
+    ssm_change_requests::SsmChangeRequestsCollector,
     ssm_compliance_summary::SsmComplianceSummaryCollector,
     ssm_extended::{
         SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
@@ -820,6 +821,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-opsitems") {
             v.push(Box::new(SsmOpsItemsCollector::new(cfg)));
+        }
+        if has("ssm-change-requests") {
+            v.push(Box::new(SsmChangeRequestsCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));

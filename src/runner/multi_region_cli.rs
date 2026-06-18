@@ -220,6 +220,7 @@ pub(crate) async fn run_multi_region_standard(
             "roles-anywhere",
             "iam-boundaries",
             "ssm-opsitems",
+            "ssm-change-requests",
         ];
         full.iter()
             .copied()

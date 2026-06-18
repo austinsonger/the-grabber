@@ -280,6 +280,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV155 | SSM Associations | `SSM_Association_Compliance` | Association ID, Document Name, Targets, Schedule Expression, Last Execution Status, Last Execution Time |
 | EV156 | SSM Automation Executions | `SSM_Automation_Executions` | Execution ID, Document Name, Start Time, End Time, Status, Executed By, Target Resources *(last 90 days)* |
 | EV191 | SSM OpsItems | `SSM_OpsItems` | OpsItem ID, Title, Status, Priority, Source, Category, Severity, Created, Last Modified |
+| EV192 | SSM Change Requests | `SSM_ChangeRequests` | OpsItem ID, Title, Status, Priority, Source, Created, Last Modified |
 
 ### Backup
 

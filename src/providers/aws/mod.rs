@@ -136,6 +136,7 @@ pub mod sns_eventbridge;
 pub mod ssm;
 pub mod ssm_associations;
 pub mod ssm_automation;
+pub mod ssm_change_requests;
 pub mod ssm_compliance_summary;
 pub mod ssm_extended;
 pub mod ssm_opsitems;
