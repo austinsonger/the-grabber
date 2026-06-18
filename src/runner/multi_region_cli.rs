@@ -261,6 +261,7 @@ pub(crate) async fn run_multi_region_standard(
             "service-catalog",
             "resource-drift",
             "cfn-stacksets",
+            "ta-priority",
         ];
         full.iter()
             .copied()

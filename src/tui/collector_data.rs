@@ -933,6 +933,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "ta-priority",
+        "TA Priority Recs         ",
+        CloudProvider::Aws,
+    ),
+    (
         "fis-experiments",
         "FIS Experiments          ",
         CloudProvider::Aws,

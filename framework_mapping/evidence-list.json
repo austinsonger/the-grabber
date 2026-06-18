@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV233",
+      "name": "Trusted Advisor Priority Recommendations",
+      "description": "Trusted Advisor Priority recommendations with services, pillars, status, lifecycle stage, and aggregate error/warning counts",
+      "detail": "Trusted Advisor Priority recommendations with services, pillars, status, lifecycle stage, and aggregate error/warning counts",
+      "filename_prefix": "TrustedAdvisor_Priority",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "RA-5",
+            "SI-2"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV232",
       "name": "CloudFormation StackSets Drift",
       "description": "CloudFormation StackSet instances per account/region with stack status, drift status, and last drift check timestamp",

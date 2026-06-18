@@ -210,6 +210,7 @@ use crate::providers::aws::{
     step_functions::StepFunctionsExecutionsCollector,
     sts_federation::StsFederationCollector,
     synthetics::SyntheticsCanariesCollector,
+    ta_priority::TaPriorityCollector,
     tagging_compliance::TaggingComplianceCollector,
     tagging_config::ResourceTaggingCollector,
     tgw_routes::TgwRoutesCollector,
@@ -392,6 +393,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("cfn-stacksets") {
             v.push(Box::new(CfnStackSetsCollector::new(cfg)));
+        }
+        if has("ta-priority") {
+            v.push(Box::new(TaPriorityCollector::new(cfg)));
         }
         if has("security-groups") {
             v.push(Box::new(SecurityGroupCollector::new(cfg)));

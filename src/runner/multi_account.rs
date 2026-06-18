@@ -82,6 +82,8 @@ pub const GLOBAL_COLLECTOR_KEYS: &[&str] = &[
     "cloudfront-oac",
     // Firewall Manager policies (global — us-east-1 admin)
     "fms-policies",
+    // Trusted Advisor Priority recommendations (global)
+    "ta-priority",
 ];
 
 /// Pre-built account data ready for the background collection task.

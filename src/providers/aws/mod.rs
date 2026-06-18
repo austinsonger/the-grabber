@@ -181,6 +181,7 @@ pub mod ssm_software_inventory;
 pub mod step_functions;
 pub mod sts_federation;
 pub mod synthetics;
+pub mod ta_priority;
 pub mod tagging_compliance;
 pub mod tagging_config;
 pub mod tgw_routes;
