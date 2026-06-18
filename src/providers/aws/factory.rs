@@ -8,6 +8,7 @@ use crate::providers::aws::{
     acm_pca::AcmPrivateCaCollector,
     alb_logs::AlbLogsCollector,
     apigateway::ApiGatewayCollector,
+    appconfig::AppConfigDeploymentsCollector,
     appmesh_tls::AppMeshTlsCollector,
     artifact_reports::ArtifactReportsCollector,
     athena_saved_queries::AthenaSavedQueriesCollector,
@@ -832,6 +833,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("oam-observability") {
             v.push(Box::new(OamObservabilityCollector::new(cfg)));
+        }
+        if has("appconfig-deployments") {
+            v.push(Box::new(AppConfigDeploymentsCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));

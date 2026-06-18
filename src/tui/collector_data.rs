@@ -219,6 +219,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "SSM Change Requests      ",
         CloudProvider::Aws,
     ),
+    (
+        "appconfig-deployments",
+        "AppConfig Deployments    ",
+        CloudProvider::Aws,
+    ),
     ("time-sync", "Time Sync Config (SSM)   ", CloudProvider::Aws),
     (
         "compute-optimizer",

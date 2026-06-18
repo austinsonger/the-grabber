@@ -223,6 +223,7 @@ pub(crate) async fn run_multi_region_standard(
             "ssm-change-requests",
             "resilience-hub",
             "oam-observability",
+            "appconfig-deployments",
         ];
         full.iter()
             .copied()
