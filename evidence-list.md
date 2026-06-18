@@ -166,6 +166,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV202 | Lake Formation Permissions | `LakeFormation_Permissions` | Principal, Resource Type, Resource Identifier, Permissions, Grantable Permissions |
 | EV203 | Redshift Clusters | `Redshift_Clusters` | Cluster ID, Node Type, Status, Encrypted, KMS Key, Publicly Accessible, Enhanced VPC Routing, Logging Enabled, Log Bucket |
 | EV204 | OpenSearch Domains | `OpenSearch_Domains` | Domain Name, Engine, At-Rest Encryption, KMS Key, Node-to-Node, Enforce HTTPS, TLS Policy, VPC ID, Audit Logs Enabled |
+| EV205 | MSK Clusters | `MSK_Clusters` | Cluster ARN, Name, State, Type, At-Rest KMS, In-Transit Client-Broker, SASL/SCRAM, IAM Auth, Broker Logs CW, Broker Logs S3 |
 
 ### Encryption & Key Management
 

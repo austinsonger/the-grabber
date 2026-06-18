@@ -121,6 +121,7 @@ use crate::providers::aws::{
     logs_insights_queries::LogsInsightsSavedQueriesCollector,
     macie::MacieCollector,
     macie_jobs::MacieJobsCollector,
+    msk::MskClustersCollector,
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     oam_observability::OamObservabilityCollector,
@@ -887,6 +888,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("opensearch-domains") {
             v.push(Box::new(OpenSearchDomainsCollector::new(cfg)));
+        }
+        if has("msk-clusters") {
+            v.push(Box::new(MskClustersCollector::new(cfg)));
         }
 
         v

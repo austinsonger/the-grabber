@@ -343,6 +343,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "OpenSearch Domains       ",
         CloudProvider::Aws,
     ),
+    (
+        "msk-clusters",
+        "MSK Clusters             ",
+        CloudProvider::Aws,
+    ),
     // ── Encryption & Secrets ── (48..55)
     (
         "ebs-encryption",

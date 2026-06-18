@@ -106,6 +106,7 @@ pub mod license_manager;
 pub mod logs_insights_queries;
 pub mod macie;
 pub mod macie_jobs;
+pub mod msk;
 pub mod network_firewall;
 pub mod network_gateways;
 pub mod oam_observability;

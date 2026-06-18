@@ -233,6 +233,7 @@ pub(crate) async fn run_multi_region_standard(
             "lakeformation-perms",
             "redshift-clusters",
             "opensearch-domains",
+            "msk-clusters",
         ];
         full.iter()
             .copied()
