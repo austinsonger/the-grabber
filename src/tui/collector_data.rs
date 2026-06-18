@@ -876,6 +876,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Macie Jobs               ",
         CloudProvider::Aws,
     ),
+    ("nfw-rules", "Network Firewall Rules   ", CloudProvider::Aws),
     // ── Storage ── (114..127)
     ("dynamodb", "DynamoDB Tables          ", CloudProvider::Aws),
     ("ebs", "EBS Volumes              ", CloudProvider::Aws),

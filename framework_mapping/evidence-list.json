@@ -7675,6 +7675,32 @@
       ]
     },
     {
+      "evidence_id": "EV214",
+      "name": "Network Firewall Policies & Rules",
+      "description": "AWS Network Firewall policies and rule groups (stateful + stateless) with capacity, default actions, and rules excerpt",
+      "detail": "AWS Network Firewall policies and rule groups (stateful + stateless) with capacity, default actions, and rules excerpt",
+      "filename_prefix": "NetworkFirewall_Rules",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-4",
+            "SC-7",
+            "SC-7(8)",
+            "SI-3"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV213",
       "name": "CloudFront Origin Access Controls",
       "description": "CloudFront Origin Access Controls with signing protocol/behavior, origin type, and cross-referenced distributions that use each OAC",

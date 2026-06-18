@@ -129,6 +129,7 @@ use crate::providers::aws::{
     msk::MskClustersCollector,
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
+    nfw_rules::NfwRulesCollector,
     oam_observability::OamObservabilityCollector,
     opensearch::OpenSearchDomainsCollector,
     org_config::OrgConfigCollector,
@@ -923,6 +924,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("cloudfront-oac") {
             v.push(Box::new(CloudFrontOacCollector::new(cfg)));
+        }
+        if has("nfw-rules") {
+            v.push(Box::new(NfwRulesCollector::new(cfg)));
         }
 
         v

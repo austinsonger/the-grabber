@@ -281,6 +281,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV175 | Audit Manager Assessments | `AuditManager_Assessments` | Assessment ID, Name, Framework, Status, Last Updated, Total Control Sets |
 | EV177 | FIS Experiments | `FIS_Experiments` | Type, ID, Template ID / Description, State / Creation Time |
 | EV179 | Macie Classification Jobs | `Macie_Classification_Jobs` | Job ID, Name, Job Type, Status, Created At, Last Run, Bucket Definitions Count |
+| EV214 | Network Firewall Policies & Rules | `NetworkFirewall_Rules` | Type, Resource Name, Capacity, Stateful Action Default, Rules Excerpt |
 
 ### Systems Manager (SSM)
 

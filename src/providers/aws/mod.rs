@@ -114,6 +114,7 @@ pub mod macie_jobs;
 pub mod msk;
 pub mod network_firewall;
 pub mod network_gateways;
+pub mod nfw_rules;
 pub mod oam_observability;
 pub mod opensearch;
 pub mod org_config;

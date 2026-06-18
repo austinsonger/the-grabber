@@ -224,6 +224,7 @@ pub(crate) async fn run_multi_region_standard(
             "global-accelerator",
             "apigw-deep",
             "cloudfront-oac",
+            "nfw-rules",
             "ssm-opsitems",
             "ssm-change-requests",
             "resilience-hub",
