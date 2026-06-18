@@ -924,6 +924,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "IoT Things & Policies    ",
         CloudProvider::Aws,
     ),
+    (
+        "iot-defender",
+        "IoT Device Defender      ",
+        CloudProvider::Aws,
+    ),
     // ── Storage ── (114..127)
     ("dynamodb", "DynamoDB Tables          ", CloudProvider::Aws),
     ("ebs", "EBS Volumes              ", CloudProvider::Aws),

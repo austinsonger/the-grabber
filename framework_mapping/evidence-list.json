@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV226",
+      "name": "IoT Device Defender Findings",
+      "description": "AWS IoT Device Defender audit findings over the last 90 days with severity, check name, and non-compliant resource details",
+      "detail": "AWS IoT Device Defender audit findings over the last 90 days with severity, check name, and non-compliant resource details",
+      "filename_prefix": "IoT_DeviceDefender_Findings",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "RA-5",
+            "SI-4"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV225",
       "name": "IoT Things & Policies",
       "description": "AWS IoT thing groups, IoT policies (with policy document excerpts), and device certificates",

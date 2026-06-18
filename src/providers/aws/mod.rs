@@ -104,6 +104,7 @@ pub mod inspector_ecr;
 pub mod inspector_history;
 pub mod inspector_sbom;
 pub mod inspector_suppression;
+pub mod iot_device_defender;
 pub mod iot_things;
 pub mod kinesis;
 pub mod kms;
