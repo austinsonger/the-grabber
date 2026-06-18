@@ -253,6 +253,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "EKS Access Entries       ",
         CloudProvider::Aws,
     ),
+    (
+        "eks-pod-identity",
+        "EKS Pod Identity         ",
+        CloudProvider::Aws,
+    ),
     // ── Database & Backup ── (41..48)
     ("backup", "AWS Backup API", CloudProvider::Aws),
     (

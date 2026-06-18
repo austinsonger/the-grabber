@@ -72,6 +72,7 @@ use crate::providers::aws::{
     eks::EksClusterCollector,
     eks_access_entries::EksAccessEntriesCollector,
     eks_addons::EksAddonsCollector,
+    eks_pod_identity::EksPodIdentityCollector,
     elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector},
     elb::{LoadBalancerCollector, LoadBalancerListenerCollector},
     elb_config::ElbFullConfigCollector,
@@ -844,6 +845,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("eks-access-entries") {
             v.push(Box::new(EksAccessEntriesCollector::new(cfg)));
+        }
+        if has("eks-pod-identity") {
+            v.push(Box::new(EksPodIdentityCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));

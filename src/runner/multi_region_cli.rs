@@ -226,6 +226,7 @@ pub(crate) async fn run_multi_region_standard(
             "appconfig-deployments",
             "eks-addons",
             "eks-access-entries",
+            "eks-pod-identity",
         ];
         full.iter()
             .copied()
