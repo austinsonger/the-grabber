@@ -374,18 +374,25 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Category | Count |
 |----------|-------|
 | JSON evidence collectors (time-windowed) | 4 |
-| CSV evidence collectors (current-state snapshots) | 175 |
+| CSV evidence collectors (current-state snapshots) | 231 |
 | Asset Inventory asset types (Inventory feature) | 8 |
-| **Total evidence collectors** | **179** |
+| **Total evidence collectors** | **235** |
 
 ### AWS Services Covered
 
-Access Analyzer · ACM · AppMesh · API Gateway · Artifact · Athena · Audit Manager ·
-Auto Scaling · Backup · CloudFormation · CloudFront · CloudTrail · CloudWatch ·
-CloudWatch Logs · CodeArtifact · CodeBuild · CodePipeline · Cognito · Config ·
-Control Tower · Detective · DRS · DynamoDB · EBS · EC2 · ECR · ECS · EFS · EKS ·
-ElastiCache · ELB/ALB/NLB · EventBridge · EventBridge Archives · FIS · Firehose ·
-GuardDuty · Health · IAM · Identity Center · Identity Store · Inspector2 · KMS ·
-Lambda · Macie · Organizations · RDS · Resource Explorer · Route53 ·
-Route53 ARC · Route53 Resolver · S3 · Secrets Manager · Security Hub · Signer ·
-SNS · SSM · Support · Synthetics · VPC · WAF / WAFv2
+Access Analyzer · ACM · AppConfig · AppMesh · App Runner · API Gateway · Artifact ·
+Athena · Audit Manager · Auto Scaling · Backup · Bedrock · Budgets · CloudFormation ·
+CloudFront · CloudFront OAC · CloudTrail · CloudWatch · CloudWatch Logs ·
+CodeArtifact · CodeBuild · CodePipeline · Cognito · Compute Optimizer · Config ·
+Config Conformance/Aggregators · Control Tower · Cost Anomaly · Detective ·
+Direct Connect · DMS · DRS · DynamoDB · EBS · EC2 · ECR · ECS · EFS · EKS ·
+EKS Access/Addons/Pod-Identity · ElastiCache · ELB/ALB/NLB · EventBridge ·
+EventBridge Archives · Firewall Manager · Firehose · FIS · Global Accelerator ·
+Glue · GuardDuty · Health · IAM · Identity Center · Identity Store · Inspector2 ·
+IoT Core · IoT Device Defender · Kinesis · KMS · Lake Formation · Lambda · Macie ·
+MGN · MSK · OAM · OpenSearch · Organizations · RDS · Redshift · Resilience Hub ·
+Resource Explorer · Roles Anywhere · Route53 · Route53 ARC · Route53 Resolver ·
+S3 · SageMaker · Savings Plans · Secrets Manager · Security Hub · Security Lake ·
+Service Catalog · Signer · Snowball · SNS · SSM · Step Functions · Support ·
+Synthetics · Trusted Advisor · Verified Permissions · VPC · VPC Lattice ·
+WAF / WAFv2 · Well-Architected
