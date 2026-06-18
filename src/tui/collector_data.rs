@@ -243,6 +243,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("ecs", "ECS Clusters             ", CloudProvider::Aws),
     ("eks", "EKS Clusters             ", CloudProvider::Aws),
+    (
+        "eks-addons",
+        "EKS Add-ons              ",
+        CloudProvider::Aws,
+    ),
     // ── Database & Backup ── (41..48)
     ("backup", "AWS Backup API", CloudProvider::Aws),
     (

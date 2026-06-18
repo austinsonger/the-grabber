@@ -224,6 +224,7 @@ pub(crate) async fn run_multi_region_standard(
             "resilience-hub",
             "oam-observability",
             "appconfig-deployments",
+            "eks-addons",
         ];
         full.iter()
             .copied()
