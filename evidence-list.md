@@ -56,6 +56,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV188 | Identity Center Inline Policies | `IdentityCenter_InlinePolicies` | Permission Set ARN, Permission Set Name, Type, Policy Name / Inline Content, Policy Path |
 | EV189 | IAM Roles Anywhere | `IAM_RolesAnywhere` | Type, ID, Name, Enabled, Source / Role ARNs, Notification / Session Policy |
 | EV190 | IAM Permissions Boundaries | `IAM_Boundaries` | Principal Type, Principal ARN, Has Boundary, Boundary Policy ARN, Boundary Type |
+| EV209 | Verified Permissions | `VerifiedPermissions_Stores` | Policy Store ID, Validation Mode, Policy ID, Policy Type, Principal, Resource |
 
 ### Certificates & PKI
 

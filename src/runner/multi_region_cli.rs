@@ -219,6 +219,7 @@ pub(crate) async fn run_multi_region_standard(
             "idc-inline-policies",
             "roles-anywhere",
             "iam-boundaries",
+            "verified-permissions",
             "ssm-opsitems",
             "ssm-change-requests",
             "resilience-hub",

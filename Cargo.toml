@@ -96,6 +96,7 @@ aws-sdk-kafka = "1"
 aws-sdk-sfn = "1"
 aws-sdk-kinesis = "1"
 aws-sdk-vpclattice = "1"
+aws-sdk-verifiedpermissions = "1"
 csv = "1"
 tokio = { version = "1", features = ["full"] }
 flate2 = "1"

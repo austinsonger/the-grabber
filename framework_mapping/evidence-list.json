@@ -7650,6 +7650,30 @@
       ]
     },
     {
+      "evidence_id": "EV209",
+      "name": "Verified Permissions",
+      "description": "Amazon Verified Permissions policy stores with validation mode and per-policy principal/resource scope",
+      "detail": "Amazon Verified Permissions policy stores with validation mode and per-policy principal/resource scope",
+      "filename_prefix": "VerifiedPermissions_Stores",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Account & Identity",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AC-6"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV208",
       "name": "VPC Lattice",
       "description": "VPC Lattice services + service networks with auth-type and auth-policy excerpts",

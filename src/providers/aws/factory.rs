@@ -193,6 +193,7 @@ use crate::providers::aws::{
     tagging_config::ResourceTaggingCollector,
     tgw_routes::TgwRoutesCollector,
     trusted_advisor::TrustedAdvisorCollector,
+    verified_permissions::VerifiedPermissionsCollector,
     vpc::{NetworkAclCollector, VpcCollector},
     vpc_endpoints::VpcEndpointCollector,
     vpc_lattice::VpcLatticeCollector,
@@ -711,6 +712,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("iam-boundaries") {
             v.push(Box::new(IamBoundariesCollector::new(cfg)));
+        }
+        if has("verified-permissions") {
+            v.push(Box::new(VerifiedPermissionsCollector::new(cfg)));
         }
         if has("account-contacts") {
             v.push(Box::new(AccountContactsCollector::new(cfg)));

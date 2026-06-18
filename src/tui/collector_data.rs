@@ -735,6 +735,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "IAM Perm Boundaries      ",
         CloudProvider::Aws,
     ),
+    (
+        "verified-permissions",
+        "Verified Permissions     ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

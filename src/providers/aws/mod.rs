@@ -164,6 +164,7 @@ pub mod tagging_compliance;
 pub mod tagging_config;
 pub mod tgw_routes;
 pub mod trusted_advisor;
+pub mod verified_permissions;
 pub mod vpc;
 pub mod vpc_endpoints;
 pub mod vpc_lattice;
