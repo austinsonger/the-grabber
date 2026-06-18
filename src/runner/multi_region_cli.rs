@@ -231,6 +231,7 @@ pub(crate) async fn run_multi_region_standard(
             "ecr-replication",
             "glue-catalog",
             "lakeformation-perms",
+            "redshift-clusters",
         ];
         full.iter()
             .copied()

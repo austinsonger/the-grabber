@@ -135,6 +135,7 @@ use crate::providers::aws::{
     rds_inventory::RdsInventoryCollector,
     rds_pitr::RdsPitrCollector,
     rds_snapshots::RdsSnapshotCollector,
+    redshift::RedshiftClustersCollector,
     resilience_hub::ResilienceHubCollector,
     resource_explorer::ResourceExplorerCollector,
     route53_arc::Route53ArcCollector,
@@ -879,6 +880,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("tgw-routes") {
             v.push(Box::new(TgwRoutesCollector::new(cfg)));
+        }
+        if has("redshift-clusters") {
+            v.push(Box::new(RedshiftClustersCollector::new(cfg)));
         }
 
         v

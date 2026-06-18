@@ -7443,6 +7443,33 @@
       ]
     },
     {
+      "evidence_id": "EV203",
+      "name": "Redshift Clusters",
+      "description": "Redshift clusters with encryption, public-access, enhanced VPC routing, and audit logging status",
+      "detail": "Redshift clusters with encryption, public-access, enhanced VPC routing, and audit logging status",
+      "filename_prefix": "Redshift_Clusters",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-2",
+            "AU-9",
+            "SC-7",
+            "SC-12",
+            "SC-28"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV202",
       "name": "Lake Formation Permissions",
       "description": "AWS Lake Formation grants — principal × resource × permissions matrix",

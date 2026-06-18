@@ -333,6 +333,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Lake Formation Perms     ",
         CloudProvider::Aws,
     ),
+    (
+        "redshift-clusters",
+        "Redshift Clusters        ",
+        CloudProvider::Aws,
+    ),
     // ── Encryption & Secrets ── (48..55)
     (
         "ebs-encryption",

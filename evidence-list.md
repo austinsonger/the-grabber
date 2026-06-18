@@ -164,6 +164,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV151 | RDS PITR & Cluster Backtrack | `RDS_PITR_Backtrack` | Identifier, Type, Engine, Backup Retention (days), Earliest Restorable, Latest Restorable, Backtrack Window (s), Earliest Backtrack |
 | EV201 | Glue Catalog | `Glue_Catalog` | Database, Table, Owner, Type, Storage Location, Input Format |
 | EV202 | Lake Formation Permissions | `LakeFormation_Permissions` | Principal, Resource Type, Resource Identifier, Permissions, Grantable Permissions |
+| EV203 | Redshift Clusters | `Redshift_Clusters` | Cluster ID, Node Type, Status, Encrypted, KMS Key, Publicly Accessible, Enhanced VPC Routing, Logging Enabled, Log Bucket |
 
 ### Encryption & Key Management
 
