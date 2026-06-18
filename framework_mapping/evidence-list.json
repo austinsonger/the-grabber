@@ -7288,6 +7288,32 @@
           ]
         }
       ]
+    },
+    {
+      "evidence_id": "EV191",
+      "name": "SSM OpsItems",
+      "description": "SSM OpsCenter operational items (Open + InProgress)",
+      "detail": "SSM OpsCenter operational items (Open + InProgress)",
+      "filename_prefix": "SSM_OpsItems",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Systems Manager (SSM)",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "IR-4",
+            "IR-4(1)",
+            "IR-5",
+            "SI-4"
+          ]
+        }
+      ]
     }
   ]
 }

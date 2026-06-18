@@ -138,6 +138,7 @@ pub mod ssm_associations;
 pub mod ssm_automation;
 pub mod ssm_compliance_summary;
 pub mod ssm_extended;
+pub mod ssm_opsitems;
 pub mod ssm_patch_detail;
 pub mod ssm_sessions;
 pub mod ssm_software_inventory;
