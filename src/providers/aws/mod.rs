@@ -156,6 +156,7 @@ pub mod ssm_opsitems;
 pub mod ssm_patch_detail;
 pub mod ssm_sessions;
 pub mod ssm_software_inventory;
+pub mod step_functions;
 pub mod sts_federation;
 pub mod synthetics;
 pub mod tagging_compliance;

@@ -7650,6 +7650,31 @@
       ]
     },
     {
+      "evidence_id": "EV206",
+      "name": "Step Functions Executions",
+      "description": "Step Functions state machines with logging config and recent failed-execution counts",
+      "detail": "Step Functions state machines with logging config and recent failed-execution counts",
+      "filename_prefix": "StepFunctions_Executions",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Messaging & Events",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-2",
+            "AU-12",
+            "IR-4"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV193",
       "name": "Resilience Hub Apps",
       "description": "AWS Resilience Hub applications with compliance status, resiliency score, and recent assessments",

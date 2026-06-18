@@ -543,6 +543,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "OAM Observability        ",
         CloudProvider::Aws,
     ),
+    (
+        "sfn-executions",
+        "Step Functions Exec      ",
+        CloudProvider::Aws,
+    ),
     // ── Network ── (77..97)
     ("acm", "ACM Certificates         ", CloudProvider::Aws),
     ("alb-logs", "ALB Access Log Config    ", CloudProvider::Aws),

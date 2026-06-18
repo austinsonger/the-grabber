@@ -234,6 +234,7 @@ pub(crate) async fn run_multi_region_standard(
             "redshift-clusters",
             "opensearch-domains",
             "msk-clusters",
+            "sfn-executions",
         ];
         full.iter()
             .copied()

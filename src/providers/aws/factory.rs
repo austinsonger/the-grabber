@@ -185,6 +185,7 @@ use crate::providers::aws::{
     },
     ssm_sessions::SsmSessionsCollector,
     ssm_software_inventory::SsmSoftwareInventoryCollector,
+    step_functions::StepFunctionsExecutionsCollector,
     sts_federation::StsFederationCollector,
     synthetics::SyntheticsCanariesCollector,
     tagging_compliance::TaggingComplianceCollector,
@@ -891,6 +892,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("msk-clusters") {
             v.push(Box::new(MskClustersCollector::new(cfg)));
+        }
+        if has("sfn-executions") {
+            v.push(Box::new(StepFunctionsExecutionsCollector::new(cfg)));
         }
 
         v

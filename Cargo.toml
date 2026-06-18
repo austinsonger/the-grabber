@@ -93,6 +93,7 @@ aws-sdk-lakeformation = "1"
 aws-sdk-redshift = "1"
 aws-sdk-opensearch = "1"
 aws-sdk-kafka = "1"
+aws-sdk-sfn = "1"
 csv = "1"
 tokio = { version = "1", features = ["full"] }
 flate2 = "1"

@@ -189,6 +189,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV71 | EventBridge Rules for Changes | `Change_Event_Rules` | Rule Name, Event Bus, State, Event Pattern, Targets *(event-pattern rules only)* |
 | EV139 | EventBridge Archives & Replays | `EventBridge_Archives_Replays` | Archive Name, Event Source ARN, State, Retention Days, Size (bytes), Event Count, Recent Replay Count |
 | EV145 | Firehose Delivery Streams | `Firehose_DeliveryStreams` | Stream Name, Stream ARN, Stream Status, Source Type, Destination Type, Destination Bucket/Endpoint, Encryption (KMS Key), Created Time |
+| EV206 | Step Functions Executions | `StepFunctions_Executions` | State Machine ARN, Name, Type, Logging Level, Recent Failed Count, Latest Failure Time |
 
 ### Network
 
