@@ -57,6 +57,7 @@ use crate::providers::aws::{
     cw_anomaly_detectors::CloudWatchAnomalyDetectorsCollector,
     detective_graphs::DetectiveGraphsCollector,
     drs_replication::DrsReplicationCollector,
+    dx_vpn::DxVpnCollector,
     dynamodb::DynamoDbCollector,
     ebs::EbsCollector,
     ec2_config::{
@@ -907,6 +908,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("vpc-lattice") {
             v.push(Box::new(VpcLatticeCollector::new(cfg)));
+        }
+        if has("dx-vpn") {
+            v.push(Box::new(DxVpnCollector::new(cfg)));
         }
 
         v

@@ -219,6 +219,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV163 | Route53 Resolver DNS Firewall | `Route53_DNSFirewall` | Type, ID, Name, Status / Action, VPC ID, Owner / Priority, Details |
 | EV165 | AppMesh TLS Configuration | `AppMesh_TLS_Config` | Mesh Name, Resource Type, Resource Name, Listener Port, TLS Mode, Certificate Type |
 | EV208 | VPC Lattice | `VPC_Lattice` | Type, ID, Name, Auth Type, Status, Policy Excerpt |
+| EV210 | Direct Connect & VPN | `DirectConnect_VPN` | Type, ID, State, Bandwidth / VLAN, Location / Tunnel CIDR, Encryption / Customer Addr |
 
 ### Load Balancing
 

@@ -653,6 +653,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "VPC Lattice              ",
         CloudProvider::Aws,
     ),
+    ("dx-vpn", "DX & VPN                 ", CloudProvider::Aws),
     // ── Organization & Account ── (97..101)
     (
         "account-contacts",
