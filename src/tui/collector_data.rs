@@ -263,6 +263,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "ECS Task Definitions     ",
         CloudProvider::Aws,
     ),
+    (
+        "ecr-replication",
+        "ECR Replication          ",
+        CloudProvider::Aws,
+    ),
     // ── Database & Backup ── (41..48)
     ("backup", "AWS Backup API", CloudProvider::Aws),
     (

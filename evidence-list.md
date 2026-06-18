@@ -142,6 +142,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV197 | EKS Access Entries | `EKS_AccessEntries` | Cluster Name, Principal ARN, Type, K8s Groups, Access Policies |
 | EV198 | EKS Pod Identity | `EKS_PodIdentity` | Cluster Name, Namespace, Service Account, Role ARN, Association ID |
 | EV199 | ECS Task Definitions | `ECS_TaskDefinitions` | Family, Revision, Network Mode, Container Name, Privileged, Run As User, Readonly Root FS, Added Capabilities |
+| EV200 | ECR Replication | `ECR_Replication` | Rule Index, Destination Region, Destination Account, Repository Filter Type, Repository Filter |
 
 ### Compute — Serverless
 

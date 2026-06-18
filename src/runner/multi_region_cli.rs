@@ -228,6 +228,7 @@ pub(crate) async fn run_multi_region_standard(
             "eks-access-entries",
             "eks-pod-identity",
             "ecs-task-defs",
+            "ecr-replication",
         ];
         full.iter()
             .copied()

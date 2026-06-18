@@ -7443,6 +7443,30 @@
       ]
     },
     {
+      "evidence_id": "EV200",
+      "name": "ECR Replication",
+      "description": "ECR cross-region / cross-account replication rules and destinations",
+      "detail": "ECR cross-region / cross-account replication rules and destinations",
+      "filename_prefix": "ECR_Replication",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Compute — Containers",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-6",
+            "CP-9(5)"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV195",
       "name": "AppConfig Deployments",
       "description": "AWS AppConfig deployment history per application × environment (recent 5)",

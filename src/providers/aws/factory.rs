@@ -66,6 +66,7 @@ use crate::providers::aws::{
     ec2_detailed::Ec2DetailedCollector,
     ec2_inventory::{Ec2InstanceCollector, RouteTableCollector, SecurityGroupCollector},
     ecr_config::EcrRepoConfigCollector,
+    ecr_replication::EcrReplicationCollector,
     ecr_signatures::EcrSignaturesCollector,
     ecs::EcsClusterCollector,
     ecs_task_defs::EcsTaskDefsCollector,
@@ -852,6 +853,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ecs-task-defs") {
             v.push(Box::new(EcsTaskDefsCollector::new(cfg)));
+        }
+        if has("ecr-replication") {
+            v.push(Box::new(EcrReplicationCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));
