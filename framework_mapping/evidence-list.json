@@ -7675,6 +7675,32 @@
       ]
     },
     {
+      "evidence_id": "EV217",
+      "name": "GuardDuty Malware Protection & Runtime Monitoring",
+      "description": "GuardDuty malware protection plans (S3) and detector RUNTIME_MONITORING feature state",
+      "detail": "GuardDuty malware protection plans (S3) and detector RUNTIME_MONITORING feature state",
+      "filename_prefix": "GuardDuty_ProtectionPlans",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "SI-3",
+            "SI-3(7)",
+            "SI-4",
+            "SI-7"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV216",
       "name": "Firewall Manager Policies",
       "description": "AWS Firewall Manager policies with resource type, security service type, and remediation status",

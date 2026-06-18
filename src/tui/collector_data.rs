@@ -766,6 +766,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Firewall Manager         ",
         CloudProvider::Aws,
     ),
+    (
+        "guardduty-protection-plans",
+        "GuardDuty Protection     ",
+        CloudProvider::Aws,
+    ),
     // ── Security Detection ── (101..113)
     (
         "signer-profiles",

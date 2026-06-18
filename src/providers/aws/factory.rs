@@ -90,6 +90,7 @@ use crate::providers::aws::{
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
     guardduty_coverage::GuardDutyCoverageCollector,
+    guardduty_protection_plans::GdProtectionPlansCollector,
     health::AwsHealthCollector,
     iam_access_advisor::IamAccessAdvisorCollector,
     iam_boundaries::IamBoundariesCollector,
@@ -466,6 +467,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("guardduty-coverage") {
             v.push(Box::new(GuardDutyCoverageCollector::new(cfg)));
+        }
+        if has("guardduty-protection-plans") {
+            v.push(Box::new(GdProtectionPlansCollector::new(cfg)));
         }
         if has("sh-standards") {
             v.push(Box::new(SecurityHubStandardsCollector::new(cfg)));

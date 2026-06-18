@@ -79,6 +79,7 @@ pub mod glue_catalog;
 pub mod guardduty;
 pub mod guardduty_config;
 pub mod guardduty_coverage;
+pub mod guardduty_protection_plans;
 pub mod health;
 pub mod iam_access_advisor;
 pub mod iam_boundaries;

@@ -222,6 +222,7 @@ pub(crate) async fn run_multi_region_standard(
             "verified-permissions",
             "security-lake",
             "fms-policies",
+            "guardduty-protection-plans",
             "dx-vpn",
             "global-accelerator",
             "apigw-deep",
