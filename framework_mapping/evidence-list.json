@@ -7675,6 +7675,32 @@
       ]
     },
     {
+      "evidence_id": "EV232",
+      "name": "CloudFormation StackSets Drift",
+      "description": "CloudFormation StackSet instances per account/region with stack status, drift status, and last drift check timestamp",
+      "detail": "CloudFormation StackSet instances per account/region with stack status, drift status, and last drift check timestamp",
+      "filename_prefix": "CFN_StackSets_Drift",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "CloudFormation",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "CM-2",
+            "CM-3",
+            "CM-6"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV231",
       "name": "Resource Drift Detection",
       "description": "AWS Config resources whose latest configuration item capture is older than 90 days, indicating stale or undetected drift",

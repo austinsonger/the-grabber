@@ -25,6 +25,7 @@ use crate::providers::aws::{
     bedrock::BedrockCollector,
     bedrock_kb::BedrockKbCollector,
     budgets_collector::BudgetsCollector,
+    cfn_stacksets::CfnStackSetsCollector,
     client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
     cloudfront::CloudFrontCollector,
@@ -388,6 +389,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("resource-drift") {
             v.push(Box::new(ResourceDriftCollector::new(cfg)));
+        }
+        if has("cfn-stacksets") {
+            v.push(Box::new(CfnStackSetsCollector::new(cfg)));
         }
         if has("security-groups") {
             v.push(Box::new(SecurityGroupCollector::new(cfg)));

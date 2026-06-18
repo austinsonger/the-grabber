@@ -260,6 +260,7 @@ pub(crate) async fn run_multi_region_standard(
             "well-architected",
             "service-catalog",
             "resource-drift",
+            "cfn-stacksets",
         ];
         full.iter()
             .copied()

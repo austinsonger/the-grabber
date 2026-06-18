@@ -21,6 +21,7 @@ pub mod backup_vaultlock;
 pub mod bedrock;
 pub mod bedrock_kb;
 pub mod budgets_collector;
+pub mod cfn_stacksets;
 pub mod client_vpn;
 pub mod cloudformation_drift;
 pub mod cloudfront;

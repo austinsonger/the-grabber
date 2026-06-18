@@ -928,6 +928,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     (
+        "cfn-stacksets",
+        "CFN StackSets Drift      ",
+        CloudProvider::Aws,
+    ),
+    (
         "fis-experiments",
         "FIS Experiments          ",
         CloudProvider::Aws,
