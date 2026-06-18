@@ -7675,6 +7675,33 @@
       ]
     },
     {
+      "evidence_id": "EV223",
+      "name": "Bedrock Posture",
+      "description": "Bedrock guardrails (content/topic/word policies, KMS) and model invocation logging destinations (CloudWatch, S3, image/text delivery)",
+      "detail": "Bedrock guardrails (content/topic/word policies, KMS) and model invocation logging destinations (CloudWatch, S3, image/text delivery)",
+      "filename_prefix": "Bedrock_Posture",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Security Services",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AC-3",
+            "AU-2",
+            "AU-12",
+            "SC-7(10)",
+            "SI-4"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV222",
       "name": "SageMaker Posture",
       "description": "SageMaker notebook instances (IMDS, KMS, root access, direct internet, subnet), endpoint config KMS, and model VPC config presence",

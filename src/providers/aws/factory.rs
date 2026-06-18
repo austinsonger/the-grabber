@@ -22,6 +22,7 @@ use crate::providers::aws::{
     backup_copy_actions::BackupCopyActionsCollector,
     backup_restore_testing::BackupRestoreTestingCollector,
     backup_vaultlock::BackupVaultLockCollector,
+    bedrock::BedrockCollector,
     budgets_collector::BudgetsCollector,
     client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
@@ -785,6 +786,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("sagemaker-posture") {
             v.push(Box::new(SageMakerPostureCollector::new(cfg)));
+        }
+        if has("bedrock") {
+            v.push(Box::new(BedrockCollector::new(cfg)));
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));
