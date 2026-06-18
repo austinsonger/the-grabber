@@ -232,6 +232,7 @@ pub(crate) async fn run_multi_region_standard(
             "glue-catalog",
             "lakeformation-perms",
             "redshift-clusters",
+            "opensearch-domains",
         ];
         full.iter()
             .copied()

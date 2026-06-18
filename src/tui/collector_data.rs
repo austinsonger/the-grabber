@@ -338,6 +338,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Redshift Clusters        ",
         CloudProvider::Aws,
     ),
+    (
+        "opensearch-domains",
+        "OpenSearch Domains       ",
+        CloudProvider::Aws,
+    ),
     // ── Encryption & Secrets ── (48..55)
     (
         "ebs-encryption",

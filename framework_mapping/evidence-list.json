@@ -7443,6 +7443,34 @@
       ]
     },
     {
+      "evidence_id": "EV204",
+      "name": "OpenSearch Domains",
+      "description": "OpenSearch domains with encryption, HTTPS/TLS posture, VPC isolation, audit logging",
+      "detail": "OpenSearch domains with encryption, HTTPS/TLS posture, VPC isolation, audit logging",
+      "filename_prefix": "OpenSearch_Domains",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Databases",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "AU-2",
+            "AU-9",
+            "SC-8",
+            "SC-8(1)",
+            "SC-12",
+            "SC-28"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV203",
       "name": "Redshift Clusters",
       "description": "Redshift clusters with encryption, public-access, enhanced VPC routing, and audit logging status",

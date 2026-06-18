@@ -109,6 +109,7 @@ pub mod macie_jobs;
 pub mod network_firewall;
 pub mod network_gateways;
 pub mod oam_observability;
+pub mod opensearch;
 pub mod org_config;
 pub mod org_delegated;
 pub mod org_tag_policies;

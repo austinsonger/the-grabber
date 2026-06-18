@@ -124,6 +124,7 @@ use crate::providers::aws::{
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     oam_observability::OamObservabilityCollector,
+    opensearch::OpenSearchDomainsCollector,
     org_config::OrgConfigCollector,
     org_delegated::OrgDelegatedCollector,
     org_tag_policies::OrgTagPoliciesCollector,
@@ -883,6 +884,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("redshift-clusters") {
             v.push(Box::new(RedshiftClustersCollector::new(cfg)));
+        }
+        if has("opensearch-domains") {
+            v.push(Box::new(OpenSearchDomainsCollector::new(cfg)));
         }
 
         v

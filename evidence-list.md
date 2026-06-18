@@ -165,6 +165,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV201 | Glue Catalog | `Glue_Catalog` | Database, Table, Owner, Type, Storage Location, Input Format |
 | EV202 | Lake Formation Permissions | `LakeFormation_Permissions` | Principal, Resource Type, Resource Identifier, Permissions, Grantable Permissions |
 | EV203 | Redshift Clusters | `Redshift_Clusters` | Cluster ID, Node Type, Status, Encrypted, KMS Key, Publicly Accessible, Enhanced VPC Routing, Logging Enabled, Log Bucket |
+| EV204 | OpenSearch Domains | `OpenSearch_Domains` | Domain Name, Engine, At-Rest Encryption, KMS Key, Node-to-Node, Enforce HTTPS, TLS Policy, VPC ID, Audit Logs Enabled |
 
 ### Encryption & Key Management
 
