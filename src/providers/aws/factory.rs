@@ -155,6 +155,7 @@ use crate::providers::aws::{
     rds_snapshots::RdsSnapshotCollector,
     redshift::RedshiftClustersCollector,
     resilience_hub::ResilienceHubCollector,
+    resource_drift::ResourceDriftCollector,
     resource_explorer::ResourceExplorerCollector,
     route53_arc::Route53ArcCollector,
     route53_config::{
@@ -384,6 +385,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("service-catalog") {
             v.push(Box::new(ServiceCatalogCollector::new(cfg)));
+        }
+        if has("resource-drift") {
+            v.push(Box::new(ResourceDriftCollector::new(cfg)));
         }
         if has("security-groups") {
             v.push(Box::new(SecurityGroupCollector::new(cfg)));

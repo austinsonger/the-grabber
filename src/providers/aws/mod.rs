@@ -140,6 +140,7 @@ pub mod rds_pitr;
 pub mod rds_snapshots;
 pub mod redshift;
 pub mod resilience_hub;
+pub mod resource_drift;
 pub mod resource_explorer;
 pub mod route53_arc;
 pub mod route53_config;

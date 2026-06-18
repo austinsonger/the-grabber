@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV231",
+      "name": "Resource Drift Detection",
+      "description": "AWS Config resources whose latest configuration item capture is older than 90 days, indicating stale or undetected drift",
+      "detail": "AWS Config resources whose latest configuration item capture is older than 90 days, indicating stale or undetected drift",
+      "filename_prefix": "Resource_Drift",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "AWS Config",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CA-7",
+            "CM-8",
+            "CM-8(3)"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV230",
       "name": "Service Catalog Products",
       "description": "AWS Service Catalog admin product portfolio and provisioned products with type, owner, and status",
