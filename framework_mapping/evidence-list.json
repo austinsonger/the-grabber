@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV221",
+      "name": "Snowball Jobs",
+      "description": "Snowball jobs with job ID, state, job type (IMPORT/EXPORT/LOCAL_USE), snowball type, creation date, and description",
+      "detail": "Snowball jobs with job ID, state, job type (IMPORT/EXPORT/LOCAL_USE), snowball type, creation date, and description",
+      "filename_prefix": "Snowball_Jobs",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "MP-5",
+            "MP-5(3)",
+            "MP-6"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV220",
       "name": "DMS Replication",
       "description": "DMS replication instances, endpoints, and replication tasks with status, engine, public/multi-AZ, KMS, and last failure",

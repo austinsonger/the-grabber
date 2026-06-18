@@ -316,6 +316,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("dms", "DMS                      ", CloudProvider::Aws),
+    (
+        "snowball-jobs",
+        "Snowball Jobs            ",
+        CloudProvider::Aws,
+    ),
     ("r53-arc", "Route53 ARC              ", CloudProvider::Aws),
     (
         "rds-inventory",

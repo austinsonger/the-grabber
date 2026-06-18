@@ -177,6 +177,7 @@ use crate::providers::aws::{
     service_quotas::ServiceQuotasCollector,
     shield::ShieldCollector,
     signer::SignerCollector,
+    snowball::SnowballJobsCollector,
     sns::SnsSubscriptionCollector,
     sns_eventbridge::{
         ChangeEventRulesCollector, EventBridgeRulesCollector, SnsTopicPoliciesCollector,
@@ -777,6 +778,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("dms") {
             v.push(Box::new(DmsCollector::new(cfg)));
+        }
+        if has("snowball-jobs") {
+            v.push(Box::new(SnowballJobsCollector::new(cfg)));
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));

@@ -155,6 +155,7 @@ pub mod securityhub_standards;
 pub mod service_quotas;
 pub mod shield;
 pub mod signer;
+pub mod snowball;
 pub mod sns;
 pub mod sns_eventbridge;
 pub mod ssm;

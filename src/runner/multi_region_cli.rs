@@ -249,6 +249,7 @@ pub(crate) async fn run_multi_region_standard(
             "waf-rulegroups-deep",
             "mgn-source-servers",
             "dms",
+            "snowball-jobs",
         ];
         full.iter()
             .copied()
