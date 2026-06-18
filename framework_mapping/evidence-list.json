@@ -7675,6 +7675,31 @@
       ]
     },
     {
+      "evidence_id": "EV219",
+      "name": "MGN Source Servers",
+      "description": "AWS Application Migration Service source servers with replication state, lag, lifecycle, and replication type",
+      "detail": "AWS Application Migration Service source servers with replication state, lag, lifecycle, and replication type",
+      "filename_prefix": "MGN_SourceServers",
+      "category": "CSV Evidence (Current-State Snapshots)",
+      "sub_category": "Backup",
+      "collection_method": "automated",
+      "format": "csv",
+      "cadence": "on-demand",
+      "source_system": "AWS",
+      "mapped_control_ids": [],
+      "mapped_risk_ids": [],
+      "framework_refs": [
+        {
+          "framework": "NIST_800_53",
+          "controls": [
+            "CP-6",
+            "CP-9",
+            "CP-10"
+          ]
+        }
+      ]
+    },
+    {
       "evidence_id": "EV218",
       "name": "WAF Rule Groups Deep",
       "description": "WAF rule groups (customer-managed) with per-rule details and AWS-managed rule group summaries",

@@ -102,6 +102,7 @@ aws-sdk-directconnect = "1"
 aws-sdk-globalaccelerator = "1"
 aws-sdk-securitylake = "1"
 aws-sdk-fms = "1"
+aws-sdk-mgn = "1"
 csv = "1"
 tokio = { version = "1", features = ["full"] }
 flate2 = "1"

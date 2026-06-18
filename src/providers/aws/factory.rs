@@ -128,6 +128,7 @@ use crate::providers::aws::{
     logs_insights_queries::LogsInsightsSavedQueriesCollector,
     macie::MacieCollector,
     macie_jobs::MacieJobsCollector,
+    mgn::MgnSourceServersCollector,
     msk::MskClustersCollector,
     network_firewall::NetworkFirewallCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
@@ -769,6 +770,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("drs-replication") {
             v.push(Box::new(DrsReplicationCollector::new(cfg)));
+        }
+        if has("mgn-source-servers") {
+            v.push(Box::new(MgnSourceServersCollector::new(cfg)));
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));
