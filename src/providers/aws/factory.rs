@@ -58,6 +58,7 @@ use crate::providers::aws::{
     cost_anomaly::CostAnomalyCollector,
     cw_anomaly_detectors::CloudWatchAnomalyDetectorsCollector,
     detective_graphs::DetectiveGraphsCollector,
+    dms::DmsCollector,
     drs_replication::DrsReplicationCollector,
     dx_vpn::DxVpnCollector,
     dynamodb::DynamoDbCollector,
@@ -773,6 +774,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("mgn-source-servers") {
             v.push(Box::new(MgnSourceServersCollector::new(cfg)));
+        }
+        if has("dms") {
+            v.push(Box::new(DmsCollector::new(cfg)));
         }
         if has("r53-arc") {
             v.push(Box::new(Route53ArcCollector::new(cfg)));

@@ -315,6 +315,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "MGN Source Servers       ",
         CloudProvider::Aws,
     ),
+    ("dms", "DMS                      ", CloudProvider::Aws),
     ("r53-arc", "Route53 ARC              ", CloudProvider::Aws),
     (
         "rds-inventory",

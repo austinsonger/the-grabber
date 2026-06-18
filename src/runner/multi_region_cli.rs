@@ -248,6 +248,7 @@ pub(crate) async fn run_multi_region_standard(
             "vpc-lattice",
             "waf-rulegroups-deep",
             "mgn-source-servers",
+            "dms",
         ];
         full.iter()
             .copied()
