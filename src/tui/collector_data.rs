@@ -248,6 +248,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "EKS Add-ons              ",
         CloudProvider::Aws,
     ),
+    (
+        "eks-access-entries",
+        "EKS Access Entries       ",
+        CloudProvider::Aws,
+    ),
     // ── Database & Backup ── (41..48)
     ("backup", "AWS Backup API", CloudProvider::Aws),
     (

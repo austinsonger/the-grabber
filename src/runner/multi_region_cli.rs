@@ -225,6 +225,7 @@ pub(crate) async fn run_multi_region_standard(
             "oam-observability",
             "appconfig-deployments",
             "eks-addons",
+            "eks-access-entries",
         ];
         full.iter()
             .copied()

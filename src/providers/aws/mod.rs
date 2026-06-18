@@ -59,6 +59,7 @@ pub mod ecr_signatures;
 pub mod ecs;
 pub mod efs;
 pub mod eks;
+pub mod eks_access_entries;
 pub mod eks_addons;
 pub mod elasticache;
 pub mod elb;

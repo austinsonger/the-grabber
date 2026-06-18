@@ -70,6 +70,7 @@ use crate::providers::aws::{
     ecs::EcsClusterCollector,
     efs::EfsCollector,
     eks::EksClusterCollector,
+    eks_access_entries::EksAccessEntriesCollector,
     eks_addons::EksAddonsCollector,
     elasticache::{ElastiCacheCollector, ElastiCacheGlobalCollector},
     elb::{LoadBalancerCollector, LoadBalancerListenerCollector},
@@ -840,6 +841,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("eks-addons") {
             v.push(Box::new(EksAddonsCollector::new(cfg)));
+        }
+        if has("eks-access-entries") {
+            v.push(Box::new(EksAccessEntriesCollector::new(cfg)));
         }
         if has("cognito-pools") {
             v.push(Box::new(CognitoUserPoolCollector::new(cfg)));
