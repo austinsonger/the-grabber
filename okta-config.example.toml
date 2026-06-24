@@ -1,0 +1,13 @@
+# Okta credentials — keep this file out of version control
+# Add to .gitignore: okta-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: OKTA_DOMAIN, OKTA_API_TOKEN
+
+[[account]]
+name           = "Okta"
+provider       = "okta"
+description    = "Okta production tenant"
+output_dir     = "./evidence-output/okta"
+okta_domain    = "https://acme.okta.com"
+okta_api_token = ""

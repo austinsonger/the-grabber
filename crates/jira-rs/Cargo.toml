@@ -1,0 +1,17 @@
+[package]
+name        = "jira-rs"
+version     = "0.1.0"
+edition     = "2021"
+description = "Async Rust client for the Atlassian Jira Cloud REST API v3 (projects + issues)"
+license     = "MIT OR Apache-2.0"
+
+[dependencies]
+reqwest    = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio      = { version = "1", features = ["time"] }
+thiserror  = "2"
+anyhow     = "1"
+url        = "2"
+chrono     = { version = "0.4", features = ["serde"] }
+base64     = "0.22"

@@ -34,6 +34,8 @@ pub enum OutcomeStatus {
     Error,
     /// Collector exceeded the per-collector timeout.
     Timeout,
+    /// Collector failed in an expected way (service not enabled, permission denied, expected timeout).
+    Skipped,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -101,6 +103,18 @@ impl CollectorOutcome {
             error_message: Some("timed out".to_string()),
         }
     }
+
+    pub fn skipped(collector: &str, reason: &str) -> Self {
+        Self {
+            collector: collector.to_string(),
+            status: OutcomeStatus::Skipped,
+            record_count: 0,
+            filename: None,
+            written_at: None,
+            size_bytes: None,
+            error_message: Some(reason.to_string()),
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -114,6 +128,8 @@ pub struct ManifestSummary {
     pub empty: usize,
     pub failed: usize,
     pub timed_out: usize,
+    #[serde(default)]
+    pub skipped: usize,
     pub total_files: usize,
     pub total_records: usize,
 }
@@ -157,6 +173,10 @@ impl RunManifest {
             .iter()
             .filter(|o| matches!(o.status, OutcomeStatus::Timeout))
             .count();
+        let skipped = outcomes
+            .iter()
+            .filter(|o| matches!(o.status, OutcomeStatus::Skipped))
+            .count();
         let total_files = succeeded; // one file per successful collector
         let total_records = outcomes.iter().map(|o| o.record_count).sum();
         let total_collectors = outcomes.len();
@@ -176,6 +196,7 @@ impl RunManifest {
                 empty,
                 failed,
                 timed_out,
+                skipped,
                 total_files,
                 total_records,
             },
@@ -363,7 +384,7 @@ fn sanitized_cli_args() -> String {
     let mut args = std::env::args().peekable();
     let mut out: Vec<String> = Vec::new();
     let mut redact_next = false;
-    while let Some(arg) = args.next() {
+    for arg in args {
         if redact_next {
             out.push("<redacted>".to_string());
             redact_next = false;

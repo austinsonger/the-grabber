@@ -367,7 +367,10 @@ fn inventory_template_columns<R: Read + std::io::Seek>(
 }
 
 fn normalized_header_label(raw: &str) -> String {
-    let expanded = raw.replace("_x000a_", "\n").replace("\r\n", "\n").replace('\r', "\n");
+    let expanded = raw
+        .replace("_x000a_", "\n")
+        .replace("\r\n", "\n")
+        .replace('\r', "\n");
     let visible = expanded.split("\n\n(").next().unwrap_or(&expanded);
     visible
         .split_whitespace()
@@ -460,14 +463,13 @@ mod tests {
             .comments("Integration smoke test")
             .build();
         let rows = vec![row];
-        write_inventory_xlsx(
-            &rows,
-            std::path::Path::new("assets/Inventory.xlsx"),
-            &tmp,
-        )
-        .expect("write_inventory_xlsx must succeed against real template");
+        write_inventory_xlsx(&rows, std::path::Path::new("assets/Inventory.xlsx"), &tmp)
+            .expect("write_inventory_xlsx must succeed against real template");
         let bytes = std::fs::metadata(&tmp).expect("output exists").len();
-        assert!(bytes > 10_000, "output xlsx looks too small ({bytes} bytes)");
+        assert!(
+            bytes > 10_000,
+            "output xlsx looks too small ({bytes} bytes)"
+        );
         let _ = std::fs::remove_file(&tmp);
     }
 
@@ -484,7 +486,9 @@ mod tests {
         // FedRAMP template re-saved on macOS / strict OOXML uses CRLF line
         // breaks inside cells; the split on "\n\n(" must still trigger.
         assert_eq!(
-            normalized_header_label("UNIQUE ASSET IDENTIFIER\r\n\r\n(\r\nUnique Identifier ...\r\n)"),
+            normalized_header_label(
+                "UNIQUE ASSET IDENTIFIER\r\n\r\n(\r\nUnique Identifier ...\r\n)"
+            ),
             "unique asset identifier"
         );
     }
