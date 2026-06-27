@@ -2,6 +2,8 @@
 
 The Grabber. Collects current-state snapshots and time-windowed audit records from 100+ AWS service APIs and writes them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
+![Alt text](assets/1.Grabber_LandingPage.png)
+
 ---
 
 ## Features
@@ -134,8 +136,6 @@ cargo install --path .
 grabber
 ```
 
-
-![Alt text](assets/1.Grabber_LandingPage.png)
 
 
 
