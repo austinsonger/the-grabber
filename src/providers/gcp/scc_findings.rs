@@ -14,14 +14,21 @@ pub struct SccFindingsCollector {
 
 impl SccFindingsCollector {
     pub fn new(client: GcpClient, org_id: impl Into<String>) -> Self {
-        Self { client, org_id: org_id.into() }
+        Self {
+            client,
+            org_id: org_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for SccFindingsCollector {
-    fn name(&self) -> &str { "GCP SCC Findings" }
-    fn filename_prefix(&self) -> &str { "GCP_SCC_Findings" }
+    fn name(&self) -> &str {
+        "GCP SCC Findings"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_SCC_Findings"
+    }
 
     async fn collect_records(
         &self,
@@ -36,6 +43,8 @@ impl JsonCollector for SccFindingsCollector {
             self.org_id
         );
         let body = json!({ "pageSize": 1000 });
-        self.client.paginate_post(&url, &body, "listFindingsResults").await
+        self.client
+            .paginate_post(&url, &body, "listFindingsResults")
+            .await
     }
 }

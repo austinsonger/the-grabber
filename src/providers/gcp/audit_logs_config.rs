@@ -7,20 +7,27 @@ use crate::evidence::JsonCollector;
 use crate::providers::gcp::client::GcpClient;
 
 pub struct AuditLogsConfigCollector {
-    client:     GcpClient,
+    client: GcpClient,
     project_id: String,
 }
 
 impl AuditLogsConfigCollector {
     pub fn new(client: GcpClient, project_id: impl Into<String>) -> Self {
-        Self { client, project_id: project_id.into() }
+        Self {
+            client,
+            project_id: project_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for AuditLogsConfigCollector {
-    fn name(&self) -> &str { "GCP Audit Logs Config" }
-    fn filename_prefix(&self) -> &str { "GCP_Audit_Logs_Config" }
+    fn name(&self) -> &str {
+        "GCP Audit Logs Config"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_Audit_Logs_Config"
+    }
 
     async fn collect_records(
         &self,

@@ -14,14 +14,21 @@ pub struct SccVulnerabilitiesCollector {
 
 impl SccVulnerabilitiesCollector {
     pub fn new(client: GcpClient, org_id: impl Into<String>) -> Self {
-        Self { client, org_id: org_id.into() }
+        Self {
+            client,
+            org_id: org_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for SccVulnerabilitiesCollector {
-    fn name(&self) -> &str { "GCP SCC Vulnerabilities" }
-    fn filename_prefix(&self) -> &str { "GCP_SCC_Vulnerabilities" }
+    fn name(&self) -> &str {
+        "GCP SCC Vulnerabilities"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_SCC_Vulnerabilities"
+    }
 
     async fn collect_records(
         &self,
@@ -39,6 +46,8 @@ impl JsonCollector for SccVulnerabilitiesCollector {
             "filter": "category=\"VULNERABILITY\"",
             "pageSize": 1000
         });
-        self.client.paginate_post(&url, &body, "listFindingsResults").await
+        self.client
+            .paginate_post(&url, &body, "listFindingsResults")
+            .await
     }
 }

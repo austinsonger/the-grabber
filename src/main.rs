@@ -18,9 +18,9 @@ use anyhow::{Context, Result};
 use clap::Parser;
 
 use crate::cli::Cli;
-use crate::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
 #[cfg(feature = "gcp")]
 use crate::runner::cli_runners::run_gcp_cli;
+use crate::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
 use crate::runner::tui_session::run_tui_session;
 
 // ---------------------------------------------------------------------------
@@ -62,6 +62,13 @@ async fn async_main() -> Result<()> {
     #[cfg(feature = "gcp")]
     if cli.provider == "gcp" {
         return run_gcp_cli(&cli).await;
+    }
+    #[cfg(not(feature = "gcp"))]
+    if cli.provider == "gcp" {
+        anyhow::bail!(
+            "--provider gcp requires the binary to be compiled with the `gcp` feature \
+             (cargo build --features gcp)"
+        );
     }
 
     if cli.start_date.is_none() && cli.lookback.is_none() {

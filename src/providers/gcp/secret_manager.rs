@@ -7,23 +7,37 @@ use crate::evidence::CsvCollector;
 use crate::providers::gcp::client::GcpClient;
 
 pub struct SecretManagerCollector {
-    client:     GcpClient,
+    client: GcpClient,
     project_id: String,
 }
 
 impl SecretManagerCollector {
     pub fn new(client: GcpClient, project_id: impl Into<String>) -> Self {
-        Self { client, project_id: project_id.into() }
+        Self {
+            client,
+            project_id: project_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SecretManagerCollector {
-    fn name(&self) -> &str { "GCP Secret Manager" }
-    fn filename_prefix(&self) -> &str { "GCP_Secret_Manager" }
+    fn name(&self) -> &str {
+        "GCP Secret Manager"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_Secret_Manager"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["project_id", "name", "create_time", "replication_type",
-          "kms_key", "version_count", "labels"]
+        &[
+            "project_id",
+            "name",
+            "create_time",
+            "replication_type",
+            "kms_key",
+            "version_count",
+            "labels",
+        ]
     }
 
     async fn collect_rows(
@@ -38,39 +52,78 @@ impl CsvCollector for SecretManagerCollector {
         );
         let secrets = self.client.paginate(&url, "secrets").await?;
 
-        let rows = secrets.iter().map(|s| {
-            let replication = s
-                .get("replication")
-                .map(|r| {
-                    if r.get("automatic").is_some() {
-                        "automatic".to_owned()
+        let rows = secrets
+            .iter()
+            .map(|s| {
+                let replication = s
+                    .get("replication")
+                    .map(|r| {
+                        if r.get("automatic").is_some() {
+                            "automatic".to_owned()
+                        } else {
+                            "user_managed".to_owned()
+                        }
+                    })
+                    .unwrap_or_default();
+                let kms_key = {
+                    // For automatic replication, the CMEK key lives at
+                    // replication.automatic.customerManagedEncryption.kmsKeyName.
+                    // For userManaged replication, each replica can have its own CMEK
+                    // key under replication.userManaged.replicas[].customerManagedEncryption.
+                    // Collect all distinct key names and join them.
+                    let replication = s.get("replication");
+                    let auto_key = replication
+                        .and_then(|r| r.get("automatic"))
+                        .and_then(|a| a.get("customerManagedEncryption"))
+                        .and_then(|c| c.get("kmsKeyName"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_owned();
+                    let user_managed_keys: Vec<&str> = replication
+                        .and_then(|r| r.get("userManaged"))
+                        .and_then(|um| um.get("replicas"))
+                        .and_then(|v| v.as_array())
+                        .map(|replicas| {
+                            replicas
+                                .iter()
+                                .filter_map(|rep| {
+                                    rep.get("customerManagedEncryption")
+                                        .and_then(|c| c.get("kmsKeyName"))
+                                        .and_then(|v| v.as_str())
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    if !auto_key.is_empty() {
+                        auto_key
                     } else {
-                        "user_managed".to_owned()
+                        user_managed_keys.join(",")
                     }
-                })
-                .unwrap_or_default();
-            let kms_key = s
-                .get("replication")
-                .and_then(|r| r.get("automatic"))
-                .and_then(|a| a.get("customerManagedEncryption"))
-                .and_then(|c| c.get("kmsKeyName"))
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_owned();
-            let labels = s
-                .get("labels")
-                .map(|l| serde_json::to_string(l).unwrap_or_default())
-                .unwrap_or_default();
-            vec![
-                self.project_id.clone(),
-                s.get("name").and_then(|v| v.as_str()).unwrap_or("").split('/').last().unwrap_or("").to_owned(),
-                s.get("createTime").and_then(|v| v.as_str()).unwrap_or("").to_owned(),
-                replication,
-                kms_key,
-                String::new(), // version_count requires separate API call
-                labels,
-            ]
-        }).collect();
+                };
+                let labels = s
+                    .get("labels")
+                    .map(|l| serde_json::to_string(l).unwrap_or_default())
+                    .unwrap_or_default();
+                vec![
+                    self.project_id.clone(),
+                    s.get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .split('/')
+                        .next_back()
+                        .unwrap_or("")
+                        .to_owned(),
+                    s.get("createTime")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
+                    replication,
+                    kms_key,
+                    String::new(), // version_count requires separate API call
+                    labels,
+                ]
+            })
+            .collect();
         Ok(rows)
     }
 }

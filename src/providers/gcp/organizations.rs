@@ -13,14 +13,21 @@ pub struct OrganizationsCollector {
 
 impl OrganizationsCollector {
     pub fn new(client: GcpClient, org_id: impl Into<String>) -> Self {
-        Self { client, org_id: org_id.into() }
+        Self {
+            client,
+            org_id: org_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for OrganizationsCollector {
-    fn name(&self) -> &str { "GCP Organizations" }
-    fn filename_prefix(&self) -> &str { "GCP_Organizations" }
+    fn name(&self) -> &str {
+        "GCP Organizations"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_Organizations"
+    }
 
     async fn collect_records(
         &self,

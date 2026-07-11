@@ -24,13 +24,13 @@ use tokio::sync::RwLock;
 // ---------------------------------------------------------------------------
 
 struct GcpClientInner {
-    http:         HttpClient,
+    http: HttpClient,
     /// Token source obtained from ADC.
     token_source: Option<Arc<dyn TokenSource>>,
     /// Non-`None` only in unit tests — bypasses ADC entirely.
     static_token: Option<String>,
     /// When set (tests only), prepended to every path.
-    base_url:     Option<String>,
+    base_url: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -170,7 +170,8 @@ impl GcpClient {
     /// collecting all items under the given `items_key` JSON field.
     ///
     /// Callers must pass the *full* initial URL including any query parameters.
-    /// The helper appends `&pageToken=<tok>` on subsequent pages.
+    /// The helper appends `&pageToken=<tok>` on subsequent pages, with the token
+    /// value percent-encoded to handle tokens that contain special characters.
     pub async fn paginate(&self, url: &str, items_key: &str) -> Result<Vec<Value>> {
         let mut all: Vec<Value> = Vec::new();
         let mut page_token: Option<String> = None;
@@ -178,8 +179,10 @@ impl GcpClient {
         loop {
             let paged_url = match &page_token {
                 Some(tok) => {
-                    let sep = if url.contains('?') { "&" } else { "?" };
-                    format!("{url}{sep}pageToken={tok}")
+                    let mut parsed = reqwest::Url::parse(url)
+                        .with_context(|| format!("Invalid URL for pagination: {url}"))?;
+                    parsed.query_pairs_mut().append_pair("pageToken", tok);
+                    parsed.to_string()
                 }
                 None => url.to_owned(),
             };
@@ -211,6 +214,62 @@ impl GcpClient {
         }
 
         Ok(all)
+    }
+
+    /// Page through a GCP aggregated LIST endpoint (e.g. `aggregated/instances`,
+    /// `aggregated/disks`, `aggregated/subnetworks`).
+    ///
+    /// Aggregated responses return `items` as an **object** keyed by
+    /// `"zones/<zone>"` or `"regions/<region>"` rather than a flat array.
+    /// This helper merges all pages into a single
+    /// `serde_json::Map<String, Value>` so callers can iterate zone/region
+    /// entries without worrying about pagination.
+    ///
+    /// The `pageToken` query parameter is percent-encoded on every page request.
+    pub async fn paginate_aggregated(&self, url: &str) -> Result<serde_json::Map<String, Value>> {
+        let mut all_items: serde_json::Map<String, Value> = serde_json::Map::new();
+        let mut page_token: Option<String> = None;
+
+        loop {
+            let paged_url = match &page_token {
+                Some(tok) => {
+                    let mut parsed = reqwest::Url::parse(url)
+                        .with_context(|| format!("Invalid URL for pagination: {url}"))?;
+                    parsed.query_pairs_mut().append_pair("pageToken", tok);
+                    parsed.to_string()
+                }
+                None => url.to_owned(),
+            };
+
+            let resp = self.get(&paged_url).await?;
+            let status = resp.status();
+            let body: Value = resp
+                .json()
+                .await
+                .with_context(|| format!("Failed to parse JSON from GET {paged_url}"))?;
+
+            if !status.is_success() {
+                let msg = body
+                    .get("error")
+                    .and_then(|e| e.get("message"))
+                    .and_then(|m| m.as_str())
+                    .unwrap_or("unknown error");
+                anyhow::bail!("GCP API {status} from {paged_url}: {msg}");
+            }
+
+            if let Some(page_items) = body.get("items").and_then(|v| v.as_object()) {
+                for (k, v) in page_items {
+                    all_items.insert(k.clone(), v.clone());
+                }
+            }
+
+            match body.get("nextPageToken").and_then(|t| t.as_str()) {
+                Some(tok) => page_token = Some(tok.to_owned()),
+                None => break,
+            }
+        }
+
+        Ok(all_items)
     }
 
     /// POST-based pagination (used by Security Command Center's `findings:list`).

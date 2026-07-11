@@ -7,20 +7,27 @@ use crate::evidence::JsonCollector;
 use crate::providers::gcp::client::GcpClient;
 
 pub struct AssetInventoryCollector {
-    client:     GcpClient,
+    client: GcpClient,
     project_id: String,
 }
 
 impl AssetInventoryCollector {
     pub fn new(client: GcpClient, project_id: impl Into<String>) -> Self {
-        Self { client, project_id: project_id.into() }
+        Self {
+            client,
+            project_id: project_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for AssetInventoryCollector {
-    fn name(&self) -> &str { "GCP Asset Inventory" }
-    fn filename_prefix(&self) -> &str { "GCP_Asset_Inventory" }
+    fn name(&self) -> &str {
+        "GCP Asset Inventory"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_Asset_Inventory"
+    }
 
     async fn collect_records(
         &self,

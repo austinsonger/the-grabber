@@ -13,16 +13,28 @@ pub struct SccConfigCollector {
 
 impl SccConfigCollector {
     pub fn new(client: GcpClient, org_id: impl Into<String>) -> Self {
-        Self { client, org_id: org_id.into() }
+        Self {
+            client,
+            org_id: org_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for SccConfigCollector {
-    fn name(&self) -> &str { "GCP SCC Config" }
-    fn filename_prefix(&self) -> &str { "GCP_SCC_Config" }
+    fn name(&self) -> &str {
+        "GCP SCC Config"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_SCC_Config"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["org_id", "name", "enable_asset_discovery", "asset_discovery_config"]
+        &[
+            "org_id",
+            "name",
+            "enable_asset_discovery",
+            "asset_discovery_config",
+        ]
     }
 
     async fn collect_rows(
@@ -42,7 +54,10 @@ impl CsvCollector for SccConfigCollector {
         let body: serde_json::Value = resp.json().await?;
         let row = vec![
             self.org_id.clone(),
-            body.get("name").and_then(|v| v.as_str()).unwrap_or("").to_owned(),
+            body.get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_owned(),
             body.get("enableAssetDiscovery")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false)

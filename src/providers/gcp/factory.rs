@@ -5,53 +5,35 @@ use anyhow::Result;
 
 use crate::evidence::{CsvCollector, EvidenceCollector, JsonCollector};
 use crate::providers::gcp::{
-    asset_inventory::AssetInventoryCollector,
-    audit_logs_config::AuditLogsConfigCollector,
-    client::GcpClient,
-    cloud_armor::CloudArmorCollector,
-    cloud_audit_logs::CloudAuditLogsCollector,
-    cloud_dns::CloudDnsCollector,
-    cloud_dlp::CloudDlpCollector,
-    cloud_functions::CloudFunctionsCollector,
-    cloud_monitoring::CloudMonitoringCollector,
-    cloud_run::CloudRunCollector,
-    cloud_sql::CloudSqlCollector,
-    cloud_sql_backups::CloudSqlBackupsCollector,
-    cloud_storage_config::CloudStorageConfigCollector,
+    asset_inventory::AssetInventoryCollector, audit_logs_config::AuditLogsConfigCollector,
+    client::GcpClient, cloud_armor::CloudArmorCollector, cloud_audit_logs::CloudAuditLogsCollector,
+    cloud_dlp::CloudDlpCollector, cloud_dns::CloudDnsCollector,
+    cloud_functions::CloudFunctionsCollector, cloud_monitoring::CloudMonitoringCollector,
+    cloud_run::CloudRunCollector, cloud_sql::CloudSqlCollector,
+    cloud_sql_backups::CloudSqlBackupsCollector, cloud_storage_config::CloudStorageConfigCollector,
     cloud_storage_inventory::CloudStorageInventoryCollector,
-    cloud_storage_policies::CloudStoragePoliciesCollector,
-    compute_config::ComputeConfigCollector,
-    compute_inventory::ComputeInventoryCollector,
-    filestore::FilestoreCollector,
-    gke::GkeCollector,
-    iam_policies::IamPoliciesCollector,
-    iam_service_account_keys::IamServiceAccountKeysCollector,
-    iam_service_accounts::IamServiceAccountsCollector,
-    kms::KmsCollector,
-    kms_policies::KmsPoliciesCollector,
-    memorystore::MemorystoreCollector,
-    org_policy::OrgPolicyCollector,
-    organizations::OrganizationsCollector,
-    persistent_disk::PersistentDiskCollector,
-    pubsub_topics::PubsubTopicsCollector,
-    scc_config::SccConfigCollector,
-    scc_findings::SccFindingsCollector,
-    scc_standards::SccStandardsCollector,
-    scc_vulnerabilities::SccVulnerabilitiesCollector,
+    cloud_storage_policies::CloudStoragePoliciesCollector, compute_config::ComputeConfigCollector,
+    compute_inventory::ComputeInventoryCollector, filestore::FilestoreCollector, gke::GkeCollector,
+    iam_policies::IamPoliciesCollector, iam_service_account_keys::IamServiceAccountKeysCollector,
+    iam_service_accounts::IamServiceAccountsCollector, kms::KmsCollector,
+    kms_policies::KmsPoliciesCollector, memorystore::MemorystoreCollector,
+    org_policy::OrgPolicyCollector, organizations::OrganizationsCollector,
+    persistent_disk::PersistentDiskCollector, pubsub_topics::PubsubTopicsCollector,
+    scc_config::SccConfigCollector, scc_findings::SccFindingsCollector,
+    scc_standards::SccStandardsCollector, scc_vulnerabilities::SccVulnerabilitiesCollector,
     secret_manager::SecretManagerCollector,
-    secret_manager_extended::SecretManagerExtendedCollector,
-    vpc::VpcCollector,
+    secret_manager_extended::SecretManagerExtendedCollector, vpc::VpcCollector,
     vpc_flow_logs::VpcFlowLogsCollector,
 };
 
 /// Builds all GCP collectors and groups them by output type.
 pub struct GcpProviderFactory {
-    client:     GcpClient,
+    client: GcpClient,
     project_id: String,
-    location:   String,
-    org_id:     String,
+    location: String,
+    org_id: String,
     /// If empty, all collectors are enabled.
-    selected:   Vec<String>,
+    selected: Vec<String>,
 }
 
 impl GcpProviderFactory {
@@ -105,29 +87,98 @@ impl GcpProviderFactory {
             };
         }
 
-        push_csv!("gcp-iam-policies",       IamPoliciesCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-iam-service-accounts", IamServiceAccountsCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-iam-sa-keys",         IamServiceAccountKeysCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-compute-inventory",   ComputeInventoryCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-storage-inventory",   CloudStorageInventoryCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-storage-policies",    CloudStoragePoliciesCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-kms",                 KmsCollector::new(self.client.clone(), &self.project_id, &self.location));
-        push_csv!("gcp-kms-policies",        KmsPoliciesCollector::new(self.client.clone(), &self.project_id, &self.location));
-        push_csv!("gcp-scc-config",          SccConfigCollector::new(self.client.clone(), &self.org_id));
-        push_csv!("gcp-cloud-sql",           CloudSqlCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-cloud-sql-backups",   CloudSqlBackupsCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-gke",                 GkeCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-secrets",             SecretManagerCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-cloud-functions",     CloudFunctionsCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-cloud-run",           CloudRunCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-vpc",                 VpcCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-vpc-flow-logs",       VpcFlowLogsCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-cloud-dns",           CloudDnsCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-pubsub",              PubsubTopicsCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-cloud-armor",         CloudArmorCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-persistent-disks",    PersistentDiskCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-memorystore",         MemorystoreCollector::new(self.client.clone(), &self.project_id));
-        push_csv!("gcp-filestore",           FilestoreCollector::new(self.client.clone(), &self.project_id));
+        push_csv!(
+            "gcp-iam-policies",
+            IamPoliciesCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-iam-service-accounts",
+            IamServiceAccountsCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-iam-sa-keys",
+            IamServiceAccountKeysCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-compute-inventory",
+            ComputeInventoryCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-storage-inventory",
+            CloudStorageInventoryCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-storage-policies",
+            CloudStoragePoliciesCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-kms",
+            KmsCollector::new(self.client.clone(), &self.project_id, &self.location)
+        );
+        push_csv!(
+            "gcp-kms-policies",
+            KmsPoliciesCollector::new(self.client.clone(), &self.project_id, &self.location)
+        );
+        push_csv!(
+            "gcp-scc-config",
+            SccConfigCollector::new(self.client.clone(), &self.org_id)
+        );
+        push_csv!(
+            "gcp-cloud-sql",
+            CloudSqlCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-cloud-sql-backups",
+            CloudSqlBackupsCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-gke",
+            GkeCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-secrets",
+            SecretManagerCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-cloud-functions",
+            CloudFunctionsCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-cloud-run",
+            CloudRunCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-vpc",
+            VpcCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-vpc-flow-logs",
+            VpcFlowLogsCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-cloud-dns",
+            CloudDnsCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-pubsub",
+            PubsubTopicsCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-cloud-armor",
+            CloudArmorCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-persistent-disks",
+            PersistentDiskCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-memorystore",
+            MemorystoreCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_csv!(
+            "gcp-filestore",
+            FilestoreCollector::new(self.client.clone(), &self.project_id)
+        );
 
         out
     }
@@ -144,18 +195,54 @@ impl GcpProviderFactory {
             };
         }
 
-        push_json!("gcp-compute-config",     ComputeConfigCollector::new(self.client.clone(), &self.project_id));
-        push_json!("gcp-storage-config",     CloudStorageConfigCollector::new(self.client.clone(), &self.project_id));
-        push_json!("gcp-scc-findings",       SccFindingsCollector::new(self.client.clone(), &self.org_id));
-        push_json!("gcp-scc-vulnerabilities", SccVulnerabilitiesCollector::new(self.client.clone(), &self.org_id));
-        push_json!("gcp-scc-standards",      SccStandardsCollector::new(self.client.clone(), &self.org_id));
-        push_json!("gcp-org-policy",         OrgPolicyCollector::new(self.client.clone(), &self.project_id));
-        push_json!("gcp-organizations",      OrganizationsCollector::new(self.client.clone(), &self.org_id));
-        push_json!("gcp-asset-inventory",    AssetInventoryCollector::new(self.client.clone(), &self.project_id));
-        push_json!("gcp-monitoring",         CloudMonitoringCollector::new(self.client.clone(), &self.project_id));
-        push_json!("gcp-cloud-dlp",          CloudDlpCollector::new(self.client.clone(), &self.project_id));
-        push_json!("gcp-audit-logs-config",  AuditLogsConfigCollector::new(self.client.clone(), &self.project_id));
-        push_json!("gcp-secrets-extended",   SecretManagerExtendedCollector::new(self.client.clone(), &self.project_id));
+        push_json!(
+            "gcp-compute-config",
+            ComputeConfigCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_json!(
+            "gcp-storage-config",
+            CloudStorageConfigCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_json!(
+            "gcp-scc-findings",
+            SccFindingsCollector::new(self.client.clone(), &self.org_id)
+        );
+        push_json!(
+            "gcp-scc-vulnerabilities",
+            SccVulnerabilitiesCollector::new(self.client.clone(), &self.org_id)
+        );
+        push_json!(
+            "gcp-scc-standards",
+            SccStandardsCollector::new(self.client.clone(), &self.org_id)
+        );
+        push_json!(
+            "gcp-org-policy",
+            OrgPolicyCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_json!(
+            "gcp-organizations",
+            OrganizationsCollector::new(self.client.clone(), &self.org_id)
+        );
+        push_json!(
+            "gcp-asset-inventory",
+            AssetInventoryCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_json!(
+            "gcp-monitoring",
+            CloudMonitoringCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_json!(
+            "gcp-cloud-dlp",
+            CloudDlpCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_json!(
+            "gcp-audit-logs-config",
+            AuditLogsConfigCollector::new(self.client.clone(), &self.project_id)
+        );
+        push_json!(
+            "gcp-secrets-extended",
+            SecretManagerExtendedCollector::new(self.client.clone(), &self.project_id)
+        );
 
         out
     }

@@ -9,13 +9,16 @@ use crate::evidence::{CollectParams, EvidenceCollector, EvidenceRecord, Evidence
 use crate::providers::gcp::client::GcpClient;
 
 pub struct CloudAuditLogsCollector {
-    client:     GcpClient,
+    client: GcpClient,
     project_id: String,
 }
 
 impl CloudAuditLogsCollector {
     pub fn new(client: GcpClient, project_id: impl Into<String>) -> Self {
-        Self { client, project_id: project_id.into() }
+        Self {
+            client,
+            project_id: project_id.into(),
+        }
     }
 
     fn source(&self) -> EvidenceSource {
@@ -25,8 +28,12 @@ impl CloudAuditLogsCollector {
 
 #[async_trait]
 impl EvidenceCollector for CloudAuditLogsCollector {
-    fn name(&self) -> &str { "GCP Cloud Audit Logs" }
-    fn filename_prefix(&self) -> &str { "GCP_Cloud_Audit_Logs" }
+    fn name(&self) -> &str {
+        "GCP Cloud Audit Logs"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_Cloud_Audit_Logs"
+    }
 
     async fn collect(&self, params: &CollectParams) -> anyhow::Result<Vec<EvidenceRecord>> {
         let start: DateTime<Utc> = params.start_time;
@@ -95,7 +102,11 @@ impl EvidenceCollector for CloudAuditLogsCollector {
                         resource_type: None,
                         status: None,
                         completion_timestamp: None,
-                        raw: if params.include_raw { Some(entry.clone()) } else { None },
+                        raw: if params.include_raw {
+                            Some(entry.clone())
+                        } else {
+                            None
+                        },
                     });
                 }
             }

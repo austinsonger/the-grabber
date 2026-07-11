@@ -457,9 +457,7 @@ pub async fn run_gcp_cli(cli: &Cli) -> Result<()> {
         .clone()
         .or_else(|| std::env::var("CLOUDSDK_CORE_PROJECT").ok())
         .ok_or_else(|| {
-            anyhow::anyhow!(
-                "GCP provider requires --gcp-project or CLOUDSDK_CORE_PROJECT env var"
-            )
+            anyhow::anyhow!("GCP provider requires --gcp-project or CLOUDSDK_CORE_PROJECT env var")
         })?;
 
     let selected: Vec<String> = cli
@@ -486,7 +484,10 @@ pub async fn run_gcp_cli(cli: &Cli) -> Result<()> {
 
     let mut all_files: Vec<String> = Vec::new();
 
-    fn outcome_to_path(outcome: &crate::audit_log::CollectorOutcome, dir: &PathBuf) -> Option<String> {
+    fn outcome_to_path(
+        outcome: &crate::audit_log::CollectorOutcome,
+        dir: &PathBuf,
+    ) -> Option<String> {
         outcome
             .filename
             .as_ref()
@@ -503,7 +504,11 @@ pub async fn run_gcp_cli(cli: &Cli) -> Result<()> {
         &timestamp,
     )
     .await?;
-    all_files.extend(csv_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
+    all_files.extend(
+        csv_outcomes
+            .iter()
+            .filter_map(|o| outcome_to_path(o, &output_dir)),
+    );
 
     // JSON (snapshot) collectors
     let json_outcomes = run_json_inv_collectors(
@@ -514,21 +519,32 @@ pub async fn run_gcp_cli(cli: &Cli) -> Result<()> {
         &timestamp,
     )
     .await?;
-    all_files.extend(json_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
+    all_files.extend(
+        json_outcomes
+            .iter()
+            .filter_map(|o| outcome_to_path(o, &output_dir)),
+    );
 
     // Evidence collectors (audit logs) — require a time window
     let evidence_collectors = factory.evidence_collectors();
     if !evidence_collectors.is_empty() {
+        // Both --start-date and --end-date must be provided together, or neither.
+        if cli.start_date.is_some() != cli.end_date.is_some() {
+            anyhow::bail!(
+                "--start-date and --end-date must be provided together; \
+                 supply both or omit both (defaults to a 90-day window)"
+            );
+        }
         let (start_ts, end_ts) = if let (Some(s), Some(e)) = (&cli.start_date, &cli.end_date) {
             let start = NaiveDate::parse_from_str(s, "%Y-%m-%d")
                 .context("Invalid --start-date format (expected YYYY-MM-DD)")?
                 .and_hms_opt(0, 0, 0)
-                .unwrap()
+                .context("Failed to construct start-of-day timestamp for --start-date")?
                 .and_utc();
             let end = NaiveDate::parse_from_str(e, "%Y-%m-%d")
                 .context("Invalid --end-date format (expected YYYY-MM-DD)")?
                 .and_hms_opt(23, 59, 59)
-                .unwrap()
+                .context("Failed to construct end-of-day timestamp for --end-date")?
                 .and_utc();
             (start, end)
         } else {
@@ -538,16 +554,25 @@ pub async fn run_gcp_cli(cli: &Cli) -> Result<()> {
         };
 
         let params = CollectParams {
-            start_time:  start_ts,
-            end_time:    end_ts,
-            filter:      cli.filter.clone(),
+            start_time: start_ts,
+            end_time: end_ts,
+            filter: cli.filter.clone(),
             include_raw: cli.include_raw,
         };
 
-        let ev_outcomes =
-            run_json_collectors(&evidence_collectors, &params, &region, &output_dir, &timestamp)
-                .await?;
-        all_files.extend(ev_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
+        let ev_outcomes = run_json_collectors(
+            &evidence_collectors,
+            &params,
+            &region,
+            &output_dir,
+            &timestamp,
+        )
+        .await?;
+        all_files.extend(
+            ev_outcomes
+                .iter()
+                .filter_map(|o| outcome_to_path(o, &output_dir)),
+        );
     }
 
     if cli.zip && !all_files.is_empty() {

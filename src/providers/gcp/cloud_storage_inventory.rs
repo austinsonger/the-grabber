@@ -7,24 +7,40 @@ use crate::evidence::CsvCollector;
 use crate::providers::gcp::client::GcpClient;
 
 pub struct CloudStorageInventoryCollector {
-    client:     GcpClient,
+    client: GcpClient,
     project_id: String,
 }
 
 impl CloudStorageInventoryCollector {
     pub fn new(client: GcpClient, project_id: impl Into<String>) -> Self {
-        Self { client, project_id: project_id.into() }
+        Self {
+            client,
+            project_id: project_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for CloudStorageInventoryCollector {
-    fn name(&self) -> &str { "GCP Cloud Storage Inventory" }
-    fn filename_prefix(&self) -> &str { "GCP_Storage_Inventory" }
+    fn name(&self) -> &str {
+        "GCP Cloud Storage Inventory"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_Storage_Inventory"
+    }
     fn headers(&self) -> &'static [&'static str] {
-        &["project_id", "name", "location", "storage_class",
-          "time_created", "updated", "versioning_enabled",
-          "uniform_bucket_level_access", "public_access_prevention", "labels"]
+        &[
+            "project_id",
+            "name",
+            "location",
+            "storage_class",
+            "time_created",
+            "updated",
+            "versioning_enabled",
+            "uniform_bucket_level_access",
+            "public_access_prevention",
+            "labels",
+        ]
     }
 
     async fn collect_rows(
@@ -67,11 +83,26 @@ impl CsvCollector for CloudStorageInventoryCollector {
                     .unwrap_or_default();
                 vec![
                     self.project_id.clone(),
-                    b.get("name").and_then(|v| v.as_str()).unwrap_or("").to_owned(),
-                    b.get("location").and_then(|v| v.as_str()).unwrap_or("").to_owned(),
-                    b.get("storageClass").and_then(|v| v.as_str()).unwrap_or("").to_owned(),
-                    b.get("timeCreated").and_then(|v| v.as_str()).unwrap_or("").to_owned(),
-                    b.get("updated").and_then(|v| v.as_str()).unwrap_or("").to_owned(),
+                    b.get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
+                    b.get("location")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
+                    b.get("storageClass")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
+                    b.get("timeCreated")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
+                    b.get("updated")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_owned(),
                     versioning,
                     ubla,
                     pap,

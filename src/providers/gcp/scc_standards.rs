@@ -13,14 +13,21 @@ pub struct SccStandardsCollector {
 
 impl SccStandardsCollector {
     pub fn new(client: GcpClient, org_id: impl Into<String>) -> Self {
-        Self { client, org_id: org_id.into() }
+        Self {
+            client,
+            org_id: org_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl JsonCollector for SccStandardsCollector {
-    fn name(&self) -> &str { "GCP SCC Standards" }
-    fn filename_prefix(&self) -> &str { "GCP_SCC_Standards" }
+    fn name(&self) -> &str {
+        "GCP SCC Standards"
+    }
+    fn filename_prefix(&self) -> &str {
+        "GCP_SCC_Standards"
+    }
 
     async fn collect_records(
         &self,
