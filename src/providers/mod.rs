@@ -1,12 +1,8 @@
-<<<<<<< HEAD
 //! Multi-provider abstraction layer.
 //!
 //! Providers implement common collector trait objects so that the CLI and TUI
 //! can drive collection without knowing the underlying cloud API.
 
-#[cfg(feature = "gcp")]
-pub mod gcp;
-=======
 pub mod aws;
 
 #[cfg(feature = "azure")]
@@ -87,4 +83,3 @@ pub trait ProviderFactory: Send + Sync {
     /// Time-windowed evidence collectors (event logs, findings).
     fn evidence_collectors(&self) -> Vec<Box<dyn EvidenceCollector>>;
 }
->>>>>>> origin/main

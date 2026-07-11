@@ -139,13 +139,11 @@ pub enum EvidenceSource {
     BackupApi,
     RdsApi,
     CloudTrailS3,
-<<<<<<< HEAD
-    GcpAuditLog,
-=======
     // Azure
     AzureActivityLog,
     AzureMonitor,
     // GCP
+    GcpAuditLog,
     GcpCloudAuditLogs,
     GcpCloudMonitoring,
     // Tenable
@@ -156,5 +154,4 @@ pub enum EvidenceSource {
     TenableCompliance,
     // Okta
     OktaSystemLog,
->>>>>>> origin/main
 }

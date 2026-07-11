@@ -203,6 +203,28 @@ pub struct Cli {
     /// SBOM report format: cyclonedx14 or spdx23.
     #[arg(long, default_value = "cyclonedx14")]
     pub sbom_format: String,
+
+    // ------- Provider selection -------
+    /// Cloud provider to collect from. Defaults to "aws".
+    /// Supported values: aws, gcp (requires --features gcp).
+    #[arg(long, default_value = "aws")]
+    pub provider: String,
+
+    // ------- GCP-specific options (used when --provider gcp) -------
+    /// GCP project ID (e.g. "my-project-123").
+    /// Falls back to the active gcloud project if omitted.
+    #[arg(long)]
+    pub gcp_project: Option<String>,
+
+    /// GCP organization ID (numeric). Required for org-scoped GCP collectors
+    /// (Security Command Center, Org Policy, organization structure).
+    #[arg(long)]
+    pub gcp_org: Option<String>,
+
+    /// GCP location/region (e.g. "us-central1", "us", "global").
+    /// Defaults to "us-central1" when omitted.
+    #[arg(long, default_value = "us-central1")]
+    pub gcp_location: String,
 }
 
 /// Parse a lookback string like "30", "30d", "12weeks", "3m", "1year" into a
