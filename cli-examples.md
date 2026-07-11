@@ -244,6 +244,19 @@ Inventory mode writes a unified `AWS_Inventory-<timestamp>.csv` and, when `asset
   --signing-key 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
+## Okta
+
+### Okta — collect all evidence
+
+```bash
+./target/release/grabber \
+  --start-date 2026-01-01 \
+  --end-date   2026-04-01 \
+  --collectors okta-users,okta-groups,okta-apps,okta-policies,okta-factors,okta-system-log
+```
+
+The Okta tenant URL and API token come from `okta-config.toml` (or `OKTA_DOMAIN` / `OKTA_API_TOKEN`). The CLI auto-discovers the configured Okta account by `provider = "okta"`.
+
 ## Useful local commands
 
 ### Show generated help

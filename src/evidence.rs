@@ -134,9 +134,27 @@ pub struct EvidenceRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EvidenceSource {
+    // AWS
     CloudTrail,
     BackupApi,
     RdsApi,
     CloudTrailS3,
+<<<<<<< HEAD
     GcpAuditLog,
+=======
+    // Azure
+    AzureActivityLog,
+    AzureMonitor,
+    // GCP
+    GcpCloudAuditLogs,
+    GcpCloudMonitoring,
+    // Tenable
+    TenableVulnerabilities,
+    TenableAssets,
+    TenableScans,
+    TenableAuditLog,
+    TenableCompliance,
+    // Okta
+    OktaSystemLog,
+>>>>>>> origin/main
 }

@@ -355,6 +355,28 @@ grabber --lookback 7m \
 
 ---
 
+## Inspector SBOM Export Flags
+
+These flags configure the `inspector-sbom` collector, which triggers an AWS Inspector V2 SBOM export, polls until complete, and downloads the result from S3. Required only when using key `inspector-sbom` in `--collectors`.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--sbom-bucket <BUCKET>` | _(required)_ | S3 bucket where Inspector should write the SBOM export |
+| `--sbom-kms-key <ARN>` | _(required)_ | KMS key ARN used to encrypt the export in S3 |
+| `--sbom-format <FORMAT>` | `cyclonedx14` | SBOM format: `cyclonedx14` or `spdx23` |
+
+When `--sbom-bucket` is omitted, the collector emits a `SKIPPED` row explaining the missing flags instead of failing.
+
+```bash
+grabber --lookback 90d \
+        --collectors inspector-sbom \
+        --sbom-bucket my-sbom-exports \
+        --sbom-kms-key arn:aws:kms:us-east-1:123456789012:key/abc-123 \
+        --sbom-format cyclonedx14
+```
+
+---
+
 ## Multi-Region Flags
 
 By default the tool collects from a single region (`--region`). These flags enable round-robin collection across multiple regions.
@@ -461,7 +483,6 @@ All 124+ collector keys organized by category. Pass any combination to `--collec
 
 | Key | Output | Description |
 |-----|--------|-------------|
-| `ecr-scan` | CSV | ECR image scan findings |
 | `ecr-config` | CSV | ECR repository configuration |
 | `ecs` | CSV | ECS clusters |
 | `eks` | CSV | EKS clusters |
@@ -568,6 +589,7 @@ All 124+ collector keys organized by category. Pass any combination to `--collec
 | `inspector-config` | CSV | Inspector2 configuration |
 | `inspector-ecr-images` | CSV | Inspector2 ECR image findings |
 | `inspector` | CSV | Inspector2 findings |
+| `inspector-sbom` | CSV | Inspector2 SBOM export (requires `--sbom-bucket`, `--sbom-kms-key`) |
 | `macie` | CSV | Macie findings |
 | `securityhub` | CSV | Security Hub findings |
 | `sh-config` | CSV | Security Hub configuration |

@@ -2,6 +2,8 @@
 
 The Grabber. Collects current-state snapshots and time-windowed audit records from 100+ AWS service APIs and writes them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
+![Alt text](assets/1.Grabber_LandingPage.png)
+
 ---
 
 ## Features
@@ -134,8 +136,6 @@ cargo install --path .
 grabber
 ```
 
-
-![Alt text](assets/1.Grabber_LandingPage.png)
 
 
 
@@ -301,6 +301,8 @@ For copy-paste CLI and inventory examples, see [cli-examples.md](cli-examples.md
 | `--sign` | off | HMAC-SHA256 sign all files; writes a manifest and key file |
 | `--signing-key` | auto-generated | 64-char hex key to use instead of auto-generating |
 | `--verify-manifest` | — | Verify a `SIGNING-MANIFEST-*.json` (runs verification only, no collection) |
+| `--write-run-manifest` | off | Opt in to writing `RUN-MANIFEST-<run_id>.json` after collection (collectors mode) |
+| `--write-chain-of-custody` | off | Opt in to writing `CHAIN-OF-CUSTODY-<run_id>.json` and appending to `CHAIN-OF-CUSTODY.jsonl` (collectors mode) |
 
 ### CLI mode notes
 
@@ -569,7 +571,6 @@ When `--sign` is passed, an HMAC-SHA256 digest is computed for every output file
 |-----|--------|-------------|
 | `ecs` | CSV | ECS cluster inventory |
 | `eks` | CSV | EKS cluster inventory |
-| `ecr-scan` | CSV | ECR image scan findings |
 | `ecr-config` | CSV | ECR repository configuration |
 | `lambda-config` | CSV | Lambda function configuration |
 | `lambda-permissions` | CSV | Lambda resource-based policies |
@@ -660,6 +661,91 @@ The collecting identity needs read-only access to the services it queries. A min
   ]
 }
 ```
+
+---
+
+## Okta
+
+Optional feature — build with `--features okta` (enabled by default).
+
+### Configuration
+
+Create `okta-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name           = "Okta"
+provider       = "okta"
+description    = "Okta production tenant"
+output_dir     = "./evidence-output/okta"
+okta_domain    = "https://acme.okta.com"
+okta_api_token = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `OKTA_DOMAIN` — e.g. `https://acme.okta.com`
+- `OKTA_API_TOKEN` — SSWS API token
+
+Create an API token in the Okta admin console: **Security → API → Tokens → Create token**.
+
+The token inherits the role of the user that created it; for evidence collection the user needs at least the **Read-only Administrator** role.
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `okta-users` | CSV | All users with status, login, MFA-relevant timestamps |
+| `okta-groups` | CSV | Groups with type, description, membership-updated timestamps |
+| `okta-group-members` | CSV | Per-group membership lists |
+| `okta-apps` | CSV | Applications with sign-on mode, status |
+| `okta-policies` | CSV | Sign-on, password, MFA enrollment, IDP discovery, access, profile enrollment policies |
+| `okta-factors` | CSV | Per-user enrolled MFA factors |
+| `okta-system-log` | CSV | Time-windowed system log events (logins, MFA, admin actions) |
+
+### Required Okta API scopes
+
+The SSWS token is bound to a user; minimum role: **Read-only Administrator**. For the System Log specifically, the user must also have permission to view the System Log (granted by the Read-only Administrator role by default).
+
+---
+
+## Jira
+
+Optional feature — build with `--features jira` (enabled by default).
+
+### Configuration
+
+Create `jira-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name           = "Jira"
+provider       = "jira"
+description    = "Jira Cloud production tenant"
+output_dir     = "./evidence-output/jira"
+jira_domain    = "https://acme.atlassian.net"
+jira_email     = "you@acme.com"
+jira_api_token = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `JIRA_DOMAIN` — e.g. `https://acme.atlassian.net`
+- `JIRA_EMAIL` — the Atlassian account email used for Basic auth
+- `JIRA_API_TOKEN` — API token
+
+Create an API token at: **Atlassian account → Security → Create and manage API tokens**.
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `jira-projects` | CSV | All projects with key, name, type, lead, and category |
+| `jira-issues` | CSV | All issues across projects with status, assignee, reporter, and timestamps |
+
+### Required Jira permissions
+
+The user behind the API token needs **Browse Projects** permission on every project that should be collected. For full coverage, use an account with site-admin / org-admin read rights.
 
 ---
 
