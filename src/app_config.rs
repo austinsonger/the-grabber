@@ -91,6 +91,10 @@ fn default_provider() -> CloudProvider {
     CloudProvider::Aws
 }
 
+fn default_profile() -> String {
+    String::new()
+}
+
 /// A named cloud account that the tool can collect evidence from.
 ///
 /// Each account maps to credentials and carries its own region, output
@@ -105,7 +109,6 @@ pub struct Account {
     pub provider: CloudProvider,
 
     // ── AWS ──────────────────────────────────────────────────────────────────
-
     /// AWS account ID, shown in the TUI for identification.
     pub account_id: Option<String>,
 
@@ -113,13 +116,14 @@ pub struct Account {
     pub description: Option<String>,
 
     /// AWS CLI profile name or SSO role name (must match ~/.aws/config).
+    /// Non-AWS account entries can omit this field.
+    #[serde(default = "default_profile")]
     pub profile: String,
 
     /// Override the default region for this account.
     pub region: Option<String>,
 
     // ── Azure ─────────────────────────────────────────────────────────────────
-
     /// Azure Active Directory tenant ID (UUID).
     pub tenant_id: Option<String>,
 
@@ -127,7 +131,6 @@ pub struct Account {
     pub subscription_id: Option<String>,
 
     // ── Shared ────────────────────────────────────────────────────────────────
-
     /// Override the default output directory for this account.
     pub output_dir: Option<String>,
 
@@ -157,4 +160,42 @@ pub fn load_config() -> Option<AppConfig> {
 fn global_config_path() -> Option<PathBuf> {
     let base = dirs_next::home_dir()?;
     Some(base.join(".config").join("evidence").join("config.toml"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AppConfig, CloudProvider};
+
+    #[test]
+    fn deserializes_azure_account_without_aws_profile() {
+        let config: AppConfig = toml::from_str(
+            r#"
+                [[account]]
+                name = "Azure Prod"
+                provider = "azure"
+                tenant_id = "tenant-id"
+                subscription_id = "subscription-id"
+            "#,
+        )
+        .expect("config should deserialize");
+
+        let account = &config.account[0];
+        assert_eq!(account.provider, CloudProvider::Azure);
+        assert!(account.profile.is_empty());
+    }
+
+    #[test]
+    fn defaults_provider_to_aws() {
+        let config: AppConfig = toml::from_str(
+            r#"
+                [[account]]
+                name = "AWS Prod"
+                profile = "prod"
+            "#,
+        )
+        .expect("config should deserialize");
+
+        assert_eq!(config.account[0].provider, CloudProvider::Aws);
+        assert_eq!(config.account[0].profile, "prod");
+    }
 }

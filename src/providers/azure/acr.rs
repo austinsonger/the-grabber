@@ -7,12 +7,13 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
+use azure_mgmt_containerregistry::Client as AcrClient;
 use futures::StreamExt;
 
 use crate::evidence::CsvCollector;
 
 pub struct AcrCollector {
-    client:          AcrClient,
+    client: AcrClient,
     subscription_id: String,
 }
 
@@ -20,19 +21,22 @@ impl AcrCollector {
     pub fn new(
         credential: Arc<dyn azure_core::auth::TokenCredential>,
         subscription_id: String,
-    ) -> anyhow::Result<Self> {
-        Ok(Self {
-            client: AcrClient::builder(credential).build()
-                .context("Failed to build ACR client")?,
+    ) -> Self {
+        Self {
+            client: AcrClient::builder(credential).build(),
             subscription_id,
-        })
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for AcrCollector {
-    fn name(&self) -> &str { "Azure Container Registry" }
-    fn filename_prefix(&self) -> &str { "Azure_Container_Registries" }
+    fn name(&self) -> &str {
+        "Azure Container Registry"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Azure_Container_Registries"
+    }
 
     fn headers(&self) -> &'static [&'static str] {
         &[
@@ -54,7 +58,8 @@ impl CsvCollector for AcrCollector {
     ) -> Result<Vec<Vec<String>>> {
         let mut rows = Vec::new();
 
-        let mut stream = self.client
+        let mut stream = self
+            .client
             .registries_client()
             .list(&self.subscription_id)
             .into_stream();
@@ -63,7 +68,10 @@ impl CsvCollector for AcrCollector {
             let page = page.context("ACR: list page failed")?;
             for reg in page.value {
                 let props = reg.properties.as_ref();
-                let rg = reg.resource.id.as_deref()
+                let rg = reg
+                    .resource
+                    .id
+                    .as_deref()
                     .and_then(|id| id.split("/resourceGroups/").nth(1))
                     .and_then(|s| s.split('/').next())
                     .unwrap_or("")
@@ -74,11 +82,15 @@ impl CsvCollector for AcrCollector {
                     rg,
                     reg.resource.location.clone(),
                     format!("{:?}", reg.sku.name),
-                    props.and_then(|p| p.admin_user_enabled)
+                    props
+                        .and_then(|p| p.admin_user_enabled)
                         .map(|b| b.to_string())
                         .unwrap_or_default(),
-                    props.and_then(|p| p.login_server.clone()).unwrap_or_default(),
-                    props.and_then(|p| p.provisioning_state.as_ref())
+                    props
+                        .and_then(|p| p.login_server.clone())
+                        .unwrap_or_default(),
+                    props
+                        .and_then(|p| p.provisioning_state.as_ref())
                         .map(|s| format!("{:?}", s))
                         .unwrap_or_default(),
                 ]);
