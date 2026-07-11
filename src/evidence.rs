@@ -143,6 +143,7 @@ pub enum EvidenceSource {
     AzureActivityLog,
     AzureMonitor,
     // GCP
+    GcpAuditLog,
     GcpCloudAuditLogs,
     GcpCloudMonitoring,
     // Tenable

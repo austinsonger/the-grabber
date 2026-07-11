@@ -443,3 +443,138 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
     }
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// GCP CLI runner
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "gcp")]
+pub async fn run_gcp_cli(cli: &Cli) -> Result<()> {
+    use crate::providers::gcp::factory::GcpProviderFactory;
+
+    let project = cli
+        .gcp_project
+        .clone()
+        .or_else(|| std::env::var("CLOUDSDK_CORE_PROJECT").ok())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "GCP provider requires --gcp-project or CLOUDSDK_CORE_PROJECT env var"
+            )
+        })?;
+
+    let selected: Vec<String> = cli
+        .collectors
+        .as_ref()
+        .map(|v| v.clone())
+        .unwrap_or_default();
+
+    let factory = GcpProviderFactory::new(
+        project,
+        cli.gcp_location.clone(),
+        cli.gcp_org.clone(),
+        selected,
+    )
+    .await?;
+
+    let account_id = factory.account_id().to_owned();
+    let region = factory.region().to_owned();
+    let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+
+    let csv_collectors = factory.csv_collectors();
+    let json_collectors = factory.json_collectors();
+
+    let mut all_files: Vec<String> = Vec::new();
+
+    fn outcome_to_path(outcome: &crate::audit_log::CollectorOutcome, dir: &PathBuf) -> Option<String> {
+        outcome
+            .filename
+            .as_ref()
+            .map(|f| dir.join(f).to_string_lossy().into_owned())
+    }
+
+    // CSV collectors
+    let csv_outcomes = run_csv_collectors(
+        &csv_collectors,
+        &account_id,
+        &region,
+        &output_dir,
+        None,
+        &timestamp,
+    )
+    .await?;
+    all_files.extend(csv_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
+
+    // JSON (snapshot) collectors
+    let json_outcomes = run_json_inv_collectors(
+        &json_collectors,
+        &account_id,
+        &region,
+        &output_dir,
+        &timestamp,
+    )
+    .await?;
+    all_files.extend(json_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
+
+    // Evidence collectors (audit logs) — require a time window
+    let evidence_collectors = factory.evidence_collectors();
+    if !evidence_collectors.is_empty() {
+        let (start_ts, end_ts) = if let (Some(s), Some(e)) = (&cli.start_date, &cli.end_date) {
+            let start = NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                .context("Invalid --start-date format (expected YYYY-MM-DD)")?
+                .and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc();
+            let end = NaiveDate::parse_from_str(e, "%Y-%m-%d")
+                .context("Invalid --end-date format (expected YYYY-MM-DD)")?
+                .and_hms_opt(23, 59, 59)
+                .unwrap()
+                .and_utc();
+            (start, end)
+        } else {
+            let end = Utc::now();
+            let start = end - chrono::Duration::days(90);
+            (start, end)
+        };
+
+        let params = CollectParams {
+            start_time:  start_ts,
+            end_time:    end_ts,
+            filter:      cli.filter.clone(),
+            include_raw: cli.include_raw,
+        };
+
+        let ev_outcomes =
+            run_json_collectors(&evidence_collectors, &params, &region, &output_dir, &timestamp)
+                .await?;
+        all_files.extend(ev_outcomes.iter().filter_map(|o| outcome_to_path(o, &output_dir)));
+    }
+
+    if cli.zip && !all_files.is_empty() {
+        let zip_name = format!("Evidence-{}.zip", timestamp);
+        let zip_path = PathBuf::from(&zip_name);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match crate::zip_bundle::bundle_files(&all_files, &cwd, &zip_path) {
+            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
+            Err(e) => eprintln!("Zip bundle failed: {e}"),
+        }
+    }
+
+    if cli.sign && !all_files.is_empty() {
+        let key = match &cli.signing_key {
+            Some(hex) => crate::signing::SigningKey::from_hex(hex)?,
+            None => crate::signing::SigningKey::generate()?,
+        };
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match crate::signing::sign_files(&all_files, &timestamp, &key, &cwd) {
+            Ok((manifest_path, key_path)) => {
+                eprintln!("Signing manifest: {}", manifest_path.display());
+                eprintln!("Signing key file: {}", key_path.display());
+                eprintln!("Signing key (hex): {}", key.to_hex());
+            }
+            Err(e) => eprintln!("Signing failed: {e}"),
+        }
+    }
+
+    Ok(())
+}

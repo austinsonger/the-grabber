@@ -19,6 +19,8 @@ use clap::Parser;
 
 use crate::cli::Cli;
 use crate::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
+#[cfg(feature = "gcp")]
+use crate::runner::cli_runners::run_gcp_cli;
 use crate::runner::tui_session::run_tui_session;
 
 // ---------------------------------------------------------------------------
@@ -54,6 +56,12 @@ async fn async_main() -> Result<()> {
 
     if cli.poam {
         return run_poam_cli(&cli).await;
+    }
+
+    // ── GCP provider dispatch ────────────────────────────────────────────────
+    #[cfg(feature = "gcp")]
+    if cli.provider == "gcp" {
+        return run_gcp_cli(&cli).await;
     }
 
     if cli.start_date.is_none() && cli.lookback.is_none() {

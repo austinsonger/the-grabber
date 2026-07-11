@@ -5,8 +5,9 @@ use transforms::{
 
 use anyhow::Result;
 use async_trait::async_trait;
+use aws_sdk_inspector2::primitives::DateTime as InspectorDateTime;
 use aws_sdk_inspector2::types::{
-    FilterCriteria, SortCriteria, SortField, SortOrder, StringComparison, StringFilter,
+    DateFilter, FilterCriteria, SortCriteria, SortField, SortOrder, StringComparison, StringFilter,
 };
 use aws_sdk_inspector2::Client as Inspector2Client;
 
@@ -126,7 +127,6 @@ impl CsvCollector for InspectorEcrImagesCollector {
 
         const MAX_ROWS_PER_SEVERITY: usize = 10_000;
         const SEVERITY_LEVELS: [&str; 5] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"];
-        let _ = dates;
 
         let mut rows = Vec::new();
 
@@ -146,11 +146,25 @@ impl CsvCollector for InspectorEcrImagesCollector {
                 .value("ACTIVE")
                 .build()
                 .expect("StringFilter is always valid");
-            let filter = FilterCriteria::builder()
+
+            let mut filter_builder = FilterCriteria::builder()
                 .resource_type(resource_filter)
                 .severity(severity_filter)
-                .finding_status(status_filter)
-                .build();
+                .finding_status(status_filter);
+
+            // !! DATE FILTER: MUST use first_observed_at — do NOT use last_observed_at or updated_at !!
+            // Inspector2 rescans continuously; last_observed_at/updated_at are stamped with today's
+            // date on every rescan and so return the full active set regardless of window.
+            // first_observed_at is set ONCE at finding creation and is the only reliable scoping field.
+            if let Some((start, end)) = dates {
+                filter_builder = filter_builder.first_observed_at(
+                    DateFilter::builder()
+                        .start_inclusive(InspectorDateTime::from_secs(start))
+                        .end_inclusive(InspectorDateTime::from_secs(end))
+                        .build(),
+                );
+            }
+            let filter = filter_builder.build();
 
             let mut next_token: Option<String> = None;
             let mut severity_count: usize = 0;
