@@ -128,11 +128,6 @@ pub async fn run_tui_multi_account(
             .iter()
             .any(|a| !a.inventory_multi_region.is_empty());
         let mut inventory_global_rows: Vec<Vec<String>> = Vec::new();
-        let inventory_out_dir = prepared
-            .iter()
-            .find(|a| !a.inventory_multi_region.is_empty())
-            .and_then(|a| a.output_path.clone())
-            .unwrap_or_else(|| PathBuf::from("."));
         let inventory_headers: &'static [&'static str] = if is_inventory_mode {
             crate::inventory_core::INVENTORY_CSV_HEADERS
         } else {
@@ -462,12 +457,37 @@ pub async fn run_tui_multi_account(
             all_written_files.len()
         );
 
-        // ── Write single unified inventory CSV (all accounts + all regions) ──────
+        // ── Write single unified inventory CSV + XLSX (all accounts + all regions) ─
         if !inventory_global_rows.is_empty() {
+            let now_local = Local::now();
+            let year = now_local.format("%Y").to_string();
+            let month_num = now_local.format("%m").to_string();
+            let month_abbr = match month_num.as_str() {
+                "01" => "JAN",
+                "02" => "FEB",
+                "03" => "MAR",
+                "04" => "APR",
+                "05" => "MAY",
+                "06" => "JUN",
+                "07" => "JUL",
+                "08" => "AUG",
+                "09" => "SEP",
+                "10" => "OCT",
+                "11" => "NOV",
+                "12" => "DEC",
+                other => {
+                    eprintln!("=== WARN: unexpected month '{other}', using 'UNK' in path ===");
+                    "UNK"
+                }
+            };
+            let inventory_dir = std::path::PathBuf::from("inventory")
+                .join(&year)
+                .join(format!("{month_num}-{month_abbr}"));
+
             if !skip_inventory_csv {
-                let _ = std::fs::create_dir_all(&inventory_out_dir);
+                let _ = std::fs::create_dir_all(&inventory_dir);
                 let filename = format!("AWS_Inventory-{}.csv", timestamp);
-                let path = inventory_out_dir.join(&filename);
+                let path = inventory_dir.join(&filename);
                 match write_csv_bytes(inventory_headers, &inventory_global_rows) {
                     Ok(bytes) => {
                         if std::fs::write(&path, bytes).is_ok() {
@@ -491,34 +511,10 @@ pub async fn run_tui_multi_account(
             }
 
             // ── Write inventory Excel workbook from template ──────────────────────
-            let now_local = Local::now();
-            let year = now_local.format("%Y").to_string();
-            let month_num = now_local.format("%m").to_string();
-            let month_abbr = match month_num.as_str() {
-                "01" => "JAN",
-                "02" => "FEB",
-                "03" => "MAR",
-                "04" => "APR",
-                "05" => "MAY",
-                "06" => "JUN",
-                "07" => "JUL",
-                "08" => "AUG",
-                "09" => "SEP",
-                "10" => "OCT",
-                "11" => "NOV",
-                "12" => "DEC",
-                other => {
-                    eprintln!("=== WARN: unexpected month '{other}', using 'UNK' in path ===");
-                    "UNK"
-                }
-            };
             let xlsx_filename = now_local
                 .format("%Y-%m-%d_Inventory_%H-%M-%S.xlsx")
                 .to_string();
-            let xlsx_path = std::path::PathBuf::from("inventory")
-                .join(&year)
-                .join(format!("{month_num}-{month_abbr}"))
-                .join(&xlsx_filename);
+            let xlsx_path = inventory_dir.join(&xlsx_filename);
             let template_path = std::path::Path::new("assets/Inventory.xlsx");
             if template_path.exists() {
                 match crate::inventory_xlsx::write_inventory_xlsx(

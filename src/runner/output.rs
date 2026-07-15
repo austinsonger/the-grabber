@@ -51,7 +51,7 @@ pub fn date_path_suffix() -> PathBuf {
 }
 
 pub fn write_inventory_outputs(
-    output_dir: &PathBuf,
+    _output_dir: &PathBuf,
     timestamp: &str,
     inventory_rows: &[Vec<String>],
     skip_inventory_csv: bool,
@@ -61,23 +61,6 @@ pub fn write_inventory_outputs(
     if inventory_rows.is_empty() {
         eprintln!("=== Inventory: no rows collected (all asset types empty) ===");
         return Ok(written_files);
-    }
-
-    if !skip_inventory_csv {
-        std::fs::create_dir_all(output_dir).with_context(|| {
-            format!("Failed to create output directory {}", output_dir.display())
-        })?;
-        let filename = format!("AWS_Inventory-{}.csv", timestamp);
-        let path = output_dir.join(&filename);
-        let bytes = write_csv_bytes(crate::inventory_core::INVENTORY_CSV_HEADERS, inventory_rows)?;
-        std::fs::write(&path, bytes)
-            .with_context(|| format!("Failed to write {}", path.display()))?;
-        eprintln!(
-            "=== Inventory CSV: {} ({} rows) ===",
-            path.display(),
-            inventory_rows.len()
-        );
-        written_files.push(path.display().to_string());
     }
 
     let now_local = Local::now();
@@ -102,13 +85,34 @@ pub fn write_inventory_outputs(
         }
     };
 
+    let inventory_dir = PathBuf::from("inventory")
+        .join(&year)
+        .join(format!("{month_num}-{month_abbr}"));
+
+    if !skip_inventory_csv {
+        std::fs::create_dir_all(&inventory_dir).with_context(|| {
+            format!(
+                "Failed to create inventory directory {}",
+                inventory_dir.display()
+            )
+        })?;
+        let filename = format!("AWS_Inventory-{}.csv", timestamp);
+        let path = inventory_dir.join(&filename);
+        let bytes = write_csv_bytes(crate::inventory_core::INVENTORY_CSV_HEADERS, inventory_rows)?;
+        std::fs::write(&path, bytes)
+            .with_context(|| format!("Failed to write {}", path.display()))?;
+        eprintln!(
+            "=== Inventory CSV: {} ({} rows) ===",
+            path.display(),
+            inventory_rows.len()
+        );
+        written_files.push(path.display().to_string());
+    }
+
     let xlsx_filename = now_local
         .format("%Y-%m-%d_Inventory_%H-%M-%S.xlsx")
         .to_string();
-    let xlsx_path = PathBuf::from("inventory")
-        .join(&year)
-        .join(format!("{month_num}-{month_abbr}"))
-        .join(&xlsx_filename);
+    let xlsx_path = inventory_dir.join(&xlsx_filename);
     let template_path = std::path::Path::new("assets/Inventory.xlsx");
     if template_path.exists() {
         crate::inventory_xlsx::write_inventory_xlsx(inventory_rows, template_path, &xlsx_path)?;
