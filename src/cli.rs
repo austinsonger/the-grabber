@@ -22,8 +22,9 @@ pub struct Cli {
     #[arg(long)]
     pub end_date: Option<String>,
 
-    /// Lookback window from today, e.g. 30d, 12w, 3m, 1y.
-    /// Accepted units: d / day / days, w / week / weeks, m / month / months, y / year / years.
+    /// Lookback window from today, e.g. 30, 30d, 12w, 3m, 1y.
+    /// A bare integer is treated as days. Accepted units: d / day / days,
+    /// w / week / weeks, m / month / months, y / year / years.
     /// Sets end-date to today and start-date to today minus the window.
     /// Cannot be combined with --start-date or --end-date.
     #[arg(long)]
@@ -202,15 +203,51 @@ pub struct Cli {
     /// SBOM report format: cyclonedx14 or spdx23.
     #[arg(long, default_value = "cyclonedx14")]
     pub sbom_format: String,
+
+    // ------- Provider selection -------
+    /// Cloud provider to collect from. Defaults to "aws".
+    /// Supported values: aws, gcp (requires --features gcp).
+    #[arg(long, default_value = "aws")]
+    pub provider: String,
+
+    // ------- GCP-specific options (used when --provider gcp) -------
+    /// GCP project ID (e.g. "my-project-123").
+    /// Falls back to the active gcloud project if omitted.
+    #[arg(long)]
+    pub gcp_project: Option<String>,
+
+    /// GCP organization ID (numeric). Required for org-scoped GCP collectors
+    /// (Security Command Center, Org Policy, organization structure).
+    #[arg(long)]
+    pub gcp_org: Option<String>,
+
+    /// GCP location/region (e.g. "us-central1", "us", "global").
+    /// Defaults to "us-central1" when omitted.
+    #[arg(long, default_value = "us-central1")]
+    pub gcp_location: String,
 }
 
-/// Parse a lookback string like "30d", "12weeks", "3m", "1year" into a start
-/// `NaiveDate` (end date is always today).
+/// Parse a lookback string like "30", "30d", "12weeks", "3m", "1year" into a
+/// start `NaiveDate` (end date is always today). A bare integer is treated
+/// as days, so `--lookback 30` is equivalent to `--lookback 30d`.
 pub fn parse_lookback(s: &str) -> Result<NaiveDate> {
     let s = s.trim().to_ascii_lowercase();
+    let today = chrono::Utc::now().date_naive();
+
+    // Bare integer → days. `--lookback 30` == `--lookback 30d`.
+    if !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()) {
+        let amount: i64 = s
+            .parse()
+            .context("--lookback: expected a positive integer")?;
+        if amount <= 0 {
+            anyhow::bail!("--lookback: amount must be greater than zero");
+        }
+        return Ok(today - chrono::Duration::days(amount));
+    }
+
     let split = s
         .find(|c: char| c.is_alphabetic())
-        .context("--lookback must start with a number, e.g. 30d or 3months")?;
+        .context("--lookback must start with a number, e.g. 30, 30d, or 3months")?;
     let amount: i64 = s[..split]
         .parse()
         .context("--lookback: expected a positive integer before the unit")?;
@@ -218,7 +255,6 @@ pub fn parse_lookback(s: &str) -> Result<NaiveDate> {
         anyhow::bail!("--lookback: amount must be greater than zero");
     }
     let unit = s[split..].trim_end_matches('s');
-    let today = chrono::Utc::now().date_naive();
     let start = match unit {
         "d" | "day" => today - chrono::Duration::days(amount),
         "w" | "week" => today - chrono::Duration::weeks(amount),

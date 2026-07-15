@@ -83,7 +83,9 @@ azure_mgmt_monitor   = { version = "0.20", optional = true }
 azure_mgmt_resources = { version = "0.20", optional = true }
 
 # GCP — only compiled with `--features gcp`
-google-cloud-auth = { version = "0.7", optional = true }
+reqwest           = { version = "0.12", features = ["json", "rustls-tls"], default-features = false, optional = true }
+google-cloud-auth = { version = "0.17", optional = true }
+google-cloud-token = { version = "0.1", optional = true }
 
 # Tenable — only compiled with `--features tenable`
 tenable-rs = { path = "crates/tenable-rs", optional = true }
@@ -97,7 +99,7 @@ jira-rs = { path = "crates/jira-rs", optional = true }
 [features]
 default = ["tenable", "okta", "jira"]
 azure   = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
-gcp     = ["dep:google-cloud-auth"]
+gcp     = ["dep:google-cloud-auth", "dep:google-cloud-token", "dep:reqwest"]
 tenable = ["dep:tenable-rs"]
 okta    = ["dep:okta-rs"]
 jira    = ["dep:jira-rs"]
