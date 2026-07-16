@@ -71,6 +71,37 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV150 | Okta Transfer Access Diff | `Okta_Transfer_Access_Diff` | User ID, Login, Status, Status Changed, Apps Count, Groups Count, Snapshot Time |
 | EV151 | Okta Contractor Deprovisioning | `Okta_Contractor_Deprovisioning` | Event ID, Published, Contractor Login, Actor Name, Days Since Contract End, Outcome |
 
+### Ticketing — Jira
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV152 | Jira Offboarding SLA | `Jira_Offboarding_SLA` | Ticket, Summary, Status, Assignee, Reporter, Created, Resolved, Duration Hours, SLA Met (24hr) |
+| EV153 | Jira Remote Access Approvals | `Jira_Remote_Access_Approvals` | Ticket, Summary, Status, Requestor, Approver, Created, Resolved, Duration Hours |
+| EV154 | Jira External System Approvals | `Jira_External_System_Approvals` | Ticket, Summary, Status, Requestor, Approver, Created, Resolved |
+| EV155 | Jira Public Content Review | `Jira_Public_Content_Review` | Ticket, Summary, Status, Reviewer, Created, Resolved |
+| EV156 | Jira Logging Coordination | `Jira_Logging_Coordination` | Ticket, Summary, Status, Owner, Created, Resolved |
+| EV157 | Jira Audit Posture Change | `Jira_Audit_Posture_Change` | Ticket, Summary, Status, Trigger Indicator, Created, Resolved |
+| EV158 | Jira ISA Annual Review | `Jira_ISA_Annual_Review` | Ticket, Summary, Status, Owner, Created, Resolved, Duration Days |
+| EV159 | Jira Change Retention | `Jira_Change_Retention` | Ticket, Summary, Status, Type, Created, Resolved |
+| EV160 | Jira Baseline Exceptions | `Jira_Baseline_Exceptions` | Ticket, Summary, Status, Owner, Config Rule, Created, Resolved |
+| EV161 | Jira Allowlist Review | `Jira_Allowlist_Review` | Ticket, Summary, Status, Reviewer, Created, Resolved, Days Since Created |
+| EV162 | Jira CP Update Trigger | `Jira_CP_Update_Trigger` | Ticket, Summary, Status, Trigger, Created, Resolved |
+| EV163 | Jira CP Test POAM | `Jira_CP_Test_POAM` | Ticket, Summary, Status, Owner, Due Date, Created, Resolved |
+| EV164 | Jira DR Test Results | `Jira_DR_Test_Results` | Ticket, Summary, Test Date, RTO Target Hours, RTO Actual Hours, RPO Target Hours, RPO Actual Hours, Reviewer |
+| EV165 | Jira IR CP Coordination | `Jira_IR_CP_Coordination` | Ticket, Summary, Status, Created, Resolved, Duration Hours |
+| EV166 | Jira IR Lessons Learned Closure | `Jira_IR_Lessons_Learned_Closure` | Ticket, Summary, Status, Reviewer, Created, Resolved |
+| EV167 | Jira IR Severity vs Rigor | `Jira_IR_Severity_vs_Rigor` | Ticket, Summary, Priority, Status, Investigator, Created, Resolved, Duration Hours |
+| EV168 | Jira IR External Reporting SLA | `Jira_IR_External_Reporting_SLA` | Ticket, Summary, Status, Internal Report Time, External Notify Time, Hours To Notify, SLA Met (72hr) |
+| EV169 | Jira Special Protection Approvals | `Jira_Special_Protection_Approvals` | Ticket, Summary, Status, Requestor, Approver, Created, Resolved |
+| EV170 | Jira Data Reassignment | `Jira_Data_Reassignment` | Ticket, Summary, Status, Original Owner, Reassigned To, Created, Resolved |
+| EV171 | Jira Transfer Notifications | `Jira_Transfer_Notifications` | Ticket, Summary, Status, User, Effective Date, Created, Hours Before Effective |
+| EV172 | Jira Sanctions ISSO Notify | `Jira_Sanctions_ISSO_Notify` | Ticket, Summary, Status, Reporter, ISSO Notified, Hours To Notify, SLA Met (24hr) |
+| EV173 | Jira Firewall Exception Duration | `Jira_Firewall_Exception_Duration` | Ticket, Summary, Status, Requestor, Approver, Created, Expiration Date, Days Active |
+| EV174 | Jira Malware False Positive | `Jira_Malware_False_Positive` | Ticket, Summary, Status, Reporter, Assignee, Created, Resolved |
+| EV175 | Jira Patch Test Records | `Jira_Patch_Test_Records` | Ticket, Summary, Status, Patch ID, Test Result, Tested By, Created, Resolved |
+| EV176 | Jira Remote Maintenance Approvals | `Jira_Remote_Maintenance_Approvals` | Ticket, Summary, Status, Requestor, Approver, Session Start, Session End, Duration Hours |
+| EV177 | Jira SW License Review | `Jira_SW_License_Review` | Ticket, Summary, Status, Software Name, License Type, Reviewer, Created, Resolved |
+
 ### Certificates & PKI
 
 | # | Name | Filename Prefix | Columns |
@@ -322,9 +353,9 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Category | Count |
 |----------|-------|
 | JSON evidence collectors (time-windowed) | 4 |
-| CSV evidence collectors (current-state snapshots) | 147 |
+| CSV evidence collectors (current-state snapshots) | 173 |
 | Asset Inventory asset types (Inventory feature) | 8 |
-| **Total evidence collectors** | **151** |
+| **Total evidence collectors** | **177** |
 
 ### AWS Services Covered
 
