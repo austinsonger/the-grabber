@@ -2,6 +2,7 @@ mod app_config;
 mod audit_log;
 mod aws_loader;
 mod cli;
+mod fedramp_map;
 mod evidence;
 mod inventory_core;
 mod inventory_orchestrator;
