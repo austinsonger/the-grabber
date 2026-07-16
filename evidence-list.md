@@ -47,6 +47,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV17 | IAM Access Analyzer Findings | `AccessAnalyzer_Findings` | Analyzer Name, Resource ARN, Resource Type, Finding Type, Public Access, Cross Account, Status |
 | EV18 | Organizations Service Control Policies | `Organizations_SCPs` | Policy Name, Policy ID, Attached Targets, AWS Managed, Actions Summary |
 | EV19 | AWS Organizations Configuration | `AWS_Organizations_Config` | Org ID, Master Account ID, Master Account Email, Feature Set, Total Accounts, Root ID, SCPs Enabled |
+| EV125 | IAM Credential Report — Password/Key Expiration | `IAM_Credential_Report_Expiration` | User, ARN, User Creation Time, Password Enabled, Password Last Used, Password Last Changed, Password Next Rotation, MFA Active, Access Key 1 Active, Access Key 1 Last Rotated, Access Key 1 Last Used Date, Access Key 2 Active, Access Key 2 Last Rotated, Access Key 2 Last Used Date, Cert 1 Active, Cert 1 Last Rotated, Cert 2 Active, Cert 2 Last Rotated |
 
 ### Certificates & PKI
 
@@ -174,6 +175,9 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV85 | Route53 Resolver Rules | `Route53_Resolver_Config` | Rule ID, Name, Domain Name, Rule Type, Status, Target IPs |
 | EV86 | API Gateway | `API_Gateway` | API Name, Endpoint Type, Authorization Type, Logging Enabled, Region |
 | EV87 | CloudFront Distributions | `CloudFront_Distributions` | Distribution ID, Domain Name, WAF Enabled, Logging Enabled, TLS Version |
+| EV126 | Transit Gateways & VPC Peering | `TransitGateway_VPCPeering_Config` | Kind, ID, Name, State, Owner Account, Peer Account, Peer VPC, Peer Region, Local VPC / Subnets, Association, Default Route Table, Notes |
+| EV127 | Session Timeouts (ELB / Client VPN / SSM) | `Session_Timeout_Config` | Source, Resource ID, Resource Name, Setting, Value, Region |
+| EV128 | Network Firewall Fail-Closed Config | `NetworkFirewall_FailClosed_Config` | Firewall Name, Firewall ARN, Policy ARN, Stream Exception Policy, Stateful Default Actions, Region |
 
 ### Load Balancing
 
@@ -215,6 +219,9 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV110 | WAF Regional Web ACL Rules | `WAF_Regional_Web_ACL_Rules` | Name, Web ACL Name, Managed Rule, Default Action, Region |
 | EV111 | WAF Web ACL Configuration | `WAF_Config` | Web ACL Name, Web ACL ARN, Default Action, Rules Count, Rule Names, CloudWatch Metric, Sampled Requests Enabled |
 | EV112 | WAFv2 Logging Configuration | `WAF_Logging` | Web ACL Name, Web ACL ARN, Logging Enabled, Log Destination, Sampled Requests Enabled |
+| EV132 | GuardDuty Runtime Coverage | `GuardDuty_Runtime_Coverage` | Detector ID, Resource Type, Resource ID, Coverage Status, Issue, Updated At, Region |
+| EV133 | GuardDuty Malware Scan History | `GuardDuty_Malware_Scan_History` | Detector ID, Scan ID, Scan Type, Scan Status, Scan Start, Scan End, Total GB Scanned, Threats Found, Region |
+| EV134 | AMI Default-Credential Scan | `AMI_Default_Credential_Scan` | Source, Resource ID, Finding Title, Compliance Status, Severity, First Observed, Region |
 
 ### Systems Manager (SSM)
 
@@ -229,6 +236,8 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV119 | SSM Patch Summary | `SSM_Patch_Summary` | Instance ID, Compliance Status, Critical Count, Security Count, Other Count, Missing Count, Installed Count, Operation |
 | EV120 | SSM Patch Execution History | `SSM_Patch_Execution` | Command ID, Instance ID, Requested Date Time, Completed Date Time, Status |
 | EV121 | SSM Maintenance Windows | `SSM_Maintenance_Window` | Window ID, Name, Enabled, Schedule, Duration (hrs), Targets, Tasks |
+| EV129 | SSM Application Allowlist | `SSM_Application_Allowlist` | Association ID, Association Name, Document Name, Targets, Schedule, Last Execution Date, Status, Detailed Status, Region |
+| EV130 | SSM Automation Response Runbooks | `SSM_Automation_Response_Runbooks` | Document Name, Owner, Document Type, Document Format, Schema Version, Target Type, Tags, Created Date, Region |
 
 ### Backup
 
@@ -236,6 +245,7 @@ These collectors query the current configuration of AWS resources and write CSV 
 |---|------|----------------|---------|
 | EV122 | AWS Backup Plans | `Backup_Plans_Config` | Plan ID, Plan Name, Version ID, Rules Count, Rules Summary |
 | EV123 | Backup Vault Configuration | `Backup_Vault_Config` | Vault Name, Vault ARN, Encryption Key ARN, Recovery Points, Has Access Policy |
+| EV131 | Documentation Repository Backup Config | `Doc_Repo_Backup_Config` | Kind, Name / ARN, Region, Versioning, Replication, Vault Recovery Points, Notes |
 
 ### Tagging & Inventory
 
@@ -290,9 +300,9 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Category | Count |
 |----------|-------|
 | JSON evidence collectors (time-windowed) | 4 |
-| CSV evidence collectors (current-state snapshots) | 120 |
+| CSV evidence collectors (current-state snapshots) | 130 |
 | Asset Inventory asset types (Inventory feature) | 8 |
-| **Total evidence collectors** | **124** |
+| **Total evidence collectors** | **134** |
 
 ### AWS Services Covered
 
