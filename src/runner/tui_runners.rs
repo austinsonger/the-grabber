@@ -18,7 +18,7 @@ pub async fn run_tui_csv_collector(
     account_id: &str,
     region: &str,
     out_dir: &PathBuf,
-    _timestamp: &str,
+    timestamp: &str,
     tx: &mpsc::UnboundedSender<Progress>,
     timeout: std::time::Duration,
     written: &mut Vec<String>,
@@ -42,7 +42,8 @@ pub async fn run_tui_csv_collector(
                 return;
             }
             eprintln!("  [csv] {} ({}): {} rows", name, region, count);
-            let basename = evidence_basename(account_id, collector.filename_prefix(), "csv");
+            let basename =
+                evidence_basename(account_id, collector.filename_prefix(), timestamp, "csv");
             let mapping = collector.fedramp_mapping();
             let path = out_dir.join(&basename);
             if let Ok(bytes) =

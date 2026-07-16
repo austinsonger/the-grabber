@@ -33,15 +33,17 @@ impl CoverageRun {
 pub fn write_coverage_report(run: &CoverageRun, run_dir: &Path) -> Result<PathBuf> {
     let map = bundled();
 
-    // Invert emissions to Req ID → (collector, file, rows)
-    let mut by_req: BTreeMap<String, (&str, &str, usize)> = BTreeMap::new();
+    // Invert emissions to Req ID → all (collector, file, rows) hits. A Req ID can be
+    // satisfied by more than one collector, so we accumulate rather than overwrite.
+    let mut by_req: BTreeMap<String, Vec<(String, String, usize)>> = BTreeMap::new();
     for e in &run.emitted {
         let mapping = map.get(&e.filename_prefix);
         for req in &mapping.req_ids {
-            by_req.insert(
-                req.clone(),
-                (&e.filename_prefix, &e.source_evidence_file, e.row_count),
-            );
+            by_req.entry(req.clone()).or_default().push((
+                e.filename_prefix.clone(),
+                e.source_evidence_file.clone(),
+                e.row_count,
+            ));
         }
     }
 
@@ -63,16 +65,29 @@ pub fn write_coverage_report(run: &CoverageRun, run_dir: &Path) -> Result<PathBu
 
     for (req_id, info) in map.all_requirements() {
         let (collector, file, rows, bucket) = match by_req.get(req_id.as_str()) {
-            Some((c, f, r)) => (*c, *f, *r, "COVERED"),
-            None => ("", "", 0usize, "UNCOVERED"),
+            Some(hits) if !hits.is_empty() => {
+                let collectors = hits
+                    .iter()
+                    .map(|(c, _, _)| c.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" | ");
+                let files = hits
+                    .iter()
+                    .map(|(_, f, _)| f.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" | ");
+                let total_rows: usize = hits.iter().map(|(_, _, r)| r).sum();
+                (collectors, files, total_rows, "COVERED")
+            }
+            _ => (String::new(), String::new(), 0usize, "UNCOVERED"),
         };
         wtr.write_record([
             req_id.as_str(),
             info.control_id.as_str(),
             info.family.as_str(),
             info.description.as_str(),
-            collector,
-            file,
+            &collector,
+            &file,
             &rows.to_string(),
             bucket,
         ])

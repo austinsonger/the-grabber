@@ -78,14 +78,10 @@ pub fn date_path_suffix() -> PathBuf {
     PathBuf::from(&year).join(format!("{month_num}-{month_abbr}"))
 }
 
-/// `YYYY-MM-DD-HHMMSS` timestamp for evidence filenames.
-pub fn evidence_timestamp() -> String {
-    Local::now().format("%Y-%m-%d-%H%M%S").to_string()
-}
-
 /// Build the canonical basename: `{account_id}_{prefix}-{timestamp}.csv`.
-pub fn evidence_basename(account_id: &str, prefix: &str, ext: &str) -> String {
-    format!("{account_id}_{prefix}-{}.{ext}", evidence_timestamp())
+/// `timestamp` MUST be the shared per-run UTC string produced at run entry.
+pub fn evidence_basename(account_id: &str, prefix: &str, timestamp: &str, ext: &str) -> String {
+    format!("{account_id}_{prefix}-{timestamp}.{ext}")
 }
 
 /// Format a path as an OSC 8 hyperlink when stderr is a TTY.

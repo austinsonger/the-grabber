@@ -80,7 +80,7 @@ pub(crate) async fn run_csv_collectors(
     region: &str,
     output_dir: &PathBuf,
     dates: Option<(i64, i64)>,
-    _timestamp: &str,
+    timestamp: &str,
 ) -> Result<Vec<audit_log::CollectorOutcome>> {
     std::fs::create_dir_all(output_dir)
         .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
@@ -96,7 +96,8 @@ pub(crate) async fn run_csv_collectors(
                     outcomes.push(audit_log::CollectorOutcome::empty(collector.name()));
                     continue;
                 }
-                let basename = evidence_basename(account_id, collector.filename_prefix(), "csv");
+                let basename =
+                    evidence_basename(account_id, collector.filename_prefix(), timestamp, "csv");
                 let mapping = collector.fedramp_mapping();
                 let path = output_dir.join(&basename);
                 let bytes = write_csv_bytes_with_manifest(

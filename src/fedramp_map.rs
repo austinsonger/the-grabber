@@ -22,6 +22,8 @@ pub struct FedRampMapping {
 }
 
 impl FedRampMapping {
+    // Public API held for future consumers (P1 XLSX metadata task, coverage aggregator).
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.req_ids.is_empty() && self.control_ids.is_empty()
     }
@@ -92,6 +94,8 @@ impl FedRampMap {
     }
 
     /// All filename prefixes that carry at least one requirement mapping.
+    // Public API held for future consumers (P1 XLSX metadata task, coverage aggregator).
+    #[allow(dead_code)]
     pub fn mapped_prefixes(&self) -> impl Iterator<Item = &str> {
         self.collectors
             .iter()
