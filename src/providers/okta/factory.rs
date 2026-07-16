@@ -160,6 +160,32 @@ impl ProviderFactory for OktaProviderFactory {
                 ),
             ));
         }
+        if self.selected.iter().any(|s| s == "okta-group-changes") {
+            v.push(Box::new(
+                super::group_membership_change_log::OktaGroupMembershipChangeLogCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-offboarding-sla") {
+            v.push(Box::new(
+                super::offboarding_sla::OktaOffboardingSlaCollector::new(self.client.clone()),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-transfer-diff") {
+            v.push(Box::new(
+                super::transfer_access_diff::OktaTransferAccessDiffCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-contractor-deprov") {
+            v.push(Box::new(
+                super::contractor_deprovisioning::OktaContractorDeprovisioningCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
