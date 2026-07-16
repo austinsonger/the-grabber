@@ -8,6 +8,7 @@ use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, JsonCollector,
     JsonInventoryReport, ReportMetadata,
 };
+use crate::fedramp_coverage::CoverageRun;
 use crate::runner::output::{evidence_basename, format_path_with_osc8, write_csv_bytes_with_manifest};
 
 pub(crate) async fn run_json_collectors(
@@ -84,6 +85,7 @@ pub(crate) async fn run_csv_collectors(
     std::fs::create_dir_all(output_dir)
         .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
     let mut outcomes = Vec::new();
+    let mut coverage = CoverageRun::default();
     for collector in collectors {
         eprintln!("Collecting from {}...", collector.name());
         match collector.collect_rows(account_id, region, dates).await {
@@ -106,6 +108,7 @@ pub(crate) async fn run_csv_collectors(
                 std::fs::write(&path, bytes)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));
+                coverage.record(collector.filename_prefix(), &basename, rows.len());
                 outcomes.push(audit_log::CollectorOutcome::success(
                     collector.name(),
                     count,
@@ -121,6 +124,12 @@ pub(crate) async fn run_csv_collectors(
             }
         }
     }
+
+    match crate::fedramp_coverage::write_coverage_report(&coverage, output_dir) {
+        Ok(path) => eprintln!("=== FedRAMP coverage report: {} ===", path.display()),
+        Err(e) => eprintln!("=== WARN: coverage report failed: {e} ==="),
+    }
+
     Ok(outcomes)
 }
 
