@@ -2,6 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use crate::fedramp_map::{bundled, FedRampMapping};
 
 // ---------------------------------------------------------------------------
 // Core traits -- implement one of these to add a new evidence collector
@@ -24,6 +25,13 @@ pub trait EvidenceCollector: Send + Sync {
 
     /// Collect evidence for the given time window.
     async fn collect(&self, params: &CollectParams) -> Result<Vec<EvidenceRecord>>;
+
+    /// FedRAMP requirements this collector's output satisfies.
+    /// Default: look up by `filename_prefix()` in the bundled mapping table.
+    /// Override only if the mapping needs to vary at runtime.
+    fn fedramp_mapping(&self) -> FedRampMapping {
+        bundled().get(self.filename_prefix())
+    }
 }
 
 /// Snapshot collectors that produce structured JSON output (no time window needed).
@@ -37,6 +45,13 @@ pub trait JsonCollector: Send + Sync {
         account_id: &str,
         region: &str,
     ) -> Result<Vec<serde_json::Value>>;
+
+    /// FedRAMP requirements this collector's output satisfies.
+    /// Default: look up by `filename_prefix()` in the bundled mapping table.
+    /// Override only if the mapping needs to vary at runtime.
+    fn fedramp_mapping(&self) -> FedRampMapping {
+        bundled().get(self.filename_prefix())
+    }
 }
 
 /// Output envelope written to disk for every JsonCollector.
@@ -73,6 +88,13 @@ pub trait CsvCollector: Send + Sync {
         region: &str,
         dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>>;
+
+    /// FedRAMP requirements this collector's output satisfies.
+    /// Default: look up by `filename_prefix()` in the bundled mapping table.
+    /// Override only if the mapping needs to vary at runtime.
+    fn fedramp_mapping(&self) -> FedRampMapping {
+        bundled().get(self.filename_prefix())
+    }
 }
 
 /// Parameters passed to every collector.
