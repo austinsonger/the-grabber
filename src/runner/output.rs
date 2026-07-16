@@ -71,14 +71,37 @@ pub fn write_csv_bytes(headers: &[&str], rows: &[Vec<String>]) -> Result<Vec<u8>
         .map_err(|e| anyhow::anyhow!("CSV into_inner: {e}"))
 }
 
-/// `YYYY-MM-DD-HHMMSS` suffix used in filenames across the runner.
-pub fn date_path_suffix() -> String {
+/// Nested `YYYY/MM-MON` directory suffix used by callers in multi_account and tui_session.
+pub fn date_path_suffix() -> PathBuf {
+    let now = Local::now();
+    let year = now.format("%Y").to_string();
+    let month_num = now.format("%m").to_string();
+    let month_abbr = match month_num.as_str() {
+        "01" => "JAN",
+        "02" => "FEB",
+        "03" => "MAR",
+        "04" => "APR",
+        "05" => "MAY",
+        "06" => "JUN",
+        "07" => "JUL",
+        "08" => "AUG",
+        "09" => "SEP",
+        "10" => "OCT",
+        "11" => "NOV",
+        "12" => "DEC",
+        _ => "UNK",
+    };
+    PathBuf::from(&year).join(format!("{month_num}-{month_abbr}"))
+}
+
+/// `YYYY-MM-DD-HHMMSS` timestamp for evidence filenames.
+pub fn evidence_timestamp() -> String {
     Local::now().format("%Y-%m-%d-%H%M%S").to_string()
 }
 
 /// Build the canonical basename: `{account_id}_{prefix}-{timestamp}.csv`.
 pub fn evidence_basename(account_id: &str, prefix: &str, ext: &str) -> String {
-    format!("{account_id}_{prefix}-{}.{ext}", date_path_suffix())
+    format!("{account_id}_{prefix}-{}.{ext}", evidence_timestamp())
 }
 
 /// Format a path as an OSC 8 hyperlink when stderr is a TTY.
@@ -92,12 +115,6 @@ pub fn format_path_with_osc8(path: &std::path::Path) -> String {
     let abs = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let url = format!("file://{}", abs.display());
     format!("\x1b]8;;{url}\x07{text}\x1b]8;;\x07")
-}
-
-// Silence the deprecation warning inside this file only.
-#[allow(deprecated)]
-mod _legacy_shim {
-    pub use super::write_csv_bytes;
 }
 
 pub fn write_inventory_outputs(
@@ -180,10 +197,4 @@ pub fn write_inventory_outputs(
     }
 
     Ok(written_files)
-}
-
-// Preserve the PathBuf import (used elsewhere in runner via re-export chains).
-#[allow(dead_code)]
-fn _pathbuf_marker() -> Option<PathBuf> {
-    None
 }
