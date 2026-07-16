@@ -97,12 +97,14 @@ use crate::providers::aws::{
     securityhub::SecurityHubCollector,
     securityhub_standards::SecurityHubStandardsCollector,
     service_quotas::ServiceQuotasCollector,
+    session_timeouts::SessionTimeoutConfigCollector,
     shield::ShieldCollector,
     sns::SnsSubscriptionCollector,
     sns_eventbridge::{
         ChangeEventRulesCollector, EventBridgeRulesCollector, SnsTopicPoliciesCollector,
     },
     ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector},
+    ssm_allowlist::SsmApplicationAllowlistCollector,
     ssm_extended::{
         SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
     },
@@ -572,6 +574,12 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-software-inventory") {
             v.push(Box::new(SsmSoftwareInventoryCollector::new(cfg)));
+        }
+        if has("ssm-allowlist") {
+            v.push(Box::new(SsmApplicationAllowlistCollector::new(cfg)));
+        }
+        if has("session-timeouts") {
+            v.push(Box::new(SessionTimeoutConfigCollector::new(cfg)));
         }
         if has("tgw-peering") {
             v.push(Box::new(TransitGatewayPeeringCollector::new(cfg)));
