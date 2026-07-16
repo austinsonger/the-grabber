@@ -3,6 +3,62 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use chrono::Local;
 
+use crate::fedramp_map::FedRampMapping;
+
+pub const FEDRAMP_HEADERS: [&str; 3] = [
+    "FedRAMP Req IDs",
+    "FedRAMP Control IDs",
+    "Source Evidence File",
+];
+
+/// Preferred writer. Appends three metadata columns to every row and writes
+/// a two-line footer identifying the file and its FedRAMP mapping.
+pub fn write_csv_bytes_with_manifest(
+    headers: &[&str],
+    rows: &[Vec<String>],
+    mapping: &FedRampMapping,
+    source_evidence_file: &str,
+) -> Result<Vec<u8>> {
+    let mut writer = csv::Writer::from_writer(Vec::new());
+
+    let mut full_headers: Vec<&str> = headers.to_vec();
+    full_headers.extend_from_slice(&FEDRAMP_HEADERS);
+    writer
+        .write_record(&full_headers)
+        .context("CSV write headers")?;
+
+    let req_joined = mapping.req_ids_joined();
+    let control_joined = mapping.control_ids_joined();
+
+    for row in rows {
+        let mut full_row: Vec<String> = row.clone();
+        full_row.push(req_joined.clone());
+        full_row.push(control_joined.clone());
+        full_row.push(source_evidence_file.to_string());
+        writer.write_record(&full_row).context("CSV write row")?;
+    }
+
+    // Blank separator + two footer rows.
+    writer
+        .write_record::<[&str; 0], &str>([])
+        .context("CSV write blank footer separator")?;
+    writer
+        .write_record(["# FedRAMP Req IDs", &req_joined])
+        .context("CSV write req_ids footer")?;
+    writer
+        .write_record(["# Source Evidence File", source_evidence_file])
+        .context("CSV write source footer")?;
+
+    writer.flush().context("CSV flush")?;
+    writer
+        .into_inner()
+        .map_err(|e| anyhow::anyhow!("CSV into_inner: {e}"))
+}
+
+/// Legacy no-manifest writer. New callers MUST use
+/// `write_csv_bytes_with_manifest`. Kept only so this task compiles before
+/// the call-site migration lands (Tasks 5–7).
+#[deprecated(note = "use write_csv_bytes_with_manifest so evidence self-identifies")]
 pub fn write_csv_bytes(headers: &[&str], rows: &[Vec<String>]) -> Result<Vec<u8>> {
     let mut writer = csv::Writer::from_writer(Vec::new());
     writer.write_record(headers).context("CSV write headers")?;
@@ -13,6 +69,16 @@ pub fn write_csv_bytes(headers: &[&str], rows: &[Vec<String>]) -> Result<Vec<u8>
     writer
         .into_inner()
         .map_err(|e| anyhow::anyhow!("CSV into_inner: {e}"))
+}
+
+/// `YYYY-MM-DD-HHMMSS` suffix used in filenames across the runner.
+pub fn date_path_suffix() -> String {
+    Local::now().format("%Y-%m-%d-%H%M%S").to_string()
+}
+
+/// Build the canonical basename: `{account_id}_{prefix}-{timestamp}.csv`.
+pub fn evidence_basename(account_id: &str, prefix: &str, ext: &str) -> String {
+    format!("{account_id}_{prefix}-{}.{ext}", date_path_suffix())
 }
 
 /// Format a path as an OSC 8 hyperlink when stderr is a TTY.
@@ -28,26 +94,10 @@ pub fn format_path_with_osc8(path: &std::path::Path) -> String {
     format!("\x1b]8;;{url}\x07{text}\x1b]8;;\x07")
 }
 
-pub fn date_path_suffix() -> PathBuf {
-    let now = Local::now();
-    let year = now.format("%Y").to_string();
-    let month_num = now.format("%m").to_string();
-    let month_abbr = match month_num.as_str() {
-        "01" => "JAN",
-        "02" => "FEB",
-        "03" => "MAR",
-        "04" => "APR",
-        "05" => "MAY",
-        "06" => "JUN",
-        "07" => "JUL",
-        "08" => "AUG",
-        "09" => "SEP",
-        "10" => "OCT",
-        "11" => "NOV",
-        "12" => "DEC",
-        _ => "UNK",
-    };
-    PathBuf::from(&year).join(format!("{month_num}-{month_abbr}"))
+// Silence the deprecation warning inside this file only.
+#[allow(deprecated)]
+mod _legacy_shim {
+    pub use super::write_csv_bytes;
 }
 
 pub fn write_inventory_outputs(
@@ -130,4 +180,10 @@ pub fn write_inventory_outputs(
     }
 
     Ok(written_files)
+}
+
+// Preserve the PathBuf import (used elsewhere in runner via re-export chains).
+#[allow(dead_code)]
+fn _pathbuf_marker() -> Option<PathBuf> {
+    None
 }
