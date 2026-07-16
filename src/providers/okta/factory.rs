@@ -116,6 +116,50 @@ impl ProviderFactory for OktaProviderFactory {
                 ),
             ));
         }
+        if self.selected.iter().any(|s| s == "okta-signin-widget") {
+            v.push(Box::new(
+                super::signin_widget_config::OktaSignInWidgetConfigCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-session-policy") {
+            v.push(Box::new(super::session_policy::OktaSessionPolicyCollector::new(
+                self.client.clone(),
+            )));
+        }
+        if self.selected.iter().any(|s| s == "okta-publisher-groups") {
+            v.push(Box::new(
+                super::publisher_group_membership::OktaPublisherGroupMembershipCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-prod-recert") {
+            v.push(Box::new(
+                super::prod_access_recertification::OktaProdAccessRecertificationCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "okta-shared-account-broker")
+        {
+            v.push(Box::new(
+                super::shared_account_broker_config::OktaSharedAccountBrokerConfigCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-password-policy") {
+            v.push(Box::new(
+                super::password_policy_first_use::OktaPasswordPolicyFirstUseCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
