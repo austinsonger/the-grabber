@@ -8,7 +8,7 @@ use crate::evidence::{
     CollectParams, CsvCollector, EvidenceCollector, EvidenceReport, JsonCollector,
     JsonInventoryReport, ReportMetadata,
 };
-use crate::runner::output::{format_path_with_osc8, write_csv_bytes};
+use crate::runner::output::{evidence_basename, format_path_with_osc8, write_csv_bytes_with_manifest};
 
 pub(crate) async fn run_json_collectors(
     collectors: &[Box<dyn EvidenceCollector>],
@@ -75,7 +75,7 @@ pub(crate) async fn run_csv_collectors(
     region: &str,
     output_dir: &PathBuf,
     dates: Option<(i64, i64)>,
-    timestamp: &str,
+    _timestamp: &str,
 ) -> Result<Vec<audit_log::CollectorOutcome>> {
     std::fs::create_dir_all(output_dir)
         .with_context(|| format!("Failed to create output directory {}", output_dir.display()))?;
@@ -90,14 +90,15 @@ pub(crate) async fn run_csv_collectors(
                     outcomes.push(audit_log::CollectorOutcome::empty(collector.name()));
                     continue;
                 }
-                let filename = format!(
-                    "{}_{}-{}.csv",
-                    account_id,
-                    collector.filename_prefix(),
-                    timestamp
-                );
-                let path = output_dir.join(&filename);
-                let bytes = write_csv_bytes(collector.headers(), &rows)?;
+                let basename = evidence_basename(account_id, collector.filename_prefix(), "csv");
+                let mapping = collector.fedramp_mapping();
+                let path = output_dir.join(&basename);
+                let bytes = write_csv_bytes_with_manifest(
+                    collector.headers(),
+                    &rows,
+                    &mapping,
+                    &basename,
+                )?;
                 std::fs::write(&path, bytes)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));
