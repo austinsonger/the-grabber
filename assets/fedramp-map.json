@@ -1150,6 +1150,18 @@
     "WAF_Regional_Web_ACL_Rules": {
       "req_ids": [],
       "control_ids": []
+    },
+    "Jira_Offboarding_SLA": {
+      "req_ids": [
+        "NIST-1043",
+        "NIST-1519",
+        "NIST-1535"
+      ],
+      "control_ids": [
+        "AC-02h.",
+        "PS-04a., PS-04b., PS-04d.",
+        "PS-07d."
+      ]
     }
   },
   "requirements": {

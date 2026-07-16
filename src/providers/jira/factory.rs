@@ -50,6 +50,78 @@ impl ProviderFactory for JiraProviderFactory {
                 self.project_keys.clone(),
             )));
         }
+        if self.selected.iter().any(|s| s == "jira-offboarding-sla") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "HR-OFF".to_string();
+            v.push(Box::new(super::offboarding_sla::JiraOffboardingSlaCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-remote-access-approvals") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::remote_access_approvals::JiraRemoteAccessApprovalsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-external-system-approvals") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::external_system_approvals::JiraExternalSystemApprovalsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-public-content") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "MKT".to_string();
+            v.push(Box::new(super::public_content_review::JiraPublicContentReviewCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-logging-coordination") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::logging_coordination::JiraLoggingCoordinationCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-audit-posture") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::audit_posture_change::JiraAuditPostureChangeCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-isa-annual") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::isa_annual_review::JiraIsaAnnualReviewCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-change-retention") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "CHG".to_string();
+            v.push(Box::new(super::change_retention::JiraChangeRetentionCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-baseline-exceptions") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::baseline_exceptions::JiraBaselineExceptionsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
