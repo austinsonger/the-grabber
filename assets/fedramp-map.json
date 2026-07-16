@@ -1156,7 +1156,7 @@
     "NIST-1014": {
       "control_id": "CP-02e.[01]",
       "family": "CP",
-      "description": "Provide records confirming the Contingency Plan was updated to address changes to the organization, system, or operational environment \u2014 with the triggering change and corresponding plan update docume"
+      "description": "Provide records confirming the Contingency Plan was updated to address changes to the organization, system, or operational environment — with the triggering change and corresponding plan update documented."
     },
     "NIST-1016": {
       "control_id": "CP-02f.",
@@ -1171,17 +1171,17 @@
     "NIST-1019": {
       "control_id": "CP-03b.[01], CP-03b.[02]",
       "family": "CP",
-      "description": "Provide contingency training content review records confirming training materials are reviewed and updated at least annually to reflect current contingency plan requirements, lessons learned, and any "
+      "description": "Provide contingency training content review records confirming training materials are reviewed and updated at least annually to reflect current contingency plan requirements, lessons learned, and any plan changes — and also following defined triggering events such as an actual contingency…"
     },
     "NIST-1036": {
       "control_id": "SR-11a.[01][02], SR-11a.[03][04], SR-11b",
       "family": "SR",
-      "description": "Provide the anti-counterfeit program documentation and operational records confirming: (1) an anti-counterfeit policy and associated procedures are developed, implemented, and current \u2014 covering organ"
+      "description": "Provide the anti-counterfeit program documentation and operational records confirming: (1) an anti-counterfeit policy and associated procedures are developed, implemented, and current — covering organizational responsibilities and counterfeit identification processes; (2) the procedures…"
     },
     "NIST-1043": {
       "control_id": "AC-02h.",
       "family": "AC",
-      "description": "Provide records confirming account managers and designated personnel are notified within defined timeframes when accounts are no longer required \u2014 within 24 hours of separation or transfer, and within"
+      "description": "Provide records confirming account managers and designated personnel are notified within defined timeframes when accounts are no longer required — within 24 hours of separation or transfer, and within 8 hours for privileged account events — with sample notification records as evidence."
     },
     "NIST-1045": {
       "control_id": "AC-02k.[01][02]",
@@ -1201,37 +1201,37 @@
     "NIST-1048": {
       "control_id": "AC-02(02)",
       "family": "AC",
-      "description": "Provide configuration records confirming temporary and emergency accounts are automatically disabled after no more than an organization-defined period, consistent with the applicable framework's requi"
+      "description": "Provide configuration records confirming temporary and emergency accounts are automatically disabled after no more than an organization-defined period, consistent with the applicable framework's requirements, with configuration output from all applicable systems confirming the threshold is enforced."
     },
     "NIST-1055": {
       "control_id": "AC-02(12)(a), AC-02(12)(b)",
       "family": "AC",
-      "description": "Provide the account monitoring configuration and a sample monitoring report confirming: (1) system accounts are monitored for atypical usage patterns \u2014 such as unusual access times, geographic anomali"
+      "description": "Provide the account monitoring configuration and a sample monitoring report confirming: (1) system accounts are monitored for atypical usage patterns — such as unusual access times, geographic anomalies, or volume spikes; and (2) when atypical usage is detected, it is automatically reported to…"
     },
     "NIST-1056": {
       "control_id": "AC-02(13)",
       "family": "AC",
-      "description": "Provide records confirming accounts of individuals identified as a significant risk are disabled within one (1) hour of discovery per FedRAMP requirements, with a ticket or log confirming timely execu"
+      "description": "Provide records confirming accounts of individuals identified as a significant risk are disabled within one (1) hour of discovery per FedRAMP requirements, with a ticket or log confirming timely execution."
     },
     "NIST-1063": {
       "control_id": "AC-06(02)",
       "family": "AC",
-      "description": "Provide the system configuration confirming non-privileged accounts require explicit authorization for security functions \u2014 including establishing accounts, configuring permissions, setting security p"
+      "description": "Provide the system configuration confirming non-privileged accounts require explicit authorization for security functions — including establishing accounts, configuring permissions, setting security parameters, and installing software — with no undocumented non-privileged access to these functions."
     },
     "NIST-1066": {
       "control_id": "AC-06(07)(a), AC-06(07)(b)",
       "family": "AC",
-      "description": "Provide privilege review records confirming: (1) privileges assigned to defined roles and classes are reviewed at the defined frequency, with the review date, reviewer identity, and scope documented; "
+      "description": "Provide privilege review records confirming: (1) privileges assigned to defined roles and classes are reviewed at the defined frequency, with the review date, reviewer identity, and scope documented; and (2) following each review, privileges are reassigned or removed as necessary to correctly…"
     },
     "NIST-1069": {
       "control_id": "AC-06(10)",
       "family": "AC",
-      "description": "Provide the system configuration confirming non-privileged accounts are technically blocked from executing privileged functions \u2014 with role or permission configuration evidence showing the enforcement"
+      "description": "Provide the system configuration confirming non-privileged accounts are technically blocked from executing privileged functions — with role or permission configuration evidence showing the enforcement mechanism is active."
     },
     "NIST-1071": {
       "control_id": "AC-08a.",
       "family": "AC",
-      "description": "Provide a screenshot of the system use notification as displayed to users before access is granted, confirming it includes privacy and security notices consistent with applicable laws, Executive Order"
+      "description": "Provide a screenshot of the system use notification as displayed to users before access is granted, confirming it includes privacy and security notices consistent with applicable laws, Executive Orders, directives, regulations, policies, and standards."
     },
     "NIST-1072": {
       "control_id": "AC-08a.01.02.03.04",
@@ -1241,7 +1241,7 @@
     "NIST-1073": {
       "control_id": "AC-08b.",
       "family": "AC",
-      "description": "Provide a system demonstration or screenshot confirming the system use notification or banner is retained on screen and requires users to take an explicit action \u2014 such as clicking 'Accept' or 'Agree'"
+      "description": "Provide a system demonstration or screenshot confirming the system use notification or banner is retained on screen and requires users to take an explicit action — such as clicking 'Accept' or 'Agree' — before being granted access to the system."
     },
     "NIST-1074": {
       "control_id": "AC-08c.",
@@ -1251,12 +1251,12 @@
     "NIST-1076": {
       "control_id": "AC-11a., AC-11b.",
       "family": "AC",
-      "description": "Provide session lock configuration records confirming: (1) the system initiates a session lock after no more than an organization-defined period of inactivity, concealing previously visible informatio"
+      "description": "Provide session lock configuration records confirming: (1) the system initiates a session lock after no more than an organization-defined period of inactivity, concealing previously visible information; and (2) once a session lock is activated, re-access requires the user to re-establish their…"
     },
     "NIST-1077": {
       "control_id": "AC-11(01)",
       "family": "AC",
-      "description": "Provide the screen lock configuration confirming that when a device lock is activated, all previously visible information on the display is concealed and replaced with a publicly viewable image \u2014 prev"
+      "description": "Provide the screen lock configuration confirming that when a device lock is activated, all previously visible information on the display is concealed and replaced with a publicly viewable image — preventing shoulder-surfing of locked session content."
     },
     "NIST-1081": {
       "control_id": "AC-14a., AC-14b.",
@@ -1271,22 +1271,22 @@
     "NIST-1088": {
       "control_id": "AC-17(04)(a)[01][03], AC-17(04)(a)[02][04], AC-17(04)(b)",
       "family": "AC",
-      "description": "Provide the remote access authorization records confirming: (1) execution of privileged commands via remote access is permitted only for defined operational needs, with justification documented and as"
+      "description": "Provide the remote access authorization records confirming: (1) execution of privileged commands via remote access is permitted only for defined operational needs, with justification documented and assessable evidence maintained; and (2) access to security-relevant information via remote access…"
     },
     "NIST-1092": {
       "control_id": "AC-18a.",
       "family": "AC",
-      "description": "Provide the wireless access policy and configuration standards confirming configuration requirements, connection requirements, and implementation guidance are established and documented for each type "
+      "description": "Provide the wireless access policy and configuration standards confirming configuration requirements, connection requirements, and implementation guidance are established and documented for each type of wireless access authorized — covering authentication, encryption, and access control…"
     },
     "NIST-1093": {
       "control_id": "AC-18b.",
       "family": "AC",
-      "description": "Provide wireless access authorization records confirming each type of wireless connection is explicitly approved before being permitted, with the current list of authorized wireless access types avail"
+      "description": "Provide wireless access authorization records confirming each type of wireless connection is explicitly approved before being permitted, with the current list of authorized wireless access types available."
     },
     "NIST-1094": {
       "control_id": "AC-18(01)[01], AC-18(01)[02]",
       "family": "AC",
-      "description": "Provide the wireless access configuration confirming all wireless connections are protected by both: (1) authentication of users, devices, or both before access is granted; and (2) encryption of all d"
+      "description": "Provide the wireless access configuration confirming all wireless connections are protected by both: (1) authentication of users, devices, or both before access is granted; and (2) encryption of all data in transit — with the authentication mechanism, encryption protocol, and cipher strength…"
     },
     "NIST-1095": {
       "control_id": "AC-18(03)",
@@ -1296,7 +1296,7 @@
     "NIST-1098": {
       "control_id": "AC-19a.",
       "family": "AC",
-      "description": "Provide the mobile device management configuration confirming requirements, connection standards, and implementation guidance are established for all organization-controlled mobile devices \u2014 including"
+      "description": "Provide the mobile device management configuration confirming requirements, connection standards, and implementation guidance are established for all organization-controlled mobile devices — including when devices are used outside of controlled areas — with MDM policy or equivalent documentation…"
     },
     "NIST-1100": {
       "control_id": "AC-19(05)",
@@ -1311,7 +1311,7 @@
     "NIST-1103": {
       "control_id": "AC-20(01)(a), AC-20(01)(b)",
       "family": "AC",
-      "description": "Provide records confirming authorized individuals using external systems to access organizational systems or data have: (1) verified the external system employs required security controls before acces"
+      "description": "Provide records confirming authorized individuals using external systems to access organizational systems or data have: (1) verified the external system employs required security controls before access is permitted; and (2) received approval from the appropriate authority prior to that use —…"
     },
     "NIST-1104": {
       "control_id": "AC-20(02)",
@@ -1321,12 +1321,12 @@
     "NIST-1106": {
       "control_id": "AC-21a.",
       "family": "AC",
-      "description": "Provide records confirming authorized users have a mechanism to determine whether a sharing partner's access authorizations match the information's access and use restrictions before sharing \u2014 with a "
+      "description": "Provide records confirming authorized users have a mechanism to determine whether a sharing partner's access authorizations match the information's access and use restrictions before sharing — with a description of how that determination is made."
     },
     "NIST-1107": {
       "control_id": "AC-21b.",
       "family": "AC",
-      "description": "Provide the information-sharing decision support configuration confirming automated mechanisms or defined manual processes assist users in making appropriate information-sharing and collaboration deci"
+      "description": "Provide the information-sharing decision support configuration confirming automated mechanisms or defined manual processes assist users in making appropriate information-sharing and collaboration decisions."
     },
     "NIST-1108": {
       "control_id": "AC-22a.",
@@ -1336,7 +1336,7 @@
     "NIST-1109": {
       "control_id": "AC-22b.",
       "family": "AC",
-      "description": "Provide training records confirming authorized individuals who post to publicly accessible systems receive training on how to ensure publicly accessible information does not contain non-public informa"
+      "description": "Provide training records confirming authorized individuals who post to publicly accessible systems receive training on how to ensure publicly accessible information does not contain non-public information — with training completion dates and content evidence confirming coverage of this requirement."
     },
     "NIST-1110": {
       "control_id": "AC-22c.",
@@ -1346,12 +1346,12 @@
     "NIST-1111": {
       "control_id": "AC-22d.",
       "family": "AC",
-      "description": "Provide records confirming content on publicly accessible systems is reviewed at least quarterly for non-public information, and that any non-public information discovered is removed promptly \u2014 with t"
+      "description": "Provide records confirming content on publicly accessible systems is reviewed at least quarterly for non-public information, and that any non-public information discovered is removed promptly — with the review date, reviewer identity, and any removals documented per review cycle."
     },
     "NIST-1113": {
       "control_id": "AT-02a.01[01][03]",
       "family": "AT",
-      "description": "Provide security literacy training completion records confirming all users \u2014 including managers, senior executives, and contractors \u2014 completed training upon onboarding and at least annually thereafte"
+      "description": "Provide security literacy training completion records confirming all users — including managers, senior executives, and contractors — completed training upon onboarding and at least annually thereafter."
     },
     "NIST-1114": {
       "control_id": "AT-02a.01[02][04]",
@@ -1361,12 +1361,12 @@
     "NIST-1115": {
       "control_id": "AT-02a.02",
       "family": "AT",
-      "description": "Provide records and supporting evidence confirming security and privacy literacy training is provided to system users (including managers, senior executives, and contractors) when required by system c"
+      "description": "Provide records and supporting evidence confirming security and privacy literacy training is provided to system users (including managers, senior executives, and contractors) when required by system changes or following."
     },
     "NIST-1116": {
       "control_id": "AT-02b.",
       "family": "AT",
-      "description": "Provide evidence confirming security and privacy awareness techniques are actively employed between formal training cycles \u2014 such as phishing simulations, security newsletters, policy acknowledgments,"
+      "description": "Provide evidence confirming security and privacy awareness techniques are actively employed between formal training cycles — such as phishing simulations, security newsletters, policy acknowledgments, or security alerts — to reinforce user awareness on an ongoing basis."
     },
     "NIST-1117": {
       "control_id": "AT-02c.",
@@ -1376,7 +1376,7 @@
     "NIST-1118": {
       "control_id": "AT-02d., AT-03c.",
       "family": "AT",
-      "description": "Provide records confirming lessons learned from internal or external security incidents or breaches are incorporated into both security and privacy literacy and awareness training and into role-based "
+      "description": "Provide records confirming lessons learned from internal or external security incidents or breaches are incorporated into both security and privacy literacy and awareness training and into role-based training."
     },
     "NIST-1119": {
       "control_id": "AT-02(02)",
@@ -1401,22 +1401,22 @@
     "NIST-1129": {
       "control_id": "AT-04a.",
       "family": "AT",
-      "description": "Provide training program records confirming all information security and privacy training activities \u2014 including security and privacy awareness training and specific role-based training \u2014 are document"
+      "description": "Provide training program records confirming all information security and privacy training activities — including security and privacy awareness training and specific role-based training — are documented and actively monitored throughout the year, with completion rates, dates, and any gaps or…"
     },
     "NIST-1130": {
       "control_id": "AT-04b.",
       "family": "AT",
-      "description": "Provide training record retention policy documentation and sample records confirming security and privacy training completion records are retained for at least the period required by the applicable fr"
+      "description": "Provide training record retention policy documentation and sample records confirming security and privacy training completion records are retained for at least the period required by the applicable framework."
     },
     "NIST-1133": {
       "control_id": "AU-02b.",
       "family": "AU",
-      "description": "Provide records confirming the audit event selection process was coordinated with other organizational entities that require audit-related information \u2014 such as the security operations team or inciden"
+      "description": "Provide records confirming the audit event selection process was coordinated with other organizational entities that require audit-related information — such as the security operations team or incident response function — with coordination documented."
     },
     "NIST-1135": {
       "control_id": "AU-02d.",
       "family": "AU",
-      "description": "Provide the audit event selection rationale documentation, confirming coordination between the service provider and consumer is documented and accepted by the Authorizing Official \u2014 not just internall"
+      "description": "Provide the audit event selection rationale documentation, confirming coordination between the service provider and consumer is documented and accepted by the Authorizing Official — not just internally reviewed."
     },
     "NIST-1136": {
       "control_id": "AU-02e.",
@@ -1431,17 +1431,17 @@
     "NIST-1144": {
       "control_id": "AU-06c.",
       "family": "AU",
-      "description": "Provide records confirming the level of audit record review, analysis, and reporting is adjusted when there is a change in organizational risk \u2014 such as based on law enforcement information, intellige"
+      "description": "Provide records confirming the level of audit record review, analysis, and reporting is adjusted when there is a change in organizational risk — such as based on law enforcement information, intelligence, or other threat indicators — with evidence that the review posture was modified in response…"
     },
     "NIST-1151": {
       "control_id": "AU-07(01), AU-07a., AU-07b.",
       "family": "AU",
-      "description": "Provide the audit management tool configuration confirming it provides: (1) audit record reduction and report generation capability supporting on-demand review, analysis, and reporting without alterin"
+      "description": "Provide the audit management tool configuration confirming it provides: (1) audit record reduction and report generation capability supporting on-demand review, analysis, and reporting without altering the original content or time ordering of audit records; and (2) the ability to process, sort,…"
     },
     "NIST-1160": {
       "control_id": "AU-12b.",
       "family": "AU",
-      "description": "Provide the audit configuration confirming only designated personnel or roles are authorized to select and modify the event types logged by specific system components, with access controls restricting"
+      "description": "Provide the audit configuration confirming only designated personnel or roles are authorized to select and modify the event types logged by specific system components, with access controls restricting that capability to approved individuals."
     },
     "NIST-1176": {
       "control_id": "CA-02f.",
@@ -1456,22 +1456,22 @@
     "NIST-1181": {
       "control_id": "CA-03b.",
       "family": "CA",
-      "description": "Provide the interconnection security agreement (ISA) or equivalent exchange agreement confirming it formally documents for each connection: (1) interface characteristics; (2) security requirements; (3"
+      "description": "Provide the interconnection security agreement (ISA) or equivalent exchange agreement confirming it formally documents for each connection: (1) interface characteristics; (2) security requirements; (3) privacy requirements; (4) controls implemented by each party; (5) responsibilities for each…"
     },
     "NIST-1182": {
       "control_id": "CA-03c.",
       "family": "CA",
-      "description": "Provide the most recent interconnection agreement review records confirming all system interconnection agreements are reviewed and updated at least annually, with the review date and any resulting cha"
+      "description": "Provide the most recent interconnection agreement review records confirming all system interconnection agreements are reviewed and updated at least annually, with the review date and any resulting changes documented."
     },
     "NIST-1185": {
       "control_id": "CA-06a., CA-06b.",
       "family": "CA",
-      "description": "Provide records confirming a senior official is designated as the authorizing official for the system and, separately, that a senior official is designated as the authorizing official for common contr"
+      "description": "Provide records confirming a senior official is designated as the authorizing official for the system and, separately, that a senior official is designated as the authorizing official for common controls available for inheritance by organizational systems — with current designations documented…"
     },
     "NIST-1186": {
       "control_id": "CA-06c.01, CA-06c.02",
       "family": "CA",
-      "description": "Provide the ATO package or equivalent authorization documentation confirming that before commencing operations: (1) the authorizing official accepted the use of common controls inherited by the system"
+      "description": "Provide the ATO package or equivalent authorization documentation confirming that before commencing operations: (1) the authorizing official accepted the use of common controls inherited by the system; and (2) the authorizing official authorized the system to operate — with both decisions…"
     },
     "NIST-1187": {
       "control_id": "CA-06d.",
@@ -1491,7 +1491,7 @@
     "NIST-1203": {
       "control_id": "CA-09b.",
       "family": "CA",
-      "description": "Provide internal connection documentation confirming each authorized internal connection includes all required elements: (1) interface characteristics; (2) security requirements; (3) privacy requireme"
+      "description": "Provide internal connection documentation confirming each authorized internal connection includes all required elements: (1) interface characteristics; (2) security requirements; (3) privacy requirements; and (4) the nature of the information communicated across the connection."
     },
     "NIST-1204": {
       "control_id": "CA-09c.",
@@ -1501,17 +1501,17 @@
     "NIST-1205": {
       "control_id": "CA-09d.",
       "family": "CA",
-      "description": "Provide records confirming the continued need for each internal connection is reviewed at least annually, with the review date, reviewer identity, and whether each connection was retained, modified, o"
+      "description": "Provide records confirming the continued need for each internal connection is reviewed at least annually, with the review date, reviewer identity, and whether each connection was retained, modified, or terminated documented."
     },
     "NIST-1207": {
       "control_id": "CM-02b.01, CM-02b.02, CM-02b.03",
       "family": "CM",
-      "description": "Provide system configuration records confirming the baseline configuration is reviewed and updated: at least annually and whenever a significant change occurs; when required due to defined circumstanc"
+      "description": "Provide system configuration records confirming the baseline configuration is reviewed and updated: at least annually and whenever a significant change occurs; when required due to defined circumstances; and when system components are installed or upgraded — with the review date, triggering…"
     },
     "NIST-1210": {
       "control_id": "CM-02(07)(a), CM-02(07)(b)",
       "family": "CM",
-      "description": "Provide records confirming the organization's defined approach for high-risk travel is implemented in both directions: (1) systems or components issued to individuals traveling to locations the organi"
+      "description": "Provide records confirming the organization's defined approach for high-risk travel is implemented in both directions: (1) systems or components issued to individuals traveling to locations the organization deems high-risk have hardened configurations applied before departure — such as…"
     },
     "NIST-1215": {
       "control_id": "CM-03e.",
@@ -1521,7 +1521,7 @@
     "NIST-1218": {
       "control_id": "CM-03g.[02]",
       "family": "CM",
-      "description": "Provide configuration control board meeting records confirming the CCB or equivalent governance body convenes at the defined frequency, with meeting minutes or attendance records as evidence of active"
+      "description": "Provide configuration control board meeting records confirming the CCB or equivalent governance body convenes at the defined frequency, with meeting minutes or attendance records as evidence of active oversight."
     },
     "NIST-1229": {
       "control_id": "CM-05",
@@ -1536,7 +1536,7 @@
     "NIST-1231": {
       "control_id": "CM-05(01)(b)",
       "family": "CM",
-      "description": "Provide audit configuration records and a sample audit trail confirming change enforcement actions are automatically captured in the audit log, enabling reconstruction of who made what change and when"
+      "description": "Provide audit configuration records and a sample audit trail confirming change enforcement actions are automatically captured in the audit log, enabling reconstruction of who made what change and when."
     },
     "NIST-1232": {
       "control_id": "CM-05(05)(a)",
@@ -1546,47 +1546,47 @@
     "NIST-1233": {
       "control_id": "CM-05(05)(b)",
       "family": "CM",
-      "description": "Provide privilege review records confirming that production and operational environment privileges are reviewed and reevaluated at least quarterly per FedRAMP requirements, with each review documentin"
+      "description": "Provide privilege review records confirming that production and operational environment privileges are reviewed and reevaluated at least quarterly per FedRAMP requirements, with each review documenting the date, reviewer identity, and any privilege changes resulting from the evaluation."
     },
     "NIST-1236": {
       "control_id": "CM-06c.",
       "family": "CM",
-      "description": "Provide records confirming any deviations from the established configuration baseline are identified, documented, and formally approved based on operational requirements, with each deviation including"
+      "description": "Provide records confirming any deviations from the established configuration baseline are identified, documented, and formally approved based on operational requirements, with each deviation including a justification and authorizing official sign-off."
     },
     "NIST-1242": {
       "control_id": "CM-07(01)(a), CM-07(01)(b)",
       "family": "CM",
-      "description": "Provide configuration management records confirming: (1) the system is reviewed at least annually to identify unnecessary or non-secure functions, ports, protocols, software, and services \u2014 with the r"
+      "description": "Provide configuration management records confirming: (1) the system is reviewed at least annually to identify unnecessary or non-secure functions, ports, protocols, software, and services — with the review date, scope, and findings documented; and (2) all items identified as unnecessary or…"
     },
     "NIST-1243": {
       "control_id": "CM-07(02)",
       "family": "CM",
-      "description": "Provide the application execution control configuration confirming unauthorized program execution is prevented through an allowlist, authorization rules, or rules of behavior-based control, with curre"
+      "description": "Provide the application execution control configuration confirming unauthorized program execution is prevented through an allowlist, authorization rules, or rules of behavior-based control, with current enforcement evidence."
     },
     "NIST-1246": {
       "control_id": "CM-07(05)(b)",
       "family": "CM",
-      "description": "Provide the application allowlisting enforcement configuration confirming a deny-all, permit-by-exception policy is implemented \u2014 only explicitly authorized software programs may execute on the system"
+      "description": "Provide the application allowlisting enforcement configuration confirming a deny-all, permit-by-exception policy is implemented — only explicitly authorized software programs may execute on the system, with unauthorized execution technically blocked through enforced allowlisting."
     },
     "NIST-1247": {
       "control_id": "CM-07(05)(c)",
       "family": "CM",
-      "description": "Provide the authorized software list review records confirming the list is reviewed and updated at least quarterly \u2014 or whenever a change occurs \u2014 with the review date, reviewer identity, and any addi"
+      "description": "Provide the authorized software list review records confirming the list is reviewed and updated at least quarterly — or whenever a change occurs — with the review date, reviewer identity, and any additions or removals documented."
     },
     "NIST-1254": {
       "control_id": "CM-10a., CM-10b., CM-10c.",
       "family": "CM",
-      "description": "Provide software usage compliance records confirming all three dimensions of software usage control are enforced: (1) software and associated documentation are used in accordance with contract agreeme"
+      "description": "Provide software usage compliance records confirming all three dimensions of software usage control are enforced: (1) software and associated documentation are used in accordance with contract agreements and applicable copyright laws — with license compliance records or legal review evidence;…"
     },
     "NIST-1261": {
       "control_id": "CM-12c.",
       "family": "CM",
-      "description": "Provide records confirming any changes to the location where defined information types are processed, stored, or transmitted \u2014 including CSP-defined information such as federal customer data and other"
+      "description": "Provide records confirming any changes to the location where defined information types are processed, stored, or transmitted — including CSP-defined information such as federal customer data and other sensitive system data — are tracked and documented, with notification to relevant personnel…"
     },
     "NIST-1262": {
       "control_id": "CM-12(01)",
       "family": "CM",
-      "description": "Provide automated data discovery tool output confirming federal customer data and system data requiring High or Moderate impact protection are identified by information type across defined system comp"
+      "description": "Provide automated data discovery tool output confirming federal customer data and system data requiring High or Moderate impact protection are identified by information type across defined system components, per FedRAMP requirements."
     },
     "NIST-1268": {
       "control_id": "CP-03a.01",
@@ -1596,12 +1596,12 @@
     "NIST-1269": {
       "control_id": "CP-03a.02",
       "family": "CP",
-      "description": "Provide contingency training records confirming training is provided to applicable personnel when system changes require it \u2014 with training completion dates corresponding to the specific change that t"
+      "description": "Provide contingency training records confirming training is provided to applicable personnel when system changes require it — with training completion dates corresponding to the specific change that triggered the training requirement."
     },
     "NIST-1270": {
       "control_id": "CP-03a.03",
       "family": "CP",
-      "description": "Provide contingency training completion records confirming applicable personnel receive recurring contingency training at least annually, with training completion dates and participant records from th"
+      "description": "Provide contingency training completion records confirming applicable personnel receive recurring contingency training at least annually, with training completion dates and participant records from the current cycle."
     },
     "NIST-1273": {
       "control_id": "CP-04c.",
@@ -1621,7 +1621,7 @@
     "NIST-1279": {
       "control_id": "CP-06(03)[01], CP-06(03)[02]",
       "family": "CP",
-      "description": "Provide the alternate storage site risk assessment and mitigation plan confirming: (1) potential accessibility problems to the site in the event of an area-wide disruption or disaster are identified; "
+      "description": "Provide the alternate storage site risk assessment and mitigation plan confirming: (1) potential accessibility problems to the site in the event of an area-wide disruption or disaster are identified; and (2) explicit mitigation actions to address each identified problem are outlined — with both…"
     },
     "NIST-1281": {
       "control_id": "CP-07b.[01]",
@@ -1636,12 +1636,12 @@
     "NIST-1283": {
       "control_id": "CP-07c.",
       "family": "CP",
-      "description": "Provide evidence confirming security controls at the alternate processing site are equivalent to those at the primary site, including the CSP-versus-provider responsibility breakdown and documentation"
+      "description": "Provide evidence confirming security controls at the alternate processing site are equivalent to those at the primary site, including the CSP-versus-provider responsibility breakdown and documentation that equivalency has been validated."
     },
     "NIST-1285": {
       "control_id": "CP-07(02)[01], CP-07(02)[02]",
       "family": "CP",
-      "description": "Provide the alternate processing site risk assessment and mitigation plan confirming: (1) potential accessibility problems to the site in the event of an area-wide disruption or disaster are identifie"
+      "description": "Provide the alternate processing site risk assessment and mitigation plan confirming: (1) potential accessibility problems to the site in the event of an area-wide disruption or disaster are identified; and (2) explicit mitigation actions to address each identified problem are outlined — with…"
     },
     "NIST-1286": {
       "control_id": "CP-07(03)",
@@ -1651,12 +1651,12 @@
     "NIST-1288": {
       "control_id": "CP-8",
       "family": "CP",
-      "description": "Provide the alternate telecommunications service agreements confirming services are established with the necessary provisions to support resumption of essential system operations within the defined ti"
+      "description": "Provide the alternate telecommunications service agreements confirming services are established with the necessary provisions to support resumption of essential system operations within the defined timeframe."
     },
     "NIST-1289": {
       "control_id": "CP-08(01)(a), CP-08(01)(b)",
       "family": "CP",
-      "description": "Provide telecommunications service documentation confirming: (1) primary and alternate service agreements both contain priority-of-service provisions consistent with the system's availability requirem"
+      "description": "Provide telecommunications service documentation confirming: (1) primary and alternate service agreements both contain priority-of-service provisions consistent with the system's availability requirements; and (2) Telecommunications Service Priority (TSP) authorization is established for all…"
     },
     "NIST-1290": {
       "control_id": "CP-08(02)",
@@ -1666,17 +1666,17 @@
     "NIST-1293": {
       "control_id": "CP-09a.",
       "family": "CP",
-      "description": "Provide backup execution logs confirming user-level data is backed up daily (incremental) and weekly (full) with at least three copies maintained \u2014 at least one available online \u2014 per FedRAMP requirem"
+      "description": "Provide backup execution logs confirming user-level data is backed up daily (incremental) and weekly (full) with at least three copies maintained — at least one available online — per FedRAMP requirements."
     },
     "NIST-1295": {
       "control_id": "CP-09c.",
       "family": "CP",
-      "description": "Provide backup execution records confirming system documentation \u2014 including security documentation \u2014 is backed up at the required frequency with at least three copies, at least one available online."
+      "description": "Provide backup execution records confirming system documentation — including security documentation — is backed up at the required frequency with at least three copies, at least one available online."
     },
     "NIST-1301": {
       "control_id": "CP-10",
       "family": "CP",
-      "description": "Provide contingency test or activation records confirming the system can be recovered and reconstituted to a known state within the defined RTO and RPO, with actual recovery completion time documented"
+      "description": "Provide contingency test or activation records confirming the system can be recovered and reconstituted to a known state within the defined RTO and RPO, with actual recovery completion time documented."
     },
     "NIST-1302": {
       "control_id": "CP-10(02)",
@@ -1701,22 +1701,22 @@
     "NIST-1321": {
       "control_id": "IA-05e.",
       "family": "IA",
-      "description": "Provide records confirming all default system and application authenticators \u2014 including default passwords, certificates, and shared secrets \u2014 are changed before first use."
+      "description": "Provide records confirming all default system and application authenticators — including default passwords, certificates, and shared secrets — are changed before first use."
     },
     "NIST-1323": {
       "control_id": "IA-05g.",
       "family": "IA",
-      "description": "Provide the authenticator protection configuration confirming authenticator content \u2014 such as password hashes, private keys, or token seeds \u2014 is protected from unauthorized disclosure and modification"
+      "description": "Provide the authenticator protection configuration confirming authenticator content — such as password hashes, private keys, or token seeds — is protected from unauthorized disclosure and modification at rest and in transit."
     },
     "NIST-1324": {
       "control_id": "IA-05h.[01]",
       "family": "IA",
-      "description": "Provide records confirming individuals are required to take specific protective actions for their authenticators \u2014 such as not sharing credentials, securing hardware tokens, and reporting suspected co"
+      "description": "Provide records confirming individuals are required to take specific protective actions for their authenticators — such as not sharing credentials, securing hardware tokens, and reporting suspected compromise — with evidence these requirements are communicated, acknowledged, and enforced."
     },
     "NIST-1325": {
       "control_id": "IA-05h.[02]",
       "family": "IA",
-      "description": "Provide the device configuration confirming devices implement specific technical controls to protect authenticators \u2014 such as encrypted storage of credentials, secure key storage, or equivalent device"
+      "description": "Provide the device configuration confirming devices implement specific technical controls to protect authenticators — such as encrypted storage of credentials, secure key storage, or equivalent device-level protections — with configuration evidence across all applicable device types."
     },
     "NIST-1326": {
       "control_id": "IA-05i.",
@@ -1726,12 +1726,12 @@
     "NIST-1341": {
       "control_id": "IA-07",
       "family": "IA",
-      "description": "Provide system configuration and access records confirming mechanisms for authentication to a cryptographic module are implemented that meet the requirements of applicable laws, executive orders, dire"
+      "description": "Provide system configuration and access records confirming mechanisms for authentication to a cryptographic module are implemented that meet the requirements of applicable laws, executive orders, directives, policies, regulations, standards, and guidelines fo."
     },
     "NIST-1358": {
       "control_id": "IR-02a.01",
       "family": "IR",
-      "description": "Provide incident response training completion records confirming personnel in IR roles completed training within FedRAMP-required timeframes \u2014 within 10 days for privileged users and within 30 days fo"
+      "description": "Provide incident response training completion records confirming personnel in IR roles completed training within FedRAMP-required timeframes — within 10 days for privileged users and within 30 days for those assuming IR roles — prior to participating in IR activities."
     },
     "NIST-1359": {
       "control_id": "IR-02a.02",
@@ -1746,12 +1746,12 @@
     "NIST-1361": {
       "control_id": "IR-02b.[01], IR-02b.[02]",
       "family": "IR",
-      "description": "Provide IR training content review records confirming training materials are reviewed and updated at least annually to reflect the current threat environment, lessons learned, and regulatory changes \u2014"
+      "description": "Provide IR training content review records confirming training materials are reviewed and updated at least annually to reflect the current threat environment, lessons learned, and regulatory changes — and also following significant events such as an actual incident, a major system change, or an…"
     },
     "NIST-1367": {
       "control_id": "IR-04b.",
       "family": "IR",
-      "description": "Provide records confirming incident handling activities are coordinated with contingency planning activities \u2014 for example, that incident-triggered continuity actions are documented and that IR and CP"
+      "description": "Provide records confirming incident handling activities are coordinated with contingency planning activities — for example, that incident-triggered continuity actions are documented and that IR and CP personnel communicate during and after significant incidents."
     },
     "NIST-1369": {
       "control_id": "IR-04c.[02]",
@@ -1766,7 +1766,7 @@
     "NIST-1385": {
       "control_id": "IR-06a., IR-06b.",
       "family": "IR",
-      "description": "Provide incident reporting records confirming: (1) personnel report suspected incidents to the organizational incident response capability within US-CERT reporting timelines; and (2) incident informat"
+      "description": "Provide incident reporting records confirming: (1) personnel report suspected incidents to the organizational incident response capability within US-CERT reporting timelines; and (2) incident information is reported to all defined authorities — including US-CERT and CISA — with timestamps,…"
     },
     "NIST-1411": {
       "control_id": "MA-03(02)",
@@ -1776,12 +1776,12 @@
     "NIST-1448": {
       "control_id": "PE-03a.01",
       "family": "PE",
-      "description": "Provide the physical access control configuration confirming individual access authorizations are verified before granting access to the facility where the system resides \u2014 at all defined entry and ex"
+      "description": "Provide the physical access control configuration confirming individual access authorizations are verified before granting access to the facility where the system resides — at all defined entry and exit points — using approved physical access control systems, devices, or guards."
     },
     "NIST-1449": {
       "control_id": "PE-03a.02",
       "family": "PE",
-      "description": "Provide the physical access control configuration confirming ingress and egress are enforced at all defined entry and exit points using approved access control systems, devices, or guards, with access"
+      "description": "Provide the physical access control configuration confirming ingress and egress are enforced at all defined entry and exit points using approved access control systems, devices, or guards, with access logs confirming enforcement is active."
     },
     "NIST-1450": {
       "control_id": "PE-03b.",
@@ -1791,7 +1791,7 @@
     "NIST-1451": {
       "control_id": "PE-03c.",
       "family": "PE",
-      "description": "Provide records confirming access to areas within the facility where publicly accessible information systems reside is controlled and monitored to prevent unauthorized physical access to those systems"
+      "description": "Provide records confirming access to areas within the facility where publicly accessible information systems reside is controlled and monitored to prevent unauthorized physical access to those systems."
     },
     "NIST-1452": {
       "control_id": "PE-03d.[01]",
@@ -1801,12 +1801,12 @@
     "NIST-1453": {
       "control_id": "PE-03d.[02]",
       "family": "PE",
-      "description": "Provide visitor control records confirming visitor activity is supervised in all circumstances within restricted access areas where the system resides \u2014 not limited to entry and exit points."
+      "description": "Provide visitor control records confirming visitor activity is supervised in all circumstances within restricted access areas where the system resides — not limited to entry and exit points."
     },
     "NIST-1454": {
       "control_id": "PE-03e., PE-03e.[01][02][03]",
       "family": "PE",
-      "description": "Provide records confirming keys, combinations, and other physical access devices are managed throughout their lifecycle: inventoried with each device accounted for; stored in defined secure locations "
+      "description": "Provide records confirming keys, combinations, and other physical access devices are managed throughout their lifecycle: inventoried with each device accounted for; stored in defined secure locations with access restricted to authorized individuals only; issued with formal issuance records…"
     },
     "NIST-1455": {
       "control_id": "PE-03f.",
@@ -1816,12 +1816,12 @@
     "NIST-1456": {
       "control_id": "PE-03g.[01]",
       "family": "PE",
-      "description": "Provide records confirming access combinations are changed at least annually \u2014 or earlier when a security-relevant event occurs such as personnel departure or suspected compromise \u2014 with change dates "
+      "description": "Provide records confirming access combinations are changed at least annually — or earlier when a security-relevant event occurs such as personnel departure or suspected compromise — with change dates and triggering conditions documented."
     },
     "NIST-1457": {
       "control_id": "PE-03g.[02]",
       "family": "PE",
-      "description": "Provide records confirming physical keys are changed at least annually \u2014 or earlier when keys are lost or when individuals with key access are transferred or terminated \u2014 with change dates and trigger"
+      "description": "Provide records confirming physical keys are changed at least annually — or earlier when keys are lost or when individuals with key access are transferred or terminated — with change dates and triggering conditions documented."
     },
     "NIST-1512": {
       "control_id": "PS-02a.",
@@ -1836,7 +1836,7 @@
     "NIST-1514": {
       "control_id": "PS-02c.",
       "family": "PS",
-      "description": "Provide position risk designation records (or equivalent role-based sensitivity or trust classification records) confirming designations are reviewed and updated at a frequency consistent with the app"
+      "description": "Provide position risk designation records (or equivalent role-based sensitivity or trust classification records) confirming designations are reviewed and updated at a frequency consistent with the applicable framework's requirements, with the current designation records, review date, and…"
     },
     "NIST-1515": {
       "control_id": "PS-03a.",
@@ -1846,12 +1846,12 @@
     "NIST-1516": {
       "control_id": "PS-03b., PS-03b.[01][02]",
       "family": "PS",
-      "description": "Provide re-screening records confirming individuals with national security clearances are re-investigated on required schedules \u2014 including during the fifth (5th) year for Top Secret security clearanc"
+      "description": "Provide re-screening records confirming individuals with national security clearances are re-investigated on required schedules — including during the fifth (5th) year for Top Secret security clearances, during the tenth (10th) year for Secret security clearances, and at any other defined…"
     },
     "NIST-1517": {
       "control_id": "PS-03(03)(a), PS-03(03)(b)",
       "family": "PS",
-      "description": "Provide personnel security records confirming individuals accessing systems that process, store, or transmit information requiring special protection: (1) have valid access authorizations demonstrated"
+      "description": "Provide personnel security records confirming individuals accessing systems that process, store, or transmit information requiring special protection: (1) have valid access authorizations demonstrated through a formal documented need-to-know process appropriate to the information type; and (2)…"
     },
     "NIST-1519": {
       "control_id": "PS-04a., PS-04b., PS-04d.",
@@ -1871,12 +1871,12 @@
     "NIST-1524": {
       "control_id": "PS-05a.",
       "family": "PS",
-      "description": "Provide records confirming that when individuals are reassigned or transferred to other positions, the ongoing operational need for their current logical and physical access authorizations to systems "
+      "description": "Provide records confirming that when individuals are reassigned or transferred to other positions, the ongoing operational need for their current logical and physical access authorizations to systems and facilities is reviewed and confirmed — with transfer records showing access was evaluated,…"
     },
     "NIST-1525": {
       "control_id": "PS-05b.",
       "family": "PS",
-      "description": "Provide transfer records confirming required reassignment actions \u2014 including access reviews and adjustments \u2014 are initiated within 24 hours of the formal transfer action."
+      "description": "Provide transfer records confirming required reassignment actions — including access reviews and adjustments — are initiated within 24 hours of the formal transfer action."
     },
     "NIST-1526": {
       "control_id": "PS-05c.",
@@ -1906,7 +1906,7 @@
     "NIST-1531": {
       "control_id": "PS-06c.02",
       "family": "PS",
-      "description": "Provide personnel security records confirming individuals re-sign access agreements at least annually and any time there is a change to the user's level of access, to maintain access to organizational"
+      "description": "Provide personnel security records confirming individuals re-sign access agreements at least annually and any time there is a change to the user's level of access, to maintain access to organizational systems when agreements have been updated or revised."
     },
     "NIST-1533": {
       "control_id": "PS-07a.",
@@ -1916,12 +1916,12 @@
     "NIST-1534": {
       "control_id": "PS-07b.",
       "family": "PS",
-      "description": "Provide third-party contracts or agreements confirming external service providers are explicitly required to comply with the organization's personnel security policies and procedures, with contractual"
+      "description": "Provide third-party contracts or agreements confirming external service providers are explicitly required to comply with the organization's personnel security policies and procedures, with contractual compliance monitoring records from the current period as evidence."
     },
     "NIST-1535": {
       "control_id": "PS-07d.",
       "family": "PS",
-      "description": "Provide records confirming external service providers notify appropriate organizational personnel \u2014 including access control and facility security personnel \u2014 when their employees who possess organiza"
+      "description": "Provide records confirming external service providers notify appropriate organizational personnel — including access control and facility security personnel — when their employees who possess organizational credentials or system access are terminated (immediately) or transferred (within…"
     },
     "NIST-1536": {
       "control_id": "PS-07e.",
@@ -1931,37 +1931,37 @@
     "NIST-1538": {
       "control_id": "PS-08b.",
       "family": "PS",
-      "description": "Provide sanctions process records confirming that when a formal employee sanctions process is initiated, the ISSO or equivalent role is notified within 24 hours \u2014 identifying the individual sanctioned"
+      "description": "Provide sanctions process records confirming that when a formal employee sanctions process is initiated, the ISSO or equivalent role is notified within 24 hours — identifying the individual sanctioned and the reason for the notification."
     },
     "NIST-1541": {
       "control_id": "RA-02c.",
       "family": "RA",
-      "description": "Provide the security categorization approval documentation confirming the authorizing official or designated representative reviewed and approved the security categorization decision \u2014 such as a signe"
+      "description": "Provide the security categorization approval documentation confirming the authorizing official or designated representative reviewed and approved the security categorization decision — such as a signed FIPS 199, ATO letter referencing the categorization, or equivalent approval record."
     },
     "NIST-1542": {
       "control_id": "RA-03a.01-02",
       "family": "RA",
-      "description": "Provide risk assessment records confirming a risk assessment is conducted to identify threats to and vulnerabilities in the system, including the likelihood and magnitude of harm from unauthorized acc"
+      "description": "Provide risk assessment records confirming a risk assessment is conducted to identify threats to and vulnerabilities in the system, including the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modificat."
     },
     "NIST-1543": {
       "control_id": "RA-03a.03",
       "family": "RA",
-      "description": "Provide risk assessment records confirming a risk assessment is conducted to determine the likelihood and impact of adverse effects on individuals arising from the processing of personally identifiabl"
+      "description": "Provide risk assessment records confirming a risk assessment is conducted to determine the likelihood and impact of adverse effects on individuals arising from the processing of personally identifiable information."
     },
     "NIST-1544": {
       "control_id": "RA-03b.",
       "family": "RA",
-      "description": "Provide risk assessment records confirming risk assessment results and risk management decisions from the organization and mission or business process perspectives are integrated with system-level ris"
+      "description": "Provide risk assessment records confirming risk assessment results and risk management decisions from the organization and mission or business process perspectives are integrated with system-level risk assessments."
     },
     "NIST-1545": {
       "control_id": "RA-03c.",
       "family": "RA",
-      "description": "Provide the Security Assessment Report (SAR) or equivalent risk assessment documentation confirming risk assessment results are formally documented in the security assessment report \u2014 with identified "
+      "description": "Provide the Security Assessment Report (SAR) or equivalent risk assessment documentation confirming risk assessment results are formally documented in the security assessment report — with identified threats, vulnerabilities, likelihood, impact, and risk determinations recorded."
     },
     "NIST-1546": {
       "control_id": "RA-03d.",
       "family": "RA",
-      "description": "Provide risk assessment records confirming risk assessment results and risk management decisions are disseminated to defined personnel or roles at a frequency consistent with the applicable framework'"
+      "description": "Provide risk assessment records confirming risk assessment results and risk management decisions are disseminated to defined personnel or roles at a frequency consistent with the applicable framework's requirements and whenever significant changes occur."
     },
     "NIST-1547": {
       "control_id": "RA-03e.",
@@ -1976,7 +1976,7 @@
     "NIST-1556": {
       "control_id": "RA-05e.",
       "family": "RA",
-      "description": "Provide records confirming vulnerability monitoring results and control assessment findings are shared with defined personnel or roles to help eliminate similar vulnerabilities and identify systemic w"
+      "description": "Provide records confirming vulnerability monitoring results and control assessment findings are shared with defined personnel or roles to help eliminate similar vulnerabilities and identify systemic weaknesses, with distribution records from the current period showing recipients and sharing dates."
     },
     "NIST-1557": {
       "control_id": "RA-05f.",
@@ -1991,12 +1991,12 @@
     "NIST-1633": {
       "control_id": "SC-07(04)(d)",
       "family": "SC",
-      "description": "Provide records confirming each exception to the traffic flow policy is documented with: (1) a supporting mission or business need that justifies the exception; and (2) the duration for which the exce"
+      "description": "Provide records confirming each exception to the traffic flow policy is documented with: (1) a supporting mission or business need that justifies the exception; and (2) the duration for which the exception is authorized — with expired exceptions removed or re-authorized."
     },
     "NIST-1634": {
       "control_id": "SC-07(04)(e)",
       "family": "SC",
-      "description": "Provide firewall or network traffic flow policy review records confirming reviews are conducted at a frequency consistent with the applicable framework's requirements, or whenever there is a change in"
+      "description": "Provide firewall or network traffic flow policy review records confirming reviews are conducted at a frequency consistent with the applicable framework's requirements, or whenever there is a change in the threat environment that warrants a review."
     },
     "NIST-1635": {
       "control_id": "SC-07(04)(f)",
@@ -2011,7 +2011,7 @@
     "NIST-1637": {
       "control_id": "SC-07(04)(h)",
       "family": "SC",
-      "description": "Provide the boundary filtering configuration confirming control plane traffic from external networks is actively filtered and blocked from reaching internal systems \u2014 with firewall or ACL rules specif"
+      "description": "Provide the boundary filtering configuration confirming control plane traffic from external networks is actively filtered and blocked from reaching internal systems — with firewall or ACL rules specifically addressing unauthorized control plane protocols."
     },
     "NIST-1638": {
       "control_id": "SC-07(07)",
@@ -2021,7 +2021,7 @@
     "NIST-1639": {
       "control_id": "SC-07(08)",
       "family": "SC",
-      "description": "Provide the proxy configuration confirming defined internal communications destined for external networks are routed through authenticated proxy servers at managed interfaces, with no direct external "
+      "description": "Provide the proxy configuration confirming defined internal communications destined for external networks are routed through authenticated proxy servers at managed interfaces, with no direct external connections that bypass the proxy."
     },
     "NIST-1643": {
       "control_id": "SC-07(12)",
@@ -2046,12 +2046,12 @@
     "NIST-1697": {
       "control_id": "SI-03b.",
       "family": "SI",
-      "description": "Provide configuration and version records confirming malicious code protection definitions and signatures are updated automatically as new releases become available, consistent with the configuration "
+      "description": "Provide configuration and version records confirming malicious code protection definitions and signatures are updated automatically as new releases become available, consistent with the configuration management policy."
     },
     "NIST-1698": {
       "control_id": "SI-03c.01[01]",
       "family": "SI",
-      "description": "Provide the malicious code protection scan schedule configuration confirming periodic scans are configured to run at least weekly across all in-scope components, along with a recent scan execution log"
+      "description": "Provide the malicious code protection scan schedule configuration confirming periodic scans are configured to run at least weekly across all in-scope components, along with a recent scan execution log confirming the schedule is being honored."
     },
     "NIST-1699": {
       "control_id": "SI-03c.01[02]",
@@ -2061,7 +2061,7 @@
     "NIST-1700": {
       "control_id": "SI-03c.02[01]",
       "family": "SI",
-      "description": "Provide the malicious code protection configuration confirming the mechanism is deployed and active at the workstation and server level, with scan logs from the current period confirming host-level co"
+      "description": "Provide the malicious code protection configuration confirming the mechanism is deployed and active at the workstation and server level, with scan logs from the current period confirming host-level coverage across all in-scope endpoints."
     },
     "NIST-1701": {
       "control_id": "SI-03c.02[02]",
@@ -2076,17 +2076,17 @@
     "NIST-1737": {
       "control_id": "SI-06b.",
       "family": "SI",
-      "description": "Provide the security function verification configuration and records confirming verification runs at system startup or restart, upon privileged user command, and at least monthly \u2014 with verification r"
+      "description": "Provide the security function verification configuration and records confirming verification runs at system startup or restart, upon privileged user command, and at least monthly — with verification results available."
     },
     "NIST-1738": {
       "control_id": "SI-06c.",
       "family": "SI",
-      "description": "Provide the security function verification alert configuration confirming system administrators and security personnel are automatically notified when security or privacy verification tests fail, with"
+      "description": "Provide the security function verification alert configuration confirming system administrators and security personnel are automatically notified when security or privacy verification tests fail, with a sample alert as evidence."
     },
     "NIST-1739": {
       "control_id": "SI-06d.",
       "family": "SI",
-      "description": "Provide the security function anomaly response configuration confirming defined actions \u2014 system shutdown, restart, or alternative actions \u2014 are initiated when anomalies are detected."
+      "description": "Provide the security function anomaly response configuration confirming defined actions — system shutdown, restart, or alternative actions — are initiated when anomalies are detected."
     },
     "NIST-1742": {
       "control_id": "SI-07b.",
@@ -2096,17 +2096,17 @@
     "NIST-1743": {
       "control_id": "SI-07(01)",
       "family": "SI",
-      "description": "Provide the integrity verification configuration and records confirming software and firmware integrity checks are performed at least monthly and upon security-relevant events \u2014 such as system updates"
+      "description": "Provide the integrity verification configuration and records confirming software and firmware integrity checks are performed at least monthly and upon security-relevant events — such as system updates, configuration changes, or detected anomalies — with check results and any findings from the…"
     },
     "NIST-1771": {
       "control_id": "SR-05",
       "family": "SR",
-      "description": "Provide acquisition records confirming defined strategies, contract tools, and procurement methods are used to protect against supply chain risks \u2014 including evidence that supply chain risk criteria a"
+      "description": "Provide acquisition records confirming defined strategies, contract tools, and procurement methods are used to protect against supply chain risks — including evidence that supply chain risk criteria are applied during procurement decisions."
     },
     "NIST-1774": {
       "control_id": "SR-06",
       "family": "SR",
-      "description": "Provide the most recent supply chain risk assessment confirming risks associated with suppliers and contractors were reviewed within the past year, with findings informing procurement and oversight de"
+      "description": "Provide the most recent supply chain risk assessment confirming risks associated with suppliers and contractors were reviewed within the past year, with findings informing procurement and oversight decisions."
     }
   }
 }
