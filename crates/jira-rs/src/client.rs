@@ -2,7 +2,7 @@ use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use reqwest::{header, Client, Response};
 use tokio::time::{sleep, Duration};
 
-use crate::api::{IssuesApi, ProjectsApi};
+use crate::api::{IssuesApi, JqlSlaApi, ProjectsApi};
 use crate::error::JiraError;
 
 const MAX_RETRIES: u32 = 5;
@@ -98,6 +98,9 @@ impl JiraClient {
     }
     pub fn issues(&self) -> IssuesApi<'_> {
         IssuesApi(self)
+    }
+    pub fn jql_sla(&self) -> JqlSlaApi<'_> {
+        JqlSlaApi(self)
     }
 }
 

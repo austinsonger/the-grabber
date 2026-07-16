@@ -21,6 +21,12 @@ pub struct AppConfig {
     /// instead of the raw profile / region screens.
     #[serde(default)]
     pub account: Vec<Account>,
+
+    /// FedRAMP Jira project keys, overridable per tenant. JQL-based
+    /// FedRAMP collectors read these to know which Jira projects hold
+    /// security, change-management, HR, marketing, and incident tickets.
+    #[serde(default)]
+    pub project_keys: ProjectKeys,
 }
 
 /// Global default values for the TUI wizard.
@@ -72,6 +78,42 @@ pub struct CollectorConfig {
 
     /// Additive list: these collector keys are added on top of defaults.
     pub enable_extra: Option<Vec<String>>,
+}
+
+/// FedRAMP Jira project keys, overridable per tenant via `[project_keys]`
+/// in config.toml / jira-config.toml. Any key left unset falls back to the
+/// default shown in the collector code that consumes it.
+#[derive(Debug, Default, Clone, Deserialize)]
+pub struct ProjectKeys {
+    #[serde(default)]
+    pub security: Option<String>,
+    #[serde(default)]
+    pub change_management: Option<String>,
+    #[serde(default)]
+    pub hr: Option<String>,
+    #[serde(default)]
+    pub hr_offboarding: Option<String>,
+    #[serde(default)]
+    pub hr_transfer: Option<String>,
+    #[serde(default)]
+    pub marketing: Option<String>,
+    #[serde(default)]
+    pub incident: Option<String>,
+}
+
+impl ProjectKeys {
+    pub fn get(&self, purpose: &str) -> Option<&str> {
+        match purpose {
+            "security" => self.security.as_deref(),
+            "change_management" => self.change_management.as_deref(),
+            "hr" => self.hr.as_deref(),
+            "hr_offboarding" => self.hr_offboarding.as_deref(),
+            "hr_transfer" => self.hr_transfer.as_deref(),
+            "marketing" => self.marketing.as_deref(),
+            "incident" => self.incident.as_deref(),
+            _ => None,
+        }
+    }
 }
 
 /// A named account for any supported provider.

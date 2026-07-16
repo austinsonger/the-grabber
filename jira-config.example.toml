@@ -12,3 +12,16 @@ output_dir     = "./evidence-output/jira"
 jira_domain    = "https://acme.atlassian.net"
 jira_email     = "automation@acme.com"
 jira_api_token = ""
+
+# ── FedRAMP project keys ────────────────────────────────────────────────
+# JQL-based FedRAMP collectors read these project keys from config so
+# customers can override per tenant. Any keys not set fall back to the
+# defaults shown below in the collector code.
+[project_keys]
+security = "SEC"           # AC-17, AU-02, CM-06, SC-07 exception tracking, IR-04
+change_management = "CHG"  # CM-03, CM-05, SI-02 patch test records
+hr = "HR"                  # PS-03, PS-08 sanctions
+hr_offboarding = "HR-OFF"  # PS-04 offboarding
+hr_transfer = "HR-TRANSFER" # PS-05 transfers
+marketing = "MKT"          # AC-22 public content review
+incident = "INC"           # IR-04, IR-06 incident tickets
