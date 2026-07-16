@@ -589,6 +589,18 @@
         "SI-03d."
       ]
     },
+    "Jira_Offboarding_SLA": {
+      "req_ids": [
+        "NIST-1043",
+        "NIST-1519",
+        "NIST-1535"
+      ],
+      "control_ids": [
+        "AC-02h.",
+        "PS-04a., PS-04b., PS-04d.",
+        "PS-07d."
+      ]
+    },
     "Jira_Patch_Test_Records": {
       "req_ids": [
         "NIST-1688"
@@ -615,6 +627,22 @@
       ],
       "control_ids": [
         "AC-17b."
+      ]
+    },
+    "Jira_Remote_Maintenance_Approvals": {
+      "req_ids": [
+        "NIST-1411"
+      ],
+      "control_ids": [
+        "MA-04a."
+      ]
+    },
+    "Jira_SW_License_Review": {
+      "req_ids": [
+        "NIST-1254"
+      ],
+      "control_ids": [
+        "CM-10a."
       ]
     },
     "Jira_Sanctions_ISSO_Notify": {
@@ -1150,18 +1178,6 @@
     "WAF_Regional_Web_ACL_Rules": {
       "req_ids": [],
       "control_ids": []
-    },
-    "Jira_Offboarding_SLA": {
-      "req_ids": [
-        "NIST-1043",
-        "NIST-1519",
-        "NIST-1535"
-      ],
-      "control_ids": [
-        "AC-02h.",
-        "PS-04a., PS-04b., PS-04d.",
-        "PS-07d."
-      ]
     }
   },
   "requirements": {

@@ -194,6 +194,70 @@ impl ProviderFactory for JiraProviderFactory {
                 key,
             )));
         }
+        if self.selected.iter().any(|s| s == "jira-data-reassignment") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "HR-OFF".to_string();
+            v.push(Box::new(super::data_reassignment::JiraDataReassignmentCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-transfer-notify") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "HR-TRANSFER".to_string();
+            v.push(Box::new(super::transfer_notifications::JiraTransferNotificationsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-sanctions-isso") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "HR".to_string();
+            v.push(Box::new(super::sanctions_isso_notify::JiraSanctionsIssoNotifyCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-fw-exception") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::firewall_exception_duration::JiraFirewallExceptionDurationCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-malware-fp") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::malware_false_positive::JiraMalwareFalsePositiveCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-patch-test") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "CHG".to_string();
+            v.push(Box::new(super::patch_test_records::JiraPatchTestRecordsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-remote-maint") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::remote_maintenance_approvals::JiraRemoteMaintenanceApprovalsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-sw-license") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "CHG".to_string();
+            v.push(Box::new(super::sw_license_review::JiraSwLicenseReviewCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
