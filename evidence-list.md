@@ -49,6 +49,28 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV19 | AWS Organizations Configuration | `AWS_Organizations_Config` | Org ID, Master Account ID, Master Account Email, Feature Set, Total Accounts, Root ID, SCPs Enabled |
 | EV125 | IAM Credential Report — Password/Key Expiration | `IAM_Credential_Report_Expiration` | User, ARN, User Creation Time, Password Enabled, Password Last Used, Password Last Changed, Password Next Rotation, MFA Active, Access Key 1 Active, Access Key 1 Last Rotated, Access Key 1 Last Used Date, Access Key 2 Active, Access Key 2 Last Rotated, Access Key 2 Last Used Date, Cert 1 Active, Cert 1 Last Rotated, Cert 2 Active, Cert 2 Last Rotated |
 
+### Identity — Okta
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV135 | Okta Deprovisioning Timeliness | `Okta_Deprovisioning_Timeliness` | Event ID, Published, Actor Type, Actor Name, Target Type, Target Login, Event Type, Outcome |
+| EV136 | Okta Shared/Group Account Inventory | `Okta_Group_Inventory_Shared_Accounts` | Group ID, Name, Type, Description, Members Count, Shared Naming Match |
+| EV137 | Okta Lifecycle HRIS Integration | `Okta_Lifecycle_HRIS_Integration_Config` | Kind, ID, Source, Target, Notes |
+| EV138 | Okta Automated Provisioning Events | `Okta_Automated_Provisioning_Events` | Event ID, Published, Event Type, Actor Type, Target Login, Is System Principal |
+| EV139 | Okta ThreatInsight Detections | `Okta_ThreatInsight_Detections` | Event ID, Published, Event Type, Severity, Actor IP, Outcome, Display Message |
+| EV140 | Okta Risk-Account Suspend Timing | `Okta_Risk_Account_Suspend_Timing` | Threat Event ID, Threat Detected At, Target Login, Suspend Event ID, Suspended At, Latency Minutes |
+| EV141 | Okta Access Certification Campaigns | `Okta_Access_Certification_Campaigns` | Campaign ID, Name, Status, Created, Started, Ended, Owner |
+| EV142 | Okta Sign-In Widget Config | `Okta_SignIn_Widget_Config` | Brand ID, Brand Name, Widget Version, Has Custom Sign-In, Sign-In URL |
+| EV143 | Okta Session Policy | `Okta_Session_Policy` | Policy ID, Name, Status, Priority, System |
+| EV144 | Okta Publisher Group Membership | `Okta_Publisher_Group_Membership` | Group ID, Group Name, Member ID, Member Login |
+| EV145 | Okta Production Access Recertification | `Okta_Prod_Access_Recertification` | Campaign ID, Name, Status, Target Group / Resource, Reviewer, Ended |
+| EV146 | Okta Shared-Account Broker Config | `Okta_Shared_Account_Broker_Config` | App ID, Label, Sign-On Mode, Status, Users Assigned |
+| EV147 | Okta Password Policy First-Use | `Okta_Password_Policy_First_Use` | Policy ID, Name, Status, Priority, Password Change On First Login, Password Complexity |
+| EV148 | Okta Group Membership Change Log | `Okta_Group_Membership_Change_Log` | Event ID, Published, Actor, Change Type, Target Group, Target User |
+| EV149 | Okta Offboarding SLA | `Okta_Offboarding_SLA` | Event ID, Published, Login, Actor Name, Hours Since Termination, SLA Met (24hr) |
+| EV150 | Okta Transfer Access Diff | `Okta_Transfer_Access_Diff` | User ID, Login, Status, Status Changed, Apps Count, Groups Count, Snapshot Time |
+| EV151 | Okta Contractor Deprovisioning | `Okta_Contractor_Deprovisioning` | Event ID, Published, Contractor Login, Actor Name, Days Since Contract End, Outcome |
+
 ### Certificates & PKI
 
 | # | Name | Filename Prefix | Columns |
@@ -300,9 +322,9 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Category | Count |
 |----------|-------|
 | JSON evidence collectors (time-windowed) | 4 |
-| CSV evidence collectors (current-state snapshots) | 130 |
+| CSV evidence collectors (current-state snapshots) | 147 |
 | Asset Inventory asset types (Inventory feature) | 8 |
-| **Total evidence collectors** | **134** |
+| **Total evidence collectors** | **151** |
 
 ### AWS Services Covered
 
