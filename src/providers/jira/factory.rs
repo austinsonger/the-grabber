@@ -122,6 +122,78 @@ impl ProviderFactory for JiraProviderFactory {
                 key,
             )));
         }
+        if self.selected.iter().any(|s| s == "jira-allowlist-review") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::allowlist_review::JiraAllowlistReviewCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-cp-update") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::cp_update_trigger::JiraCpUpdateTriggerCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-cp-test-poam") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::cp_test_poam::JiraCpTestPoamCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-dr-test") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "SEC".to_string();
+            v.push(Box::new(super::dr_test_results::JiraDrTestResultsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-ir-cp") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "INC".to_string();
+            v.push(Box::new(super::ir_cp_coordination::JiraIrCpCoordinationCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-ir-lessons") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "INC".to_string();
+            v.push(Box::new(super::ir_lessons_learned::JiraIrLessonsLearnedCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-ir-severity") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "INC".to_string();
+            v.push(Box::new(super::ir_severity_vs_rigor::JiraIrSeverityVsRigorCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-ir-external") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "INC".to_string();
+            v.push(Box::new(super::ir_external_reporting::JiraIrExternalReportingCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jira-special-protection") {
+            // TODO: wire project_keys from AppConfig via factory constructor
+            let key = "HR".to_string();
+            v.push(Box::new(super::special_protection_approvals::JiraSpecialProtectionApprovalsCollector::new(
+                self.client.clone(),
+                key,
+            )));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
