@@ -67,6 +67,55 @@ impl ProviderFactory for OktaProviderFactory {
                 self.client.clone(),
             )));
         }
+        if self.selected.iter().any(|s| s == "okta-access-reviews") {
+            v.push(Box::new(
+                super::access_certification_campaigns::OktaAccessCertificationCampaignsCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-auto-provisioning") {
+            v.push(Box::new(
+                super::automated_provisioning_events::OktaAutomatedProvisioningEventsCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-deprovisioning") {
+            v.push(Box::new(
+                super::deprovisioning_timeliness::OktaDeprovisioningTimelinessCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-hris-config") {
+            v.push(Box::new(
+                super::lifecycle_hris_config::OktaLifecycleHrisConfigCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-risk-suspend") {
+            v.push(Box::new(
+                super::risk_account_suspend_timing::OktaRiskAccountSuspendTimingCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-shared-groups") {
+            v.push(Box::new(
+                super::group_inventory_shared::OktaGroupInventorySharedCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "okta-threat-insight") {
+            v.push(Box::new(
+                super::threat_insight_detections::OktaThreatInsightDetectionsCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
