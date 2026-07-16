@@ -3,6 +3,12 @@
 All output files produced by this tool. Every collector writes to
 `<AccountId>_<FilenamePrefix>-<YYYY-MM-DD-HHMMSS>.<ext>` in the output directory.
 
+> **FedRAMP mapping:** every CSV row and JSON record grabber emits carries
+> `FedRAMP Req IDs`, `FedRAMP Control IDs`, and `Source Evidence File`
+> columns. Each file also ends with a two-line footer identifying itself.
+> Canonical mapping lives in `assets/fedramp-map.json`; see
+> `docs/fedramp-coverage.md` for the runtime coverage report.
+
 ---
 
 ## JSON Evidence (Time-Windowed)
