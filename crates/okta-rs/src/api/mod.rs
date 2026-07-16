@@ -1,11 +1,21 @@
+pub mod access_reviews;
+pub mod admin_roles;
 pub mod apps;
 pub mod groups;
+pub mod lifecycle;
 pub mod policies;
+pub mod sign_in_widget;
 pub mod system_log;
+pub mod threat_insight;
 pub mod users;
 
+pub use access_reviews::AccessReviewsApi;
+pub use admin_roles::AdminRolesApi;
 pub use apps::AppsApi;
 pub use groups::GroupsApi;
+pub use lifecycle::LifecycleApi;
 pub use policies::PoliciesApi;
+pub use sign_in_widget::SignInWidgetApi;
 pub use system_log::SystemLogApi;
+pub use threat_insight::ThreatInsightApi;
 pub use users::UsersApi;

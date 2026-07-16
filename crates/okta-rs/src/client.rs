@@ -1,7 +1,10 @@
 use reqwest::{header, Client, Response};
 use tokio::time::{sleep, Duration};
 
-use crate::api::{AppsApi, GroupsApi, PoliciesApi, SystemLogApi, UsersApi};
+use crate::api::{
+    AccessReviewsApi, AdminRolesApi, AppsApi, GroupsApi, LifecycleApi, PoliciesApi,
+    SignInWidgetApi, SystemLogApi, ThreatInsightApi, UsersApi,
+};
 use crate::error::OktaError;
 
 const MAX_RETRIES: u32 = 5;
@@ -98,6 +101,21 @@ impl OktaClient {
     }
     pub fn system_log(&self) -> SystemLogApi<'_> {
         SystemLogApi(self)
+    }
+    pub fn lifecycle(&self) -> LifecycleApi<'_> {
+        LifecycleApi(self)
+    }
+    pub fn admin_roles(&self) -> AdminRolesApi<'_> {
+        AdminRolesApi(self)
+    }
+    pub fn access_reviews(&self) -> AccessReviewsApi<'_> {
+        AccessReviewsApi(self)
+    }
+    pub fn sign_in_widget(&self) -> SignInWidgetApi<'_> {
+        SignInWidgetApi(self)
+    }
+    pub fn threat_insight(&self) -> ThreatInsightApi<'_> {
+        ThreatInsightApi(self)
     }
 }
 
