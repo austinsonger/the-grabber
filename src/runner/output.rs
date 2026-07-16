@@ -55,22 +55,6 @@ pub fn write_csv_bytes_with_manifest(
         .map_err(|e| anyhow::anyhow!("CSV into_inner: {e}"))
 }
 
-/// Legacy no-manifest writer. New callers MUST use
-/// `write_csv_bytes_with_manifest`. Kept only so this task compiles before
-/// the call-site migration lands (Tasks 5–7).
-#[deprecated(note = "use write_csv_bytes_with_manifest so evidence self-identifies")]
-pub fn write_csv_bytes(headers: &[&str], rows: &[Vec<String>]) -> Result<Vec<u8>> {
-    let mut writer = csv::Writer::from_writer(Vec::new());
-    writer.write_record(headers).context("CSV write headers")?;
-    for row in rows {
-        writer.write_record(row).context("CSV write row")?;
-    }
-    writer.flush().context("CSV flush")?;
-    writer
-        .into_inner()
-        .map_err(|e| anyhow::anyhow!("CSV into_inner: {e}"))
-}
-
 /// Nested `YYYY/MM-MON` directory suffix used by callers in multi_account and tui_session.
 pub fn date_path_suffix() -> PathBuf {
     let now = Local::now();
@@ -163,9 +147,15 @@ pub fn write_inventory_outputs(
                 inventory_dir.display()
             )
         })?;
-        let filename = format!("AWS_Inventory-{}.csv", timestamp);
-        let path = inventory_dir.join(&filename);
-        let bytes = write_csv_bytes(crate::inventory_core::INVENTORY_CSV_HEADERS, inventory_rows)?;
+        let basename = format!("AWS_Inventory-{}.csv", timestamp);
+        let path = inventory_dir.join(&basename);
+        let mapping = crate::fedramp_map::bundled().get("AWS_Inventory");
+        let bytes = write_csv_bytes_with_manifest(
+            crate::inventory_core::INVENTORY_CSV_HEADERS,
+            inventory_rows,
+            &mapping,
+            &basename,
+        )?;
         std::fs::write(&path, bytes)
             .with_context(|| format!("Failed to write {}", path.display()))?;
         eprintln!(

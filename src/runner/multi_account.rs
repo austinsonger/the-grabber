@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 
 use crate::audit_log;
 use crate::evidence::{CollectParams, CsvCollector, EvidenceCollector, JsonCollector};
-use crate::runner::output::{date_path_suffix, write_csv_bytes};
+use crate::runner::output::{date_path_suffix, write_csv_bytes_with_manifest};
 use crate::runner::tui_runners::{
     run_tui_csv_collector, run_tui_inv_collector, run_tui_json_collector,
 };
@@ -486,9 +486,15 @@ pub async fn run_tui_multi_account(
 
             if !skip_inventory_csv {
                 let _ = std::fs::create_dir_all(&inventory_dir);
-                let filename = format!("AWS_Inventory-{}.csv", timestamp);
-                let path = inventory_dir.join(&filename);
-                match write_csv_bytes(inventory_headers, &inventory_global_rows) {
+                let basename = format!("AWS_Inventory-{}.csv", timestamp);
+                let path = inventory_dir.join(&basename);
+                let mapping = crate::fedramp_map::bundled().get("AWS_Inventory");
+                match write_csv_bytes_with_manifest(
+                    inventory_headers,
+                    &inventory_global_rows,
+                    &mapping,
+                    &basename,
+                ) {
                     Ok(bytes) => {
                         if std::fs::write(&path, bytes).is_ok() {
                             eprintln!(

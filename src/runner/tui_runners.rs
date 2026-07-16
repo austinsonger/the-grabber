@@ -10,7 +10,7 @@ use crate::evidence::{
     JsonInventoryReport, ReportMetadata,
 };
 use crate::runner::failure_classifier;
-use crate::runner::output::write_csv_bytes;
+use crate::runner::output::{evidence_basename, write_csv_bytes_with_manifest};
 use crate::tui::{App, PoamSummary, Progress, Screen};
 
 pub async fn run_tui_csv_collector(
@@ -18,7 +18,7 @@ pub async fn run_tui_csv_collector(
     account_id: &str,
     region: &str,
     out_dir: &PathBuf,
-    timestamp: &str,
+    _timestamp: &str,
     tx: &mpsc::UnboundedSender<Progress>,
     timeout: std::time::Duration,
     written: &mut Vec<String>,
@@ -42,14 +42,12 @@ pub async fn run_tui_csv_collector(
                 return;
             }
             eprintln!("  [csv] {} ({}): {} rows", name, region, count);
-            let filename = format!(
-                "{}_{}-{}.csv",
-                account_id,
-                collector.filename_prefix(),
-                timestamp
-            );
-            let path = out_dir.join(&filename);
-            if let Ok(bytes) = write_csv_bytes(collector.headers(), &rows) {
+            let basename = evidence_basename(account_id, collector.filename_prefix(), "csv");
+            let mapping = collector.fedramp_mapping();
+            let path = out_dir.join(&basename);
+            if let Ok(bytes) =
+                write_csv_bytes_with_manifest(collector.headers(), &rows, &mapping, &basename)
+            {
                 if std::fs::write(&path, bytes).is_ok() {
                     outcomes.push(audit_log::CollectorOutcome::success(&name, count, &path));
                     written.push(path.display().to_string());
