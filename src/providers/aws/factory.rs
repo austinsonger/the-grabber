@@ -4,6 +4,7 @@ use crate::providers::{CloudProvider, ProviderFactory};
 use crate::providers::aws::{
     access_analyzer::AccessAnalyzerCollector,
     account_config::{AccountContactsCollector, IamAccountSummaryCollector, SamlProviderCollector},
+    ami_default_creds::AmiDefaultCredentialScanCollector,
     acm::AcmCertCollector,
     acm_pca::AcmPrivateCaCollector,
     alb_logs::AlbLogsCollector,
@@ -34,6 +35,7 @@ use crate::providers::aws::{
         ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector,
     },
     dynamodb::DynamoDbCollector,
+    doc_repo_backup::DocRepoBackupConfigCollector,
     ebs::EbsCollector,
     ec2_config::{
         Ec2InstanceConfigCollector, RouteTableConfigCollector, SecurityGroupConfigCollector,
@@ -50,6 +52,8 @@ use crate::providers::aws::{
     elb_config::ElbFullConfigCollector,
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
+    guardduty_malware_scans::GuardDutyMalwareScanHistoryCollector,
+    guardduty_runtime::GuardDutyRuntimeCoverageCollector,
     iam_certs::IamCertCollector,
     iam_credential_report::IamCredentialReportCollector,
     iam_inventory::{
@@ -72,6 +76,7 @@ use crate::providers::aws::{
     license_manager::LicenseManagerCollector,
     macie::MacieCollector,
     network_firewall::NetworkFirewallCollector,
+    network_firewall_failclosed::NetworkFirewallFailClosedCollector,
     network_gateways::{InternetGatewayCollector, NatGatewayCollector},
     org_config::OrgConfigCollector,
     organizations::OrganizationsSCPCollector,
@@ -105,6 +110,7 @@ use crate::providers::aws::{
     },
     ssm::{SsmManagedInstanceCollector, SsmPatchComplianceCollector},
     ssm_allowlist::SsmApplicationAllowlistCollector,
+    ssm_automation_runbooks::SsmAutomationRunbooksCollector,
     ssm_extended::{
         SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
     },
@@ -232,6 +238,9 @@ impl ProviderFactory for AwsProviderFactory {
         if has("acm-pca") {
             v.push(Box::new(AcmPrivateCaCollector::new(cfg)));
         }
+        if has("ami-default-creds") {
+            v.push(Box::new(AmiDefaultCredentialScanCollector::new(cfg)));
+        }
         if has("iam-users") {
             v.push(Box::new(IamUserCollector::new(cfg)));
         }
@@ -328,11 +337,20 @@ impl ProviderFactory for AwsProviderFactory {
         if has("guardduty-rules") {
             v.push(Box::new(GuardDutySuppressionCollector::new(cfg)));
         }
+        if has("guardduty-runtime") {
+            v.push(Box::new(GuardDutyRuntimeCoverageCollector::new(cfg)));
+        }
+        if has("guardduty-malware") {
+            v.push(Box::new(GuardDutyMalwareScanHistoryCollector::new(cfg)));
+        }
         if has("sh-standards") {
             v.push(Box::new(SecurityHubStandardsCollector::new(cfg)));
         }
         if has("network-firewall") {
             v.push(Box::new(NetworkFirewallCollector::new(cfg)));
+        }
+        if has("nfw-failclosed") {
+            v.push(Box::new(NetworkFirewallFailClosedCollector::new(cfg)));
         }
         if has("igw") {
             v.push(Box::new(InternetGatewayCollector::new(cfg)));
@@ -509,6 +527,9 @@ impl ProviderFactory for AwsProviderFactory {
         if has("rds-backup-config") {
             v.push(Box::new(RdsBackupConfigCollector::new(cfg)));
         }
+        if has("doc-repo-backup") {
+            v.push(Box::new(DocRepoBackupConfigCollector::new(cfg)));
+        }
         if has("lambda-config") {
             v.push(Box::new(LambdaConfigCollector::new(cfg)));
         }
@@ -577,6 +598,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-allowlist") {
             v.push(Box::new(SsmApplicationAllowlistCollector::new(cfg)));
+        }
+        if has("ssm-automation") {
+            v.push(Box::new(SsmAutomationRunbooksCollector::new(cfg)));
         }
         if has("session-timeouts") {
             v.push(Box::new(SessionTimeoutConfigCollector::new(cfg)));
