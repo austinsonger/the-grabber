@@ -2,7 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::fedramp_map::{bundled, FedRampMapping};
+use crate::fedramp_map::{bundled, FedRampManifest, FedRampMapping};
 
 // ---------------------------------------------------------------------------
 // Core traits -- implement one of these to add a new evidence collector
@@ -63,6 +63,8 @@ pub struct JsonInventoryReport {
     pub collector: String,
     pub record_count: usize,
     pub records: Vec<serde_json::Value>,
+    #[serde(rename = "_fedramp_manifest")]
+    pub fedramp_manifest: FedRampManifest,
 }
 
 /// Inventory / snapshot collectors that produce CSV output.
@@ -119,6 +121,8 @@ pub struct EvidenceReport {
     pub collector: String,
     pub record_count: usize,
     pub records: Vec<EvidenceRecord>,
+    #[serde(rename = "_fedramp_manifest", default)]
+    pub fedramp_manifest: Option<FedRampManifest>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -108,7 +108,7 @@ pub fn bundled() -> &'static FedRampMap {
     &BUNDLED
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FedRampManifest {
     pub req_ids: Vec<String>,
     pub control_ids: Vec<String>,

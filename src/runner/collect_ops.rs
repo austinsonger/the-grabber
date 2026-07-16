@@ -31,6 +31,7 @@ pub(crate) async fn run_json_collectors(
                     continue;
                 }
 
+                let filename = format!("{}-{}.json", collector.filename_prefix(), timestamp);
                 let report = EvidenceReport {
                     metadata: ReportMetadata {
                         collected_at: Utc::now().to_rfc3339(),
@@ -42,9 +43,12 @@ pub(crate) async fn run_json_collectors(
                     collector: collector.name().to_string(),
                     record_count: count,
                     records,
+                    fedramp_manifest: Some(crate::fedramp_map::FedRampManifest::new(
+                        &collector.fedramp_mapping(),
+                        &filename,
+                    )),
                 };
 
-                let filename = format!("{}-{}.json", collector.filename_prefix(), timestamp);
                 let path = output_dir.join(&filename);
                 let json =
                     serde_json::to_string_pretty(&report).context("JSON serialization failed")?;
@@ -140,6 +144,12 @@ pub(crate) async fn run_json_inv_collectors(
                     outcomes.push(audit_log::CollectorOutcome::empty(collector.name()));
                     continue;
                 }
+                let filename = format!(
+                    "{}_{}-{}.json",
+                    account_id,
+                    collector.filename_prefix(),
+                    timestamp
+                );
                 let report = JsonInventoryReport {
                     collected_at: Utc::now().to_rfc3339(),
                     account_id: account_id.to_string(),
@@ -147,13 +157,11 @@ pub(crate) async fn run_json_inv_collectors(
                     collector: collector.name().to_string(),
                     record_count: count,
                     records,
+                    fedramp_manifest: crate::fedramp_map::FedRampManifest::new(
+                        &collector.fedramp_mapping(),
+                        &filename,
+                    ),
                 };
-                let filename = format!(
-                    "{}_{}-{}.json",
-                    account_id,
-                    collector.filename_prefix(),
-                    timestamp
-                );
                 let path = output_dir.join(&filename);
                 let json = serde_json::to_string_pretty(&report).context("JSON serialise")?;
                 std::fs::write(&path, json)

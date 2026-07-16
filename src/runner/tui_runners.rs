@@ -126,6 +126,12 @@ pub async fn run_tui_inv_collector(
                 outcomes.push(audit_log::CollectorOutcome::empty(&name));
                 return;
             }
+            let filename = format!(
+                "{}_{}-{}.json",
+                account_id,
+                collector.filename_prefix(),
+                timestamp
+            );
             let report = JsonInventoryReport {
                 collected_at: Utc::now().to_rfc3339(),
                 account_id: account_id.to_string(),
@@ -133,13 +139,11 @@ pub async fn run_tui_inv_collector(
                 collector: name.clone(),
                 record_count: count,
                 records,
+                fedramp_manifest: crate::fedramp_map::FedRampManifest::new(
+                    &collector.fedramp_mapping(),
+                    &filename,
+                ),
             };
-            let filename = format!(
-                "{}_{}-{}.json",
-                account_id,
-                collector.filename_prefix(),
-                timestamp
-            );
             let path = out_dir.join(&filename);
             if let Ok(json) = serde_json::to_string_pretty(&report) {
                 if std::fs::write(&path, json).is_ok() {
@@ -221,6 +225,12 @@ pub async fn run_tui_json_collector(
                 outcomes.push(audit_log::CollectorOutcome::empty(&name));
                 return;
             }
+            let filename = format!(
+                "{}_{}-{}.json",
+                account_id,
+                collector.filename_prefix(),
+                timestamp
+            );
             let report = EvidenceReport {
                 metadata: ReportMetadata {
                     collected_at: Utc::now().to_rfc3339(),
@@ -232,13 +242,11 @@ pub async fn run_tui_json_collector(
                 collector: name.clone(),
                 record_count: count,
                 records,
+                fedramp_manifest: Some(crate::fedramp_map::FedRampManifest::new(
+                    &collector.fedramp_mapping(),
+                    &filename,
+                )),
             };
-            let filename = format!(
-                "{}_{}-{}.json",
-                account_id,
-                collector.filename_prefix(),
-                timestamp
-            );
             let path = out_dir.join(&filename);
             if let Ok(json) = serde_json::to_string_pretty(&report) {
                 if std::fs::write(&path, json).is_ok() {
