@@ -1,7 +1,5 @@
 # AWS + Tenable Collectors Batch Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Add 9 new AWS CSV collectors and 1 Tenable scanner-permissions collector to unlock IRL evidence items mapped to NIST 800-53 controls (AC-17, SC-5/7/12/17/20/21, IA-2/5/8, CM-7/8/10/11, MA-4, RA-5).
 
 **Architecture:** Each collector is a struct implementing `crate::evidence::CsvCollector` (same shape as `src/providers/aws/route53_config.rs`). They are wired in `src/providers/aws/mod.rs` (`pub mod …;`) and conditionally registered in `src/providers/aws/factory.rs::csv_collectors()` keyed off a `selected` collector name. New AWS SDK crates (`aws-sdk-acmpca`, `aws-sdk-shield`, `aws-sdk-licensemanager`, `aws-sdk-servicequotas`, `aws-sdk-networkfirewall`) are added to `Cargo.toml`. Tenable scanner permissions extend `crates/tenable-rs/src/api/` with a `users` module.
