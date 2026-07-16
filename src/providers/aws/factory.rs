@@ -51,6 +51,7 @@ use crate::providers::aws::{
     guardduty::GuardDutyCollector,
     guardduty_config::{GuardDutyConfigCollector, GuardDutySuppressionCollector},
     iam_certs::IamCertCollector,
+    iam_credential_report::IamCredentialReportCollector,
     iam_inventory::{
         IamAccessKeyCollector, IamPolicyCollector, IamRoleCollector, IamUserCollector,
     },
@@ -112,6 +113,7 @@ use crate::providers::aws::{
     ssm_sessions::SsmSessionsCollector,
     ssm_software_inventory::SsmSoftwareInventoryCollector,
     tagging_config::ResourceTaggingCollector,
+    transit_gateway_peering::TransitGatewayPeeringCollector,
     vpc::{NetworkAclCollector, VpcCollector},
     vpc_endpoints::VpcEndpointCollector,
     vpcflowlogs::VpcFlowLogCollector,
@@ -236,6 +238,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("iam-access-keys") {
             v.push(Box::new(IamAccessKeyCollector::new(cfg)));
+        }
+        if has("iam-cred-report") {
+            v.push(Box::new(IamCredentialReportCollector::new(cfg)));
         }
         if has("guardduty") {
             v.push(Box::new(GuardDutyCollector::new(cfg)));
@@ -567,6 +572,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-software-inventory") {
             v.push(Box::new(SsmSoftwareInventoryCollector::new(cfg)));
+        }
+        if has("tgw-peering") {
+            v.push(Box::new(TransitGatewayPeeringCollector::new(cfg)));
         }
 
         v
