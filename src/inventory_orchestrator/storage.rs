@@ -238,12 +238,326 @@ use aws_sdk_ec2::Client as Ec2Client;
 use aws_sdk_efs::Client as EfsClient;
 use aws_sdk_fsx::Client as FsxClient;
 
-pub(super) async fn collect_ebs_volumes(_c: &Ec2Client, _region: &str) -> Result<Vec<Vec<String>>> {
-    Ok(Vec::new())
+fn secs_to_rfc3339(secs: i64) -> String {
+    chrono::DateTime::<chrono::Utc>::from_timestamp(secs, 0)
+        .map(|c| c.to_rfc3339())
+        .unwrap_or_default()
 }
-pub(super) async fn collect_efs_file_systems(_c: &EfsClient, _region: &str) -> Result<Vec<Vec<String>>> {
-    Ok(Vec::new())
+
+// ---------------------------------------------------------------------------
+// EBS Volumes
+// ---------------------------------------------------------------------------
+
+pub(super) async fn collect_ebs_volumes(
+    client: &Ec2Client,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
+    let mut rows = Vec::new();
+    let mut next_token: Option<String> = None;
+
+    loop {
+        let mut req = client.describe_volumes();
+        if let Some(ref t) = next_token {
+            req = req.next_token(t);
+        }
+        let resp = req.send().await.context("EC2 describe_volumes")?;
+
+        for vol in resp.volumes() {
+            let volume_id = vol.volume_id().unwrap_or("").to_string();
+            let az = vol.availability_zone().unwrap_or("").to_string();
+            let volume_type = vol.volume_type().map(|t| t.as_str()).unwrap_or("");
+            let size = vol.size().unwrap_or(0);
+            let iops = vol.iops().unwrap_or(0);
+            let throughput = vol.throughput().unwrap_or(0);
+            let encrypted = vol.encrypted().unwrap_or(false);
+            let kms_key_id = vol.kms_key_id().unwrap_or("").to_string();
+            let state = vol.state().map(|s| s.as_str()).unwrap_or("").to_string();
+            let multi_attach = vol.multi_attach_enabled().unwrap_or(false);
+
+            let attached_to: Vec<String> = vol
+                .attachments()
+                .iter()
+                .filter_map(|a| a.instance_id())
+                .map(|s| s.to_string())
+                .collect();
+            let attached_to_str = if attached_to.is_empty() {
+                "none".to_string()
+            } else {
+                attached_to.join(", ")
+            };
+
+            let create_time = vol
+                .create_time()
+                .map(|d| secs_to_rfc3339(d.secs()))
+                .unwrap_or_default();
+
+            let location = format!("{region} / AZ: {az}");
+            let hw_make_model = format!("AWS EBS {volume_type}");
+
+            let comments = format!(
+                "Size: {size}GB | Iops: {iops} | Throughput: {throughput}MBps | \
+                 Encrypted: {encrypted} | KmsKeyId: {kms_key_id} | State: {state} | \
+                 AttachedTo: {attached_to_str} | CreateTime: {create_time} | \
+                 MultiAttach: {multi_attach}"
+            );
+
+            rows.push(
+                RowBuilder::new()
+                    .unique_id(&volume_id)
+                    .virtual_flag("Yes")
+                    .public("No")
+                    .location(location)
+                    .asset_type("EBS Volume")
+                    .hw_make_model(hw_make_model)
+                    .sw_vendor("Amazon Web Services")
+                    .sw_name_ver("Amazon Elastic Block Store")
+                    .comments(comments)
+                    .build(),
+            );
+        }
+
+        next_token = resp.next_token().map(|s| s.to_string());
+        if next_token.is_none() {
+            break;
+        }
+    }
+
+    Ok(rows)
 }
-pub(super) async fn collect_fsx_file_systems(_c: &FsxClient, _region: &str) -> Result<Vec<Vec<String>>> {
-    Ok(Vec::new())
+
+// ---------------------------------------------------------------------------
+// EFS File Systems
+// ---------------------------------------------------------------------------
+
+pub(super) async fn collect_efs_file_systems(
+    client: &EfsClient,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
+    let mut rows = Vec::new();
+    let mut marker: Option<String> = None;
+
+    loop {
+        let mut req = client.describe_file_systems();
+        if let Some(ref m) = marker {
+            req = req.marker(m);
+        }
+        let resp = req.send().await.context("EFS describe_file_systems")?;
+
+        for fs in resp.file_systems() {
+            let file_system_id = fs.file_system_id().to_string();
+            let file_system_arn = fs.file_system_arn().unwrap_or("").to_string();
+            let encrypted = fs.encrypted().unwrap_or(false);
+            let kms_key_id = fs.kms_key_id().unwrap_or("").to_string();
+            let performance_mode = fs.performance_mode().as_str().to_string();
+            let throughput_mode = fs
+                .throughput_mode()
+                .map(|m| m.as_str())
+                .unwrap_or("")
+                .to_string();
+            let mount_target_count = fs.number_of_mount_targets();
+            let size_bytes = fs.size_in_bytes().map(|s| s.value()).unwrap_or(0);
+
+            // Mount targets — derive VPC (from first target) and subnet list.
+            let mount_targets = match client
+                .describe_mount_targets()
+                .file_system_id(&file_system_id)
+                .send()
+                .await
+            {
+                Ok(r) => r.mount_targets().to_vec(),
+                Err(_) => Vec::new(),
+            };
+            let vpc_id = mount_targets
+                .first()
+                .and_then(|mt| mt.vpc_id())
+                .unwrap_or("")
+                .to_string();
+            let subnet_ids: Vec<String> = mount_targets
+                .iter()
+                .map(|mt| mt.subnet_id().to_string())
+                .collect();
+            let vlan_network_id = format!("VPC: {vpc_id}, Subnets: {}", subnet_ids.join(", "));
+
+            // Backup policy — treat any error (e.g. BackupPolicyNotFound) as DISABLED.
+            let backup_policy = match client
+                .describe_backup_policy()
+                .file_system_id(&file_system_id)
+                .send()
+                .await
+            {
+                Ok(r) => r
+                    .backup_policy()
+                    .map(|p| p.status().as_str().to_string())
+                    .unwrap_or_else(|| "DISABLED".to_string()),
+                Err(_) => "DISABLED".to_string(),
+            };
+
+            // Lifecycle configuration — walk transitions and join as e.g.
+            // "AFTER_30_DAYS→IA, AFTER_90_DAYS→ARCHIVE".
+            let lifecycle_policy = match client
+                .describe_lifecycle_configuration()
+                .file_system_id(&file_system_id)
+                .send()
+                .await
+            {
+                Ok(r) => {
+                    let mut transitions = Vec::new();
+                    for policy in r.lifecycle_policies() {
+                        if let Some(t) = policy.transition_to_ia() {
+                            transitions.push(format!("{}→IA", t.as_str()));
+                        }
+                        if let Some(t) = policy.transition_to_primary_storage_class() {
+                            transitions.push(format!("{}→PRIMARY", t.as_str()));
+                        }
+                        if let Some(t) = policy.transition_to_archive() {
+                            transitions.push(format!("{}→ARCHIVE", t.as_str()));
+                        }
+                    }
+                    transitions.join(", ")
+                }
+                Err(_) => String::new(),
+            };
+
+            let dns_url = format!("{file_system_id}.efs.{region}.amazonaws.com");
+
+            let comments = format!(
+                "Encrypted: {encrypted} | KmsKeyId: {kms_key_id} | PerformanceMode: {performance_mode} | \
+                 ThroughputMode: {throughput_mode} | LifecyclePolicy: {lifecycle_policy} | \
+                 BackupPolicy: {backup_policy} | MountTargetCount: {mount_target_count} | \
+                 SizeBytes: {size_bytes}"
+            );
+
+            rows.push(
+                RowBuilder::new()
+                    .unique_id(&file_system_arn)
+                    .virtual_flag("Yes")
+                    .public("No")
+                    .dns_url(dns_url)
+                    .location(region)
+                    .asset_type("EFS File System")
+                    .sw_vendor("Amazon Web Services")
+                    .sw_name_ver("Amazon EFS")
+                    .vlan_network_id(vlan_network_id)
+                    .comments(comments)
+                    .build(),
+            );
+        }
+
+        marker = resp.next_marker().map(|s| s.to_string());
+        if marker.is_none() {
+            break;
+        }
+    }
+
+    Ok(rows)
+}
+
+// ---------------------------------------------------------------------------
+// FSx File Systems
+// ---------------------------------------------------------------------------
+
+pub(super) async fn collect_fsx_file_systems(
+    client: &FsxClient,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
+    let mut rows = Vec::new();
+    let mut next_token: Option<String> = None;
+
+    loop {
+        let mut req = client.describe_file_systems();
+        if let Some(ref t) = next_token {
+            req = req.next_token(t);
+        }
+        let resp = req.send().await.context("FSx describe_file_systems")?;
+
+        for fs in resp.file_systems() {
+            let resource_arn = fs.resource_arn().unwrap_or("").to_string();
+            let fs_type = fs.file_system_type().map(|t| t.as_str()).unwrap_or("");
+            let dns_name = fs.dns_name().unwrap_or("").to_string();
+            let kms_key_id = fs.kms_key_id().unwrap_or("").to_string();
+            let storage_capacity = fs.storage_capacity().unwrap_or(0);
+            let storage_type = fs
+                .storage_type()
+                .map(|t| t.as_str())
+                .unwrap_or("")
+                .to_string();
+            let vpc_id = fs.vpc_id().unwrap_or("").to_string();
+            let subnet_ids: Vec<String> = fs.subnet_ids().iter().map(|s| s.to_string()).collect();
+            let vlan_network_id = format!("VPC: {vpc_id}, Subnets: {}", subnet_ids.join(", "));
+
+            let sw_name_ver = match fs_type {
+                "WINDOWS" => "Amazon FSx for Windows".to_string(),
+                "LUSTRE" => "Amazon FSx for Lustre".to_string(),
+                "OPENZFS" => "Amazon FSx for OpenZFS".to_string(),
+                "ONTAP" => "Amazon FSx for NetApp OnTap".to_string(),
+                other => format!("Amazon FSx for {other}"),
+            };
+
+            // DeploymentType / AutomaticBackupRetentionDays / DailyAutomaticBackupStartTime /
+            // PreferredSubnetId live under the per-flavour configuration block — try each in
+            // turn (Windows, then Lustre, then OpenZFS, then Ontap).
+            let (deployment_type, backup_retention_days, daily_backup_start_time, preferred_subnet_id) =
+                if let Some(cfg) = fs.windows_configuration() {
+                    (
+                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                        cfg.automatic_backup_retention_days().unwrap_or(0),
+                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                        cfg.preferred_subnet_id().unwrap_or(""),
+                    )
+                } else if let Some(cfg) = fs.lustre_configuration() {
+                    (
+                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                        cfg.automatic_backup_retention_days().unwrap_or(0),
+                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                        "",
+                    )
+                } else if let Some(cfg) = fs.open_zfs_configuration() {
+                    (
+                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                        cfg.automatic_backup_retention_days().unwrap_or(0),
+                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                        cfg.preferred_subnet_id().unwrap_or(""),
+                    )
+                } else if let Some(cfg) = fs.ontap_configuration() {
+                    (
+                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                        cfg.automatic_backup_retention_days().unwrap_or(0),
+                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                        cfg.preferred_subnet_id().unwrap_or(""),
+                    )
+                } else {
+                    ("", 0, "", "")
+                };
+
+            let comments = format!(
+                "StorageCapacityGiB: {storage_capacity} | StorageType: {storage_type} | \
+                 KmsKeyId: {kms_key_id} | PreferredSubnetId: {preferred_subnet_id} | \
+                 AutomaticBackupRetentionDays: {backup_retention_days} | \
+                 DailyAutomaticBackupStartTime: {daily_backup_start_time} | \
+                 DeploymentType: {deployment_type}"
+            );
+
+            rows.push(
+                RowBuilder::new()
+                    .unique_id(&resource_arn)
+                    .virtual_flag("Yes")
+                    .public("No")
+                    .dns_url(dns_name)
+                    .location(region)
+                    .asset_type(format!("FSx File System ({fs_type})"))
+                    .sw_vendor("Amazon Web Services")
+                    .sw_name_ver(sw_name_ver)
+                    .vlan_network_id(vlan_network_id)
+                    .comments(comments)
+                    .build(),
+            );
+        }
+
+        next_token = resp.next_token().map(|s| s.to_string());
+        if next_token.is_none() {
+            break;
+        }
+    }
+
+    Ok(rows)
 }
