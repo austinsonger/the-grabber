@@ -38,15 +38,31 @@ pub fn write_csv_bytes_with_manifest(
         writer.write_record(&full_row).context("CSV write row")?;
     }
 
-    // Blank separator + two footer rows.
+    // Keep footer rows the same width as data rows so csv::Writer does not reject
+    // mixed record lengths.
+    let footer_width = full_headers.len();
+
+    let blank_row = vec![String::new(); footer_width];
     writer
-        .write_record::<[&str; 0], &str>([])
+        .write_record(&blank_row)
         .context("CSV write blank footer separator")?;
+
+    let mut req_footer = vec![String::new(); footer_width];
+    req_footer[0] = "# FedRAMP Req IDs".to_string();
+    if footer_width > 1 {
+        req_footer[1] = req_joined.clone();
+    }
     writer
-        .write_record(["# FedRAMP Req IDs", &req_joined])
+        .write_record(&req_footer)
         .context("CSV write req_ids footer")?;
+
+    let mut source_footer = vec![String::new(); footer_width];
+    source_footer[0] = "# Source Evidence File".to_string();
+    if footer_width > 1 {
+        source_footer[1] = source_evidence_file.to_string();
+    }
     writer
-        .write_record(["# Source Evidence File", source_evidence_file])
+        .write_record(&source_footer)
         .context("CSV write source footer")?;
 
     writer.flush().context("CSV flush")?;
