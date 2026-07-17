@@ -240,7 +240,6 @@ async fn collect_apigw_v2(
     let mut rows = Vec::new();
     let mut next_token: Option<String> = None;
     let custom_domains_joined = custom_domains.join(", ");
-    let has_custom_domains = !custom_domains.is_empty();
 
     loop {
         let mut req = client.get_apis();
@@ -266,13 +265,13 @@ async fn collect_apigw_v2(
             };
 
             let disable_execute_api_endpoint = api.disable_execute_api_endpoint().unwrap_or(false);
-            // "No" only when the default execute-api endpoint is disabled
-            // AND no custom domain fronts the API; otherwise reachable via
-            // either the default endpoint or a custom domain, so "Yes".
-            let is_public = !disable_execute_api_endpoint || has_custom_domains;
+            // "No" only when the default execute-api endpoint is disabled;
+            // whether some other API in the account has a custom domain is
+            // irrelevant to whether THIS API is publicly reachable.
+            let is_public = !disable_execute_api_endpoint;
 
             let unique_id = format!("arn:aws:apigateway:{region}::/apis/{api_id}");
-            let dns_url = api
+            let base_endpoint = api
                 .api_endpoint()
                 .filter(|e| !e.is_empty())
                 .map(|e| e.to_string())
@@ -304,7 +303,7 @@ async fn collect_apigw_v2(
                         .unique_id(&unique_id)
                         .virtual_flag("Yes")
                         .public(if is_public { "Yes" } else { "No" })
-                        .dns_url(dns_url.as_str())
+                        .dns_url(base_endpoint.as_str())
                         .location(region)
                         .asset_type(asset_type)
                         .sw_vendor("Amazon Web Services")
@@ -324,6 +323,11 @@ async fn collect_apigw_v2(
                     .and_then(|r| r.logging_level())
                     .map(|l| l.as_str())
                     .unwrap_or("");
+                let dns_url = if stage_name.is_empty() || stage_name == "$default" {
+                    base_endpoint.clone()
+                } else {
+                    format!("{}/{}", base_endpoint.trim_end_matches('/'), stage_name)
+                };
 
                 let comments = format!(
                     "ApiId: {api_id} | ProtocolType: {protocol_type_str} | \
