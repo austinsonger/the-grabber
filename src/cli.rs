@@ -100,6 +100,15 @@ pub struct Cli {
     #[arg(long, default_value_t = false)]
     pub inventory: bool,
 
+    /// Merge inventory from every authenticated AWS account listed in config.toml /
+    /// tenable-config / okta-config / jira-config into a single unified CSV + XLSX
+    /// (matches the TUI multi-account inventory output). Accounts whose profile
+    /// cannot resolve an AWS identity (expired SSO, missing creds) are skipped
+    /// with a WARN; the run continues against the rest. Requires --inventory.
+    /// Cannot be combined with --profile — profiles are read from the account config.
+    #[arg(long, default_value_t = false, conflicts_with = "profile")]
+    pub inventory_all_accounts: bool,
+
     // ------- Signing options -------
     /// HMAC-SHA256-sign all output files after collection.
     /// Writes SIGNING-MANIFEST-<ts>.json and SIGNING-<ts>.key to the current directory.
