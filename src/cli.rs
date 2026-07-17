@@ -143,8 +143,7 @@ pub struct Cli {
     pub skip_inventory_csv: bool,
 
     /// Limit inventory to specific asset types (comma-separated, inventory mode only).
-    /// Valid keys: kms-key, s3-bucket, lambda-function, ec2-instance, alb,
-    ///             rds-db-instance, elasticache-cluster, container.
+    /// See INVENTORY_ITEMS in src/inventory_core.rs for the full list of valid keys.
     /// Omit to collect all types (or use individual type flags below).
     #[arg(long, value_delimiter = ',')]
     pub inventory_types: Option<Vec<String>>,
@@ -181,6 +180,82 @@ pub struct Cli {
     /// Inventory: include Containers (ECR/ECS/EKS).
     #[arg(long = "containers", default_value_t = false)]
     pub inv_containers: bool,
+
+    /// Inventory: include Network Load Balancers.
+    #[arg(long = "nlb", default_value_t = false)]
+    pub inv_nlb: bool,
+
+    /// Inventory: include EBS Volumes.
+    #[arg(long = "ebs", default_value_t = false)]
+    pub inv_ebs: bool,
+
+    /// Inventory: include EFS File Systems.
+    #[arg(long = "efs", default_value_t = false)]
+    pub inv_efs: bool,
+
+    /// Inventory: include FSx File Systems.
+    #[arg(long = "fsx", default_value_t = false)]
+    pub inv_fsx: bool,
+
+    /// Inventory: include Redshift Clusters.
+    #[arg(long = "redshift", default_value_t = false)]
+    pub inv_redshift: bool,
+
+    /// Inventory: include DynamoDB Tables.
+    #[arg(long = "dynamodb", default_value_t = false)]
+    pub inv_dynamodb: bool,
+
+    /// Inventory: include API Gateway (REST, HTTP, WebSocket) APIs.
+    #[arg(long = "apigw", default_value_t = false)]
+    pub inv_apigw: bool,
+
+    /// Inventory: include SNS Topics.
+    #[arg(long = "sns", default_value_t = false)]
+    pub inv_sns: bool,
+
+    /// Inventory: include SQS Queues.
+    #[arg(long = "sqs", default_value_t = false)]
+    pub inv_sqs: bool,
+
+    /// Inventory: include Kinesis Data Streams.
+    #[arg(long = "kinesis", default_value_t = false)]
+    pub inv_kinesis: bool,
+
+    /// Inventory: include Kinesis Firehose Delivery Streams.
+    #[arg(long = "firehose", default_value_t = false)]
+    pub inv_firehose: bool,
+
+    /// Inventory: include EventBridge Buses and Rules.
+    #[arg(long = "eventbridge", default_value_t = false)]
+    pub inv_eventbridge: bool,
+
+    /// Inventory: include Secrets Manager Secrets (metadata only — never reads secret values).
+    #[arg(long = "secretsmanager", default_value_t = false)]
+    pub inv_secretsmanager: bool,
+
+    /// Inventory: include VPC network fabric (VPC + Subnet + IGW + NAT GW + TGW Attachment).
+    #[arg(long = "vpc-network", default_value_t = false)]
+    pub inv_vpc_network: bool,
+
+    /// Inventory: include CloudTrail Trails.
+    #[arg(long = "cloudtrail", default_value_t = false)]
+    pub inv_cloudtrail: bool,
+
+    /// Inventory: include Config Recorders.
+    #[arg(long = "config-recorder", default_value_t = false)]
+    pub inv_config_recorder: bool,
+
+    /// Inventory: include GuardDuty Detectors.
+    #[arg(long = "guardduty", default_value_t = false)]
+    pub inv_guardduty: bool,
+
+    /// Inventory: include Security Hub Hubs.
+    #[arg(long = "securityhub", default_value_t = false)]
+    pub inv_securityhub: bool,
+
+    /// Inventory: include WAF WebACLs (Regional + CloudFront scope).
+    #[arg(long = "waf", default_value_t = false)]
+    pub inv_waf: bool,
 
     // ------- POA&M mode -------
     /// Run the POA&M reconciliation workflow (non-interactive).
@@ -301,6 +376,63 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
     }
     if cli.inv_containers {
         selected.push("container".to_string());
+    }
+    if cli.inv_nlb {
+        selected.push("nlb".to_string());
+    }
+    if cli.inv_ebs {
+        selected.push("ebs-volume".to_string());
+    }
+    if cli.inv_efs {
+        selected.push("efs-file-system".to_string());
+    }
+    if cli.inv_fsx {
+        selected.push("fsx-file-system".to_string());
+    }
+    if cli.inv_redshift {
+        selected.push("redshift-cluster".to_string());
+    }
+    if cli.inv_dynamodb {
+        selected.push("dynamodb-table".to_string());
+    }
+    if cli.inv_apigw {
+        selected.push("apigw".to_string());
+    }
+    if cli.inv_sns {
+        selected.push("sns-topic".to_string());
+    }
+    if cli.inv_sqs {
+        selected.push("sqs-queue".to_string());
+    }
+    if cli.inv_kinesis {
+        selected.push("kinesis-stream".to_string());
+    }
+    if cli.inv_firehose {
+        selected.push("firehose-stream".to_string());
+    }
+    if cli.inv_eventbridge {
+        selected.push("eventbridge".to_string());
+    }
+    if cli.inv_secretsmanager {
+        selected.push("secretsmanager-secret".to_string());
+    }
+    if cli.inv_vpc_network {
+        selected.push("vpc-network".to_string());
+    }
+    if cli.inv_cloudtrail {
+        selected.push("cloudtrail-trail".to_string());
+    }
+    if cli.inv_config_recorder {
+        selected.push("config-recorder".to_string());
+    }
+    if cli.inv_guardduty {
+        selected.push("guardduty-detector".to_string());
+    }
+    if cli.inv_securityhub {
+        selected.push("securityhub-hub".to_string());
+    }
+    if cli.inv_waf {
+        selected.push("waf-webacl".to_string());
     }
 
     let mut seen = std::collections::HashSet::new();

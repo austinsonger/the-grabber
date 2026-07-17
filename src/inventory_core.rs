@@ -29,6 +29,25 @@ pub const ASSET_KEY_ALB: &str = "alb";
 pub const ASSET_KEY_RDS_DB_INSTANCE: &str = "rds-db-instance";
 pub const ASSET_KEY_ELASTICACHE_CLUSTER: &str = "elasticache-cluster";
 pub const ASSET_KEY_CONTAINER: &str = "container";
+pub const ASSET_KEY_NLB: &str = "nlb";
+pub const ASSET_KEY_EBS_VOLUME: &str = "ebs-volume";
+pub const ASSET_KEY_EFS_FILE_SYSTEM: &str = "efs-file-system";
+pub const ASSET_KEY_FSX_FILE_SYSTEM: &str = "fsx-file-system";
+pub const ASSET_KEY_REDSHIFT_CLUSTER: &str = "redshift-cluster";
+pub const ASSET_KEY_DYNAMODB_TABLE: &str = "dynamodb-table";
+pub const ASSET_KEY_APIGW: &str = "apigw";
+pub const ASSET_KEY_SNS_TOPIC: &str = "sns-topic";
+pub const ASSET_KEY_SQS_QUEUE: &str = "sqs-queue";
+pub const ASSET_KEY_KINESIS_STREAM: &str = "kinesis-stream";
+pub const ASSET_KEY_FIREHOSE_STREAM: &str = "firehose-stream";
+pub const ASSET_KEY_EVENTBRIDGE: &str = "eventbridge";
+pub const ASSET_KEY_SECRETSMANAGER_SECRET: &str = "secretsmanager-secret";
+pub const ASSET_KEY_VPC_NETWORK: &str = "vpc-network";
+pub const ASSET_KEY_CLOUDTRAIL_TRAIL: &str = "cloudtrail-trail";
+pub const ASSET_KEY_CONFIG_RECORDER: &str = "config-recorder";
+pub const ASSET_KEY_GUARDDUTY_DETECTOR: &str = "guardduty-detector";
+pub const ASSET_KEY_SECURITYHUB_HUB: &str = "securityhub-hub";
+pub const ASSET_KEY_WAF_WEBACL: &str = "waf-webacl";
 
 pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_KMS_KEY, "KMS Key"),
@@ -39,6 +58,25 @@ pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_RDS_DB_INSTANCE, "RDS DB Instance"),
     (ASSET_KEY_ELASTICACHE_CLUSTER, "ElastiCache Cluster"),
     (ASSET_KEY_CONTAINER, "Container (ECR/ECS/EKS)"),
+    (ASSET_KEY_NLB, "Network Load Balancer (NLB)"),
+    (ASSET_KEY_EBS_VOLUME, "EBS Volume"),
+    (ASSET_KEY_EFS_FILE_SYSTEM, "EFS File System"),
+    (ASSET_KEY_FSX_FILE_SYSTEM, "FSx File System"),
+    (ASSET_KEY_REDSHIFT_CLUSTER, "Redshift Cluster"),
+    (ASSET_KEY_DYNAMODB_TABLE, "DynamoDB Table"),
+    (ASSET_KEY_APIGW, "API Gateway (REST + HTTP + WebSocket)"),
+    (ASSET_KEY_SNS_TOPIC, "SNS Topic"),
+    (ASSET_KEY_SQS_QUEUE, "SQS Queue"),
+    (ASSET_KEY_KINESIS_STREAM, "Kinesis Data Stream"),
+    (ASSET_KEY_FIREHOSE_STREAM, "Kinesis Firehose Delivery Stream"),
+    (ASSET_KEY_EVENTBRIDGE, "EventBridge (Bus + Rule)"),
+    (ASSET_KEY_SECRETSMANAGER_SECRET, "Secrets Manager Secret"),
+    (ASSET_KEY_VPC_NETWORK, "VPC Network Fabric (VPC + Subnet + IGW + NAT + TGW Attachment)"),
+    (ASSET_KEY_CLOUDTRAIL_TRAIL, "CloudTrail Trail"),
+    (ASSET_KEY_CONFIG_RECORDER, "Config Recorder"),
+    (ASSET_KEY_GUARDDUTY_DETECTOR, "GuardDuty Detector"),
+    (ASSET_KEY_SECURITYHUB_HUB, "Security Hub Hub"),
+    (ASSET_KEY_WAF_WEBACL, "WAF WebACL"),
 ];
 
 /// Build a 14-element all-empty row.
