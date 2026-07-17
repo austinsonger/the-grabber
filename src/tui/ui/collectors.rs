@@ -16,39 +16,16 @@ use super::{
 // ═══════════════════════════════════════════════════════════════════════════
 
 pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
-    // Count only items visible to the current provider.
-    let provider_visible_total: usize = (0..app.collector_items.len())
-        .filter(|&i| {
-            let (_, _, provider) = &app.collector_items[i];
-            if app.selected_feature == crate::tui::state::Feature::Collectors {
-                *provider == app.selected_provider
-            } else {
-                true
-            }
-        })
-        .count();
-    let provider_visible_selected: usize = app
-        .collector_selected
-        .iter()
-        .filter(|&&i| {
-            app.collector_items
-                .get(i)
-                .map(|(_, _, p)| {
-                    if app.selected_feature == crate::tui::state::Feature::Collectors {
-                        *p == app.selected_provider
-                    } else {
-                        true
-                    }
-                })
-                .unwrap_or(false)
-        })
-        .count();
+    // All items in collector_items belong to the current provider (structural
+    // filter from App::load_menu_for_current_provider). Count directly.
+    let total_visible = app.collector_items.len();
+    let selected_visible = app.collector_selected.len();
     let search_term = &app.collector_search.value;
 
     let title = if search_term.is_empty() {
         format!(
             " Collectors ─────────── {} of {} selected ",
-            provider_visible_selected, provider_visible_total,
+            selected_visible, total_visible,
         )
     } else {
         let match_count: usize = (0..app.collector_items.len())
@@ -56,7 +33,7 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
             .count();
         format!(
             " Collectors ─────────── {} of {} selected  •  {} matches ",
-            provider_visible_selected, provider_visible_total, match_count,
+            selected_visible, total_visible, match_count,
         )
     };
 
@@ -247,7 +224,7 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 
     let mut item_list: Vec<ListItem> = Vec::new();
     for &i in &visible_items {
-        let (_, label, provider) = &app.collector_items[i];
+        let (_, label, _) = &app.collector_items[i];
         let checked = app.collector_selected.contains(&i);
         let focused = i == app.collector_cursor;
 
@@ -271,15 +248,9 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
             String::new()
         };
 
-        let (badge_text, badge_color) = provider_badge(provider);
-
         let mut line_spans = vec![
             Span::styled(format!("{} ", checkbox), checkbox_style),
             Span::styled(format!("{:<28}", name), name_style),
-            Span::styled(
-                format!("{:<5}", badge_text),
-                Style::default().fg(badge_color),
-            ),
         ];
         if !desc.is_empty() {
             line_spans.push(Span::styled(desc, Style::default().fg(TEXT_DIM)));
@@ -334,15 +305,4 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
             .alignment(Alignment::Center),
         help_area,
     );
-}
-
-fn provider_badge(provider: &CloudProvider) -> (&'static str, Color) {
-    match provider {
-        CloudProvider::Aws => ("AWS", Color::Rgb(255, 153, 0)),
-        CloudProvider::Azure => ("AZ", Color::Rgb(0, 120, 212)),
-        CloudProvider::Gcp => ("GCP", Color::Rgb(66, 133, 244)),
-        CloudProvider::Tenable => ("TEN", Color::Rgb(0, 175, 80)),
-        CloudProvider::Okta => ("OKT", Color::Rgb(0, 125, 193)),
-        CloudProvider::Jira => ("JIRA", Color::Rgb(38, 132, 255)),
-    }
 }
