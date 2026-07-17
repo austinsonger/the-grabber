@@ -521,26 +521,46 @@ fn handle_inventory(app: &mut App, key: KeyCode) {
     }
 }
 
+/// AWS regions (and the "All Regions" round-robin toggle) only make sense for
+/// a Collectors run against the AWS provider. Inventory is AWS-only today, so
+/// it is intentionally excluded here and keeps its existing region behavior.
+fn is_aws_regional(app: &App) -> bool {
+    app.selected_feature == Feature::Collectors
+        && app.selected_provider == crate::providers::CloudProvider::Aws
+}
+
 fn handle_set_options(app: &mut App, key: KeyCode) {
-    let region_field = if app.selected_feature == Feature::Inventory {
+    let is_inventory = app.selected_feature == Feature::Inventory;
+    let region_field = if is_inventory {
         6
-    } else {
+    } else if is_aws_regional(app) {
         7
+    } else {
+        // No region list for non-AWS Collectors runs; use a value the
+        // options_field counter can never reach so Up/Down/Space handlers
+        // below stay inert.
+        usize::MAX
     };
 
     match key {
         KeyCode::Tab => {
-            let total = if app.selected_feature == Feature::Inventory {
+            let total = if is_inventory {
                 7
-            } else {
+            } else if is_aws_regional(app) {
                 8
+            } else {
+                7
             };
-            app.options_field = (app.options_field + 1) % total;
+            let mut next = (app.options_field + 1) % total;
+            if next == 2 && !is_inventory && !is_aws_regional(app) {
+                next = 3;
+            }
+            app.options_field = next;
         }
         KeyCode::Char(' ') if app.options_field == 1 => {
             app.include_raw = !app.include_raw;
         }
-        KeyCode::Char(' ') if app.options_field == 2 => {
+        KeyCode::Char(' ') if app.options_field == 2 && (is_inventory || is_aws_regional(app)) => {
             app.all_regions = !app.all_regions;
             if app.all_regions {
                 app.options_selected_regions.clear();

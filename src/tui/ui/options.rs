@@ -6,10 +6,18 @@ use ratatui::Frame;
 
 use super::widgets::content_inset;
 use super::{App, Feature, AMBER, BORDER_SUBTLE, CYAN, GREEN, PURPLE, TEXT_DIM, TEXT_NORMAL};
+use crate::providers::CloudProvider;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Options
 // ═══════════════════════════════════════════════════════════════════════════
+
+/// AWS regions (and the "All Regions" round-robin toggle) only make sense for
+/// a Collectors run against the AWS provider. Inventory is AWS-only today, so
+/// it is intentionally excluded here and keeps its existing region behavior.
+pub(super) fn is_aws_regional(app: &App) -> bool {
+    app.selected_feature == Feature::Collectors && app.selected_provider == CloudProvider::Aws
+}
 
 pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // Collectors: 8 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
@@ -17,18 +25,21 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     // Inventory:  7 fields (0=filter 1=include_raw 2=all_regions 3=zip 4=sign
     //   5=skip_inventory_csv 6=region list)
     let is_inventory = matches!(app.selected_feature, Feature::Inventory);
+    // Inventory is always AWS-only today, so its region UI is unaffected by
+    // this gate; only a non-AWS Collectors run collapses these blocks.
+    let show_regions = is_inventory || is_aws_regional(app);
     let chunks = Layout::vertical([
-        Constraint::Length(2), // [0] heading
-        Constraint::Length(3), // [1] filter
-        Constraint::Length(1), // [2] spacer
-        Constraint::Length(3), // [3] include raw
-        Constraint::Length(1), // [4] spacer
-        Constraint::Length(3), // [5] all regions toggle
-        Constraint::Length(1), // [6] spacer
-        Constraint::Length(3), // [7] zip bundle toggle
-        Constraint::Length(1), // [8] spacer
-        Constraint::Length(3), // [9] sign output toggle
-        Constraint::Length(1), // [10] spacer
+        Constraint::Length(2),                                // [0] heading
+        Constraint::Length(3),                                // [1] filter
+        Constraint::Length(1),                                // [2] spacer
+        Constraint::Length(3),                                // [3] include raw
+        Constraint::Length(1),                                // [4] spacer
+        Constraint::Length(if show_regions { 3 } else { 0 }), // [5] all regions toggle
+        Constraint::Length(if show_regions { 1 } else { 0 }), // [6] spacer
+        Constraint::Length(3),                                // [7] zip bundle toggle
+        Constraint::Length(1),                                // [8] spacer
+        Constraint::Length(3),                                // [9] sign output toggle
+        Constraint::Length(1),                                // [10] spacer
         // Collectors-only (collapsed to 0 in Inventory mode):
         Constraint::Length(if is_inventory { 0 } else { 3 }), // [11] write_run_manifest
         Constraint::Length(if is_inventory { 0 } else { 1 }), // [12] spacer
@@ -37,7 +48,11 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         // Inventory-only (collapsed to 0 in Collectors mode):
         Constraint::Length(if is_inventory { 3 } else { 0 }), // [15] skip_inventory_csv
         Constraint::Length(if is_inventory { 1 } else { 0 }), // [16] spacer
-        Constraint::Fill(1),                                  // [17] region list
+        if show_regions {
+            Constraint::Fill(1) // [17] region list
+        } else {
+            Constraint::Length(0)
+        },
     ])
     .split(content_inset(area));
 
@@ -101,8 +116,8 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
         );
     }
 
-    // ── All Regions (round-robin) toggle (field 2) ────────────────────────────
-    {
+    // ── All Regions (round-robin) toggle (field 2, AWS-regional runs only) ───
+    if show_regions {
         let focused = app.options_field == 2;
         let border_style = if focused {
             Style::default().fg(CYAN)
@@ -382,7 +397,7 @@ pub(super) fn draw_options(f: &mut Frame, area: Rect, app: &App) {
     }
 
     // ── Region multi-select list (field 6 for Inventory, 7 for Collectors) ───
-    {
+    if show_regions {
         let region_field = if is_inventory { 6 } else { 7 };
         let focused = app.options_field == region_field;
         let dimmed = app.all_regions; // when all_regions is ON, list is informational only

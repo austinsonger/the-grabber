@@ -81,7 +81,20 @@ impl App {
                 }
                 Screen::Confirm
             }
-            Screen::SetOptions => Screen::Confirm,
+            Screen::SetOptions => {
+                // Regions (and round-robin "All Regions") only apply to AWS
+                // Collectors runs. Inventory is AWS-only today and keeps its
+                // existing region behavior; force-clear regions only for a
+                // non-AWS Collectors run so the runner doesn't attempt
+                // region iteration where there is no region concept.
+                let is_collectors_non_aws = self.selected_feature == Feature::Collectors
+                    && self.selected_provider != CloudProvider::Aws;
+                if is_collectors_non_aws {
+                    self.all_regions = false;
+                    self.options_selected_regions.clear();
+                }
+                Screen::Confirm
+            }
             Screen::Confirm => Screen::Running,
             Screen::Preparing => Screen::Running,
             Screen::Running => Screen::Results,
