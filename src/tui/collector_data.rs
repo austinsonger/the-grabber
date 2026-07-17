@@ -110,7 +110,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "CT IAM Changes (Hi-Risk) ",
         CloudProvider::Aws,
     ),
-    // ── Compute ── (23..37)
+    // ── Compute ── (23..39)
     ("asg", "Auto Scaling Groups      ", CloudProvider::Aws),
     (
         "ec2-detailed",
@@ -130,6 +130,16 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     (
         "launch-templates",
         "EC2 Launch Templates     ",
+        CloudProvider::Aws,
+    ),
+    (
+        "ssm-allowlist",
+        "SSM Application Allowlist",
+        CloudProvider::Aws,
+    ),
+    (
+        "ssm-automation",
+        "SSM Automation Runbooks ",
         CloudProvider::Aws,
     ),
     (
@@ -177,7 +187,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("ecs", "ECS Clusters             ", CloudProvider::Aws),
     ("eks", "EKS Clusters             ", CloudProvider::Aws),
-    // ── Database & Backup ── (41..48)
+    // ── Database & Backup ── (42..50)
     ("backup", "AWS Backup API", CloudProvider::Aws),
     (
         "backup-plans",
@@ -187,6 +197,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     (
         "backup-vaults",
         "Backup Vault Config      ",
+        CloudProvider::Aws,
+    ),
+    (
+        "doc-repo-backup",
+        "Doc Repo Backup Config  ",
         CloudProvider::Aws,
     ),
     (
@@ -233,7 +248,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Secrets Manager Policies ",
         CloudProvider::Aws,
     ),
-    // ── Identity & Access ── (55..67)
+    // ── Identity & Access ── (57..70)
     (
         "access-analyzer",
         "IAM Access Analyzer      ",
@@ -250,6 +265,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("iam-certs", "IAM Certificates         ", CloudProvider::Aws),
+    (
+        "iam-cred-report",
+        "IAM Credential Report   ",
+        CloudProvider::Aws,
+    ),
     (
         "iam-password-policy",
         "IAM Password Policy      ",
@@ -325,7 +345,7 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         CloudProvider::Aws,
     ),
     ("sns", "SNS Topic Subscribers    ", CloudProvider::Aws),
-    // ── Network ── (77..97)
+    // ── Network ── (80..103)
     ("acm", "ACM Certificates         ", CloudProvider::Aws),
     ("alb-logs", "ALB Access Log Config    ", CloudProvider::Aws),
     ("igw", "Internet Gateways        ", CloudProvider::Aws),
@@ -347,6 +367,11 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     ),
     ("nacl", "Network ACLs             ", CloudProvider::Aws),
     (
+        "nfw-failclosed",
+        "NetworkFirewall Fail-Closed",
+        CloudProvider::Aws,
+    ),
+    (
         "public-resources",
         "Publicly Exposed Res.    ",
         CloudProvider::Aws,
@@ -361,6 +386,16 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     (
         "security-groups",
         "Security Groups          ",
+        CloudProvider::Aws,
+    ),
+    (
+        "session-timeouts",
+        "Session Timeouts        ",
+        CloudProvider::Aws,
+    ),
+    (
+        "tgw-peering",
+        "TransitGateway + VPC Peer",
         CloudProvider::Aws,
     ),
     (
@@ -411,7 +446,12 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "Resource Tags            ",
         CloudProvider::Aws,
     ),
-    // ── Security Detection ── (101..113)
+    // ── Security Detection ── (107..123)
+    (
+        "ami-default-creds",
+        "AMI Default Cred Scan   ",
+        CloudProvider::Aws,
+    ),
     (
         "guardduty-config",
         "GuardDuty Config         ",
@@ -421,6 +461,16 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     (
         "gd-full-config",
         "GuardDuty Full Config    ",
+        CloudProvider::Aws,
+    ),
+    (
+        "guardduty-malware",
+        "GuardDuty Malware Scans ",
+        CloudProvider::Aws,
+    ),
+    (
+        "guardduty-runtime",
+        "GuardDuty Runtime Coverage",
         CloudProvider::Aws,
     ),
     (
@@ -573,6 +623,91 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
         "System Log Events        ",
         CloudProvider::Okta,
     ),
+    (
+        "okta-access-reviews",
+        "Access Certification    ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-auto-provisioning",
+        "Automated Provisioning  ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-contractor-deprov",
+        "Contractor Deprovisioning",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-deprovisioning",
+        "Deprovisioning Timeliness",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-group-changes",
+        "Group Membership Changes",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-hris-config",
+        "HRIS Integration Config ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-offboarding-sla",
+        "Offboarding SLA         ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-password-policy",
+        "Password Policy         ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-prod-recert",
+        "Prod Access Recert      ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-publisher-groups",
+        "Publisher Groups        ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-risk-suspend",
+        "Risk-Account Suspend    ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-session-policy",
+        "Session Policy          ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-shared-account-broker",
+        "Shared-Account Broker   ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-shared-groups",
+        "Shared Group Inventory  ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-signin-widget",
+        "Sign-In Widget Config   ",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-threat-insight",
+        "ThreatInsight Detections",
+        CloudProvider::Okta,
+    ),
+    (
+        "okta-transfer-diff",
+        "Transfer Access Diff    ",
+        CloudProvider::Okta,
+    ),
     // ── Issue Tracker (Jira) ──
     (
         "jira-projects",
@@ -582,6 +717,136 @@ pub const COLLECTOR_ITEMS: &[(&str, &str, CloudProvider)] = &[
     (
         "jira-issues",
         "Issues                   ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-allowlist-review",
+        "Allowlist Review        ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-audit-posture",
+        "Audit Posture Change    ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-baseline-exceptions",
+        "Baseline Exceptions     ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-change-retention",
+        "Change Retention        ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-cp-test-poam",
+        "CP Test POAM            ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-cp-update",
+        "CP Update Trigger       ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-data-reassignment",
+        "Data Reassignment       ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-dr-test",
+        "DR Test Results         ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-external-system-approvals",
+        "External System Approvals",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-fw-exception",
+        "Firewall Exception      ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-ir-cp",
+        "IR: CP Coordination     ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-ir-external",
+        "IR: External Reporting SLA",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-ir-lessons",
+        "IR: Lessons Learned     ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-ir-severity",
+        "IR: Severity vs Rigor   ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-isa-annual",
+        "ISA Annual Review       ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-logging-coordination",
+        "Logging Coordination    ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-malware-fp",
+        "Malware False Positive  ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-offboarding-sla",
+        "Offboarding SLA         ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-patch-test",
+        "Patch Test Records      ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-public-content",
+        "Public Content Review   ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-remote-access-approvals",
+        "Remote Access Approvals ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-remote-maint",
+        "Remote Maintenance      ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-sanctions-isso",
+        "Sanctions ISSO Notify   ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-special-protection",
+        "Special Protection      ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-sw-license",
+        "SW License Review       ",
+        CloudProvider::Jira,
+    ),
+    (
+        "jira-transfer-notify",
+        "Transfer Notifications  ",
         CloudProvider::Jira,
     ),
 ];
