@@ -18,6 +18,9 @@ use crate::runner::multi_region_cli::run_multi_region_standard;
 use crate::runner::output::write_inventory_outputs;
 
 pub async fn run_inventory_cli(cli: &Cli) -> Result<()> {
+    if cli.inventory_all_accounts {
+        return run_inventory_cli_all_accounts(cli).await;
+    }
     if cli.collectors.is_some() {
         anyhow::bail!("--collectors cannot be used with --inventory");
     }
@@ -441,5 +444,217 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
             Err(e) => eprintln!("Signing failed: {e}"),
         }
     }
+    Ok(())
+}
+
+async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
+    // Reject the same flag combinations run_inventory_cli rejects, since we
+    // bypass its guards when we branch early.
+    if cli.collectors.is_some() {
+        anyhow::bail!("--collectors cannot be used with --inventory");
+    }
+    if cli.start_date.is_some() || cli.end_date.is_some() {
+        anyhow::bail!(
+            "--start-date and --end-date are not used with --inventory; \
+             use --lookback to set the collection window (e.g. --lookback 90d)"
+        );
+    }
+    if cli.filter.is_some() {
+        anyhow::bail!("--filter is not supported with --inventory");
+    }
+    if cli.include_raw {
+        anyhow::bail!("--include-raw is not supported with --inventory");
+    }
+    if cli.s3_bucket.is_some()
+        || !cli.s3_prefix.is_empty()
+        || cli.s3_profile.is_some()
+        || cli.s3_accounts.is_some()
+        || cli.s3_regions.is_some()
+    {
+        anyhow::bail!("S3 CloudTrail flags are not supported with --inventory");
+    }
+
+    let cfg = crate::app_config::load_config().context(
+        "--inventory-all-accounts requires a config.toml with [[account]] entries (or tenable-/okta-/jira-config.toml merged in)",
+    )?;
+
+    let aws_accounts: Vec<&crate::app_config::Account> = cfg
+        .account
+        .iter()
+        .filter(|a| a.provider == crate::providers::CloudProvider::Aws)
+        .filter(|a| a.profile.as_ref().map(|p| !p.trim().is_empty()).unwrap_or(false))
+        .collect();
+
+    if aws_accounts.is_empty() {
+        anyhow::bail!(
+            "--inventory-all-accounts: no AWS accounts with a `profile` were found in config"
+        );
+    }
+
+    let inventory_types = crate::cli::resolve_inventory_types(cli);
+    eprintln!("Inventory asset types: {}", inventory_types.join(", "));
+
+    let inventory_dates: Option<(i64, i64)> = if let Some(ref lb) = cli.lookback {
+        let today = chrono::Utc::now().date_naive();
+        let start = crate::cli::parse_lookback(lb)?;
+        let start_ts = start
+            .and_hms_opt(0, 0, 0)
+            .expect("valid midnight time")
+            .and_utc()
+            .timestamp();
+        let end_ts = today
+            .and_hms_opt(23, 59, 59)
+            .expect("valid end-of-day time")
+            .and_utc()
+            .timestamp();
+        eprintln!("Lookback window: {} → {} ({})", start, today, lb);
+        Some((start_ts, end_ts))
+    } else {
+        None
+    };
+
+    let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+    let mut inventory_rows: Vec<Vec<String>> = Vec::new();
+    let mut authenticated_accounts: Vec<String> = Vec::new();
+    let mut skipped_accounts: Vec<String> = Vec::new();
+
+    for (idx, acct) in aws_accounts.iter().enumerate() {
+        let profile = acct.profile.as_deref().unwrap_or("");
+        let account_region = acct
+            .region
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or(&cli.region);
+        let display = acct
+            .account_id
+            .as_deref()
+            .filter(|s| !s.is_empty())
+            .unwrap_or(&acct.name);
+
+        eprintln!(
+            "=== Account {}/{}: {} (profile={}, region={}) ===",
+            idx + 1,
+            aws_accounts.len(),
+            display,
+            profile,
+            account_region,
+        );
+
+        let (probe_config, work_config, using_ambient_credentials) =
+            crate::aws_loader::load_cli_probe_and_work_configs(
+                account_region,
+                Some(profile),
+            )
+            .await;
+
+        let identity = crate::audit_log::resolve_aws_identity(&probe_config).await;
+        if identity.is_none() {
+            eprintln!(
+                "  WARN: could not resolve AWS identity for profile '{}' — skipping account. \
+                 Re-authenticate (e.g. `aws sso login --profile {}`) and rerun.",
+                profile, profile
+            );
+            skipped_accounts.push(format!("{} (profile={})", display, profile));
+            continue;
+        }
+        let account_id = crate::aws_loader::print_cli_identity(&identity);
+        authenticated_accounts.push(account_id.clone());
+
+        let target_regions: Vec<String> = if let Some(explicit) = cli.regions.as_ref() {
+            explicit.clone()
+        } else if cli.all_regions {
+            let regions = crate::aws_loader::discover_regions(&probe_config).await;
+            if regions.is_empty() {
+                eprintln!(
+                    "  WARN: could not discover regions for {} — falling back to {}",
+                    account_id, account_region
+                );
+                vec![account_region.to_string()]
+            } else {
+                regions
+            }
+        } else {
+            vec![account_region.to_string()]
+        };
+
+        for region_name in &target_regions {
+            let region_work_config = if region_name == account_region {
+                work_config.clone()
+            } else {
+                let region_profile = if using_ambient_credentials {
+                    None
+                } else {
+                    Some(profile)
+                };
+                crate::aws_loader::load_cli_config(region_name, region_profile).await
+            };
+            let collector = InventoryCollector::new(&region_work_config, inventory_types.clone());
+            eprintln!("  Collecting inventory from {}...", region_name);
+            match collector
+                .collect_rows(&account_id, region_name, inventory_dates)
+                .await
+            {
+                Ok(rows) => {
+                    eprintln!("    {} returned {} rows", region_name, rows.len());
+                    inventory_rows.extend(rows);
+                }
+                Err(e) => {
+                    eprintln!("    ERROR collecting from {}: {:#}", region_name, e);
+                }
+            }
+        }
+    }
+
+    eprintln!(
+        "=== All accounts done. {}/{} authenticated, {} skipped. {} total inventory rows. ===",
+        authenticated_accounts.len(),
+        aws_accounts.len(),
+        skipped_accounts.len(),
+        inventory_rows.len()
+    );
+    if !authenticated_accounts.is_empty() {
+        eprintln!("    Included: {}", authenticated_accounts.join(", "));
+    }
+    if !skipped_accounts.is_empty() {
+        eprintln!("    Skipped:  {}", skipped_accounts.join(", "));
+    }
+
+    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let written_files = write_inventory_outputs(
+        &output_dir,
+        &timestamp,
+        &inventory_rows,
+        cli.skip_inventory_csv,
+    )?;
+
+    if cli.zip && !written_files.is_empty() {
+        let zip_name = format!("Evidence-{}.zip", timestamp);
+        let zip_path = PathBuf::from(&zip_name);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match crate::zip_bundle::bundle_files(&written_files, &cwd, &zip_path) {
+            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
+            Err(e) => eprintln!("Zip bundle failed: {e}"),
+        }
+    }
+
+    if cli.sign && !written_files.is_empty() {
+        let key = match &cli.signing_key {
+            Some(hex) => crate::signing::SigningKey::from_hex(hex)?,
+            None => crate::signing::SigningKey::generate()?,
+        };
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        match crate::signing::sign_files(&written_files, &timestamp, &key, &cwd) {
+            Ok((manifest_path, key_path)) => {
+                eprintln!("Signing manifest: {}", manifest_path.display());
+                eprintln!(
+                    "Signing key file: {} (move to secure storage)",
+                    key_path.display()
+                );
+                eprintln!("Signing key (hex): {}", key.to_hex());
+            }
+            Err(e) => eprintln!("Signing failed: {e}"),
+        }
+    }
+
     Ok(())
 }

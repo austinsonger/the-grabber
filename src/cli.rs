@@ -106,7 +106,7 @@ pub struct Cli {
     /// cannot resolve an AWS identity (expired SSO, missing creds) are skipped
     /// with a WARN; the run continues against the rest. Requires --inventory.
     /// Cannot be combined with --profile — profiles are read from the account config.
-    #[arg(long, default_value_t = false, conflicts_with = "profile")]
+    #[arg(long, default_value_t = false, conflicts_with = "profile", requires = "inventory")]
     pub inventory_all_accounts: bool,
 
     // ------- Signing options -------
