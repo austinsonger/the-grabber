@@ -6,7 +6,6 @@ use ratatui::Frame;
 
 use crate::providers::CloudProvider;
 
-use super::COLLECTOR_CATEGORIES;
 use super::{
     App, CollectorFocus, AMBER, BG_SELECTED, BORDER_SUBTLE, CYAN, CYAN_DIM, GREEN, TEXT_BRIGHT,
     TEXT_DIM, TEXT_NORMAL,
@@ -170,7 +169,7 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
 
     let mut cat_items: Vec<ListItem> = Vec::new();
     for &cat_idx in &visible_cats {
-        let (_, cat_name) = COLLECTOR_CATEGORIES[cat_idx];
+        let cat_name = app.category_name(cat_idx);
         let sel = app.selected_in_category(cat_idx);
         let (start, end) = app.category_bounds(cat_idx);
         let total = end.saturating_sub(start);
@@ -232,7 +231,7 @@ pub(super) fn draw_collectors(f: &mut Frame, area: Rect, app: &App) {
             .unwrap_or(app.collector_category_cursor)
     };
     let visible_items = app.visible_items_in_category(effective_cat);
-    let cat_name = COLLECTOR_CATEGORIES[effective_cat].1;
+    let cat_name = app.category_name(effective_cat);
 
     let item_block = Block::bordered()
         .border_type(BorderType::Rounded)

@@ -12,7 +12,8 @@ use crate::providers::CloudProvider;
 use super::state::{
     CollectorFocus, CollectorStatus, Feature, PoamSummary, Progress, Screen, TextInput,
 };
-use crate::tui::collector_data::{AWS_REGIONS, COLLECTOR_ITEMS};
+use crate::tui::collector_data::AWS_REGIONS;
+use crate::tui::menus::{menu_for, ProviderCategory};
 
 // ---------------------------------------------------------------------------
 // Main App state
@@ -57,6 +58,8 @@ pub struct App {
 
     // Collector selection (multi-select)
     pub collector_items: Vec<(&'static str, &'static str, CloudProvider)>, // (key, label, provider)
+    // Per-provider menu structure (rebuilt on provider selection).
+    pub current_categories: &'static [ProviderCategory],
     pub collector_cursor: usize,
     pub collector_selected: HashSet<usize>,
     pub collector_category_cursor: usize,
@@ -142,7 +145,16 @@ impl App {
     pub fn new(profiles: Vec<String>) -> Self {
         let config = app_config::load_config().unwrap_or_default();
 
-        let collector_items = COLLECTOR_ITEMS.to_vec();
+        // Load menu for the default provider (Aws). Task 3 rebuilds this on
+        // ProviderSelection→SelectCollectors transitions.
+        let default_provider = CloudProvider::Aws;
+        let menu = menu_for(default_provider);
+        let collector_items: Vec<(&'static str, &'static str, CloudProvider)> = menu
+            .categories
+            .iter()
+            .flat_map(|cat| cat.items.iter().map(move |(sel, disp)| (*sel, *disp, menu.provider)))
+            .collect();
+        let current_categories = menu.categories;
 
         // --- Collector selection defaults ---
         let total = collector_items.len();
@@ -274,6 +286,7 @@ impl App {
             end_date: TextInput::new(&chrono::Utc::now().format("%Y-%m-%d").to_string()),
             time_frame_cursor,
             collector_items,
+            current_categories,
             collector_cursor: 0,
             collector_selected,
             collector_category_cursor: 0,
@@ -340,7 +353,6 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tui::state::COLLECTOR_CATEGORIES;
 
     fn make_app() -> App {
         App::new(vec![])
@@ -400,8 +412,9 @@ mod tests {
         // are visible.
         let app = make_app();
         let visible = app.visible_categories();
-        // 13 categories total; 1 is Tenable-only → 12 visible for AWS
-        assert_eq!(visible.len(), COLLECTOR_CATEGORIES.len() - 1);
+        // Per-provider AWS menu: every category is populated with AWS items,
+        // so all of them are visible (no more Tenable-only placeholder category).
+        assert_eq!(visible.len(), app.current_categories.len());
         // Category 12 ("Security Scanning") must not be visible for AWS provider
         assert!(!visible.contains(&12));
         // All other categories must be visible

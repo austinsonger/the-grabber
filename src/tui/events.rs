@@ -5,7 +5,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
-use super::{App, CollectorFocus, Feature, Screen, COLLECTOR_CATEGORIES};
+use super::{App, CollectorFocus, Feature, Screen};
 
 enum Action {
     Continue,
@@ -395,7 +395,7 @@ fn handle_select_collectors(app: &mut App, key: KeyCode) {
             if c.is_ascii_digit() && app.collector_focus == CollectorFocus::Categories =>
         {
             let digit = c as usize - '0' as usize;
-            if digit > 0 && digit <= COLLECTOR_CATEGORIES.len() {
+            if digit > 0 && digit <= app.current_categories.len() {
                 app.jump_to_category(digit - 1);
             }
         }

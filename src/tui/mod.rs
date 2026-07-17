@@ -1,6 +1,7 @@
 pub mod app;
 pub mod collector_data;
 pub mod events;
+pub mod menus;
 pub mod scan;
 pub mod state;
 pub mod ui;
@@ -8,7 +9,6 @@ pub mod ui;
 pub use app::App;
 pub use state::{
     CollectorFocus, CollectorState, CollectorStatus, Feature, PoamSummary, Progress, Screen,
-    COLLECTOR_CATEGORIES,
 };
 
 use std::io;

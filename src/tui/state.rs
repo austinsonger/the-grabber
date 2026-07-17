@@ -146,28 +146,6 @@ pub enum ScanTimeFilter {
 }
 
 // ---------------------------------------------------------------------------
-// Collector categories (used by two-panel SelectCollectors screen)
-// ---------------------------------------------------------------------------
-
-pub const COLLECTOR_CATEGORIES: &[(usize, &str)] = &[
-    (0, "App & Network Services"),
-    (6, "Audit Trail"),
-    (23, "Compute"),
-    (39, "Containers"),
-    (42, "Database & Backup"),
-    (50, "Encryption & Secrets"),
-    (57, "Identity & Access"),
-    (70, "Monitoring & Events"),
-    (80, "Network"),
-    (103, "Organization & Account"),
-    (107, "Security Detection"),
-    (123, "Storage"),
-    (136, "Security Scanning"),
-    (141, "Identity Provider (Okta)"),
-    (165, "Issue Tracker (Jira)"),
-];
-
-// ---------------------------------------------------------------------------
 // Text input state
 // ---------------------------------------------------------------------------
 

@@ -32,9 +32,6 @@ use self::theme::{
     AMBER, BG_ELEVATED, BG_SELECTED, BORDER_SUBTLE, CYAN, GREEN, LOGO, LOGO_COLORS, PURPLE, RED,
     RED_BG, SPINNER_FRAMES, TEXT_BRIGHT, TEXT_DIM, TEXT_NORMAL,
 };
-// Re-export state items sub-modules reference via super::
-use crate::tui::state::COLLECTOR_CATEGORIES;
-
 pub fn draw(f: &mut Frame, app: &App) {
     let area = f.area();
 

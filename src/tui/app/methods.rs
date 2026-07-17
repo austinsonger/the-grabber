@@ -1,5 +1,3 @@
-use crate::tui::state::{Feature, COLLECTOR_CATEGORIES};
-
 use super::App;
 
 impl App {
@@ -115,13 +113,24 @@ impl App {
 
     /// Return the (start, end) item indices for a given category.
     pub fn category_bounds(&self, cat_idx: usize) -> (usize, usize) {
-        let start = COLLECTOR_CATEGORIES[cat_idx].0;
-        let end = if cat_idx + 1 < COLLECTOR_CATEGORIES.len() {
-            COLLECTOR_CATEGORIES[cat_idx + 1].0
-        } else {
-            self.collector_items.len()
-        };
-        (start, end)
+        let mut start = 0usize;
+        for cat in &self.current_categories[..cat_idx] {
+            start += cat.items.len();
+        }
+        let len = self
+            .current_categories
+            .get(cat_idx)
+            .map(|c| c.items.len())
+            .unwrap_or(0);
+        (start, start + len)
+    }
+
+    /// Category name at index in the currently-loaded provider menu.
+    pub fn category_name(&self, cat_idx: usize) -> &'static str {
+        self.current_categories
+            .get(cat_idx)
+            .map(|c| c.name)
+            .unwrap_or("")
     }
 
     /// Count selected items in a category.
@@ -156,15 +165,11 @@ impl App {
         }
     }
 
-    /// True when `global_idx` passes both the provider filter and the current
-    /// collector search filter.
+    /// True when `global_idx` passes the current collector search filter.
+    /// Provider filtering is now structural: `collector_items` only ever
+    /// holds the currently-loaded provider's items.
     pub fn search_matches_item(&self, global_idx: usize) -> bool {
-        let (key, label, provider) = &self.collector_items[global_idx];
-        // Provider filter: only show collectors for the selected provider (Collectors feature only).
-        if self.selected_feature == Feature::Collectors && *provider != self.selected_provider {
-            return false;
-        }
-        // Search filter
+        let (key, label, _provider) = &self.collector_items[global_idx];
         let term = self.collector_search.value.to_lowercase();
         if term.is_empty() {
             return true;
@@ -186,7 +191,7 @@ impl App {
     /// Returns indices of categories that contain at least one item matching the
     /// current search filter. Returns all category indices when search is empty.
     pub fn visible_categories(&self) -> Vec<usize> {
-        (0..COLLECTOR_CATEGORIES.len())
+        (0..self.current_categories.len())
             .filter(|&cat_idx| {
                 let (start, end) = self.category_bounds(cat_idx);
                 (start..end).any(|i| self.search_matches_item(i))
