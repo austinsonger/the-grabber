@@ -341,3 +341,16 @@ pub(super) async fn collect_elasticache_clusters(
 
     Ok(rows)
 }
+
+use aws_sdk_dynamodb::Client as DynamoDbClient;
+use aws_sdk_redshift::Client as RedshiftClient;
+
+pub(super) async fn collect_nlbs(_c: &ElbClient, _region: &str) -> Result<Vec<Vec<String>>> {
+    Ok(Vec::new())
+}
+pub(super) async fn collect_redshift_clusters(_c: &RedshiftClient, _region: &str) -> Result<Vec<Vec<String>>> {
+    Ok(Vec::new())
+}
+pub(super) async fn collect_dynamodb_tables(_c: &DynamoDbClient, _region: &str) -> Result<Vec<Vec<String>>> {
+    Ok(Vec::new())
+}

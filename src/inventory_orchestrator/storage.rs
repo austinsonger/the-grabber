@@ -233,3 +233,17 @@ pub(super) async fn collect_s3_buckets(
 
     Ok(rows)
 }
+
+use aws_sdk_ec2::Client as Ec2Client;
+use aws_sdk_efs::Client as EfsClient;
+use aws_sdk_fsx::Client as FsxClient;
+
+pub(super) async fn collect_ebs_volumes(_c: &Ec2Client, _region: &str) -> Result<Vec<Vec<String>>> {
+    Ok(Vec::new())
+}
+pub(super) async fn collect_efs_file_systems(_c: &EfsClient, _region: &str) -> Result<Vec<Vec<String>>> {
+    Ok(Vec::new())
+}
+pub(super) async fn collect_fsx_file_systems(_c: &FsxClient, _region: &str) -> Result<Vec<Vec<String>>> {
+    Ok(Vec::new())
+}
