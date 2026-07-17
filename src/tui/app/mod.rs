@@ -1,7 +1,7 @@
 mod methods;
 mod nav;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use tokio::sync::mpsc;
 
@@ -65,6 +65,10 @@ pub struct App {
     pub collector_category_cursor: usize,
     pub collector_focus: CollectorFocus,
     pub collector_search: TextInput,
+    /// Selector-keyed selection state per provider. Survives menu edits and
+    /// provider switches. Source of truth; `collector_selected` (HashSet<usize>)
+    /// is a derived per-provider view synced on menu load.
+    pub provider_selections: HashMap<CloudProvider, HashSet<String>>,
 
     // ── Scan selection (Tenable only) ─────────────────────────────────────────
     #[cfg(feature = "tenable")]
@@ -220,6 +224,17 @@ impl App {
             }
         }
 
+        // Seed provider_selections with the default provider's initial
+        // selection so an immediate switch away and back doesn't lose it.
+        let mut provider_selections: HashMap<CloudProvider, HashSet<String>> = HashMap::new();
+        provider_selections.insert(
+            default_provider,
+            collector_selected
+                .iter()
+                .filter_map(|&i| collector_items.get(i).map(|(sel, _, _)| sel.to_string()))
+                .collect(),
+        );
+
         // --- Profile cursor ---
         let profile_cursor = if let Some(ref needle) = config.defaults.profile_contains {
             profiles
@@ -292,6 +307,7 @@ impl App {
             collector_category_cursor: 0,
             collector_focus: CollectorFocus::Categories,
             collector_search: TextInput::default(),
+            provider_selections,
             #[cfg(feature = "tenable")]
             scan_list: Vec::new(),
             scan_cursor: 0,

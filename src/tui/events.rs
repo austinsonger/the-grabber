@@ -456,6 +456,7 @@ fn handle_select_collectors(app: &mut App, key: KeyCode) {
             } else {
                 app.collector_selected.insert(i);
             }
+            app.persist_collector_selected_to_provider();
         }
         KeyCode::Char(' ') if app.collector_focus == CollectorFocus::Categories => {
             let sel = app.selected_in_category(app.collector_category_cursor);

@@ -151,6 +151,38 @@ impl App {
                 self.collector_selected.remove(&i);
             }
         }
+        self.persist_collector_selected_to_provider();
+    }
+
+    /// Populate `self.collector_selected` (HashSet<usize>) from
+    /// `self.provider_selections[selected_provider]` (HashSet<selector>).
+    /// Called after `load_menu_for_current_provider` so the newly-loaded
+    /// menu shows previously-selected items as checked.
+    pub fn sync_collector_selected_from_provider(&mut self) {
+        let selectors = self
+            .provider_selections
+            .get(&self.selected_provider)
+            .cloned()
+            .unwrap_or_default();
+        self.collector_selected.clear();
+        for (i, (sel, _, _)) in self.collector_items.iter().enumerate() {
+            if selectors.contains(*sel) {
+                self.collector_selected.insert(i);
+            }
+        }
+    }
+
+    /// Persist current `collector_selected` (HashSet<usize>) into
+    /// `provider_selections[selected_provider]` as selector strings.
+    /// Call this after any toggle so provider switches don't lose state.
+    pub fn persist_collector_selected_to_provider(&mut self) {
+        let selectors: std::collections::HashSet<String> = self
+            .collector_selected
+            .iter()
+            .filter_map(|&i| self.collector_items.get(i).map(|(sel, _, _)| sel.to_string()))
+            .collect();
+        self.provider_selections
+            .insert(self.selected_provider, selectors);
     }
 
     /// Rebuild the collector menu from `PROVIDER_MENUS` for the current
@@ -168,6 +200,8 @@ impl App {
         self.collector_category_cursor = 0;
         self.collector_search.value.clear();
         self.collector_search.cursor = 0;
+        // Restore previously-checked items for this provider.
+        self.sync_collector_selected_from_provider();
     }
 
     /// Jump collector_cursor to the first item of a category.
