@@ -376,17 +376,12 @@ mod tests {
 
     #[test]
     fn search_empty_matches_all_items() {
-        // With default AWS provider, all AWS items match and the single Tenable
-        // item (index 127) is filtered out by the provider filter.
+        // collector_items is structurally provider-scoped now (only the
+        // current provider's items are ever loaded), so with an empty
+        // search term every item in the default AWS menu matches.
         let app = make_app();
         for i in 0..app.collector_items.len() {
-            let (_, _, provider) = &app.collector_items[i];
-            let is_provider_match = *provider == crate::providers::CloudProvider::Aws;
-            assert_eq!(
-                app.search_matches_item(i),
-                is_provider_match,
-                "item {i} provider-match expected={is_provider_match}"
-            );
+            assert!(app.search_matches_item(i), "item {i} should match empty search");
         }
     }
 
@@ -396,7 +391,7 @@ mod tests {
         app.collector_search.value = "iam".to_string();
         app.collector_search.cursor = 3;
         // "access-analyzer" label is "IAM Access Analyzer …" — matches via label
-        assert!(app.search_matches_item(55));
+        assert!(app.search_matches_item(57));
         // "api-gateway" — neither key nor label contains "iam"
         assert!(!app.search_matches_item(0));
     }
@@ -406,7 +401,7 @@ mod tests {
         let mut app = make_app();
         app.collector_search.value = "IAM".to_string();
         app.collector_search.cursor = 3;
-        assert!(app.search_matches_item(55));
+        assert!(app.search_matches_item(57));
     }
 
     #[test]
@@ -422,24 +417,14 @@ mod tests {
     }
 
     #[test]
-    fn visible_categories_empty_search_returns_all() {
-        // With the default AWS provider, the "Security Scanning" category (index 12)
-        // contains only the Tenable item, so it is hidden. All other 12 categories
-        // are visible.
+    fn visible_categories_returns_all_for_default_aws_menu() {
         let app = make_app();
+        // Default provider is AWS; menu_for(Aws) has 12 categories (per the
+        // menu-data source of truth in src/tui/menus/aws.rs). All are
+        // populated with AWS items, so all are visible when search is empty.
         let visible = app.visible_categories();
-        // Per-provider AWS menu: every category is populated with AWS items,
-        // so all of them are visible (no more Tenable-only placeholder category).
         assert_eq!(visible.len(), app.current_categories.len());
-        // Category 12 ("Security Scanning") must not be visible for AWS provider
-        assert!(!visible.contains(&12));
-        // All other categories must be visible
-        for cat_idx in 0..12 {
-            assert!(
-                visible.contains(&cat_idx),
-                "category {cat_idx} should be visible for AWS provider"
-            );
-        }
+        assert_eq!(visible.len(), 12, "AWS menu should expose 12 categories");
     }
 
     #[test]
@@ -509,25 +494,29 @@ mod tests {
     }
 
     #[test]
-    fn tenable_provider_hides_aws_collectors() {
-        let mut app = make_app();
-        app.selected_feature = Feature::Collectors;
-        app.selected_provider = crate::providers::CloudProvider::Tenable;
-        // item 0 is "api-gateway" (CloudProvider::Aws) — must not match
-        assert!(!app.search_matches_item(0));
-        // item 127 is "tenable-vulns" (CloudProvider::Tenable) — must match
-        assert!(app.search_matches_item(127));
-    }
+    fn selection_survives_provider_switch() {
+        use crate::providers::CloudProvider;
+        let mut app = make_app(); // starts on AWS
 
-    #[test]
-    fn aws_provider_hides_tenable_collectors() {
-        let mut app = make_app();
-        app.selected_feature = Feature::Collectors;
-        app.selected_provider = crate::providers::CloudProvider::Aws;
-        // item 127 is "tenable-vulns" — must not match when AWS selected
-        assert!(!app.search_matches_item(127));
-        // item 0 is "api-gateway" (Aws) — must match
-        assert!(app.search_matches_item(0));
+        // Switch to Okta and select the first item.
+        app.selected_provider = CloudProvider::Okta;
+        app.load_menu_for_current_provider();
+        assert!(!app.collector_items.is_empty(), "Okta menu should have items");
+        app.collector_selected.insert(0);
+        app.persist_collector_selected_to_provider();
+        let picked = app.collector_items[0].0.to_string();
+
+        // Switch to Jira — Okta selection should not leak.
+        app.selected_provider = CloudProvider::Jira;
+        app.load_menu_for_current_provider();
+        assert!(app.collector_selected.is_empty(), "Jira selection should start empty");
+
+        // Switch back to Okta — the original selection should be restored.
+        app.selected_provider = CloudProvider::Okta;
+        app.load_menu_for_current_provider();
+        assert_eq!(app.collector_selected.len(), 1, "Okta selection should be restored");
+        assert!(app.selected_collectors().contains(&picked),
+            "restored selector should match original: {picked}");
     }
 
     #[test]
