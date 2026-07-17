@@ -737,6 +737,7 @@ fn handle_provider_selection(app: &mut App, key: KeyCode) {
         }
         KeyCode::Enter | KeyCode::Char(' ') => {
             if app.validate_current() {
+                app.load_menu_for_current_provider();
                 app.next_screen();
             }
         }

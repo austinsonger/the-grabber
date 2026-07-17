@@ -153,6 +153,23 @@ impl App {
         }
     }
 
+    /// Rebuild the collector menu from `PROVIDER_MENUS` for the current
+    /// `selected_provider`. Called on ProviderSelection→SelectCollectors
+    /// transition. Resets cursors and search so the new menu shows fresh.
+    pub fn load_menu_for_current_provider(&mut self) {
+        let menu = crate::tui::menus::menu_for(self.selected_provider);
+        self.collector_items = menu
+            .categories
+            .iter()
+            .flat_map(|cat| cat.items.iter().map(move |(sel, disp)| (*sel, *disp, menu.provider)))
+            .collect();
+        self.current_categories = menu.categories;
+        self.collector_cursor = 0;
+        self.collector_category_cursor = 0;
+        self.collector_search.value.clear();
+        self.collector_search.cursor = 0;
+    }
+
     /// Jump collector_cursor to the first item of a category.
     pub fn jump_to_category(&mut self, cat_idx: usize) {
         self.collector_category_cursor = cat_idx;
