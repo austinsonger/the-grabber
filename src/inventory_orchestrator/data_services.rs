@@ -345,8 +345,130 @@ pub(super) async fn collect_elasticache_clusters(
 use aws_sdk_dynamodb::Client as DynamoDbClient;
 use aws_sdk_redshift::Client as RedshiftClient;
 
-pub(super) async fn collect_nlbs(_c: &ElbClient, _region: &str) -> Result<Vec<Vec<String>>> {
-    Ok(Vec::new())
+// ---------------------------------------------------------------------------
+// Network Load Balancers
+// ---------------------------------------------------------------------------
+
+pub(super) async fn collect_nlbs(client: &ElbClient, region: &str) -> Result<Vec<Vec<String>>> {
+    let mut rows = Vec::new();
+    let mut marker: Option<String> = None;
+
+    loop {
+        let mut req = client.describe_load_balancers();
+        if let Some(ref m) = marker {
+            req = req.marker(m);
+        }
+        let resp = req.send().await.context("ELBv2 describe_load_balancers")?;
+
+        for lb in resp.load_balancers() {
+            // Only network load balancers
+            if lb.r#type()
+                != Some(&aws_sdk_elasticloadbalancingv2::types::LoadBalancerTypeEnum::Network)
+            {
+                continue;
+            }
+
+            let arn = lb.load_balancer_arn().unwrap_or("").to_string();
+            let dns_name = lb.dns_name().unwrap_or("").to_string();
+            let scheme = lb.scheme().map(|s| s.as_str()).unwrap_or("").to_string();
+            let vpc_id = lb.vpc_id().unwrap_or("").to_string();
+            let is_public = lb.scheme()
+                == Some(
+                    &aws_sdk_elasticloadbalancingv2::types::LoadBalancerSchemeEnum::InternetFacing,
+                );
+            let ip_type = lb
+                .ip_address_type()
+                .map(|t| t.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            let subnet_ids: Vec<String> = lb
+                .availability_zones()
+                .iter()
+                .filter_map(|az| az.subnet_id())
+                .map(|s| s.to_string())
+                .collect();
+            let az_names: Vec<String> = lb
+                .availability_zones()
+                .iter()
+                .filter_map(|az| az.zone_name())
+                .map(|s| s.to_string())
+                .collect();
+
+            let location = format!("{region} / AZs: {}", az_names.join(", "));
+            let vlan_net = format!("VPC: {vpc_id}, Subnets: {}", subnet_ids.join(", "));
+
+            // Fetch listeners for comments
+            let listeners_summary = match client
+                .describe_listeners()
+                .load_balancer_arn(&arn)
+                .send()
+                .await
+            {
+                Ok(r) => r
+                    .listeners()
+                    .iter()
+                    .map(|l| {
+                        let port = l.port().unwrap_or(0);
+                        let proto = l.protocol().map(|p| p.as_str()).unwrap_or("");
+                        format!("{proto}:{port}")
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                Err(_) => String::new(),
+            };
+
+            // Fetch cross-zone + deletion protection attributes
+            let (mut cross_zone_enabled, mut deletion_protection) =
+                (String::new(), String::new());
+            if let Ok(attrs_resp) = client
+                .describe_load_balancer_attributes()
+                .load_balancer_arn(&arn)
+                .send()
+                .await
+            {
+                for attr in attrs_resp.attributes() {
+                    match attr.key() {
+                        Some("load_balancing.cross_zone.enabled") => {
+                            cross_zone_enabled = attr.value().unwrap_or("").to_string();
+                        }
+                        Some("deletion_protection.enabled") => {
+                            deletion_protection = attr.value().unwrap_or("").to_string();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let comments = format!(
+                "Scheme: {scheme} | IpAddressType: {ip_type} | Listeners: {listeners_summary} | \
+                 CrossZoneEnabled: {cross_zone_enabled} | DeletionProtection: {deletion_protection}"
+            );
+
+            rows.push(
+                RowBuilder::new()
+                    .unique_id(&arn)
+                    .virtual_flag("Yes")
+                    .public(if is_public { "Yes" } else { "No" })
+                    .dns_url(&dns_name)
+                    .location(location)
+                    .asset_type("Network Load Balancer")
+                    .hw_make_model("AWS NLB")
+                    .sw_vendor("Amazon Web Services")
+                    .sw_name_ver("AWS ELBv2 (network)")
+                    .vlan_network_id(vlan_net)
+                    .comments(comments)
+                    .build(),
+            );
+        }
+
+        marker = resp.next_marker().map(|s| s.to_string());
+        if marker.is_none() {
+            break;
+        }
+    }
+
+    Ok(rows)
 }
 pub(super) async fn collect_redshift_clusters(_c: &RedshiftClient, _region: &str) -> Result<Vec<Vec<String>>> {
     Ok(Vec::new())
