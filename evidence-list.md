@@ -70,6 +70,13 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV149 | Okta Offboarding SLA | `Okta_Offboarding_SLA` | Event ID, Published, Login, Actor Name, Hours Since Termination, SLA Met (24hr) |
 | EV150 | Okta Transfer Access Diff | `Okta_Transfer_Access_Diff` | User ID, Login, Status, Status Changed, Apps Count, Groups Count, Snapshot Time |
 | EV151 | Okta Contractor Deprovisioning | `Okta_Contractor_Deprovisioning` | Event ID, Published, Contractor Login, Actor Name, Days Since Contract End, Outcome |
+| EV189 | Okta Users | `Okta_Users` | User ID, Login, Email, First Name, Last Name, Status, Department, Manager, Created, Activated, Status Changed, Last Login, Last Updated, Password Changed |
+| EV190 | Okta Groups | `Okta_Groups` | Group ID, Name, Type, Description, Created, Last Updated, Last Membership Updated |
+| EV191 | Okta Group Members | `Okta_Group_Members` | Group ID, Group Name, Group Type, Member ID, Member Login, Member Email, Member Status |
+| EV192 | Okta Applications | `Okta_Applications` | App ID, Name, Label, Status, Sign-On Mode, Created, Last Updated |
+| EV193 | Okta Policies | `Okta_Policies` | Policy ID, Type, Name, Status, Description, Priority, System, Created, Last Updated, Conditions (JSON), Settings (JSON) |
+| EV194 | Okta MFA Factors | `Okta_MFA_Factors` | User ID, User Login, Factor ID, Factor Type, Provider, Vendor, Status, Created, Last Updated |
+| EV195 | Okta System Log | `Okta_System_Log_Events` | Event UUID, Published, Event Type, Display Message, Severity, Outcome Result, Outcome Reason, Actor ID, Actor Display Name, Actor Alternate ID, Actor Type, Client IP, Client User Agent, Target Summary |
 
 ### Ticketing — Jira
 
@@ -101,12 +108,25 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV175 | Jira Patch Test Records | `Jira_Patch_Test_Records` | Ticket, Summary, Status, Patch ID, Test Result, Tested By, Created, Resolved |
 | EV176 | Jira Remote Maintenance Approvals | `Jira_Remote_Maintenance_Approvals` | Ticket, Summary, Status, Requestor, Approver, Session Start, Session End, Duration Hours |
 | EV177 | Jira SW License Review | `Jira_SW_License_Review` | Ticket, Summary, Status, Software Name, License Type, Reviewer, Created, Resolved |
+| EV196 | Jira Projects | `Jira_Projects` | Project ID, Key, Name, Type, Style, Lead Account ID, Lead Name |
+| EV197 | Jira Issues | `Jira_Issues` | Issue Key, Summary, Type, Status, Priority, Assignee, Reporter, Created, Updated, Resolved |
+
+### Vulnerability Management — Tenable
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV198 | Tenable Assets | `Tenable_Assets` | Asset ID, Hostname, FQDNs, IPv4 Addresses, IPv6 Addresses, MAC Addresses, Operating System, Agent Name, Network Name, Tracking Method, Has Agent, Is Licensed, Exposure Score, Sources, Tags, First Seen, Last Seen, Created At, Updated At |
+| EV199 | Tenable Vulnerability Findings | `Tenable_Vulnerability_Findings` | Asset ID, Hostname, FQDN, IPv4, IPv6, OS, Device Type, Plugin ID, Plugin Name, Family, Synopsis, Description, Solution, CVEs, CPEs, Has Patch, Severity, Severity ID, Risk Factor, CVSS Base Score, CVSS Vector, CVSS3 Base Score, CVSS3 Vector, VPR Score, Port, Protocol, Service, Scan UUID, Scan Started At, Scan Completed At, State, First Found, Last Found, Last Fixed, Source |
+| EV200 | Tenable Compliance Findings | `Tenable_Compliance_Findings` | Asset ID, Asset Hostname, Asset FQDN, Asset IPv4, Check ID, Check Name, Check Info, Status, Expected Value, Actual Value, Policy Name, Audit File, References, First Seen, Last Seen |
+| EV201 | Tenable PCI ASV Compliance | `Tenable_PCI_ASV_Compliance` | Asset ID, Hostname, IPv4, Check Name, Status, Policy, Reference, First Found, Last Found |
+| EV202 | Tenable Web App Scanning | `Tenable_WAS_Findings` | Finding ID, State, First Found, Last Found, URL, HTTP Method, Input Type, Input Name, Plugin ID, Plugin Name, Risk Factor, Synopsis, Description, Solution, CVEs, Severity, Severity ID, CVSS Base Score, CVSS3 Base Score, VPR Score, Scan ID, Scan Started At, Scan Completed At |
 
 ### Certificates & PKI
 
 | # | Name | Filename Prefix | Columns |
 |---|------|----------------|---------|
 | EV20 | Certificate Manager Certificates | `Certificate_Manager_Certificates` | Certificate ARN, Domain Name, Expires, In Use By, Issued On, Issuer, Key Algorithm, Renewal Eligibility, Signature Algorithm, Status, Cert Type |
+| EV178 | ACM Private CA | `ACM_PCA_Config` | CA ARN, Type, Status, Key Algorithm, Signing Algorithm, Subject CN, Created, Not Before, Not After, CRL Enabled, CRL S3 Bucket, CRL Expiration Days, OCSP Enabled, OCSP Custom CName, Usage Mode, Permissions Count |
 
 ### CloudTrail & Audit
 
@@ -231,6 +251,9 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV126 | Transit Gateways & VPC Peering | `TransitGateway_VPCPeering_Config` | Kind, ID, Name, State, Owner Account, Peer Account, Peer VPC, Peer Region, Local VPC / Subnets, Association, Default Route Table, Notes |
 | EV127 | Session Timeouts (ELB / Client VPN / SSM) | `Session_Timeout_Config` | Source, Resource ID, Resource Name, Setting, Value, Region |
 | EV128 | Network Firewall Fail-Closed Config | `NetworkFirewall_FailClosed_Config` | Firewall Name, Firewall ARN, Policy ARN, Stream Exception Policy, Stateful Default Actions, Region |
+| EV179 | AWS Client VPN | `ClientVPN_Config` | Endpoint ID, Description, Status, Client CIDR, Server Cert ARN, Authentication Types, Connection Log Enabled, Connection Log Group, Split Tunnel, Transport Protocol, DNS Servers, Self-Service Portal, Session Timeout Hours, Routes, Authorization Rules, Active Connections |
+| EV180 | AWS Network Firewall | `NetworkFirewall_Config` | Firewall Name, Firewall ARN, VPC ID, Subnet IDs, Policy ARN, Policy Name, Stateless Default Actions, Stateless Fragment Actions, Stateful Rule Groups, Delete Protection, Subnet Change Protection, Policy Change Protection, Logging Flow Dest, Logging Alert Dest |
+| EV181 | Route53 DNSSEC | `Route53_DNSSEC` | Zone ID, Zone Name, Private Zone, Signing Status, Status Message, KSK Count, KSK Names |
 
 ### Load Balancing
 
@@ -275,6 +298,9 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV132 | GuardDuty Runtime Coverage | `GuardDuty_Runtime_Coverage` | Detector ID, Resource Type, Resource ID, Coverage Status, Issue, Updated At, Region |
 | EV133 | GuardDuty Malware Scan History | `GuardDuty_Malware_Scan_History` | Detector ID, Scan ID, Scan Type, Scan Status, Scan Start, Scan End, Total GB Scanned, Threats Found, Region |
 | EV134 | AMI Default-Credential Scan | `AMI_Default_Credential_Scan` | Source, Resource ID, Finding Title, Compliance Status, Severity, First Observed, Region |
+| EV182 | GuardDuty Full Configuration | `GuardDuty_Full_Config` | Detector ID, Status, Finding Publishing Frequency, S3 Logs, EKS Audit Logs, Malware Protection, Created At |
+| EV183 | Inspector SBOM Export | `Inspector_SBOM_Export` | Report ID, Status, Format, S3 Bucket, S3 Key, Local Path, Error Message |
+| EV184 | AWS Shield | `Shield_Config` | Record Type, Identifier, Detail Key, Detail Value |
 
 ### Systems Manager (SSM)
 
@@ -291,6 +317,8 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV121 | SSM Maintenance Windows | `SSM_Maintenance_Window` | Window ID, Name, Enabled, Schedule, Duration (hrs), Targets, Tasks |
 | EV129 | SSM Application Allowlist | `SSM_Application_Allowlist` | Association ID, Association Name, Document Name, Targets, Schedule, Last Execution Date, Status, Detailed Status, Region |
 | EV130 | SSM Automation Response Runbooks | `SSM_Automation_Response_Runbooks` | Document Name, Owner, Document Type, Document Format, Schema Version, Target Type, Tags, Created Date, Region |
+| EV185 | SSM Session Manager Logs | `SSM_Sessions` | Session ID, Target, Owner, Document, Start, End, Status, Reason, Details |
+| EV186 | SSM Software Inventory | `SSM_Software_Inventory` | Instance ID, Application Name, Version, Publisher, Architecture, Install Time, Package ID |
 
 ### Backup
 
@@ -305,6 +333,13 @@ These collectors query the current configuration of AWS resources and write CSV 
 | # | Name | Filename Prefix | Columns |
 |---|------|----------------|---------|
 | EV124 | Resource Tagging Configuration | `Resource_Tagging_Config` | Resource ARN, Resource Type, Owner, Environment, Data Classification, All Tags |
+
+### Account & Service Limits
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV187 | Service Quotas | `ServiceQuotas` | Service Code, Quota Code, Quota Name, Value, Unit, Adjustable, Global Quota, Source |
+| EV188 | License Manager | `LicenseManager_Config` | Config ARN, Name, Description, License Count, License Count Hard Limit, License Counting Type, Status, Consumed Licenses, Owner Account |
 
 ---
 
@@ -352,10 +387,14 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 
 | Category | Count |
 |----------|-------|
-| JSON evidence collectors (time-windowed) | 4 |
-| CSV evidence collectors (current-state snapshots) | 173 |
+| AWS collectors | 144 |
+| Okta collectors | 24 |
+| Jira collectors | 28 |
+| Tenable collectors | 5 |
+| **Total evidence collectors** | **201** |
 | Asset Inventory asset types (Inventory feature) | 8 |
-| **Total evidence collectors** | **177** |
+
+Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.
 
 ### AWS Services Covered
 

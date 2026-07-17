@@ -6,16 +6,27 @@
 > 3. Streaming CSV writer
 > 4. Region-aware caching
 
+## Status snapshot (main branch)
+
+| Phase | Status |
+|-------|--------|
+| 1 — Streaming CSV writer | **Not started.** `CsvCollector::collect_rows` still returns `Vec<Vec<String>>` and `run_csv_collectors` still buffers full rows before writing. |
+| 2 — Collector macro/derive | **Not started.** No `src/macros.rs`; each collector is hand-written. |
+| 3 — Provider trait generalization | **Done in shape.** `src/providers/mod.rs` defines `CloudProvider` + `ProviderFactory`; `aws`, `okta`, `jira`, `tenable`, `azure`, and `gcp` all implement it. Providers are inferred from each `[[account]]` block's `provider = "…"` field, not from a `--provider` CLI flag (that idea was dropped as unnecessary once accounts became provider-tagged). |
+| 4 — Region-aware caching | **Not started.** No `GlobalCache` type; every region rebuilds SDK clients and identity from scratch. |
+
+Sections 3.x below are kept for historical reference; treat them as *how the provider trait landed*, not as pending work. Sections 1, 2, and 4 remain accurate as forward-looking plans.
+
 ---
 
 ## Recommended Sequencing
 
 | Phase | Feature | Why This Order |
 |-------|---------|----------------|
-| 1 | **Streaming CSV Writer** | Changes the `CsvCollector` trait contract. Stabilizing this first prevents double-work in the macro and provider layers. |
+| 1 | **Streaming CSV Writer** | Changes the `CsvCollector` trait contract. Stabilizing this first prevents double-work in the macro layer. |
 | 2 | **Collector Macro/Derive** | Builds on the finalized trait. Once the macro exists, migrating the 80+ simple CSV collectors becomes a mechanical search-replace. |
-| 3 | **Provider Trait Generalization** | Refactors the runner to be provider-agnostic. Uses the stable collector traits; touches `main.rs`, CLI, and registry. |
-| 4 | **Region-Aware Caching** | Adds a cache layer inside the provider factory. Must happen after the factory abstraction is clean. |
+| 3 | **Provider Trait Generalization** | *(shipped — see status snapshot)* |
+| 4 | **Region-Aware Caching** | Adds a cache layer inside the provider factory. |
 
 ---
 

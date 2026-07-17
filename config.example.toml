@@ -200,5 +200,5 @@ enable_extra = ["scp", "org-config"]
 # profile = "SecurityAdmin"
 #
 # [account.collectors]
-# enable_extra = ["sh-standards", "sh-findings", "macie", "inspector"]
+# enable_extra = ["sh-standards", "securityhub", "macie", "inspector"]
 # disable      = ["eks", "ecs", "ecr-config", "elasticache"]

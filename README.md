@@ -1,6 +1,6 @@
 # The Grabber
 
-The Grabber. Collects current-state snapshots and time-windowed audit records from 100+ AWS service APIs and writes them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
+The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, and Tenable, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
 ![Alt text](assets/1.Grabber_LandingPage.png)
 
@@ -10,7 +10,7 @@ The Grabber. Collects current-state snapshots and time-windowed audit records fr
 
 - **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
 - **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
-- **124 collectors** — IAM, EC2, S3, RDS, CloudTrail, GuardDuty, SecurityHub, SSM, KMS, WAF, and more
+- **200+ collectors across four providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable (see `evidence-list.md` for the current catalog)
 - **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
 - **Chain-of-custody audit trail** — per-run `CHAIN-OF-CUSTODY-*.json` and an append-only `CHAIN-OF-CUSTODY.jsonl` log capture operator identity, hostname, AWS caller ARN, and the sanitized CLI invocation
 - **Run manifest** — `RUN-MANIFEST-*.json` records every collector's outcome (success/empty/error/timeout), record count, and file size
@@ -139,7 +139,7 @@ grabber
 
 
 
-The wizard walks through six steps:
+The wizard opens on a **Welcome** screen, then a **Feature Selection** screen (Evidence Collection / Inventory / POA&M / Tenable scan). Once a feature is chosen, the wizard walks through the steps below (some steps only apply to particular providers or features — for example the All-Regions toggle is only shown for AWS accounts, and Tenable adds a Scan Selection step).
 
 ---
 
@@ -175,7 +175,7 @@ These dates bound all time-windowed collectors (CloudTrail events, Backup job hi
 
 ### Collectors
 
-A scrollable checklist of 120+ collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.).
+A scrollable checklist of 144 AWS collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.). Non-AWS providers (Okta, Jira, Tenable) surface their own per-provider collector menus with only the keys relevant to that provider.
 
 - `Space` toggles the collector under the cursor.
 - The title shows **X of Y selected** as you make changes.
@@ -279,37 +279,45 @@ For copy-paste CLI and inventory examples, see [cli-examples.md](cli-examples.md
 
 ## CLI Options
 
+Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`, `--inventory`, `--poam`, or `--verify-manifest`. Omitting all of them launches the TUI.
+
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--start-date` | *(required for CLI)* | Start of collection window (YYYY-MM-DD). Omitting launches the TUI. |
-| `--end-date` | *(required with `--start-date`)* | End of collection window (YYYY-MM-DD) |
-| `--region` | `us-east-1` | AWS region |
-| `--profile` | default | AWS named profile |
-| `-o`, `--output` | current working directory | Output directory for collected evidence |
+| `--start-date` | — | Start of collection window (YYYY-MM-DD). Requires `--end-date`. |
+| `--end-date` | — | End of collection window (YYYY-MM-DD). Required with `--start-date`. |
+| `--lookback` | — | Lookback window from today, e.g. `30`, `30d`, `12w`, `3m`, `1y`. Bare integers = days. Cannot combine with `--start-date`/`--end-date`. |
+| `--region` | `us-east-1` | Primary AWS region |
+| `--profile` | ambient | AWS named profile |
+| `-o`, `--output` | current directory | Output directory for collected evidence |
 | `--filter` | — | Optional filter string passed to supported time-windowed collectors |
-| `--include-raw` | off | Embed raw event JSON in each JSON record |
-| `--collectors` | full configured collector set | Comma-separated collector keys to run. See `evidence-list.md` for the current key list. |
-| `--all-regions` | off | Collect from every enabled AWS region (round-robin) |
+| `--include-raw` | off | Embed raw AWS API response inside each JSON record |
+| `--collectors` | full configured set | Comma-separated collector keys. See `evidence-list.md`. |
+| `--all-regions` | off | Collect from every enabled AWS region (round-robin). AWS only. |
 | `--regions` | — | Explicit comma-separated region list |
-| `--s3-bucket` | — | S3 bucket containing CloudTrail logs |
-| `--s3-prefix` | `""` | Key prefix before `AWSLogs/` in the bucket |
-| `--s3-profile` | — | AWS profile for S3 access (cross-account CloudTrail) |
-| `--s3-accounts` | — | Additional account IDs for S3 log collection |
-| `--s3-regions` | — | Additional regions for S3 log collection |
+| `--s3-bucket` / `--s3-prefix` / `--s3-profile` / `--s3-accounts` / `--s3-regions` | — | Options for the `s3` CloudTrail-from-S3 collector |
 | `--zip` | off | Bundle all output files into `Evidence-<timestamp>.zip` |
-| `--inventory` | off | Run the unified inventory workflow from the CLI |
-| `--sign` | off | HMAC-SHA256 sign all files; writes a manifest and key file |
-| `--signing-key` | auto-generated | 64-char hex key to use instead of auto-generating |
-| `--verify-manifest` | — | Verify a `SIGNING-MANIFEST-*.json` (runs verification only, no collection) |
-| `--write-run-manifest` | off | Opt in to writing `RUN-MANIFEST-<run_id>.json` after collection (collectors mode) |
-| `--write-chain-of-custody` | off | Opt in to writing `CHAIN-OF-CUSTODY-<run_id>.json` and appending to `CHAIN-OF-CUSTODY.jsonl` (collectors mode) |
+| `--sign` | off | HMAC-SHA256 sign all files; writes `SIGNING-MANIFEST-<ts>.json` + `SIGNING-<ts>.key` |
+| `--signing-key` | auto | 64-char hex key to sign or verify with |
+| `--verify-manifest` | — | Verify an existing `SIGNING-MANIFEST-*.json` (no collection) |
+| `--write-run-manifest` | off | Opt in to `RUN-MANIFEST-<run_id>.json` (collectors mode) |
+| `--write-chain-of-custody` | off | Opt in to `CHAIN-OF-CUSTODY-<run_id>.json` + `CHAIN-OF-CUSTODY.jsonl` (collectors mode) |
+| `--inventory` | off | Run the unified inventory workflow (see Inventory below) |
+| `--inventory-all-accounts` | off | With `--inventory`: merge inventory from every configured account into one unified CSV+XLSX (mutually exclusive with `--profile`) |
+| `--skip-inventory-csv` | off | Skip the unified CSV (XLSX still written) |
+| `--inventory-types` | all types | Comma-separated asset-type keys: `kms-key,s3-bucket,lambda-function,ec2-instance,alb,rds-db-instance,elasticache-cluster,container` |
+| `--kms` / `--s3` / `--lambda` / `--ec2` / `--alb` / `--rds` / `--elasticache` / `--containers` | off | Individual inventory asset-type opt-ins; additive with `--inventory-types` |
+| `--poam` | off | Run POA&M reconciliation (requires `--poam-year` and `--poam-month`) |
+| `--poam-year` | — | 4-digit findings year, e.g. `2026` |
+| `--poam-month` | — | Month name, e.g. `January` … `December` |
+| `--poam-evidence-base` | `evidence-output/security` | Base evidence directory for POA&M reconciliation |
+| `--sbom-bucket` / `--sbom-kms-key` / `--sbom-format` | — / — / `cyclonedx14` | Inspector V2 SBOM export destination + format (`cyclonedx14` or `spdx23`) for the `inspector-sbom` collector |
 
 ### CLI mode notes
 
-1. `--start-date` is the switch that turns on non-interactive collection mode.
+1. Any of `--start-date`, `--lookback`, `--inventory`, `--poam`, or `--verify-manifest` bypasses the TUI.
 2. `--verify-manifest` is a standalone verification path and requires `--signing-key`.
-3. `--collectors` now covers the broader collector catalog; the maintained key list lives in `evidence-list.md`.
-4. `--inventory` is a separate CLI mode that always collects the full built-in inventory set.
+3. `--collectors` accepts keys across every enabled provider (AWS/Okta/Jira/Tenable); the maintained key list lives in `evidence-list.md`.
+4. `--inventory` writes the unified `AWS_Inventory-<timestamp>.csv` plus the FedRAMP-templated `.xlsx` when `assets/Inventory.xlsx` is present. `RUN-MANIFEST` and `CHAIN-OF-CUSTODY` files are opt-in via their `--write-*` flags in collectors mode only.
 
 ---
 
@@ -409,7 +417,7 @@ JSON files (inventory/policy data) include a metadata envelope:
 
 When `--zip` is passed, all output files (evidence, manifest, chain-of-custody) are bundled into `Evidence-<timestamp>.zip` after collection completes.
 
-When `--sign` is passed, an HMAC-SHA256 digest is computed for every output file and written to `SIGNING-MANIFEST-<run_id>.json` alongside a `SIGNING-KEY-<run_id>.txt`. The manifest can be verified later with `--verify-manifest`.
+When `--sign` is passed, an HMAC-SHA256 digest is computed for every output file and written to `SIGNING-MANIFEST-<timestamp>.json` alongside `SIGNING-<timestamp>.key` (the hex-encoded HMAC key). Move the `.key` file to secure storage separate from the evidence before sharing — anyone with the key can forge the manifest. The manifest can be verified later with `--verify-manifest` + `--signing-key`.
 
 ---
 
@@ -530,7 +538,6 @@ When `--sign` is passed, an HMAC-SHA256 digest is computed for every output file
 | `securityhub` | CSV | Security Hub findings |
 | `sh-standards` | CSV | Enabled Security Hub standards |
 | `sh-config` | CSV | Security Hub configuration |
-| `securityhub-standards` | CSV | Security Hub standard controls |
 | `macie` | CSV | Macie findings (if enabled) |
 | `inspector` | CSV | Inspector findings |
 | `inspector-config` | CSV | Inspector configuration |
@@ -693,6 +700,8 @@ The token inherits the role of the user that created it; for evidence collection
 
 ### Collectors
 
+Core inventory:
+
 | Key | Output | Description |
 |-----|--------|-------------|
 | `okta-users` | CSV | All users with status, login, MFA-relevant timestamps |
@@ -702,6 +711,28 @@ The token inherits the role of the user that created it; for evidence collection
 | `okta-policies` | CSV | Sign-on, password, MFA enrollment, IDP discovery, access, profile enrollment policies |
 | `okta-factors` | CSV | Per-user enrolled MFA factors |
 | `okta-system-log` | CSV | Time-windowed system log events (logins, MFA, admin actions) |
+
+Compliance evidence (audit-oriented — most are time-windowed):
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `okta-access-reviews` | CSV | Access certification campaigns |
+| `okta-auto-provisioning` | CSV | Automated provisioning events |
+| `okta-contractor-deprov` | CSV | Contractor deprovisioning records |
+| `okta-deprovisioning` | CSV | Deprovisioning timeliness |
+| `okta-group-changes` | CSV | Group membership change log |
+| `okta-hris-config` | CSV | Lifecycle / HRIS integration config |
+| `okta-offboarding-sla` | CSV | Offboarding SLA compliance |
+| `okta-password-policy` | CSV | Password policy first-use records |
+| `okta-prod-recert` | CSV | Production access recertification |
+| `okta-publisher-groups` | CSV | Publisher group membership |
+| `okta-risk-suspend` | CSV | Risk-based account suspend timing |
+| `okta-session-policy` | CSV | Session policy configuration |
+| `okta-shared-account-broker` | CSV | Shared-account broker config |
+| `okta-shared-groups` | CSV | Group inventory (shared) |
+| `okta-signin-widget` | CSV | Sign-in widget configuration |
+| `okta-threat-insight` | CSV | ThreatInsight detections |
+| `okta-transfer-diff` | CSV | Access diff on internal transfer |
 
 ### Required Okta API scopes
 
@@ -738,14 +769,90 @@ Create an API token at: **Atlassian account → Security → Create and manage A
 
 ### Collectors
 
+Core inventory:
+
 | Key | Output | Description |
 |-----|--------|-------------|
 | `jira-projects` | CSV | All projects with key, name, type, lead, and category |
 | `jira-issues` | CSV | All issues across projects with status, assignee, reporter, and timestamps |
 
+Compliance evidence (time-windowed audit collectors targeting specific ISO/FedRAMP controls):
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `jira-allowlist-review` | CSV | Allowlist / whitelist review tickets |
+| `jira-audit-posture` | CSV | Audit posture change coordination |
+| `jira-baseline-exceptions` | CSV | Baseline configuration exceptions |
+| `jira-change-retention` | CSV | Change record retention |
+| `jira-cp-test-poam` | CSV | CP test → POA&M linkage |
+| `jira-cp-update` | CSV | Contingency plan update triggers |
+| `jira-data-reassignment` | CSV | Data reassignment tickets |
+| `jira-dr-test` | CSV | DR test results |
+| `jira-external-system-approvals` | CSV | External system connection approvals |
+| `jira-fw-exception` | CSV | Firewall exception duration tracking |
+| `jira-ir-cp` | CSV | Incident-response ↔ contingency coordination |
+| `jira-ir-external` | CSV | External IR reporting |
+| `jira-ir-lessons` | CSV | IR lessons learned |
+| `jira-ir-severity` | CSV | IR severity vs. rigor |
+| `jira-isa-annual` | CSV | ISA annual review |
+| `jira-logging-coordination` | CSV | Logging change coordination |
+| `jira-malware-fp` | CSV | Malware false-positive tickets |
+| `jira-offboarding-sla` | CSV | Offboarding SLA |
+| `jira-patch-test` | CSV | Patch test records |
+| `jira-public-content` | CSV | Public content review |
+| `jira-remote-access-approvals` | CSV | Remote access approvals |
+| `jira-remote-maint` | CSV | Remote maintenance approvals |
+| `jira-sanctions-isso` | CSV | Sanctions / ISSO notifications |
+| `jira-special-protection` | CSV | Special-protection approvals |
+| `jira-sw-license` | CSV | Software license review |
+| `jira-transfer-notify` | CSV | Internal transfer notifications |
+
+The compliance collectors read a `[project_keys]` block in `jira-config.toml` that maps each collector to the project(s) and JQL fragments it should target. See `jira-config.example.toml` for the full schema.
+
 ### Required Jira permissions
 
 The user behind the API token needs **Browse Projects** permission on every project that should be collected. For full coverage, use an account with site-admin / org-admin read rights.
+
+---
+
+## Tenable
+
+Optional feature — build with `--features tenable` (enabled by default).
+
+### Configuration
+
+Create `tenable-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name              = "Tenable"
+provider          = "tenable"
+description       = "Tenable.io / Tenable Vulnerability Management"
+output_dir        = "./evidence-output/tenable"
+tenable_access_key = ""
+tenable_secret_key = ""
+```
+
+Or via environment variables (env wins over TOML):
+
+- `TENABLE_ACCESS_KEY`
+- `TENABLE_SECRET_KEY`
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `tenable-vulns` | CSV | Vulnerability findings (VM) |
+| `tenable-was` | CSV | Web Application Scanning findings |
+| `tenable-pci-asv` | CSV | PCI ASV scan results |
+| `tenable-assets` | CSV | Asset inventory |
+| `tenable-compliance` | CSV | Compliance / audit-file findings |
+
+---
+
+## Azure / GCP
+
+Both providers are compiled behind opt-in Cargo features (`--features azure`, `--features gcp`). They are stubs today — factory scaffolding exists in `src/providers/{azure,gcp}/` but no collectors ship yet. Enabling the feature will surface an empty provider in the TUI account picker; use `config.example.toml` as a reference for adding an `[[account]]` block when collectors land.
 
 ---
 

@@ -97,7 +97,7 @@ Its selectable asset types are exactly:
 
 That inventory flow produces a unified `AWS_Inventory-<timestamp>.csv` and, when the template exists, an Excel workbook based on `assets/Inventory.xlsx`.
 
-Use `--inventory` to run the unified inventory mode. It always includes all eight asset types above.
+Use `--inventory` to run the unified inventory mode. When no type flags are provided, all eight asset types above are collected. Restrict the run with either individual type flags (`--kms`, `--s3`, `--lambda`, `--ec2`, `--alb`, `--rds`, `--elasticache`, `--containers`) or a comma-separated `--inventory-types` list — both are additive.
 
 ### Collect all inventory asset types
 
@@ -105,6 +105,27 @@ Use `--inventory` to run the unified inventory mode. It always includes all eigh
 ./target/release/grabber \
   --inventory \
   --profile ProdAdmin-123456789012
+```
+
+### Collect a subset of inventory asset types
+
+```bash
+# EC2 and RDS only, via individual flags
+./target/release/grabber --inventory --ec2 --rds \
+  --profile ProdAdmin-123456789012
+
+# Same result via --inventory-types
+./target/release/grabber --inventory \
+  --inventory-types ec2-instance,rds-db-instance \
+  --profile ProdAdmin-123456789012
+```
+
+### Multi-account merged inventory
+
+```bash
+# Merges inventory from every account in config.toml / okta-config / jira-config / tenable-config
+./target/release/grabber --inventory --inventory-all-accounts \
+  --output ./evidence-output/inventory-all
 ```
 
 ### Collect inventory across multiple regions
@@ -244,9 +265,65 @@ Inventory mode writes a unified `AWS_Inventory-<timestamp>.csv` and, when `asset
   --signing-key 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
+## Lookback windows
+
+`--lookback` is a shortcut that computes `--start-date` from today. It accepts a plain integer (interpreted as days) or a value with a `d` / `w` / `m` / `y` suffix. It cannot be combined with `--start-date` / `--end-date`.
+
+```bash
+# Last 90 days
+./target/release/grabber --lookback 90d --profile ProdAdmin-123456789012
+
+# Last 12 weeks
+./target/release/grabber --lookback 12w --profile ProdAdmin-123456789012
+
+# Last 3 months, all regions
+./target/release/grabber --lookback 3m --all-regions --profile ProdAdmin-123456789012
+```
+
+## POA&M reconciliation
+
+POA&M mode reads Inspector2 findings from an existing evidence directory and reconciles them against a FedRAMP POA&M Excel workbook.
+
+```bash
+./target/release/grabber \
+  --poam \
+  --region us-east-1 \
+  --poam-year 2026 \
+  --poam-month May \
+  --poam-evidence-base evidence-output/security
+```
+
+The evidence directory resolves to `<poam-evidence-base>/<region>/<year>/<MM-MON>/`.
+
+## Inspector SBOM export
+
+The `inspector-sbom` collector triggers an AWS Inspector V2 SBOM export, polls until complete, and downloads the result from S3.
+
+```bash
+./target/release/grabber \
+  --lookback 90d \
+  --collectors inspector-sbom \
+  --sbom-bucket my-sbom-exports \
+  --sbom-kms-key arn:aws:kms:us-east-1:123456789012:key/abc-123 \
+  --sbom-format cyclonedx14
+```
+
+If `--sbom-bucket` is omitted, the collector emits a `SKIPPED` row explaining the missing flags instead of failing.
+
+## Audit trail opt-ins
+
+Both audit artifacts are off by default. Opt in per run:
+
+```bash
+./target/release/grabber \
+  --lookback 30d \
+  --write-run-manifest \
+  --write-chain-of-custody
+```
+
 ## Okta
 
-### Okta — collect all evidence
+### Okta — core evidence subset
 
 ```bash
 ./target/release/grabber \
@@ -255,7 +332,40 @@ Inventory mode writes a unified `AWS_Inventory-<timestamp>.csv` and, when `asset
   --collectors okta-users,okta-groups,okta-apps,okta-policies,okta-factors,okta-system-log
 ```
 
+### Okta — compliance evidence subset
+
+```bash
+./target/release/grabber \
+  --lookback 90d \
+  --collectors okta-access-reviews,okta-deprovisioning,okta-offboarding-sla,okta-group-changes,okta-threat-insight
+```
+
 The Okta tenant URL and API token come from `okta-config.toml` (or `OKTA_DOMAIN` / `OKTA_API_TOKEN`). The CLI auto-discovers the configured Okta account by `provider = "okta"`.
+
+## Jira
+
+```bash
+# Core inventory
+./target/release/grabber \
+  --lookback 90d \
+  --collectors jira-projects,jira-issues
+
+# Compliance evidence targeting specific control tickets
+./target/release/grabber \
+  --lookback 90d \
+  --collectors jira-offboarding-sla,jira-remote-access-approvals,jira-dr-test,jira-ir-lessons
+```
+
+Jira credentials come from `jira-config.toml` (or `JIRA_DOMAIN` / `JIRA_EMAIL` / `JIRA_API_TOKEN`). The compliance collectors additionally consult a `[project_keys]` block in `jira-config.toml` for the project/JQL scope of each key.
+
+## Tenable
+
+```bash
+./target/release/grabber \
+  --collectors tenable-vulns,tenable-was,tenable-pci-asv,tenable-assets,tenable-compliance
+```
+
+Credentials come from `tenable-config.toml` (or `TENABLE_ACCESS_KEY` / `TENABLE_SECRET_KEY`). Tenable is region-agnostic — `--region`, `--all-regions`, and `--regions` have no effect.
 
 ## Useful local commands
 
