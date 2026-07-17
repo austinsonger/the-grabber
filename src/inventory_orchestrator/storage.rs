@@ -5,6 +5,66 @@ use aws_sdk_s3::Client as S3Client;
 
 use crate::inventory_core::{normalize_s3_region, RowBuilder};
 
+/// Tag-first Function-column derivation shared by EBS / other EC2-tagged
+/// storage collectors. Matches the S3 convention: check Purpose / App / Role
+/// / Function tag keys (any case), then fall through to empty. Description
+/// fallback is per-collector and lives at the call site.
+fn function_from_ec2_tags(tags: &[aws_sdk_ec2::types::Tag]) -> String {
+    tags.iter()
+        .find(|t| {
+            matches!(
+                t.key(),
+                Some("Purpose")
+                    | Some("App")
+                    | Some("Role")
+                    | Some("Function")
+                    | Some("purpose")
+                    | Some("app")
+                    | Some("role")
+            )
+        })
+        .and_then(|t| t.value())
+        .unwrap_or("")
+        .to_string()
+}
+
+/// Tag-first Function-column derivation for EFS file systems. Same
+/// convention as `function_from_ec2_tags`; EFS's `Tag::key()`/`value()`
+/// return `&str` rather than `Option<&str>`, so the matching differs slightly.
+fn function_from_efs_tags(tags: &[aws_sdk_efs::types::Tag]) -> String {
+    tags.iter()
+        .find(|t| {
+            matches!(
+                t.key(),
+                "Purpose" | "App" | "Role" | "Function" | "purpose" | "app" | "role"
+            )
+        })
+        .map(|t| t.value())
+        .unwrap_or("")
+        .to_string()
+}
+
+/// Tag-first Function-column derivation for FSx file systems. Same
+/// convention as `function_from_ec2_tags`.
+fn function_from_fsx_tags(tags: &[aws_sdk_fsx::types::Tag]) -> String {
+    tags.iter()
+        .find(|t| {
+            matches!(
+                t.key(),
+                Some("Purpose")
+                    | Some("App")
+                    | Some("Role")
+                    | Some("Function")
+                    | Some("purpose")
+                    | Some("app")
+                    | Some("role")
+            )
+        })
+        .and_then(|t| t.value())
+        .unwrap_or("")
+        .to_string()
+}
+
 // ---------------------------------------------------------------------------
 // KMS Keys
 // ---------------------------------------------------------------------------
@@ -293,6 +353,7 @@ pub(super) async fn collect_ebs_volumes(
 
             let location = format!("{region} / AZ: {az}");
             let hw_make_model = format!("AWS EBS {volume_type}");
+            let function = function_from_ec2_tags(vol.tags());
 
             let comments = format!(
                 "Size: {size}GB | Iops: {iops} | Throughput: {throughput}MBps | \
@@ -311,6 +372,7 @@ pub(super) async fn collect_ebs_volumes(
                     .hw_make_model(hw_make_model)
                     .sw_vendor("Amazon Web Services")
                     .sw_name_ver("Amazon Elastic Block Store")
+                    .function(function)
                     .comments(comments)
                     .build(),
             );
@@ -419,6 +481,7 @@ pub(super) async fn collect_efs_file_systems(
             };
 
             let dns_url = format!("{file_system_id}.efs.{region}.amazonaws.com");
+            let function = function_from_efs_tags(fs.tags());
 
             let comments = format!(
                 "Encrypted: {encrypted} | KmsKeyId: {kms_key_id} | PerformanceMode: {performance_mode} | \
@@ -438,6 +501,7 @@ pub(super) async fn collect_efs_file_systems(
                     .sw_vendor("Amazon Web Services")
                     .sw_name_ver("Amazon EFS")
                     .vlan_network_id(vlan_network_id)
+                    .function(function)
                     .comments(comments)
                     .build(),
             );
@@ -529,6 +593,8 @@ pub(super) async fn collect_fsx_file_systems(
                     ("", 0, "", "")
                 };
 
+            let function = function_from_fsx_tags(fs.tags());
+
             let comments = format!(
                 "StorageCapacityGiB: {storage_capacity} | StorageType: {storage_type} | \
                  KmsKeyId: {kms_key_id} | PreferredSubnetId: {preferred_subnet_id} | \
@@ -548,6 +614,7 @@ pub(super) async fn collect_fsx_file_systems(
                     .sw_vendor("Amazon Web Services")
                     .sw_name_ver(sw_name_ver)
                     .vlan_network_id(vlan_network_id)
+                    .function(function)
                     .comments(comments)
                     .build(),
             );
