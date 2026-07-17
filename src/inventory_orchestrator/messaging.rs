@@ -740,6 +740,22 @@ async fn collect_eventbridge_rules(
                 let target_count = targets.len();
                 let target_arns = targets.iter().map(|t| t.arn()).collect::<Vec<_>>().join(", ");
 
+                let function = match client.list_tags_for_resource().resource_arn(arn).send().await
+                {
+                    Ok(r) => {
+                        let tag_function = function_from_eventbridge_tags(r.tags());
+                        if tag_function.is_empty() {
+                            rule.description().unwrap_or("").to_string()
+                        } else {
+                            tag_function
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("eventbridge list_tags_for_resource failed for {arn}: {e}");
+                        rule.description().unwrap_or("").to_string()
+                    }
+                };
+
                 let comments = format!(
                     "BusName: {bus_name} | State: {state} | ScheduleExpression: {schedule_expression} | \
                      EventPattern: {event_pattern} | TargetCount: {target_count} | \
@@ -755,6 +771,7 @@ async fn collect_eventbridge_rules(
                         .asset_type("EventBridge Rule")
                         .sw_vendor("Amazon Web Services")
                         .sw_name_ver("Amazon EventBridge")
+                        .function(function)
                         .comments(comments)
                         .build(),
                 );
