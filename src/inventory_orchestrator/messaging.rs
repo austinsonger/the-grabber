@@ -798,7 +798,12 @@ async fn collect_eventbridge_rules(
 /// doesn't actually narrow access.
 fn policy_looks_public(policy_json: &str) -> bool {
     let Ok(v) = serde_json::from_str::<serde_json::Value>(policy_json) else { return false; };
-    let Some(stmts) = v.get("Statement").and_then(|s| s.as_array()) else { return false; };
+    // IAM policy grammar allows "Statement" as either an array or a single object.
+    let stmts: Vec<&serde_json::Value> = match v.get("Statement") {
+        Some(serde_json::Value::Array(a)) => a.iter().collect(),
+        Some(obj @ serde_json::Value::Object(_)) => vec![obj],
+        _ => return false,
+    };
     for stmt in stmts {
         if stmt.get("Effect").and_then(|e| e.as_str()) != Some("Allow") { continue; }
         let principal = stmt.get("Principal");
