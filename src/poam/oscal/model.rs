@@ -75,7 +75,7 @@ pub(in crate::poam) struct OriginActor {
     pub(in crate::poam) actor_uuid: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(in crate::poam) struct Prop {
     pub(in crate::poam) name: String,
     pub(in crate::poam) value: String,
@@ -95,7 +95,7 @@ pub(in crate::poam) struct Facet {
     pub(in crate::poam) value: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(in crate::poam) struct PoamItem {
     pub(in crate::poam) uuid: String,
     pub(in crate::poam) title: String,
@@ -110,7 +110,7 @@ pub(in crate::poam) struct PoamItem {
 
 /// A reference to an observation by UUID. The schema requires this as an
 /// object (`{ "observation-uuid": "..." }`), not a bare UUID string.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(in crate::poam) struct RelatedObservation {
     #[serde(rename = "observation-uuid")]
     pub(in crate::poam) observation_uuid: String,
@@ -118,7 +118,7 @@ pub(in crate::poam) struct RelatedObservation {
 
 /// A reference to a risk by UUID. The schema requires this as an object
 /// (`{ "risk-uuid": "..." }`), not a bare UUID string.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(in crate::poam) struct RelatedRisk {
     #[serde(rename = "risk-uuid")]
     pub(in crate::poam) risk_uuid: String,

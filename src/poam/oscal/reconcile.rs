@@ -152,20 +152,41 @@ mod tests {
         let (mut baseline, _, _) = reconcile_document(None, vec![triple], "Test POA&M", "2026-01-01T00:00:00Z");
 
         // Simulate a custom item added out-of-band (Task 7), i.e. one with no
-        // "weakness-source-identifier" prop at all.
-        baseline.poam_items.push(crate::poam::oscal::PoamItem {
+        // "weakness-source-identifier" prop at all. Give it a non-empty value
+        // in every field (including related_risks/related_observations) so a
+        // regression that clears any one of them cannot hide behind an
+        // already-empty default.
+        let custom_item = crate::poam::oscal::PoamItem {
             uuid: "custom-uuid-0000".to_string(),
             title: "Manual risk acceptance".to_string(),
             description: "Accepted per CAB decision 2026-01".to_string(),
             props: vec![Prop { name: "finding-source".to_string(), value: "manual".to_string(), ns: None }],
-            related_risks: vec![],
-            related_observations: vec![],
-        });
+            related_risks: vec![crate::poam::oscal::RelatedRisk {
+                risk_uuid: "custom-risk-uuid-0000".to_string(),
+            }],
+            related_observations: vec![crate::poam::oscal::RelatedObservation {
+                observation_uuid: "custom-observation-uuid-0000".to_string(),
+            }],
+        };
+        // `PoamItem` derives `Clone` (and now `PartialEq`); snapshot it here
+        // so we can assert the item that survives reconcile is byte-for-byte
+        // identical to what went in, not just matching on uuid/title.
+        let expected = custom_item.clone();
+
+        baseline.poam_items.push(custom_item);
         let custom_items_before = baseline.poam_items.len();
 
         let (doc2, _, _) = reconcile_document(Some(baseline), vec![], "Test POA&M", "2026-02-01T00:00:00Z");
 
         assert_eq!(doc2.poam_items.len(), custom_items_before, "custom item must not be removed");
-        assert!(doc2.poam_items.iter().any(|i| i.uuid == "custom-uuid-0000" && i.title == "Manual risk acceptance"));
+        let found_item = doc2
+            .poam_items
+            .iter()
+            .find(|i| i.uuid == "custom-uuid-0000")
+            .expect("custom item must still be present by uuid");
+        assert_eq!(
+            found_item, &expected,
+            "custom item must be left completely untouched by reconcile -- every field, not just uuid/title"
+        );
     }
 }

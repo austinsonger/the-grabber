@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -10,8 +11,8 @@ mod xml_utils;
 
 pub use csv_reader::select_latest_ecr_csv;
 
-use csv_reader::read_ecr_csv;
-use reconcile::reconcile_workbook;
+use csv_reader::{read_ecr_csv, CsvFinding};
+use reconcile::{is_newer_finding, reconcile_workbook};
 use workbook::{read_poam_workbook, write_poam_workbook};
 
 const WORKBOOK_PATH: &str = "evidence-output/poam/FedRAMP-POAM.xlsx";
@@ -151,7 +152,14 @@ fn run_poam_with_paths(
 
     if matches!(format, PoamFormat::Oscal | PoamFormat::Both) {
         let now = chrono::Utc::now().to_rfc3339();
-        let triples: Vec<_> = csv_findings
+        // Two container images sharing a base image can surface the same
+        // CVE+package stable key twice in one Inspector2 export. Dedup at the
+        // CsvFinding level (before OSCAL triples are built) using the same
+        // "keep the newer finding" tie-break as the XLSX reconciler, since
+        // once built, every triple in a single run shares `now` and no longer
+        // carries a comparable freshness field.
+        let deduped_findings = dedupe_findings_by_stable_key(csv_findings);
+        let triples: Vec<_> = deduped_findings
             .iter()
             .map(|f| oscal::build_inspector2_triple(f, &now))
             .collect();
@@ -178,6 +186,35 @@ fn run_poam_with_paths(
         moved_closed_count,
         warnings,
     })
+}
+
+/// Deduplicates `csv_findings` by `stable_key`, keeping only the newer finding
+/// (per `is_newer_finding`'s "First Observed At" comparison) whenever two
+/// findings collide on the same key within a single Inspector2 export -- e.g.
+/// the same CVE+package pair found in two different container images sharing
+/// a base image. Mirrors the `HashMap` + `is_newer_finding` idiom
+/// `reconcile_workbook` uses for the same kind of collision.
+///
+/// This must run before findings are mapped into OSCAL observation/risk/
+/// poam-item triples: once built, every triple from a single run shares the
+/// same `now` timestamp and carries no comparable freshness field, so the
+/// same "keep whatever's last" bug that motivated this fix could not be
+/// resolved after the fact.
+fn dedupe_findings_by_stable_key(csv_findings: Vec<CsvFinding>) -> Vec<CsvFinding> {
+    let mut by_key: HashMap<String, CsvFinding> = HashMap::new();
+    for finding in csv_findings {
+        match by_key.get(&finding.stable_key) {
+            None => {
+                by_key.insert(finding.stable_key.clone(), finding);
+            }
+            Some(existing) => {
+                if is_newer_finding(&finding, existing) {
+                    by_key.insert(finding.stable_key.clone(), finding);
+                }
+            }
+        }
+    }
+    by_key.into_values().collect()
 }
 
 #[cfg(test)]
@@ -326,5 +363,59 @@ mod tests {
 
         assert!(oscal_path.exists(), "expected OSCAL JSON to be written");
         assert!(result.added_open_count > 0);
+    }
+
+    #[test]
+    fn dedupe_findings_by_stable_key_keeps_the_newer_finding_on_collision() {
+        fn finding_at(stable_key: &str, title: &str, first_observed_at: &str) -> CsvFinding {
+            let mut values = HashMap::new();
+            values.insert("title".to_string(), title.to_string());
+            values.insert("firstobservedat".to_string(), first_observed_at.to_string());
+            CsvFinding::new_for_test(format!("arn:{title}"), stable_key.to_string(), values)
+        }
+
+        // Same stable key (as would happen when the same CVE+package pair is
+        // found in two different container images sharing a base image, in
+        // one Inspector2 export), but with different titles and "First
+        // Observed At" timestamps.
+        let newer = finding_at(
+            "CVE-2026-9999|openssl",
+            "New Title (image-b)",
+            "2026-06-01T00:00:00Z",
+        );
+        let older = finding_at(
+            "CVE-2026-9999|openssl",
+            "Old Title (image-a)",
+            "2026-01-01T00:00:00Z",
+        );
+
+        // Deliberately feed the newer finding FIRST and the older one SECOND.
+        // A naive `.collect()` into a HashMap (the pre-fix behavior this
+        // guards against) keeps whichever entry is inserted last for a given
+        // key -- i.e. it would keep "older" here, not "newer" -- so this
+        // ordering is the one that would catch a regression back to
+        // "last-in-iteration-order wins" instead of "keep the newest".
+        let deduped = dedupe_findings_by_stable_key(vec![newer, older]);
+        assert_eq!(
+            deduped.len(),
+            1,
+            "two findings sharing a stable key must collapse to exactly one"
+        );
+
+        let now = "2026-07-01T00:00:00Z";
+        let triples: Vec<_> = deduped
+            .iter()
+            .map(|f| oscal::build_inspector2_triple(f, now))
+            .collect();
+        assert_eq!(
+            triples.len(),
+            1,
+            "exactly one OSCAL observation/risk/poam-item triple must result"
+        );
+        assert_eq!(
+            triples[0].2.title, "New Title (image-b)",
+            "the surviving OSCAL poam-item must carry the NEWER finding's title, \
+             not just whichever finding happened to be last"
+        );
     }
 }

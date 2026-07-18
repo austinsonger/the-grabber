@@ -412,7 +412,7 @@ fn normalize_header_label(input: &str) -> String {
     normalize(candidate)
 }
 
-fn is_newer_finding(new: &CsvFinding, old: &CsvFinding) -> bool {
+pub(super) fn is_newer_finding(new: &CsvFinding, old: &CsvFinding) -> bool {
     let new_observed = new.get("First Observed At");
     let old_observed = old.get("First Observed At");
     let new_date = chrono::DateTime::parse_from_rfc3339(&new_observed).ok();
