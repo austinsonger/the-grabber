@@ -6,6 +6,7 @@ use anyhow::{Context, Result};
 mod csv_reader;
 mod oscal;
 mod reconcile;
+mod tenable_csv_reader;
 mod workbook;
 mod xml_utils;
 

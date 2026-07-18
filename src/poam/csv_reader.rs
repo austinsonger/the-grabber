@@ -99,6 +99,15 @@ pub(super) fn read_ecr_csv(path: &Path) -> Result<(Vec<CsvFinding>, Vec<String>)
 }
 
 pub fn select_latest_ecr_csv(dir: &Path) -> Result<(String, PathBuf)> {
+    select_latest_csv_by_marker(dir, ECR_MARKER).with_context(|| {
+        format!(
+            "no files matching '*{ECR_MARKER}YYYY-MM-DD-######.csv' in {}",
+            dir.display()
+        )
+    })
+}
+
+pub(super) fn select_latest_csv_by_marker(dir: &Path, marker: &str) -> Result<(String, PathBuf)> {
     let mut best: Option<(CsvKey, String, PathBuf)> = None;
     for entry in std::fs::read_dir(dir).with_context(|| format!("cannot read {}", dir.display()))? {
         let entry = entry?;
@@ -110,7 +119,7 @@ pub fn select_latest_ecr_csv(dir: &Path) -> Result<(String, PathBuf)> {
             continue;
         };
         let name = name_os.to_string_lossy().to_string();
-        let Some(key) = parse_ecr_csv_key(&name) else {
+        let Some(key) = parse_csv_key(&name, marker) else {
             continue;
         };
 
@@ -129,21 +138,20 @@ pub fn select_latest_ecr_csv(dir: &Path) -> Result<(String, PathBuf)> {
     match best {
         Some((_, name, path)) => Ok((name, path)),
         None => bail!(
-            "no files matching '*{}YYYY-MM-DD-######.csv' in {}",
-            ECR_MARKER,
+            "no files matching marker '{marker}' with a YYYY-MM-DD-###### suffix in {}",
             dir.display()
         ),
     }
 }
 
-fn parse_ecr_csv_key(filename: &str) -> Option<CsvKey> {
+fn parse_csv_key(filename: &str, marker: &str) -> Option<CsvKey> {
     if !filename.ends_with(".csv") {
         return None;
     }
     let stem = filename.strip_suffix(".csv")?;
     // Accept any prefix — match on the shared marker segment.
-    let marker_pos = stem.find(ECR_MARKER)?;
-    let tail = &stem[marker_pos + ECR_MARKER.len()..];
+    let marker_pos = stem.find(marker)?;
+    let tail = &stem[marker_pos + marker.len()..];
     let parts: Vec<&str> = tail.split('-').collect();
     if parts.len() != 4 {
         return None;
@@ -175,8 +183,9 @@ mod tests {
 
     #[test]
     fn parse_ecr_csv_key_parses_expected_pattern() {
-        let key = parse_ecr_csv_key(
+        let key = parse_csv_key(
             "Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214017.csv",
+            ECR_MARKER,
         )
         .expect("key");
         assert_eq!(key.year, 2026);
@@ -187,8 +196,9 @@ mod tests {
 
     #[test]
     fn parse_ecr_csv_key_parses_federal_prefix() {
-        let key = parse_ecr_csv_key(
+        let key = parse_csv_key(
             "Federal_Operations_Inspector2_ECR_Image_Findings-2026-04-24-204228.csv",
+            ECR_MARKER,
         )
         .expect("key");
         assert_eq!(key.year, 2026);
