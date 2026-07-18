@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 
 mod csv_reader;
+mod oscal;
 mod reconcile;
 mod workbook;
 mod xml_utils;
