@@ -275,6 +275,10 @@ pub struct Cli {
     #[arg(long)]
     pub poam_month: Option<String>,
 
+    /// Output format for --poam: xlsx (default), oscal, or both.
+    #[arg(long, default_value = "xlsx")]
+    pub poam_format: String,
+
     // ------- Inspector SBOM export options -------
     /// S3 bucket for Inspector SBOM export destination.
     #[arg(long)]

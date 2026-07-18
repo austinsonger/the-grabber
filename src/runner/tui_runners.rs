@@ -324,7 +324,13 @@ pub async fn run_tui_poam(
                 .map(|p| p.display().to_string())
                 .unwrap_or_else(|_| String::new());
 
-        match crate::poam::run_poam(&evidence_base, &region, &year, &month_name) {
+        match crate::poam::run_poam(
+            &evidence_base,
+            &region,
+            &year,
+            &month_name,
+            crate::poam::PoamFormat::Xlsx,
+        ) {
             Ok(result) => {
                 let mut files: Vec<String> = vec![result.workbook_path.display().to_string()];
                 if let Some(csv) = &result.selected_csv {

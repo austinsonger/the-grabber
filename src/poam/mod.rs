@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
@@ -15,7 +15,28 @@ use reconcile::reconcile_workbook;
 use workbook::{read_poam_workbook, write_poam_workbook};
 
 const WORKBOOK_PATH: &str = "evidence-output/poam/FedRAMP-POAM.xlsx";
+const OSCAL_PATH: &str = "evidence-output/poam/FedRAMP-POAM.oscal.json";
 const DEFAULT_EVIDENCE_BASE: &str = "evidence-output/security";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PoamFormat {
+    Xlsx,
+    Oscal,
+    Both,
+}
+
+impl std::str::FromStr for PoamFormat {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_ascii_lowercase().as_str() {
+            "xlsx" => Ok(PoamFormat::Xlsx),
+            "oscal" => Ok(PoamFormat::Oscal),
+            "both" => Ok(PoamFormat::Both),
+            other => anyhow::bail!("invalid --poam-format '{other}' (expected xlsx, oscal, or both)"),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct PoamRunResult {
@@ -73,6 +94,29 @@ pub fn run_poam(
     region: &str,
     year: &str,
     month_name: &str,
+    format: PoamFormat,
+) -> Result<PoamRunResult> {
+    let workbook_path = PathBuf::from(WORKBOOK_PATH);
+    let oscal_path = PathBuf::from(OSCAL_PATH);
+    run_poam_with_paths(
+        evidence_base,
+        region,
+        year,
+        month_name,
+        format,
+        Some(&workbook_path),
+        &oscal_path,
+    )
+}
+
+fn run_poam_with_paths(
+    evidence_base: &str,
+    region: &str,
+    year: &str,
+    month_name: &str,
+    format: PoamFormat,
+    workbook_path_override: Option<&Path>,
+    oscal_path: &Path,
 ) -> Result<PoamRunResult> {
     let month_folder = month_name_to_folder(month_name)
         .with_context(|| format!("unsupported month '{month_name}'"))?;
@@ -85,11 +129,39 @@ pub fn run_poam(
         warnings.push("CSV contained no valid findings with Finding ARN".to_string());
     }
 
-    let workbook_path = PathBuf::from(WORKBOOK_PATH);
-    let workbook = read_poam_workbook(&workbook_path)?;
-    let reconcile = reconcile_workbook(workbook, csv_findings, &selected_csv_name, &mut warnings);
+    let mut added_open_count = 0;
+    let mut moved_closed_count = 0;
+    let mut workbook_path = PathBuf::from(WORKBOOK_PATH);
 
-    write_poam_workbook(&workbook_path, &reconcile.open_rows, &reconcile.closed_rows)?;
+    if matches!(format, PoamFormat::Xlsx | PoamFormat::Both) {
+        workbook_path = workbook_path_override
+            .map(Path::to_path_buf)
+            .unwrap_or(workbook_path);
+        let workbook = read_poam_workbook(&workbook_path)?;
+        let reconcile = reconcile_workbook(
+            workbook,
+            csv_findings.clone(),
+            &selected_csv_name,
+            &mut warnings,
+        );
+        write_poam_workbook(&workbook_path, &reconcile.open_rows, &reconcile.closed_rows)?;
+        added_open_count = reconcile.added_open_count;
+        moved_closed_count = reconcile.moved_closed_count;
+    }
+
+    if matches!(format, PoamFormat::Oscal | PoamFormat::Both) {
+        let now = chrono::Utc::now().to_rfc3339();
+        let triples: Vec<_> = csv_findings
+            .iter()
+            .map(|f| oscal::build_inspector2_triple(f, &now))
+            .collect();
+        let title = format!("{region} POA&M");
+        let doc = oscal::assemble_document(&title, triples, &now);
+        oscal::write_oscal_document(oscal_path, &doc)?;
+        if matches!(format, PoamFormat::Oscal) {
+            added_open_count = csv_findings.len();
+        }
+    }
 
     Ok(PoamRunResult {
         region: region.to_string(),
@@ -99,8 +171,8 @@ pub fn run_poam(
         evidence_path,
         selected_csv: Some(selected_csv_name),
         workbook_path,
-        added_open_count: reconcile.added_open_count,
-        moved_closed_count: reconcile.moved_closed_count,
+        added_open_count,
+        moved_closed_count,
         warnings,
     })
 }
@@ -214,5 +286,42 @@ mod tests {
         let result = reconcile_workbook(workbook, vec![], "test.csv", &mut warnings);
         assert_eq!(result.added_open_count, 0);
         assert_eq!(result.moved_closed_count, 0);
+    }
+
+    #[test]
+    fn poam_format_from_str_parses_expected_values() {
+        use super::PoamFormat;
+        use std::str::FromStr;
+
+        assert!(matches!(PoamFormat::from_str("xlsx"), Ok(PoamFormat::Xlsx)));
+        assert!(matches!(PoamFormat::from_str("oscal"), Ok(PoamFormat::Oscal)));
+        assert!(matches!(PoamFormat::from_str("both"), Ok(PoamFormat::Both)));
+        assert!(PoamFormat::from_str("yaml").is_err());
+    }
+
+    #[test]
+    fn run_poam_with_oscal_format_writes_oscal_json_not_xlsx() {
+        let csv_path = Path::new(
+            "evidence-output/security/us-east-1/2026/04-APR/Corporate_Security_Inspector2_ECR_Image_Findings-2026-04-08-214017.csv",
+        );
+        if !csv_path.exists() {
+            return;
+        }
+        let dir = tempdir().expect("tempdir");
+        let oscal_path = dir.path().join("FedRAMP-POAM.oscal.json");
+
+        let result = run_poam_with_paths(
+            "evidence-output/security",
+            "us-east-1",
+            "2026",
+            "April",
+            PoamFormat::Oscal,
+            None, // no existing xlsx workbook baseline needed for oscal-only format
+            &oscal_path,
+        )
+        .expect("run_poam_with_paths should succeed");
+
+        assert!(oscal_path.exists(), "expected OSCAL JSON to be written");
+        assert!(result.added_open_count > 0);
     }
 }

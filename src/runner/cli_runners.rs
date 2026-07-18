@@ -171,23 +171,25 @@ pub async fn run_poam_cli(cli: &Cli) -> Result<()> {
         crate::poam::resolve_evidence_path(&cli.poam_evidence_base, &cli.region, year, month)?;
     eprintln!("POA&M evidence path: {}", evidence_path.display());
 
-    match crate::poam::run_poam(&cli.poam_evidence_base, &cli.region, year, month)? {
-        result => {
-            eprintln!("POA&M reconciliation complete.");
-            eprintln!(
-                "  Region: {}  Year: {}  Month: {}",
-                result.region, result.year, result.month_name
-            );
-            eprintln!("  Evidence path: {}", result.evidence_path.display());
-            if let Some(csv) = &result.selected_csv {
-                eprintln!("  CSV used: {csv}");
-            }
-            eprintln!("  Findings opened:  {}", result.added_open_count);
-            eprintln!("  Findings closed:  {}", result.moved_closed_count);
-            for w in &result.warnings {
-                eprintln!("  WARN: {w}");
-            }
-        }
+    let format: crate::poam::PoamFormat = cli
+        .poam_format
+        .parse()
+        .context("invalid --poam-format value")?;
+
+    let result = crate::poam::run_poam(&cli.poam_evidence_base, &cli.region, year, month, format)?;
+    eprintln!("POA&M reconciliation complete.");
+    eprintln!(
+        "  Region: {}  Year: {}  Month: {}",
+        result.region, result.year, result.month_name
+    );
+    eprintln!("  Evidence path: {}", result.evidence_path.display());
+    if let Some(csv) = &result.selected_csv {
+        eprintln!("  CSV used: {csv}");
+    }
+    eprintln!("  Findings opened:  {}", result.added_open_count);
+    eprintln!("  Findings closed:  {}", result.moved_closed_count);
+    for w in &result.warnings {
+        eprintln!("  WARN: {w}");
     }
 
     Ok(())
