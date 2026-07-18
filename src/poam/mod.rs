@@ -156,10 +156,13 @@ fn run_poam_with_paths(
             .map(|f| oscal::build_inspector2_triple(f, &now))
             .collect();
         let title = format!("{region} POA&M");
-        let doc = oscal::assemble_document(&title, triples, &now);
+        let existing = oscal::read_oscal_document(oscal_path)?;
+        let (doc, oscal_added, oscal_closed) =
+            oscal::reconcile_document(existing, triples, &title, &now);
         oscal::write_oscal_document(oscal_path, &doc)?;
         if matches!(format, PoamFormat::Oscal) {
-            added_open_count = csv_findings.len();
+            added_open_count = oscal_added;
+            moved_closed_count = oscal_closed;
         }
     }
 

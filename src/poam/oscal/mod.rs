@@ -1,5 +1,6 @@
 mod build;
 mod model;
+mod reconcile;
 mod validate;
 
 use std::fs;
@@ -14,6 +15,7 @@ pub(super) use model::{
     PlanOfActionAndMilestones, PoamItem, Prop, RelatedObservation, RelatedRisk, Risk,
     RiskLogEntry, RiskStatus,
 };
+pub(super) use reconcile::reconcile_document;
 use validate::validate_document;
 
 /// Assembles a full OSCAL POA&M document from a set of observation/risk/
