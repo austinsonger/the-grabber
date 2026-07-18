@@ -59,7 +59,7 @@ pub(in crate::poam) enum RiskStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(in crate::poam) struct Characterization {
     pub(in crate::poam) origin: Origin,
-    pub(in crate::poam) facets: Vec<Prop>,
+    pub(in crate::poam) facets: Vec<Facet>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,6 +81,18 @@ pub(in crate::poam) struct Prop {
     pub(in crate::poam) value: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(in crate::poam) ns: Option<String>,
+}
+
+/// An individual characteristic that is part of a larger set produced by the
+/// same actor (`characterization.facets[]`). Unlike `Prop`, the schema
+/// requires a `system` field here (identifying the naming system the facet's
+/// `name` is drawn from, e.g. a CVSS version) and forbids the `ns` field that
+/// `Prop` carries.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(in crate::poam) struct Facet {
+    pub(in crate::poam) name: String,
+    pub(in crate::poam) system: String,
+    pub(in crate::poam) value: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -172,6 +184,27 @@ mod tests {
         let doc = minimal_doc();
         let wrapped = serde_json::json!({ "plan-of-action-and-milestones": doc });
         validate_document(&wrapped).expect("minimal document should validate cleanly");
+    }
+
+    #[test]
+    fn characterization_with_facet_validates_against_schema() {
+        let mut doc = minimal_doc();
+        doc.risks[0].characterizations = vec![Characterization {
+            origin: Origin {
+                actors: vec![OriginActor {
+                    actor_type: "tool".to_string(),
+                    actor_uuid: "55555555-5555-4555-8555-555555555555".to_string(),
+                }],
+            },
+            facets: vec![Facet {
+                name: "cvss-score".to_string(),
+                system: "https://www.first.org/cvss/v3-1".to_string(),
+                value: "7.5".to_string(),
+            }],
+        }];
+        let wrapped = serde_json::json!({ "plan-of-action-and-milestones": doc });
+        validate_document(&wrapped)
+            .expect("document with a real facet should validate cleanly against the schema");
     }
 
     #[test]
