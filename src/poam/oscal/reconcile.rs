@@ -39,7 +39,7 @@ pub(in crate::poam) fn reconcile_document(
         };
         seen_keys.push(key.clone());
 
-        let Some((_, _, new_item)) = current_by_key.get(&key) else {
+        let Some((_, new_risk, new_item)) = current_by_key.get(&key) else {
             // Present in baseline, absent from current scan -> close it.
             if let Some(risk) = baseline
                 .risks
@@ -54,9 +54,16 @@ pub(in crate::poam) fn reconcile_document(
             continue;
         };
 
-        // Present in both -> refresh title/description in place, keep uuid.
+        // Present in both -> refresh title/description/status in place, keep uuid.
         item.title = new_item.title.clone();
         item.description = new_item.description.clone();
+        if let Some(risk) = baseline
+            .risks
+            .iter_mut()
+            .find(|r| item.related_risks.iter().any(|rr| rr.risk_uuid == r.uuid))
+        {
+            risk.status = new_risk.status;
+        }
     }
 
     // Append findings that are new since the baseline.
@@ -144,6 +151,54 @@ mod tests {
         assert_eq!(closed, 1);
         assert_eq!(doc2.poam_items.len(), 1, "closed item must remain in the document, not be deleted");
         assert_eq!(doc2.risks[0].status, super::super::RiskStatus::Closed);
+    }
+
+    #[test]
+    fn finding_reappearing_after_close_reopens_risk_status() {
+        let triple1 = build_inspector2_triple(&finding("k1", "ACTIVE"), "2026-01-01T00:00:00Z");
+        let (baseline1, _, _) = reconcile_document(None, vec![triple1], "Test POA&M", "2026-01-01T00:00:00Z");
+
+        // Run 2: finding absent from the scan -> risk transitions to Closed.
+        let (baseline2, _, closed) = reconcile_document(Some(baseline1), vec![], "Test POA&M", "2026-02-01T00:00:00Z");
+        assert_eq!(closed, 1);
+        assert_eq!(baseline2.risks[0].status, RiskStatus::Closed);
+
+        // Run 3: the same stable key reappears in the scan, active again.
+        let triple3 = build_inspector2_triple(&finding("k1", "ACTIVE"), "2026-03-01T00:00:00Z");
+        let (doc3, added, closed3) =
+            reconcile_document(Some(baseline2), vec![triple3], "Test POA&M", "2026-03-01T00:00:00Z");
+
+        assert_eq!(added, 0, "matched stable key must not be re-appended as a new finding");
+        assert_eq!(closed3, 0);
+        assert_eq!(doc3.poam_items.len(), 1, "must not duplicate the item");
+        assert_eq!(
+            doc3.risks[0].status,
+            RiskStatus::Open,
+            "risk status must be refreshed from the new scan, not remain Closed forever"
+        );
+    }
+
+    #[test]
+    fn finding_present_in_both_but_scanner_marks_it_closed_updates_risk_status() {
+        let triple1 = build_inspector2_triple(&finding("k1", "ACTIVE"), "2026-01-01T00:00:00Z");
+        let (baseline, _, _) = reconcile_document(None, vec![triple1], "Test POA&M", "2026-01-01T00:00:00Z");
+        assert_eq!(baseline.risks[0].status, RiskStatus::Open);
+
+        // Run 2: same stable key present again, but this time the scanner
+        // itself reports the underlying finding as CLOSED/SUPPRESSED (e.g.
+        // Inspector2 marks it CLOSED while it still appears in the export).
+        let triple2 = build_inspector2_triple(&finding("k1", "CLOSED"), "2026-02-01T00:00:00Z");
+        let (doc2, added, closed) =
+            reconcile_document(Some(baseline), vec![triple2], "Test POA&M", "2026-02-01T00:00:00Z");
+
+        assert_eq!(added, 0);
+        assert_eq!(closed, 0, "this is an in-place status refresh, not the 'absent -> close' path");
+        assert_eq!(doc2.poam_items.len(), 1);
+        assert_eq!(
+            doc2.risks[0].status,
+            RiskStatus::Closed,
+            "risk status must reflect the new scan's status, not the stale baseline Open status"
+        );
     }
 
     #[test]

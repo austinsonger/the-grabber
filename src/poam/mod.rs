@@ -16,7 +16,7 @@ use csv_reader::{read_ecr_csv, CsvFinding};
 use reconcile::{is_newer_finding, reconcile_workbook};
 use tenable_csv_reader::{
     read_tenable_compliance_csv, read_tenable_vulns_csv, select_latest_tenable_compliance_csv,
-    select_latest_tenable_vulns_csv,
+    select_latest_tenable_vulns_csv, TenableComplianceRow, TenableVulnRow,
 };
 use workbook::{read_poam_workbook, write_poam_workbook};
 
@@ -176,6 +176,7 @@ fn run_poam_with_paths(
         if let Ok((_, tenable_vulns_path)) = select_latest_tenable_vulns_csv(&evidence_path) {
             match read_tenable_vulns_csv(&tenable_vulns_path) {
                 Ok((rows, mut tenable_warnings)) => {
+                    let rows = dedupe_tenable_vulns_by_stable_key(rows);
                     triples.extend(rows.iter().map(|r| oscal::build_tenable_vuln_triple(r, &now)));
                     warnings.append(&mut tenable_warnings);
                 }
@@ -185,6 +186,7 @@ fn run_poam_with_paths(
         if let Ok((_, tenable_compliance_path)) = select_latest_tenable_compliance_csv(&evidence_path) {
             match read_tenable_compliance_csv(&tenable_compliance_path) {
                 Ok((rows, mut tenable_warnings)) => {
+                    let rows = dedupe_tenable_compliance_by_stable_key(rows);
                     triples.extend(rows.iter().map(|r| oscal::build_tenable_compliance_triple(r, &now)));
                     warnings.append(&mut tenable_warnings);
                 }
@@ -285,6 +287,62 @@ fn dedupe_findings_by_stable_key(csv_findings: Vec<CsvFinding>) -> Vec<CsvFindin
         }
     }
     by_key.into_values().collect()
+}
+
+/// Deduplicates Tenable vulnerability rows by stable key within one scan,
+/// keeping the row with the more recent "Last Found" value on a collision --
+/// mirrors `dedupe_findings_by_stable_key`'s freshness tie-break, since
+/// `reconcile_document` otherwise keeps an arbitrary survivor.
+fn dedupe_tenable_vulns_by_stable_key(rows: Vec<TenableVulnRow>) -> Vec<TenableVulnRow> {
+    let mut by_key: HashMap<String, TenableVulnRow> = HashMap::new();
+    for row in rows {
+        match by_key.get(&row.stable_key) {
+            None => {
+                by_key.insert(row.stable_key.clone(), row);
+            }
+            Some(existing) => {
+                if is_newer_by_field(&row.get("Last Found"), &existing.get("Last Found")) {
+                    by_key.insert(row.stable_key.clone(), row);
+                }
+            }
+        }
+    }
+    by_key.into_values().collect()
+}
+
+/// Deduplicates Tenable compliance rows by stable key within one scan,
+/// keeping the row with the more recent "Last Seen" value on a collision.
+/// Real-world trigger: `read_tenable_compliance_csv` falls back to a bare
+/// `asset_id` stable key when "Check ID" is empty, so one asset with several
+/// blank-Check-ID failed checks produces multiple rows sharing one key.
+fn dedupe_tenable_compliance_by_stable_key(rows: Vec<TenableComplianceRow>) -> Vec<TenableComplianceRow> {
+    let mut by_key: HashMap<String, TenableComplianceRow> = HashMap::new();
+    for row in rows {
+        match by_key.get(&row.stable_key) {
+            None => {
+                by_key.insert(row.stable_key.clone(), row);
+            }
+            Some(existing) => {
+                if is_newer_by_field(&row.get("Last Seen"), &existing.get("Last Seen")) {
+                    by_key.insert(row.stable_key.clone(), row);
+                }
+            }
+        }
+    }
+    by_key.into_values().collect()
+}
+
+/// Compares two timestamp-ish field values, preferring RFC3339 parsing and
+/// falling back to a plain string comparison -- mirrors
+/// `reconcile::is_newer_finding`'s comparison approach for a bare pair of
+/// values rather than two `CsvFinding`s.
+fn is_newer_by_field(new: &str, old: &str) -> bool {
+    let new_date = chrono::DateTime::parse_from_rfc3339(new).ok();
+    let old_date = chrono::DateTime::parse_from_rfc3339(old).ok();
+    match (new_date, old_date) {
+        (Some(a), Some(b)) => a > b,
+        _ => new > old,
+    }
 }
 
 #[cfg(test)]
@@ -486,6 +544,41 @@ mod tests {
             triples[0].2.title, "New Title (image-b)",
             "the surviving OSCAL poam-item must carry the NEWER finding's title, \
              not just whichever finding happened to be last"
+        );
+    }
+
+    #[test]
+    fn dedupe_tenable_compliance_by_stable_key_keeps_the_newer_row_on_collision() {
+        // Real-world trigger: read_tenable_compliance_csv falls back to a bare
+        // asset_id stable key when Check ID is empty, so one asset with two
+        // blank-Check-ID failed checks collides on the same key.
+        fn row_at(stable_key: &str, check_name: &str, last_seen: &str) -> TenableComplianceRow {
+            let mut values = HashMap::new();
+            values.insert("checkname".to_string(), check_name.to_string());
+            values.insert("lastseen".to_string(), last_seen.to_string());
+            TenableComplianceRow {
+                stable_key: stable_key.to_string(),
+                values,
+            }
+        }
+
+        let newer = row_at("asset-1", "Newer Check", "2026-06-01T00:00:00Z");
+        let older = row_at("asset-1", "Older Check", "2026-01-01T00:00:00Z");
+
+        // Deliberately feed newer first, older second -- a naive `.collect()`
+        // (the pre-fix behavior this guards against) would keep whichever
+        // row is inserted last, i.e. "older", not "newer".
+        let deduped = dedupe_tenable_compliance_by_stable_key(vec![newer, older]);
+        assert_eq!(
+            deduped.len(),
+            1,
+            "two compliance rows sharing a stable key must collapse to exactly one"
+        );
+        assert_eq!(
+            deduped[0].get("Check Name"),
+            "Newer Check",
+            "the surviving row must be the NEWER one by Last Seen, \
+             not just whichever row happened to be last"
         );
     }
 
