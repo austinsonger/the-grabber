@@ -14,6 +14,10 @@ pub use csv_reader::select_latest_ecr_csv;
 
 use csv_reader::{read_ecr_csv, CsvFinding};
 use reconcile::{is_newer_finding, reconcile_workbook};
+use tenable_csv_reader::{
+    read_tenable_compliance_csv, read_tenable_vulns_csv, select_latest_tenable_compliance_csv,
+    select_latest_tenable_vulns_csv,
+};
 use workbook::{read_poam_workbook, write_poam_workbook};
 
 const WORKBOOK_PATH: &str = "evidence-output/poam/FedRAMP-POAM.xlsx";
@@ -160,10 +164,34 @@ fn run_poam_with_paths(
         // once built, every triple in a single run shares `now` and no longer
         // carries a comparable freshness field.
         let deduped_findings = dedupe_findings_by_stable_key(csv_findings);
-        let triples: Vec<_> = deduped_findings
+        let mut triples: Vec<_> = deduped_findings
             .iter()
             .map(|f| oscal::build_inspector2_triple(f, &now))
             .collect();
+
+        // Tenable vulnerability/compliance CSVs are optional evidence: a
+        // missing file means that source simply wasn't collected this cycle
+        // (not a fatal error), but once a file is found, a genuine read
+        // failure is still surfaced as a warning.
+        if let Ok((_, tenable_vulns_path)) = select_latest_tenable_vulns_csv(&evidence_path) {
+            match read_tenable_vulns_csv(&tenable_vulns_path) {
+                Ok((rows, mut tenable_warnings)) => {
+                    triples.extend(rows.iter().map(|r| oscal::build_tenable_vuln_triple(r, &now)));
+                    warnings.append(&mut tenable_warnings);
+                }
+                Err(e) => warnings.push(format!("Tenable vulnerability CSV read failed: {e}")),
+            }
+        }
+        if let Ok((_, tenable_compliance_path)) = select_latest_tenable_compliance_csv(&evidence_path) {
+            match read_tenable_compliance_csv(&tenable_compliance_path) {
+                Ok((rows, mut tenable_warnings)) => {
+                    triples.extend(rows.iter().map(|r| oscal::build_tenable_compliance_triple(r, &now)));
+                    warnings.append(&mut tenable_warnings);
+                }
+                Err(e) => warnings.push(format!("Tenable compliance CSV read failed: {e}")),
+            }
+        }
+
         let title = format!("{region} POA&M");
         let existing = oscal::read_oscal_document(oscal_path)?;
         let (doc, oscal_added, oscal_closed) =
@@ -459,5 +487,40 @@ mod tests {
             "the surviving OSCAL poam-item must carry the NEWER finding's title, \
              not just whichever finding happened to be last"
         );
+    }
+
+    #[test]
+    fn run_poam_with_oscal_format_includes_tenable_findings_when_present() {
+        let dir = tempdir().expect("tempdir");
+        let evidence_dir = dir.path().join("us-east-1/2026/04-APR");
+        std::fs::create_dir_all(&evidence_dir).expect("mkdir");
+
+        std::fs::write(
+            evidence_dir.join("Test_Inspector2_ECR_Image_Findings-2026-04-01-100000.csv"),
+            "Finding ARN,CVE ID,Package Name,Title,Status\narn:1,CVE-2026-0001,openssl,openssl vuln,ACTIVE\n",
+        ).expect("write inspector2 csv");
+
+        std::fs::write(
+            evidence_dir.join("Test_Tenable_Vulnerability_Findings-2026-04-01-100000.csv"),
+            "Asset ID,Hostname,FQDN,IPv4,IPv6,OS,Device Type,Plugin ID,Plugin Name,Family,Synopsis,Description,Solution,CVEs,CPEs,Has Patch,Severity,Severity ID,Risk Factor,CVSS Base Score,CVSS Vector,CVSS3 Base Score,CVSS3 Vector,VPR Score,Port,Protocol,Service,Scan UUID,Scan Started At,Scan Completed At,State,First Found,Last Found,Last Fixed,Source\n\
+             asset-1,host1,,10.0.0.1,,Linux,server,19506,SSL cert issue,General,syn,desc,sol,CVE-2026-0002,,YES,High,3,High,7.5,v,8.1,v3,7.2,443,tcp,https,uuid,2026-04-01T00:00:00Z,2026-04-01T01:00:00Z,open,2026-03-01T00:00:00Z,2026-04-01T00:00:00Z,,NESSUS\n",
+        ).expect("write tenable vulns csv");
+
+        let oscal_path = dir.path().join("FedRAMP-POAM.oscal.json");
+        let result = run_poam_with_paths(
+            dir.path().to_str().unwrap(),
+            "us-east-1",
+            "2026",
+            "April",
+            PoamFormat::Oscal,
+            None,
+            &oscal_path,
+        ).expect("run should succeed");
+
+        assert_eq!(result.added_open_count, 2, "both Inspector2 and Tenable findings should be counted");
+        let doc = oscal::read_oscal_document(&oscal_path).expect("read").expect("doc exists");
+        assert_eq!(doc.poam_items.len(), 2);
+        assert!(doc.poam_items.iter().any(|i| i.props.iter().any(|p| p.name == "finding-source" && p.value == "AWS Inspector2 - ECR")));
+        assert!(doc.poam_items.iter().any(|i| i.props.iter().any(|p| p.name == "finding-source" && p.value == "Tenable.io")));
     }
 }

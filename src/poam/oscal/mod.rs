@@ -2,6 +2,7 @@ mod build;
 mod custom_item;
 mod model;
 mod reconcile;
+mod tenable_build;
 mod validate;
 
 use std::fs;
@@ -18,6 +19,7 @@ pub(super) use model::{
     RiskLogEntry, RiskStatus,
 };
 pub(super) use reconcile::reconcile_document;
+pub(super) use tenable_build::{build_tenable_compliance_triple, build_tenable_vuln_triple};
 use validate::validate_document;
 
 /// Assembles a full OSCAL POA&M document from a set of observation/risk/
