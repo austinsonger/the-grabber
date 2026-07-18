@@ -279,6 +279,30 @@ pub struct Cli {
     #[arg(long, default_value = "xlsx")]
     pub poam_format: String,
 
+    /// Add a custom POA&M item to the OSCAL document (JSON file with title/description/status/deadline fields).
+    #[arg(long)]
+    pub poam_add_item: Option<String>,
+
+    /// Inline: title for a custom POA&M item (used with --poam-item-description instead of --poam-add-item).
+    #[arg(long)]
+    pub poam_item_title: Option<String>,
+
+    /// Inline: description for a custom POA&M item.
+    #[arg(long)]
+    pub poam_item_description: Option<String>,
+
+    /// Inline: status for a custom POA&M item (open or closed; default open).
+    #[arg(long)]
+    pub poam_item_status: Option<String>,
+
+    /// Inline: deadline for a custom POA&M item (ISO 8601 date; accepted but not yet enforced).
+    #[arg(long)]
+    pub poam_item_deadline: Option<String>,
+
+    /// Remove (close) a custom POA&M item by uuid.
+    #[arg(long)]
+    pub poam_remove_item: Option<String>,
+
     // ------- Inspector SBOM export options -------
     /// S3 bucket for Inspector SBOM export destination.
     #[arg(long)]

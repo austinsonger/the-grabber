@@ -54,7 +54,12 @@ async fn async_main() -> Result<()> {
         return run_inventory_cli(&cli).await;
     }
 
-    if cli.poam {
+    if cli.poam
+        || cli.poam_add_item.is_some()
+        || cli.poam_remove_item.is_some()
+        || cli.poam_item_title.is_some()
+        || cli.poam_item_description.is_some()
+    {
         return run_poam_cli(&cli).await;
     }
 

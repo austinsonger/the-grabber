@@ -1,4 +1,5 @@
 mod build;
+mod custom_item;
 mod model;
 mod reconcile;
 mod validate;
@@ -10,6 +11,7 @@ use anyhow::{Context, Result};
 use uuid::Uuid;
 
 pub(super) use build::build_inspector2_triple;
+pub(super) use custom_item::{add_custom_item, remove_custom_item, CustomItemInput};
 pub(super) use model::{
     Characterization, Facet, Metadata, Observation, Origin, OriginActor,
     PlanOfActionAndMilestones, PoamItem, Prop, RelatedObservation, RelatedRisk, Risk,

@@ -154,6 +154,53 @@ pub async fn run_inventory_cli(cli: &Cli) -> Result<()> {
 }
 
 pub async fn run_poam_cli(cli: &Cli) -> Result<()> {
+    if let Some(uuid) = &cli.poam_remove_item {
+        let found = crate::poam::remove_custom_poam_item(uuid)?;
+        if found {
+            eprintln!("Closed custom POA&M item {uuid}.");
+        } else {
+            eprintln!("No POA&M item with uuid {uuid} found.");
+        }
+        return Ok(());
+    }
+
+    if let Some(item_path) = &cli.poam_add_item {
+        let contents = std::fs::read_to_string(item_path)
+            .with_context(|| format!("cannot read --poam-add-item file {item_path}"))?;
+        #[derive(serde::Deserialize)]
+        struct ItemFile {
+            title: String,
+            description: String,
+            status: Option<String>,
+            deadline: Option<String>,
+        }
+        let parsed: ItemFile = serde_json::from_str(&contents)
+            .with_context(|| format!("cannot parse --poam-add-item file {item_path} as JSON"))?;
+        let uuid = crate::poam::add_custom_poam_item(
+            parsed.title,
+            parsed.description,
+            parsed.status,
+            parsed.deadline,
+        )?;
+        eprintln!("Added custom POA&M item {uuid}.");
+        return Ok(());
+    }
+
+    if let (Some(title), Some(description)) = (&cli.poam_item_title, &cli.poam_item_description) {
+        let uuid = crate::poam::add_custom_poam_item(
+            title.clone(),
+            description.clone(),
+            cli.poam_item_status.clone(),
+            cli.poam_item_deadline.clone(),
+        )?;
+        eprintln!("Added custom POA&M item {uuid}.");
+        return Ok(());
+    }
+
+    if cli.poam_item_title.is_some() != cli.poam_item_description.is_some() {
+        anyhow::bail!("--poam-item-title and --poam-item-description must be provided together");
+    }
+
     let year = cli
         .poam_year
         .as_deref()

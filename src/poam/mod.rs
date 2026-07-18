@@ -188,6 +188,47 @@ fn run_poam_with_paths(
     })
 }
 
+/// Adds a custom (non-scanner-derived) POA&M item -- an observation/risk/
+/// poam-item triple with no `weakness-source-identifier` prop -- to the OSCAL
+/// document at `OSCAL_PATH`, creating a fresh document if none exists yet.
+/// Returns the new item's uuid.
+pub fn add_custom_poam_item(
+    title: String,
+    description: String,
+    status: Option<String>,
+    deadline: Option<String>,
+) -> Result<String> {
+    let oscal_path = PathBuf::from(OSCAL_PATH);
+    let mut doc = oscal::read_oscal_document(&oscal_path)?.unwrap_or_else(|| {
+        let now = chrono::Utc::now().to_rfc3339();
+        oscal::assemble_document("POA&M", vec![], &now)
+    });
+    let now = chrono::Utc::now().to_rfc3339();
+    let uuid = oscal::add_custom_item(
+        &mut doc,
+        oscal::CustomItemInput { title, description, status, deadline },
+        &now,
+    )?;
+    oscal::write_oscal_document(&oscal_path, &doc)?;
+    Ok(uuid)
+}
+
+/// Removes (closes) a custom POA&M item by uuid from the OSCAL document at
+/// `OSCAL_PATH`. Returns whether an item with that uuid was found; errors if
+/// the uuid belongs to a scanner-derived item (only custom items can be
+/// removed through this path).
+pub fn remove_custom_poam_item(uuid: &str) -> Result<bool> {
+    let oscal_path = PathBuf::from(OSCAL_PATH);
+    let mut doc = oscal::read_oscal_document(&oscal_path)?
+        .with_context(|| format!("no OSCAL POA&M document exists at {}", oscal_path.display()))?;
+    let now = chrono::Utc::now().to_rfc3339();
+    let found = oscal::remove_custom_item(&mut doc, uuid, &now)?;
+    if found {
+        oscal::write_oscal_document(&oscal_path, &doc)?;
+    }
+    Ok(found)
+}
+
 /// Deduplicates `csv_findings` by `stable_key`, keeping only the newer finding
 /// (per `is_newer_finding`'s "First Observed At" comparison) whenever two
 /// findings collide on the same key within a single Inspector2 export -- e.g.
