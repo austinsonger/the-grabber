@@ -7,6 +7,14 @@ use super::model::{
     RelatedRisk, Risk, RiskStatus,
 };
 
+/// Fixed tool identity for the "AWS Inspector2 - ECR" origin actor referenced
+/// by `characterizations[].origin.actors[].actor-uuid`. The schema's
+/// `actor-uuid` field is `$ref: UUIDDatatype`, which requires a strict RFC
+/// 4122 UUID (`^[0-9A-Fa-f]{8}-...`), so a descriptive slug like
+/// `"aws-inspector2-ecr"` fails validation. This is a stable, arbitrarily
+/// chosen UUID naming that tool, not a random per-run value.
+const INSPECTOR2_TOOL_UUID: &str = "49acaf61-50ac-4bf3-93eb-7be5c77e7ef0";
+
 /// Maps a single AWS Inspector2 ECR CSV finding to the three linked OSCAL
 /// records that describe it: an `observation` (raw scanner evidence), a
 /// `risk` (the assessed consequence, carrying CVSS/severity as
@@ -56,18 +64,18 @@ pub(in crate::poam) fn build_inspector2_triple(
             origin: Origin {
                 actors: vec![OriginActor {
                     actor_type: "tool".to_string(),
-                    actor_uuid: "aws-inspector2-ecr".to_string(),
+                    actor_uuid: INSPECTOR2_TOOL_UUID.to_string(),
                 }],
             },
             facets: vec![
                 Facet {
                     name: "cvss-score".to_string(),
-                    system: "https://www.first.org/cvss/v3-1".to_string(),
+                    system: "http://www.first.org/cvss/v3.1".to_string(),
                     value: cvss.clone(),
                 },
                 Facet {
                     name: "severity".to_string(),
-                    system: "aws-inspector2-severity".to_string(),
+                    system: "http://csrc.nist.gov/ns/oscal/unknown".to_string(),
                     value: severity.clone(),
                 },
             ],
@@ -181,5 +189,36 @@ mod tests {
         let finding = CsvFinding::new_for_test("arn:1".to_string(), "key1".to_string(), values);
         let (_, risk, _) = build_inspector2_triple(&finding, "2026-07-17T00:00:00Z");
         assert_eq!(risk.status, RiskStatus::Closed);
+    }
+
+    /// Regression test for two schema-validation bugs in the CVSS/severity
+    /// `Characterization` this function builds: a non-UUID `actor-uuid`
+    /// (schema requires `UUIDDatatype`, a strict RFC 4122 UUID) and a facet
+    /// `system` value with no URI scheme that also isn't in the schema's
+    /// enum (schema requires `URIDatatype` or one of a fixed enum). Both
+    /// silently broke `write_oscal_document` for any real Inspector2 finding
+    /// with a non-empty CVSS score -- which is virtually all of them. This
+    /// test wraps the built triple into a full document exactly as
+    /// `write_oscal_document` does and validates it against the bundled
+    /// schema, so it fails if either literal regresses.
+    #[test]
+    fn characterizations_with_cvss_score_validate_against_oscal_schema() {
+        let finding = sample_finding();
+        let triple = build_inspector2_triple(&finding, "2026-07-17T00:00:00Z");
+        assert!(
+            !triple.1.characterizations.is_empty(),
+            "sample_finding carries a non-empty CVSS score, so characterizations must be populated"
+        );
+
+        let doc = crate::poam::oscal::assemble_document(
+            "Test Account POA&M",
+            vec![triple],
+            "2026-07-17T00:00:00Z",
+        );
+        let wrapped = serde_json::json!({ "plan-of-action-and-milestones": doc });
+
+        crate::poam::oscal::validate::validate_document(&wrapped).expect(
+            "document with a populated CVSS/severity characterization should validate cleanly against the OSCAL schema",
+        );
     }
 }
