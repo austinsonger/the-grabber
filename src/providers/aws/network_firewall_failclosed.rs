@@ -73,7 +73,9 @@ impl CsvCollector for NetworkFirewallFailClosedCollector {
                     .firewall_policy_arn(&policy_arn)
                     .send()
                     .await
-                    .with_context(|| format!("network-firewall:DescribeFirewallPolicy {policy_arn}"))?;
+                    .with_context(|| {
+                        format!("network-firewall:DescribeFirewallPolicy {policy_arn}")
+                    })?;
                 let (stream_pol, stateful_defaults) = pol
                     .firewall_policy()
                     .map(|p| {

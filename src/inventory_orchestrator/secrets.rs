@@ -34,7 +34,9 @@ fn function_from_secret_tags(tags: &[aws_sdk_secretsmanager::types::Tag]) -> Str
 /// Formats a `RotationRulesType` per §14: `AutomaticallyAfterDays: <n>` if
 /// set, else `ScheduleExpression: <expr>` if set, else empty. Only one of
 /// the two is ever populated on a given secret.
-fn format_rotation_rules(rules: Option<&aws_sdk_secretsmanager::types::RotationRulesType>) -> String {
+fn format_rotation_rules(
+    rules: Option<&aws_sdk_secretsmanager::types::RotationRulesType>,
+) -> String {
     let Some(rules) = rules else {
         return String::new();
     };

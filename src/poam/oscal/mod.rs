@@ -14,9 +14,8 @@ use uuid::Uuid;
 pub(super) use build::build_inspector2_triple;
 pub(super) use custom_item::{add_custom_item, remove_custom_item, CustomItemInput};
 pub(super) use model::{
-    Characterization, Facet, Metadata, Observation, Origin, OriginActor,
-    PlanOfActionAndMilestones, PoamItem, Prop, RelatedObservation, RelatedRisk, Risk,
-    RiskLogEntry, RiskStatus,
+    Characterization, Facet, Metadata, Observation, Origin, OriginActor, PlanOfActionAndMilestones,
+    PoamItem, Prop, RelatedObservation, RelatedRisk, Risk, RiskLogEntry, RiskStatus,
 };
 pub(super) use reconcile::reconcile_document;
 pub(super) use tenable_build::{build_tenable_compliance_triple, build_tenable_vuln_triple};
@@ -77,8 +76,8 @@ pub(super) fn read_oscal_document(path: &Path) -> Result<Option<PlanOfActionAndM
     if !path.exists() {
         return Ok(None);
     }
-    let contents = fs::read_to_string(path)
-        .with_context(|| format!("cannot read {}", path.display()))?;
+    let contents =
+        fs::read_to_string(path).with_context(|| format!("cannot read {}", path.display()))?;
     let wrapped: serde_json::Value =
         serde_json::from_str(&contents).context("parse existing OSCAL POA&M as JSON")?;
     let inner = wrapped
@@ -105,7 +104,8 @@ mod tests {
 
     #[test]
     fn assemble_document_produces_valid_metadata_and_items() {
-        let triple = build_inspector2_triple(&finding("k1", "CVE-2026-0001"), "2026-07-17T00:00:00Z");
+        let triple =
+            build_inspector2_triple(&finding("k1", "CVE-2026-0001"), "2026-07-17T00:00:00Z");
         let doc = assemble_document("Test Account POA&M", vec![triple], "2026-07-17T00:00:00Z");
 
         assert_eq!(doc.metadata.title, "Test Account POA&M");
@@ -119,14 +119,17 @@ mod tests {
 
     #[test]
     fn write_then_read_round_trips_and_validates() {
-        let triple = build_inspector2_triple(&finding("k1", "CVE-2026-0001"), "2026-07-17T00:00:00Z");
+        let triple =
+            build_inspector2_triple(&finding("k1", "CVE-2026-0001"), "2026-07-17T00:00:00Z");
         let doc = assemble_document("Test Account POA&M", vec![triple], "2026-07-17T00:00:00Z");
 
         let dir = tempdir().expect("tempdir");
         let path = dir.path().join("FedRAMP-POAM.oscal.json");
         write_oscal_document(&path, &doc).expect("write should validate and succeed");
 
-        let read_back = read_oscal_document(&path).expect("read").expect("document should exist");
+        let read_back = read_oscal_document(&path)
+            .expect("read")
+            .expect("document should exist");
         assert_eq!(read_back.poam_items.len(), 1);
         assert_eq!(read_back.metadata.title, "Test Account POA&M");
     }

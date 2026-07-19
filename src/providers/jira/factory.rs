@@ -53,90 +53,125 @@ impl ProviderFactory for JiraProviderFactory {
         if self.selected.iter().any(|s| s == "jira-offboarding-sla") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "HR-OFF".to_string();
-            v.push(Box::new(super::offboarding_sla::JiraOffboardingSlaCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::offboarding_sla::JiraOffboardingSlaCollector::new(self.client.clone(), key),
+            ));
         }
-        if self.selected.iter().any(|s| s == "jira-remote-access-approvals") {
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "jira-remote-access-approvals")
+        {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::remote_access_approvals::JiraRemoteAccessApprovalsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::remote_access_approvals::JiraRemoteAccessApprovalsCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
-        if self.selected.iter().any(|s| s == "jira-external-system-approvals") {
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "jira-external-system-approvals")
+        {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::external_system_approvals::JiraExternalSystemApprovalsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::external_system_approvals::JiraExternalSystemApprovalsCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-public-content") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "MKT".to_string();
-            v.push(Box::new(super::public_content_review::JiraPublicContentReviewCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::public_content_review::JiraPublicContentReviewCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
-        if self.selected.iter().any(|s| s == "jira-logging-coordination") {
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "jira-logging-coordination")
+        {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::logging_coordination::JiraLoggingCoordinationCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::logging_coordination::JiraLoggingCoordinationCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-audit-posture") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::audit_posture_change::JiraAuditPostureChangeCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::audit_posture_change::JiraAuditPostureChangeCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-isa-annual") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::isa_annual_review::JiraIsaAnnualReviewCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::isa_annual_review::JiraIsaAnnualReviewCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-change-retention") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "CHG".to_string();
-            v.push(Box::new(super::change_retention::JiraChangeRetentionCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::change_retention::JiraChangeRetentionCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
-        if self.selected.iter().any(|s| s == "jira-baseline-exceptions") {
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "jira-baseline-exceptions")
+        {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::baseline_exceptions::JiraBaselineExceptionsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::baseline_exceptions::JiraBaselineExceptionsCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-allowlist-review") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::allowlist_review::JiraAllowlistReviewCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::allowlist_review::JiraAllowlistReviewCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-cp-update") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::cp_update_trigger::JiraCpUpdateTriggerCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::cp_update_trigger::JiraCpUpdateTriggerCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-cp-test-poam") {
             // TODO: wire project_keys from AppConfig via factory constructor
@@ -149,114 +184,139 @@ impl ProviderFactory for JiraProviderFactory {
         if self.selected.iter().any(|s| s == "jira-dr-test") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::dr_test_results::JiraDrTestResultsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::dr_test_results::JiraDrTestResultsCollector::new(self.client.clone(), key),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-ir-cp") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "INC".to_string();
-            v.push(Box::new(super::ir_cp_coordination::JiraIrCpCoordinationCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::ir_cp_coordination::JiraIrCpCoordinationCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-ir-lessons") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "INC".to_string();
-            v.push(Box::new(super::ir_lessons_learned::JiraIrLessonsLearnedCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::ir_lessons_learned::JiraIrLessonsLearnedCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-ir-severity") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "INC".to_string();
-            v.push(Box::new(super::ir_severity_vs_rigor::JiraIrSeverityVsRigorCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::ir_severity_vs_rigor::JiraIrSeverityVsRigorCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-ir-external") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "INC".to_string();
-            v.push(Box::new(super::ir_external_reporting::JiraIrExternalReportingCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::ir_external_reporting::JiraIrExternalReportingCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-special-protection") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "HR".to_string();
-            v.push(Box::new(super::special_protection_approvals::JiraSpecialProtectionApprovalsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::special_protection_approvals::JiraSpecialProtectionApprovalsCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-data-reassignment") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "HR-OFF".to_string();
-            v.push(Box::new(super::data_reassignment::JiraDataReassignmentCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::data_reassignment::JiraDataReassignmentCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-transfer-notify") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "HR-TRANSFER".to_string();
-            v.push(Box::new(super::transfer_notifications::JiraTransferNotificationsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::transfer_notifications::JiraTransferNotificationsCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-sanctions-isso") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "HR".to_string();
-            v.push(Box::new(super::sanctions_isso_notify::JiraSanctionsIssoNotifyCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::sanctions_isso_notify::JiraSanctionsIssoNotifyCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-fw-exception") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::firewall_exception_duration::JiraFirewallExceptionDurationCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::firewall_exception_duration::JiraFirewallExceptionDurationCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-malware-fp") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::malware_false_positive::JiraMalwareFalsePositiveCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::malware_false_positive::JiraMalwareFalsePositiveCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-patch-test") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "CHG".to_string();
-            v.push(Box::new(super::patch_test_records::JiraPatchTestRecordsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::patch_test_records::JiraPatchTestRecordsCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-remote-maint") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "SEC".to_string();
-            v.push(Box::new(super::remote_maintenance_approvals::JiraRemoteMaintenanceApprovalsCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::remote_maintenance_approvals::JiraRemoteMaintenanceApprovalsCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         if self.selected.iter().any(|s| s == "jira-sw-license") {
             // TODO: wire project_keys from AppConfig via factory constructor
             let key = "CHG".to_string();
-            v.push(Box::new(super::sw_license_review::JiraSwLicenseReviewCollector::new(
-                self.client.clone(),
-                key,
-            )));
+            v.push(Box::new(
+                super::sw_license_review::JiraSwLicenseReviewCollector::new(
+                    self.client.clone(),
+                    key,
+                ),
+            ));
         }
         v
     }

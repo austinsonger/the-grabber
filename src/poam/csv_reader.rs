@@ -23,8 +23,16 @@ impl CsvFinding {
 
 #[cfg(test)]
 impl CsvFinding {
-    pub(super) fn new_for_test(arn: String, stable_key: String, values: HashMap<String, String>) -> Self {
-        CsvFinding { arn, stable_key, values }
+    pub(super) fn new_for_test(
+        arn: String,
+        stable_key: String,
+        values: HashMap<String, String>,
+    ) -> Self {
+        CsvFinding {
+            arn,
+            stable_key,
+            values,
+        }
     }
 }
 

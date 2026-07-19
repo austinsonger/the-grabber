@@ -16,7 +16,10 @@ pub(super) struct TenableVulnRow {
 
 impl TenableVulnRow {
     pub(super) fn get(&self, header: &str) -> String {
-        self.values.get(&normalize(header)).cloned().unwrap_or_default()
+        self.values
+            .get(&normalize(header))
+            .cloned()
+            .unwrap_or_default()
     }
 }
 
@@ -28,7 +31,10 @@ pub(super) struct TenableComplianceRow {
 
 impl TenableComplianceRow {
     pub(super) fn get(&self, header: &str) -> String {
-        self.values.get(&normalize(header)).cloned().unwrap_or_default()
+        self.values
+            .get(&normalize(header))
+            .cloned()
+            .unwrap_or_default()
     }
 }
 
@@ -50,12 +56,20 @@ pub(super) fn read_tenable_vulns_csv(path: &Path) -> Result<(Vec<TenableVulnRow>
     let headers = reader.headers().context("cannot read CSV header")?.clone();
     let normalized_headers: Vec<String> = headers.iter().map(normalize).collect();
 
-    let asset_idx = normalized_headers.iter().position(|h| h == &normalize("Asset ID"))
+    let asset_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("Asset ID"))
         .context("Tenable vulnerability CSV missing required 'Asset ID' column")?;
-    let plugin_idx = normalized_headers.iter().position(|h| h == &normalize("Plugin ID"))
+    let plugin_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("Plugin ID"))
         .context("Tenable vulnerability CSV missing required 'Plugin ID' column")?;
-    let port_idx = normalized_headers.iter().position(|h| h == &normalize("Port"));
-    let protocol_idx = normalized_headers.iter().position(|h| h == &normalize("Protocol"));
+    let port_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("Port"));
+    let protocol_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("Protocol"));
 
     let mut rows = Vec::new();
     let mut warnings = Vec::new();
@@ -64,11 +78,22 @@ pub(super) fn read_tenable_vulns_csv(path: &Path) -> Result<(Vec<TenableVulnRow>
         let asset_id = record.get(asset_idx).unwrap_or("").trim().to_string();
         let plugin_id = record.get(plugin_idx).unwrap_or("").trim().to_string();
         if asset_id.is_empty() || plugin_id.is_empty() {
-            warnings.push(format!("Row {} skipped: missing Asset ID or Plugin ID", row_idx + 2));
+            warnings.push(format!(
+                "Row {} skipped: missing Asset ID or Plugin ID",
+                row_idx + 2
+            ));
             continue;
         }
-        let port = port_idx.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
-        let protocol = protocol_idx.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+        let port = port_idx
+            .and_then(|i| record.get(i))
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let protocol = protocol_idx
+            .and_then(|i| record.get(i))
+            .unwrap_or("")
+            .trim()
+            .to_string();
         let stable_key = format!("{asset_id}:{plugin_id}:{port}:{protocol}");
 
         let mut values = HashMap::new();
@@ -81,7 +106,9 @@ pub(super) fn read_tenable_vulns_csv(path: &Path) -> Result<(Vec<TenableVulnRow>
     Ok((rows, warnings))
 }
 
-pub(super) fn read_tenable_compliance_csv(path: &Path) -> Result<(Vec<TenableComplianceRow>, Vec<String>)> {
+pub(super) fn read_tenable_compliance_csv(
+    path: &Path,
+) -> Result<(Vec<TenableComplianceRow>, Vec<String>)> {
     let mut reader = csv::ReaderBuilder::new()
         .flexible(true)
         .from_path(path)
@@ -89,9 +116,13 @@ pub(super) fn read_tenable_compliance_csv(path: &Path) -> Result<(Vec<TenableCom
     let headers = reader.headers().context("cannot read CSV header")?.clone();
     let normalized_headers: Vec<String> = headers.iter().map(normalize).collect();
 
-    let asset_idx = normalized_headers.iter().position(|h| h == &normalize("Asset ID"))
+    let asset_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("Asset ID"))
         .context("Tenable compliance CSV missing required 'Asset ID' column")?;
-    let check_idx = normalized_headers.iter().position(|h| h == &normalize("Check ID"));
+    let check_idx = normalized_headers
+        .iter()
+        .position(|h| h == &normalize("Check ID"));
 
     let mut rows = Vec::new();
     let mut warnings = Vec::new();
@@ -102,7 +133,11 @@ pub(super) fn read_tenable_compliance_csv(path: &Path) -> Result<(Vec<TenableCom
             warnings.push(format!("Row {} skipped: missing Asset ID", row_idx + 2));
             continue;
         }
-        let check_id = check_idx.and_then(|i| record.get(i)).unwrap_or("").trim().to_string();
+        let check_id = check_idx
+            .and_then(|i| record.get(i))
+            .unwrap_or("")
+            .trim()
+            .to_string();
         let stable_key = if check_id.is_empty() {
             asset_id.clone()
         } else {
@@ -120,7 +155,11 @@ pub(super) fn read_tenable_compliance_csv(path: &Path) -> Result<(Vec<TenableCom
 }
 
 fn normalize(input: &str) -> String {
-    input.chars().filter(|c| c.is_ascii_alphanumeric()).map(|c| c.to_ascii_lowercase()).collect()
+    input
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
 }
 
 #[cfg(test)]
@@ -143,7 +182,9 @@ mod tests {
     #[test]
     fn read_tenable_vulns_csv_builds_stable_key_from_asset_plugin_port_protocol() {
         let dir = tempdir().expect("tempdir");
-        let path = dir.path().join("Corporate_Security_Tenable_Vulnerability_Findings-2026-04-01-100000.csv");
+        let path = dir
+            .path()
+            .join("Corporate_Security_Tenable_Vulnerability_Findings-2026-04-01-100000.csv");
         std::fs::write(
             &path,
             "Asset ID,Hostname,FQDN,IPv4,IPv6,OS,Device Type,Plugin ID,Plugin Name,Family,Synopsis,Description,Solution,CVEs,CPEs,Has Patch,Severity,Severity ID,Risk Factor,CVSS Base Score,CVSS Vector,CVSS3 Base Score,CVSS3 Vector,VPR Score,Port,Protocol,Service,Scan UUID,Scan Started At,Scan Completed At,State,First Found,Last Found,Last Fixed,Source\n\
@@ -154,13 +195,18 @@ mod tests {
         assert!(warnings.is_empty());
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].stable_key, "asset-1:19506:443:tcp");
-        assert_eq!(rows[0].values.get("vprscore").map(String::as_str), Some("7.2"));
+        assert_eq!(
+            rows[0].values.get("vprscore").map(String::as_str),
+            Some("7.2")
+        );
     }
 
     #[test]
     fn read_tenable_compliance_csv_builds_stable_key_from_asset_and_check() {
         let dir = tempdir().expect("tempdir");
-        let path = dir.path().join("Corporate_Security_Tenable_Compliance_Findings-2026-04-01-100000.csv");
+        let path = dir
+            .path()
+            .join("Corporate_Security_Tenable_Compliance_Findings-2026-04-01-100000.csv");
         std::fs::write(
             &path,
             "Asset ID,Asset Hostname,Asset FQDN,Asset IPv4,Check ID,Check Name,Check Info,Status,Expected Value,Actual Value,Policy Name,Audit File,References,First Seen,Last Seen\n\
@@ -171,6 +217,9 @@ mod tests {
         assert!(warnings.is_empty());
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].stable_key, "asset-2:check-123");
-        assert_eq!(rows[0].values.get("status").map(String::as_str), Some("FAILED"));
+        assert_eq!(
+            rows[0].values.get("status").map(String::as_str),
+            Some("FAILED")
+        );
     }
 }

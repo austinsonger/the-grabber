@@ -3,7 +3,9 @@ use std::ops::Not;
 use anyhow::{bail, Result};
 use uuid::Uuid;
 
-use super::model::{Observation, PoamItem, Prop, RelatedObservation, RelatedRisk, Risk, RiskStatus};
+use super::model::{
+    Observation, PoamItem, Prop, RelatedObservation, RelatedRisk, Risk, RiskStatus,
+};
 use super::PlanOfActionAndMilestones;
 
 const FINDING_SOURCE_PROP: &str = "finding-source";
@@ -118,14 +120,21 @@ mod tests {
             status: None,
             deadline: None,
         };
-        let uuid = add_custom_item(&mut doc, input, "2026-01-01T00:00:00Z").expect("add should succeed");
+        let uuid =
+            add_custom_item(&mut doc, input, "2026-01-01T00:00:00Z").expect("add should succeed");
 
         assert_eq!(doc.poam_items.len(), 1);
         let item = &doc.poam_items[0];
         assert_eq!(item.uuid, uuid);
         assert_eq!(item.title, "Risk acceptance: legacy TLS 1.0 endpoint");
-        assert!(item.props.iter().any(|p| p.name == "finding-source" && p.value == "manual"));
-        assert!(doc.risks.iter().any(|r| r.status == super::super::RiskStatus::Open));
+        assert!(item
+            .props
+            .iter()
+            .any(|p| p.name == "finding-source" && p.value == "manual"));
+        assert!(doc
+            .risks
+            .iter()
+            .any(|r| r.status == super::super::RiskStatus::Open));
     }
 
     #[test]
@@ -138,7 +147,10 @@ mod tests {
             deadline: None,
         };
         let result = add_custom_item(&mut doc, input, "2026-01-01T00:00:00Z");
-        assert!(result.is_err(), "empty title violates the OSCAL-required poam-item.title field");
+        assert!(
+            result.is_err(),
+            "empty title violates the OSCAL-required poam-item.title field"
+        );
     }
 
     #[test]
@@ -152,12 +164,17 @@ mod tests {
         };
         let uuid = add_custom_item(&mut doc, input, "2026-01-01T00:00:00Z").expect("add");
 
-        let found = remove_custom_item(&mut doc, &uuid, "2026-02-01T00:00:00Z").expect("remove should not error");
+        let found = remove_custom_item(&mut doc, &uuid, "2026-02-01T00:00:00Z")
+            .expect("remove should not error");
         assert!(found);
         let risk = doc
             .risks
             .iter()
-            .find(|r| doc.poam_items.iter().any(|i| i.uuid == uuid && i.related_risks.iter().any(|rr| rr.risk_uuid == r.uuid)))
+            .find(|r| {
+                doc.poam_items.iter().any(|i| {
+                    i.uuid == uuid && i.related_risks.iter().any(|rr| rr.risk_uuid == r.uuid)
+                })
+            })
             .expect("risk for the custom item");
         assert_eq!(risk.status, super::super::RiskStatus::Closed);
         assert_eq!(doc.poam_items.len(), 1, "closing must not delete the item");
@@ -165,16 +182,20 @@ mod tests {
 
     #[test]
     fn remove_custom_item_rejects_scanner_derived_item() {
-        use crate::poam::oscal::build::build_inspector2_triple;
         use crate::poam::csv_reader::CsvFinding;
+        use crate::poam::oscal::build::build_inspector2_triple;
         use std::collections::HashMap;
 
-        let finding = CsvFinding::new_for_test("arn:1".to_string(), "k1".to_string(), HashMap::new());
+        let finding =
+            CsvFinding::new_for_test("arn:1".to_string(), "k1".to_string(), HashMap::new());
         let triple = build_inspector2_triple(&finding, "2026-01-01T00:00:00Z");
         let mut doc = assemble_document("Test POA&M", vec![triple], "2026-01-01T00:00:00Z");
         let scanner_item_uuid = doc.poam_items[0].uuid.clone();
 
         let result = remove_custom_item(&mut doc, &scanner_item_uuid, "2026-02-01T00:00:00Z");
-        assert!(result.is_err(), "removing a scanner-derived item through this path must be rejected");
+        assert!(
+            result.is_err(),
+            "removing a scanner-derived item through this path must be rejected"
+        );
     }
 }

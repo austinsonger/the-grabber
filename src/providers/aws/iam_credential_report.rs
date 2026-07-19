@@ -86,7 +86,10 @@ impl CsvCollector for IamCredentialReportCollector {
 
         // The report is CSV; header row + one row per user.
         let mut rdr = csv::Reader::from_reader(text.as_bytes());
-        let headers = rdr.headers().context("read credential report header")?.clone();
+        let headers = rdr
+            .headers()
+            .context("read credential report header")?
+            .clone();
         let idx = |name: &str| headers.iter().position(|h| h == name);
         let cols: Vec<Option<usize>> = [
             "user",

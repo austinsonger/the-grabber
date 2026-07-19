@@ -37,9 +37,8 @@ pub(in crate::poam) fn build_inspector2_triple(
     let risk_uuid = Uuid::new_v4().to_string();
     let item_uuid = Uuid::new_v4().to_string();
 
-    let description = format!(
-        "AWS Inspector2 ECR finding: {cve_id} in package {package} (image: {image_uri})"
-    );
+    let description =
+        format!("AWS Inspector2 ECR finding: {cve_id} in package {package} (image: {image_uri})");
 
     let observation = Observation {
         uuid: observation_uuid.clone(),
@@ -137,11 +136,17 @@ mod tests {
         let mut values = HashMap::new();
         values.insert(normalize_test_key("cve id"), "CVE-2026-1234".to_string());
         values.insert(normalize_test_key("package name"), "openssl".to_string());
-        values.insert(normalize_test_key("title"), "openssl vulnerable to CVE-2026-1234".to_string());
+        values.insert(
+            normalize_test_key("title"),
+            "openssl vulnerable to CVE-2026-1234".to_string(),
+        );
         values.insert(normalize_test_key("severity"), "HIGH".to_string());
         values.insert(normalize_test_key("cvss score"), "7.5".to_string());
         values.insert(normalize_test_key("status"), "ACTIVE".to_string());
-        values.insert(normalize_test_key("image uri"), "123456789012.dkr.ecr.us-east-1.amazonaws.com/app:latest".to_string());
+        values.insert(
+            normalize_test_key("image uri"),
+            "123456789012.dkr.ecr.us-east-1.amazonaws.com/app:latest".to_string(),
+        );
         CsvFinding::new_for_test(
             "arn:aws:inspector2:us-east-1:123456789012:finding/abc123".to_string(),
             "CVE-2026-1234|openssl".to_string(),
@@ -150,7 +155,10 @@ mod tests {
     }
 
     fn normalize_test_key(s: &str) -> String {
-        s.chars().filter(|c| c.is_ascii_alphanumeric()).map(|c| c.to_ascii_lowercase()).collect()
+        s.chars()
+            .filter(|c| c.is_ascii_alphanumeric())
+            .map(|c| c.to_ascii_lowercase())
+            .collect()
     }
 
     #[test]
@@ -160,7 +168,9 @@ mod tests {
 
         assert!(observation.description.contains("CVE-2026-1234"));
         assert!(observation.description.contains("openssl"));
-        assert!(observation.description.contains("123456789012.dkr.ecr.us-east-1.amazonaws.com/app:latest"));
+        assert!(observation
+            .description
+            .contains("123456789012.dkr.ecr.us-east-1.amazonaws.com/app:latest"));
         assert_eq!(observation.methods, vec!["TEST-AUTOMATED".to_string()]);
         assert_eq!(observation.collected, "2026-07-17T00:00:00Z");
 
@@ -170,15 +180,27 @@ mod tests {
         // and neither wrapper derives `PartialEq`, so assert on the extracted uuid fields instead
         // of comparing whole vecs.
         assert_eq!(risk.related_observations.len(), 1);
-        assert_eq!(risk.related_observations[0].observation_uuid, observation.uuid);
+        assert_eq!(
+            risk.related_observations[0].observation_uuid,
+            observation.uuid
+        );
         assert_eq!(risk.status, RiskStatus::Open);
-        assert!(risk.characterizations.iter().any(|c| c.facets.iter().any(|p| p.name == "cvss-score" && p.value == "7.5")));
+        assert!(risk.characterizations.iter().any(|c| c
+            .facets
+            .iter()
+            .any(|p| p.name == "cvss-score" && p.value == "7.5")));
 
         assert_eq!(item.related_risks.len(), 1);
         assert_eq!(item.related_risks[0].risk_uuid, risk.uuid);
         assert_eq!(item.related_observations.len(), 1);
-        assert_eq!(item.related_observations[0].observation_uuid, observation.uuid);
-        assert!(item.props.iter().any(|p| p.name == "weakness-source-identifier" && p.value == "CVE-2026-1234|openssl"));
+        assert_eq!(
+            item.related_observations[0].observation_uuid,
+            observation.uuid
+        );
+        assert!(item
+            .props
+            .iter()
+            .any(|p| p.name == "weakness-source-identifier" && p.value == "CVE-2026-1234|openssl"));
         assert!(item.title.contains("openssl"));
     }
 

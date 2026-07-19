@@ -24,11 +24,21 @@ fn first_use_flag(settings: &Value) -> String {
         .pointer("/password/passwordChangeOnFirstLogin")
         .and_then(|v| v.as_bool())
     {
-        return if b { "YES".to_string() } else { "NO".to_string() };
+        return if b {
+            "YES".to_string()
+        } else {
+            "NO".to_string()
+        };
     }
-    if let Some(days) = settings.pointer("/password/passwordExpireDays").and_then(|v| v.as_i64())
+    if let Some(days) = settings
+        .pointer("/password/passwordExpireDays")
+        .and_then(|v| v.as_i64())
     {
-        return if days > 0 { "YES".to_string() } else { "NO".to_string() };
+        return if days > 0 {
+            "YES".to_string()
+        } else {
+            "NO".to_string()
+        };
     }
     String::new()
 }

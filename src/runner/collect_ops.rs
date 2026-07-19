@@ -9,7 +9,9 @@ use crate::evidence::{
     JsonInventoryReport, ReportMetadata,
 };
 use crate::fedramp_coverage::CoverageRun;
-use crate::runner::output::{evidence_basename, format_path_with_osc8, write_csv_bytes_with_manifest};
+use crate::runner::output::{
+    evidence_basename, format_path_with_osc8, write_csv_bytes_with_manifest,
+};
 
 pub(crate) async fn run_json_collectors(
     collectors: &[Box<dyn EvidenceCollector>],
@@ -100,12 +102,8 @@ pub(crate) async fn run_csv_collectors(
                     evidence_basename(account_id, collector.filename_prefix(), timestamp, "csv");
                 let mapping = collector.fedramp_mapping();
                 let path = output_dir.join(&basename);
-                let bytes = write_csv_bytes_with_manifest(
-                    collector.headers(),
-                    &rows,
-                    &mapping,
-                    &basename,
-                )?;
+                let bytes =
+                    write_csv_bytes_with_manifest(collector.headers(), &rows, &mapping, &basename)?;
                 std::fs::write(&path, bytes)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));

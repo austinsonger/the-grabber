@@ -15,29 +15,52 @@ pub struct JiraTransferNotificationsCollector {
 
 impl JiraTransferNotificationsCollector {
     pub fn new(client: JiraClient, project_key: String) -> Self {
-        Self { client, project_key }
+        Self {
+            client,
+            project_key,
+        }
     }
 }
 
 #[async_trait]
 impl CsvCollector for JiraTransferNotificationsCollector {
-    fn name(&self) -> &str { "Jira Transfer Notifications" }
-    fn filename_prefix(&self) -> &str { "Jira_Transfer_Notifications" }
+    fn name(&self) -> &str {
+        "Jira Transfer Notifications"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Jira_Transfer_Notifications"
+    }
     fn headers(&self) -> &'static [&'static str] {
         &[
-            "Ticket", "Summary", "Status", "User", "Effective Date",
-            "Created", "Hours Before Effective",
+            "Ticket",
+            "Summary",
+            "Status",
+            "User",
+            "Effective Date",
+            "Created",
+            "Hours Before Effective",
         ]
     }
     async fn collect_rows(
         &self,
-        _account_id: &str, _region: &str, _dates: Option<(i64, i64)>,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
         let jql = format!("project = {}", self.project_key);
-        let issues = self.client.jql_sla().search(&jql, &["labels", "priority", "duedate"]).await?;
+        let issues = self
+            .client
+            .jql_sla()
+            .search(&jql, &["labels", "priority", "duedate"])
+            .await?;
         let mut rows = Vec::with_capacity(issues.len());
         for i in issues {
-            let effective_date = i.extra.get("duedate").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let effective_date = i
+                .extra
+                .get("duedate")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
             let hours_before_effective = match (
                 (!effective_date.is_empty())
                     .then(|| chrono::DateTime::parse_from_rfc3339(&effective_date).ok())
@@ -48,11 +71,15 @@ impl CsvCollector for JiraTransferNotificationsCollector {
                 _ => None,
             };
             rows.push(vec![
-                i.key, i.summary, i.status,
+                i.key,
+                i.summary,
+                i.status,
                 i.reporter.unwrap_or_default(),
                 effective_date,
                 i.created,
-                hours_before_effective.map(|h| format!("{h:.1}")).unwrap_or_default(),
+                hours_before_effective
+                    .map(|h| format!("{h:.1}"))
+                    .unwrap_or_default(),
             ]);
         }
         Ok(rows)

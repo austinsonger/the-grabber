@@ -111,7 +111,10 @@ pub(super) async fn collect_cloudtrail_trails(
         let (is_logging, latest_delivery_time, latest_notification_time) =
             match client.get_trail_status().name(trail_arn).send().await {
                 Ok(status) => (
-                    status.is_logging().map(|b| b.to_string()).unwrap_or_default(),
+                    status
+                        .is_logging()
+                        .map(|b| b.to_string())
+                        .unwrap_or_default(),
                     dt_to_rfc3339(status.latest_delivery_time()),
                     dt_to_rfc3339(status.latest_notification_time()),
                 ),
@@ -124,12 +127,7 @@ pub(super) async fn collect_cloudtrail_trails(
         // Tags — soft-fail to empty. `list_tags` returns a list keyed by
         // resource id since it accepts a batch of resource ids; we pass a
         // single-element list and pull the matching entry back out.
-        let function = match client
-            .list_tags()
-            .resource_id_list(trail_arn)
-            .send()
-            .await
-        {
+        let function = match client.list_tags().resource_id_list(trail_arn).send().await {
             Ok(resp) => resp
                 .resource_tag_list()
                 .iter()
@@ -209,7 +207,8 @@ pub(super) async fn collect_config_recorders(
             continue;
         };
 
-        let unique_id = format!("arn:aws:config:{region}:{account_id}:configuration-recorder/{name}");
+        let unique_id =
+            format!("arn:aws:config:{region}:{account_id}:configuration-recorder/{name}");
         let role_arn = recorder.role_arn().unwrap_or("").to_string();
         let (all_supported, include_global_resource_types, resource_type_count) =
             match recorder.recording_group() {
@@ -280,10 +279,12 @@ fn function_from_guardduty_tags(tags: Option<&HashMap<String, String>>) -> Strin
     let Some(tags) = tags else {
         return String::new();
     };
-    ["Purpose", "App", "Role", "Function", "purpose", "app", "role"]
-        .iter()
-        .find_map(|k| tags.get(*k).cloned())
-        .unwrap_or_default()
+    [
+        "Purpose", "App", "Role", "Function", "purpose", "app", "role",
+    ]
+    .iter()
+    .find_map(|k| tags.get(*k).cloned())
+    .unwrap_or_default()
 }
 
 /// Summarizes the legacy per-source `DataSources` block as
@@ -309,14 +310,20 @@ fn summarize_data_sources(
     if let Some(s) = ds.s3_logs().and_then(|c| c.status()) {
         parts.push(format!("s3logs={}", s.as_str()));
     }
-    if let Some(s) = ds.kubernetes().and_then(|k| k.audit_logs()).and_then(|a| a.status()) {
+    if let Some(s) = ds
+        .kubernetes()
+        .and_then(|k| k.audit_logs())
+        .and_then(|a| a.status())
+    {
         parts.push(format!("k8saudit={}", s.as_str()));
     }
     parts.join(",")
 }
 
 /// Comma-joins the newer `features[]` block as `name=status` pairs.
-fn summarize_features(features: &[aws_sdk_guardduty::types::DetectorFeatureConfigurationResult]) -> String {
+fn summarize_features(
+    features: &[aws_sdk_guardduty::types::DetectorFeatureConfigurationResult],
+) -> String {
     features
         .iter()
         .filter_map(|f| {
@@ -353,7 +360,11 @@ pub(super) async fn collect_guardduty_detectors(
             };
 
             let unique_id = format!("arn:aws:guardduty:{region}:{account_id}:detector/{id}");
-            let status = detector.status().map(|s| s.as_str()).unwrap_or("").to_string();
+            let status = detector
+                .status()
+                .map(|s| s.as_str())
+                .unwrap_or("")
+                .to_string();
             let service_role = detector.service_role().unwrap_or("").to_string();
             let finding_publishing_frequency = detector
                 .finding_publishing_frequency()
@@ -541,7 +552,10 @@ fn format_default_action(action: Option<&aws_sdk_wafv2::types::DefaultAction>) -
     }
 }
 
-pub(super) async fn collect_waf_webacls(client: &Wafv2Client, region: &str) -> Result<Vec<Vec<String>>> {
+pub(super) async fn collect_waf_webacls(
+    client: &Wafv2Client,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
     let mut rows = Vec::new();
 
     match collect_waf_scope(client, region, aws_sdk_wafv2::types::Scope::Regional).await {
@@ -582,13 +596,11 @@ async fn collect_waf_scope(
         if let Some(ref m) = next_marker {
             req = req.next_marker(m);
         }
-        let resp = req
-            .send()
-            .await
-            .context("WAFv2 list_web_acls")?;
+        let resp = req.send().await.context("WAFv2 list_web_acls")?;
 
         for summary in resp.web_acls() {
-            let (Some(name), Some(id), Some(arn)) = (summary.name(), summary.id(), summary.arn()) else {
+            let (Some(name), Some(id), Some(arn)) = (summary.name(), summary.id(), summary.arn())
+            else {
                 continue;
             };
 
@@ -607,7 +619,8 @@ async fn collect_waf_scope(
                 }
             };
 
-            let default_action = format_default_action(detail.as_ref().and_then(|w| w.default_action()));
+            let default_action =
+                format_default_action(detail.as_ref().and_then(|w| w.default_action()));
             let rule_count = detail
                 .as_ref()
                 .map(|w| w.rules().len().to_string())
@@ -616,16 +629,14 @@ async fn collect_waf_scope(
                 .as_ref()
                 .map(|w| w.managed_by_firewall_manager().to_string())
                 .unwrap_or_default();
-            let (cw_metrics_enabled, sampled_requests_enabled) = match detail
-                .as_ref()
-                .and_then(|w| w.visibility_config())
-            {
-                Some(vc) => (
-                    vc.cloud_watch_metrics_enabled().to_string(),
-                    vc.sampled_requests_enabled().to_string(),
-                ),
-                None => (String::new(), String::new()),
-            };
+            let (cw_metrics_enabled, sampled_requests_enabled) =
+                match detail.as_ref().and_then(|w| w.visibility_config()) {
+                    Some(vc) => (
+                        vc.cloud_watch_metrics_enabled().to_string(),
+                        vc.sampled_requests_enabled().to_string(),
+                    ),
+                    None => (String::new(), String::new()),
+                };
 
             // `list_resources_for_web_acl` only supports REGIONAL-scope
             // WebACLs — CLOUDFRONT-scope ACLs are associated with
@@ -655,7 +666,12 @@ async fn collect_waf_scope(
                 "cloudfront-distributions".to_string()
             };
 
-            let function = match client.list_tags_for_resource().resource_arn(arn).send().await {
+            let function = match client
+                .list_tags_for_resource()
+                .resource_arn(arn)
+                .send()
+                .await
+            {
                 Ok(resp) => resp
                     .tag_info_for_resource()
                     .map(|t| function_from_waf_tags(t.tag_list()))

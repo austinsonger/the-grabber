@@ -59,5 +59,6 @@ Your primary goal is to safely modify, expand, or debug this application while s
 ## 🎯 Agent Working Protocol
 1. **Read Before You Write**: Use `read` and `glob` to examine adjacent modules. If you're building an `SqsCollector`, look at how `SnsCollector` or `S3Collector` is built first.
 2. **Test Your Assumptions**: Run `cargo check` and `cargo test` after modifying code to catch compilation or logic errors locally.
-3. **Paths**: Always use absolute paths when utilizing file system tools. Resolve relative logic against the project root.
-4. **No Destructive Reverts**: Do not revert your own changes unless explicitly requested by the user, or if your changes broke the build. Fix forward instead.
+3. **Plan for the TUI**: When writing a plan for new features, changes, or workflows, explicitly consider what needs to be added, updated, or surfaced in the terminal UI under `src/tui/`. Do not treat backend or collector work as complete planning unless the TUI impact has been reviewed.
+4. **Paths**: Always use absolute paths when utilizing file system tools. Resolve relative logic against the project root.
+5. **No Destructive Reverts**: Do not revert your own changes unless explicitly requested by the user, or if your changes broke the build. Fix forward instead.

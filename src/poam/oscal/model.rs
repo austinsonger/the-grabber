@@ -41,7 +41,11 @@ pub(in crate::poam) struct Risk {
     pub(in crate::poam) status: RiskStatus,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(in crate::poam) characterizations: Vec<Characterization>,
-    #[serde(rename = "related-observations", default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        rename = "related-observations",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub(in crate::poam) related_observations: Vec<RelatedObservation>,
 }
 
@@ -102,9 +106,17 @@ pub(in crate::poam) struct PoamItem {
     pub(in crate::poam) description: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(in crate::poam) props: Vec<Prop>,
-    #[serde(rename = "related-risks", default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        rename = "related-risks",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub(in crate::poam) related_risks: Vec<RelatedRisk>,
-    #[serde(rename = "related-observations", default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        rename = "related-observations",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub(in crate::poam) related_observations: Vec<RelatedObservation>,
 }
 
@@ -216,7 +228,13 @@ mod tests {
         // `metadata` as its own object and forbids additional top-level properties), not at
         // the document's top level.
         let metadata = json.get("metadata").expect("metadata object present");
-        assert!(metadata.get("last-modified").is_some(), "expected kebab-case 'last-modified' key, got: {json}");
-        assert!(metadata.get("oscal-version").is_some(), "expected kebab-case 'oscal-version' key, got: {json}");
+        assert!(
+            metadata.get("last-modified").is_some(),
+            "expected kebab-case 'last-modified' key, got: {json}"
+        );
+        assert!(
+            metadata.get("oscal-version").is_some(),
+            "expected kebab-case 'oscal-version' key, got: {json}"
+        );
     }
 }

@@ -40,9 +40,11 @@ pub(super) async fn collect_apigw(
 /// helpers in `storage.rs`. Same Purpose/App/Role/Function convention.
 fn function_from_apigw_tags(tags: Option<&HashMap<String, String>>) -> Option<String> {
     let tags = tags?;
-    ["Purpose", "App", "Role", "Function", "purpose", "app", "role"]
-        .iter()
-        .find_map(|k| tags.get(*k).cloned())
+    [
+        "Purpose", "App", "Role", "Function", "purpose", "app", "role",
+    ]
+    .iter()
+    .find_map(|k| tags.get(*k).cloned())
 }
 
 /// Lists every custom domain name in the account/region, paged via
@@ -116,9 +118,11 @@ async fn collect_apigw_v1(
             // historical default for APIs created before endpoint types
             // existed.
             let is_public = endpoint_types.is_empty()
-                || endpoint_types.iter().any(|t| *t == "EDGE" || *t == "REGIONAL");
-            let is_private_only = !endpoint_types.is_empty()
-                && endpoint_types.iter().all(|t| *t == "PRIVATE");
+                || endpoint_types
+                    .iter()
+                    .any(|t| *t == "EDGE" || *t == "REGIONAL");
+            let is_private_only =
+                !endpoint_types.is_empty() && endpoint_types.iter().all(|t| *t == "PRIVATE");
 
             let vlan_network_id = if is_private_only {
                 let vpce_ids = api
@@ -259,7 +263,10 @@ async fn collect_apigw_v2(
                 Some(aws_sdk_apigatewayv2::types::ProtocolType::Websocket)
             );
             let (asset_type, sw_name_ver) = if is_websocket {
-                ("API Gateway WebSocket API", "Amazon API Gateway (WebSocket)")
+                (
+                    "API Gateway WebSocket API",
+                    "Amazon API Gateway (WebSocket)",
+                )
             } else {
                 ("API Gateway HTTP API", "Amazon API Gateway (HTTP)")
             };

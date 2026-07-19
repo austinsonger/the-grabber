@@ -1,4 +1,3 @@
-
 //! AWS collector menu. 136 collectors across 12 categories.
 //! Order, category names, and item groupings match the pre-refactor
 //! global menu byte-for-byte (cross-checked against the ground-truth
@@ -32,9 +31,15 @@ pub const AWS_CATEGORIES: &[ProviderCategory] = &[
             ("ct-selectors", "CloudTrail Evt Selectors "),
             ("ct-full-config", "CloudTrail Full Config   "),
             ("ct-validation", "CloudTrail Log Validation"),
-            ("s3", "CloudTrail S3            (7 months, requires s3-bucket, JSON)"),
+            (
+                "s3",
+                "CloudTrail S3            (7 months, requires s3-bucket, JSON)",
+            ),
             ("ct-s3-policy", "CloudTrail S3 Policy     "),
-            ("config-compliance", "Config Compliance History(all rules, CSV)"),
+            (
+                "config-compliance",
+                "Config Compliance History(all rules, CSV)",
+            ),
             ("config-history", "Config Resource History  "),
             ("config-timeline", "Config Resource Timeline"),
             ("config-snapshot", "Config Snapshot (PiT)"),
@@ -57,8 +62,14 @@ pub const AWS_CATEGORIES: &[ProviderCategory] = &[
             ("ssm-params", "SSM Parameter Store      "),
             ("ssm-baselines", "SSM Patch Baselines      "),
             ("ssm-patches", "SSM Patch Compliance     "),
-            ("ssm-patch-detail", "SSM Patch Detail         (per instance, CSV)"),
-            ("ssm-patch-exec", "SSM Patch Executions     (command history, CSV)"),
+            (
+                "ssm-patch-detail",
+                "SSM Patch Detail         (per instance, CSV)",
+            ),
+            (
+                "ssm-patch-exec",
+                "SSM Patch Executions     (command history, CSV)",
+            ),
             ("ssm-patch-summary", "SSM Patch Summary"),
             ("time-sync", "Time Sync Config (SSM)   "),
         ],
@@ -121,7 +132,10 @@ pub const AWS_CATEGORIES: &[ProviderCategory] = &[
             ("cw-log-groups", "CloudWatch Log Groups    "),
             ("cw-config-alarms", "CW Alarms (All)          "),
             ("cw-log-config", "CW Log Group Config      "),
-            ("change-event-rules", "EventBridge Change Rules (event-pattern, CSV)"),
+            (
+                "change-event-rules",
+                "EventBridge Change Rules (event-pattern, CSV)",
+            ),
             ("eventbridge-rules", "EventBridge Rules        "),
             ("metric-filters", "Log Metric Filters/Alarms"),
             ("metric-filter-config", "Metric Filter Config    "),
@@ -161,7 +175,10 @@ pub const AWS_CATEGORIES: &[ProviderCategory] = &[
         name: "Organization & Account",
         items: &[
             ("account-contacts", "Account Alt. Contacts    "),
-            ("org-config", "AWS Org Config           (requires org master, CSV)"),
+            (
+                "org-config",
+                "AWS Org Config           (requires org master, CSV)",
+            ),
             ("scp", "Org SCPs                 (requires org admin, CSV)"),
             ("resource-tags", "Resource Tags            "),
         ],

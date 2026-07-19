@@ -68,10 +68,16 @@ pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_SNS_TOPIC, "SNS Topic"),
     (ASSET_KEY_SQS_QUEUE, "SQS Queue"),
     (ASSET_KEY_KINESIS_STREAM, "Kinesis Data Stream"),
-    (ASSET_KEY_FIREHOSE_STREAM, "Kinesis Firehose Delivery Stream"),
+    (
+        ASSET_KEY_FIREHOSE_STREAM,
+        "Kinesis Firehose Delivery Stream",
+    ),
     (ASSET_KEY_EVENTBRIDGE, "EventBridge (Bus + Rule)"),
     (ASSET_KEY_SECRETSMANAGER_SECRET, "Secrets Manager Secret"),
-    (ASSET_KEY_VPC_NETWORK, "VPC Network Fabric (VPC + Subnet + IGW + NAT + TGW Attachment)"),
+    (
+        ASSET_KEY_VPC_NETWORK,
+        "VPC Network Fabric (VPC + Subnet + IGW + NAT + TGW Attachment)",
+    ),
     (ASSET_KEY_CLOUDTRAIL_TRAIL, "CloudTrail Trail"),
     (ASSET_KEY_CONFIG_RECORDER, "Config Recorder"),
     (ASSET_KEY_GUARDDUTY_DETECTOR, "GuardDuty Detector"),

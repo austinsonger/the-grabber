@@ -1,8 +1,8 @@
+use crate::fedramp_map::{bundled, FedRampManifest, FedRampMapping};
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::fedramp_map::{bundled, FedRampManifest, FedRampMapping};
 
 // ---------------------------------------------------------------------------
 // Core traits -- implement one of these to add a new evidence collector

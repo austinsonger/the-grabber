@@ -560,38 +560,42 @@ pub(super) async fn collect_fsx_file_systems(
             // DeploymentType / AutomaticBackupRetentionDays / DailyAutomaticBackupStartTime /
             // PreferredSubnetId live under the per-flavour configuration block — try each in
             // turn (Windows, then Lustre, then OpenZFS, then Ontap).
-            let (deployment_type, backup_retention_days, daily_backup_start_time, preferred_subnet_id) =
-                if let Some(cfg) = fs.windows_configuration() {
-                    (
-                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
-                        cfg.automatic_backup_retention_days().unwrap_or(0),
-                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
-                        cfg.preferred_subnet_id().unwrap_or(""),
-                    )
-                } else if let Some(cfg) = fs.lustre_configuration() {
-                    (
-                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
-                        cfg.automatic_backup_retention_days().unwrap_or(0),
-                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
-                        "",
-                    )
-                } else if let Some(cfg) = fs.open_zfs_configuration() {
-                    (
-                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
-                        cfg.automatic_backup_retention_days().unwrap_or(0),
-                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
-                        cfg.preferred_subnet_id().unwrap_or(""),
-                    )
-                } else if let Some(cfg) = fs.ontap_configuration() {
-                    (
-                        cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
-                        cfg.automatic_backup_retention_days().unwrap_or(0),
-                        cfg.daily_automatic_backup_start_time().unwrap_or(""),
-                        cfg.preferred_subnet_id().unwrap_or(""),
-                    )
-                } else {
-                    ("", 0, "", "")
-                };
+            let (
+                deployment_type,
+                backup_retention_days,
+                daily_backup_start_time,
+                preferred_subnet_id,
+            ) = if let Some(cfg) = fs.windows_configuration() {
+                (
+                    cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                    cfg.automatic_backup_retention_days().unwrap_or(0),
+                    cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                    cfg.preferred_subnet_id().unwrap_or(""),
+                )
+            } else if let Some(cfg) = fs.lustre_configuration() {
+                (
+                    cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                    cfg.automatic_backup_retention_days().unwrap_or(0),
+                    cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                    "",
+                )
+            } else if let Some(cfg) = fs.open_zfs_configuration() {
+                (
+                    cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                    cfg.automatic_backup_retention_days().unwrap_or(0),
+                    cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                    cfg.preferred_subnet_id().unwrap_or(""),
+                )
+            } else if let Some(cfg) = fs.ontap_configuration() {
+                (
+                    cfg.deployment_type().map(|d| d.as_str()).unwrap_or(""),
+                    cfg.automatic_backup_retention_days().unwrap_or(0),
+                    cfg.daily_automatic_backup_start_time().unwrap_or(""),
+                    cfg.preferred_subnet_id().unwrap_or(""),
+                )
+            } else {
+                ("", 0, "", "")
+            };
 
             let function = function_from_fsx_tags(fs.tags());
 

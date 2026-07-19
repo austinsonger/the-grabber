@@ -339,7 +339,10 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         ],
         Screen::SelectCollectors => vec![
             ("↑↓", "Navigate"),
+            ("⇥", "Switch Panel"),
+            ("←→", "Switch Panel"),
             ("␣", "Toggle"),
+            ("1-9", "Jump Category"),
             ("a", "Select All"),
             ("d", "Deselect All"),
             ("⏎", "Confirm"),
@@ -347,7 +350,7 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         ],
         Screen::SetOptions => vec![
             ("⇥", "Switch Field"),
-            ("↑↓", "Navigate Regions"),
+            ("↑↓", "Region List"),
             ("␣", "Toggle"),
             ("⏎", "Confirm"),
             ("Esc", "Back"),
@@ -355,7 +358,14 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::Confirm => vec![("⏎", "Start"), ("Esc", "Back")],
         Screen::Preparing => vec![],
         Screen::Running => vec![],
-        Screen::Results => vec![("n", "New Collection"), ("q", "Quit"), ("Esc", "Exit")],
+        Screen::Results => vec![
+            ("↑↓", "Navigate Files"),
+            ("PgUp/PgDn", "Jump"),
+            ("Home/End", "Bounds"),
+            ("n", "New Collection"),
+            ("q", "Quit"),
+            ("Esc", "Exit"),
+        ],
         Screen::ProviderSelection => vec![("↑↓", "Navigate"), ("⏎", "Select"), ("Esc", "Back")],
         Screen::TenableEndpoint => vec![("↑↓", "Navigate"), ("⏎", "Confirm"), ("Esc", "Back")],
         Screen::ScanSelection => vec![

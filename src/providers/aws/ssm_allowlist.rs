@@ -71,13 +71,7 @@ impl CsvCollector for SsmApplicationAllowlistCollector {
                 let targets = a
                     .targets()
                     .iter()
-                    .map(|t| {
-                        format!(
-                            "{}={}",
-                            t.key().unwrap_or(""),
-                            t.values().join("|")
-                        )
-                    })
+                    .map(|t| format!("{}={}", t.key().unwrap_or(""), t.values().join("|")))
                     .collect::<Vec<_>>()
                     .join(";");
                 let status = a

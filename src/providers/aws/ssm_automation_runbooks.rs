@@ -80,9 +80,7 @@ impl CsvCollector for SsmAutomationRunbooksCollector {
                     d.schema_version().unwrap_or("").to_string(),
                     d.target_type().unwrap_or("").to_string(),
                     tags,
-                    d.created_date()
-                        .map(|t| t.to_string())
-                        .unwrap_or_default(),
+                    d.created_date().map(|t| t.to_string()).unwrap_or_default(),
                     region.to_string(),
                 ]);
             }

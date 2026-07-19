@@ -4,10 +4,10 @@ use crate::providers::{CloudProvider, ProviderFactory};
 use crate::providers::aws::{
     access_analyzer::AccessAnalyzerCollector,
     account_config::{AccountContactsCollector, IamAccountSummaryCollector, SamlProviderCollector},
-    ami_default_creds::AmiDefaultCredentialScanCollector,
     acm::AcmCertCollector,
     acm_pca::AcmPrivateCaCollector,
     alb_logs::AlbLogsCollector,
+    ami_default_creds::AmiDefaultCredentialScanCollector,
     apigateway::ApiGatewayCollector,
     autoscaling::AutoScalingCollector,
     backup::BackupCollector,
@@ -34,8 +34,8 @@ use crate::providers::aws::{
     config_timeline::{
         ConfigComplianceHistoryCollector, ConfigResourceTimelineCollector, ConfigSnapshotCollector,
     },
-    dynamodb::DynamoDbCollector,
     doc_repo_backup::DocRepoBackupConfigCollector,
+    dynamodb::DynamoDbCollector,
     ebs::EbsCollector,
     ec2_config::{
         Ec2InstanceConfigCollector, RouteTableConfigCollector, SecurityGroupConfigCollector,

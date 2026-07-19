@@ -96,19 +96,36 @@ fn extract_sla(issue: &serde_json::Value, extra_fields: &[&str]) -> Option<SlaIs
     let key = issue.get("key")?.as_str()?.to_string();
     let fields = issue.get("fields")?;
 
-    let summary = fields.get("summary").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let status = fields.get("status")
+    let summary = fields
+        .get("summary")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let status = fields
+        .get("status")
         .and_then(|s| s.get("name"))
         .and_then(|v| v.as_str())
-        .unwrap_or("").to_string();
-    let reporter = fields.get("reporter")
+        .unwrap_or("")
+        .to_string();
+    let reporter = fields
+        .get("reporter")
         .and_then(|r| r.get("displayName"))
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
-    let assignee = fields.get("assignee")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let assignee = fields
+        .get("assignee")
         .and_then(|a| a.get("displayName"))
-        .and_then(|v| v.as_str()).map(|s| s.to_string());
-    let created = fields.get("created").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let resolved = fields.get("resolutiondate").and_then(|v| v.as_str()).map(|s| s.to_string());
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let created = fields
+        .get("created")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let resolved = fields
+        .get("resolutiondate")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     let duration_hours = match (created.as_str(), resolved.as_deref()) {
         (c, Some(r)) if !c.is_empty() && !r.is_empty() => {
@@ -126,9 +143,9 @@ fn extract_sla(issue: &serde_json::Value, extra_fields: &[&str]) -> Option<SlaIs
         .and_then(|hists| {
             hists.iter().find_map(|h| {
                 let items = h.get("items")?.as_array()?;
-                let is_status_change = items.iter().any(|it| {
-                    it.get("field").and_then(|v| v.as_str()) == Some("status")
-                });
+                let is_status_change = items
+                    .iter()
+                    .any(|it| it.get("field").and_then(|v| v.as_str()) == Some("status"));
                 if is_status_change {
                     let at = h.get("created")?.as_str()?.to_string();
                     let who = h

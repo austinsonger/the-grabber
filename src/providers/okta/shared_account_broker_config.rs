@@ -28,7 +28,13 @@ impl CsvCollector for OktaSharedAccountBrokerConfigCollector {
         "Okta_Shared_Account_Broker_Config"
     }
     fn headers(&self) -> &'static [&'static str] {
-        &["App ID", "Label", "Sign-On Mode", "Status", "Users Assigned"]
+        &[
+            "App ID",
+            "Label",
+            "Sign-On Mode",
+            "Status",
+            "Users Assigned",
+        ]
     }
 
     async fn collect_rows(

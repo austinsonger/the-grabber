@@ -18,7 +18,10 @@ pub(in crate::poam) fn validate_document(doc: &serde_json::Value) -> Result<()> 
         .map(|e| format!("{} (at {})", e, e.instance_path))
         .collect();
     if !errors.is_empty() {
-        bail!("OSCAL POA&M document failed schema validation:\n{}", errors.join("\n"));
+        bail!(
+            "OSCAL POA&M document failed schema validation:\n{}",
+            errors.join("\n")
+        );
     }
     Ok(())
 }
@@ -32,6 +35,9 @@ mod tests {
     fn rejects_document_missing_required_top_level_key() {
         let doc = json!({ "not-plan-of-action-and-milestones": {} });
         let result = validate_document(&doc);
-        assert!(result.is_err(), "expected validation to fail for a document with no plan-of-action-and-milestones key");
+        assert!(
+            result.is_err(),
+            "expected validation to fail for a document with no plan-of-action-and-milestones key"
+        );
     }
 }

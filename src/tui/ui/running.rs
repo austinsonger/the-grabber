@@ -13,9 +13,10 @@ use super::{
 pub(super) fn draw_running(f: &mut Frame, area: Rect, app: &App) {
     let inset = content_inset(area);
 
-    // Always show a status line when we have account or region info.
+    // Always show a status line when we have account, region, or endpoint info.
     let multi_account = app.total_account_count > 1;
-    let has_status = multi_account || app.current_region_label.is_some();
+    let has_status =
+        multi_account || app.current_region_label.is_some() || app.current_endpoint_label.is_some();
     let (status_area, rest) = if has_status {
         let parts = Layout::vertical([
             Constraint::Length(1), // status line
@@ -104,7 +105,12 @@ fn draw_running_gauge(f: &mut Frame, area: Rect, app: &App) {
     let completed = app
         .collector_statuses
         .iter()
-        .filter(|s| matches!(s.state, CollectorState::Done(_) | CollectorState::Failed(_)))
+        .filter(|s| {
+            matches!(
+                s.state,
+                CollectorState::Done(_) | CollectorState::Failed(_) | CollectorState::Skipped(_)
+            )
+        })
         .count();
 
     let ratio = completed as f64 / total as f64;
@@ -220,7 +226,12 @@ fn draw_running_stats(f: &mut Frame, area: Rect, app: &App) {
     let completed = app
         .collector_statuses
         .iter()
-        .filter(|s| matches!(s.state, CollectorState::Done(_) | CollectorState::Failed(_)))
+        .filter(|s| {
+            matches!(
+                s.state,
+                CollectorState::Done(_) | CollectorState::Failed(_) | CollectorState::Skipped(_)
+            )
+        })
         .count();
     let total = app.collector_statuses.len();
     let total_records: usize = app
@@ -322,7 +333,12 @@ fn draw_running_inline_stats(f: &mut Frame, area: Rect, app: &App) {
     let completed = app
         .collector_statuses
         .iter()
-        .filter(|s| matches!(s.state, CollectorState::Done(_) | CollectorState::Failed(_)))
+        .filter(|s| {
+            matches!(
+                s.state,
+                CollectorState::Done(_) | CollectorState::Failed(_) | CollectorState::Skipped(_)
+            )
+        })
         .count();
     let total = app.collector_statuses.len();
     let total_records: usize = app

@@ -31,7 +31,10 @@ fn function_from_sns_tags(tags: &[aws_sdk_sns::types::Tag]) -> String {
         .to_string()
 }
 
-pub(super) async fn collect_sns_topics(client: &SnsClient, region: &str) -> Result<Vec<Vec<String>>> {
+pub(super) async fn collect_sns_topics(
+    client: &SnsClient,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
     let mut rows = Vec::new();
     let mut next_token: Option<String> = None;
 
@@ -76,7 +79,12 @@ pub(super) async fn collect_sns_topics(client: &SnsClient, region: &str) -> Resu
 
             // list_tags_for_resource may fail (e.g. missing permission) —
             // soft-fail to an empty Function rather than aborting the topic.
-            let function = match client.list_tags_for_resource().resource_arn(arn).send().await {
+            let function = match client
+                .list_tags_for_resource()
+                .resource_arn(arn)
+                .send()
+                .await
+            {
                 Ok(r) => function_from_sns_tags(r.tags()),
                 Err(e) => {
                     eprintln!("sns list_tags_for_resource failed for {arn}: {e}");
@@ -127,13 +135,18 @@ fn function_from_sqs_tags(tags: Option<&HashMap<String, String>>) -> String {
     let Some(tags) = tags else {
         return String::new();
     };
-    ["Purpose", "App", "Role", "Function", "purpose", "app", "role"]
-        .iter()
-        .find_map(|k| tags.get(*k).cloned())
-        .unwrap_or_default()
+    [
+        "Purpose", "App", "Role", "Function", "purpose", "app", "role",
+    ]
+    .iter()
+    .find_map(|k| tags.get(*k).cloned())
+    .unwrap_or_default()
 }
 
-pub(super) async fn collect_sqs_queues(client: &SqsClient, region: &str) -> Result<Vec<Vec<String>>> {
+pub(super) async fn collect_sqs_queues(
+    client: &SqsClient,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
     let mut rows = Vec::new();
     let mut next_token: Option<String> = None;
 
@@ -196,7 +209,11 @@ pub(super) async fn collect_sqs_queues(client: &SqsClient, region: &str) -> Resu
 
             let is_public = policy_looks_public(&policy);
             let is_fifo = url.ends_with(".fifo");
-            let asset_type = if is_fifo { "SQS Queue (FIFO)" } else { "SQS Queue" };
+            let asset_type = if is_fifo {
+                "SQS Queue (FIFO)"
+            } else {
+                "SQS Queue"
+            };
 
             let function = match client.list_queue_tags().queue_url(url).send().await {
                 Ok(r) => function_from_sqs_tags(r.tags()),
@@ -274,7 +291,12 @@ pub(super) async fn collect_kinesis_streams(
         let resp = req.send().await.context("Kinesis list_streams")?;
 
         for name in resp.stream_names() {
-            let summary = match client.describe_stream_summary().stream_name(name).send().await {
+            let summary = match client
+                .describe_stream_summary()
+                .stream_name(name)
+                .send()
+                .await
+            {
                 Ok(r) => r.stream_description_summary().cloned(),
                 Err(e) => {
                     eprintln!("kinesis describe_stream_summary failed for {name}: {e}");
@@ -415,7 +437,11 @@ fn firehose_destination_info(
             .and_then(|e| e.url())
             .unwrap_or("")
             .to_string();
-        return ("HTTP endpoint".to_string(), url, cw_logging(http.cloud_watch_logging_options()));
+        return (
+            "HTTP endpoint".to_string(),
+            url,
+            cw_logging(http.cloud_watch_logging_options()),
+        );
     }
     if let Some(os) = dest.amazonopensearchservice_destination_description() {
         return (
@@ -567,8 +593,16 @@ pub(super) async fn collect_eventbridge(
     region: &str,
 ) -> Result<Vec<Vec<String>>> {
     let mut rows = Vec::new();
-    rows.extend(collect_eventbridge_buses(client, region).await.unwrap_or_default());
-    rows.extend(collect_eventbridge_rules(client, region).await.unwrap_or_default());
+    rows.extend(
+        collect_eventbridge_buses(client, region)
+            .await
+            .unwrap_or_default(),
+    );
+    rows.extend(
+        collect_eventbridge_rules(client, region)
+            .await
+            .unwrap_or_default(),
+    );
     Ok(rows)
 }
 
@@ -614,7 +648,12 @@ async fn collect_eventbridge_buses(
                     }
                 };
 
-            let function = match client.list_tags_for_resource().resource_arn(arn).send().await {
+            let function = match client
+                .list_tags_for_resource()
+                .resource_arn(arn)
+                .send()
+                .await
+            {
                 Ok(r) => function_from_eventbridge_tags(r.tags()),
                 Err(e) => {
                     eprintln!("eventbridge list_tags_for_resource failed for {arn}: {e}");
@@ -721,8 +760,12 @@ async fn collect_eventbridge_rules(
                 let name = rule.name().unwrap_or("").to_string();
                 let state = rule.state().map(|s| s.as_str()).unwrap_or("").to_string();
                 let schedule_expression = rule.schedule_expression().unwrap_or("").to_string();
-                let event_pattern: String =
-                    rule.event_pattern().unwrap_or("").chars().take(200).collect();
+                let event_pattern: String = rule
+                    .event_pattern()
+                    .unwrap_or("")
+                    .chars()
+                    .take(200)
+                    .collect();
 
                 let targets = match client
                     .list_targets_by_rule()
@@ -738,9 +781,17 @@ async fn collect_eventbridge_rules(
                     }
                 };
                 let target_count = targets.len();
-                let target_arns = targets.iter().map(|t| t.arn()).collect::<Vec<_>>().join(", ");
+                let target_arns = targets
+                    .iter()
+                    .map(|t| t.arn())
+                    .collect::<Vec<_>>()
+                    .join(", ");
 
-                let function = match client.list_tags_for_resource().resource_arn(arn).send().await
+                let function = match client
+                    .list_tags_for_resource()
+                    .resource_arn(arn)
+                    .send()
+                    .await
                 {
                     Ok(r) => {
                         let tag_function = function_from_eventbridge_tags(r.tags());
@@ -797,7 +848,9 @@ async fn collect_eventbridge_rules(
 /// policy with a Condition is treated as non-public even if the Condition
 /// doesn't actually narrow access.
 fn policy_looks_public(policy_json: &str) -> bool {
-    let Ok(v) = serde_json::from_str::<serde_json::Value>(policy_json) else { return false; };
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(policy_json) else {
+        return false;
+    };
     // IAM policy grammar allows "Statement" as either an array or a single object.
     let stmts: Vec<&serde_json::Value> = match v.get("Statement") {
         Some(serde_json::Value::Array(a)) => a.iter().collect(),
@@ -805,13 +858,16 @@ fn policy_looks_public(policy_json: &str) -> bool {
         _ => return false,
     };
     for stmt in stmts {
-        if stmt.get("Effect").and_then(|e| e.as_str()) != Some("Allow") { continue; }
+        if stmt.get("Effect").and_then(|e| e.as_str()) != Some("Allow") {
+            continue;
+        }
         let principal = stmt.get("Principal");
         let is_star = match principal {
             Some(serde_json::Value::String(s)) => s == "*",
             Some(serde_json::Value::Object(o)) => o.values().any(|v| {
                 v.as_str() == Some("*")
-                    || v.as_array().is_some_and(|a| a.iter().any(|x| x.as_str() == Some("*")))
+                    || v.as_array()
+                        .is_some_and(|a| a.iter().any(|x| x.as_str() == Some("*")))
             }),
             _ => false,
         };

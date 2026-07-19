@@ -531,7 +531,12 @@ async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
         .account
         .iter()
         .filter(|a| a.provider == crate::providers::CloudProvider::Aws)
-        .filter(|a| a.profile.as_ref().map(|p| !p.trim().is_empty()).unwrap_or(false))
+        .filter(|a| {
+            a.profile
+                .as_ref()
+                .map(|p| !p.trim().is_empty())
+                .unwrap_or(false)
+        })
         .collect();
 
     if aws_accounts.is_empty() {
@@ -590,11 +595,7 @@ async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
         );
 
         let (probe_config, work_config, using_ambient_credentials) =
-            crate::aws_loader::load_cli_probe_and_work_configs(
-                account_region,
-                Some(profile),
-            )
-            .await;
+            crate::aws_loader::load_cli_probe_and_work_configs(account_region, Some(profile)).await;
 
         let identity = crate::audit_log::resolve_aws_identity(&probe_config).await;
         if identity.is_none() {

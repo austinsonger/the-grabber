@@ -4,8 +4,7 @@ use okta_rs::OktaClient;
 
 use crate::evidence::CsvCollector;
 
-const PUBLISHER_KEYWORDS: &[&str] =
-    &["publisher", "content-editor", "cms", "wiki-admin"];
+const PUBLISHER_KEYWORDS: &[&str] = &["publisher", "content-editor", "cms", "wiki-admin"];
 
 pub struct OktaPublisherGroupMembershipCollector {
     client: OktaClient,
@@ -45,9 +44,7 @@ impl CsvCollector for OktaPublisherGroupMembershipCollector {
             .into_iter()
             .filter(|g| {
                 let name_lower = g.profile.name.to_lowercase();
-                PUBLISHER_KEYWORDS
-                    .iter()
-                    .any(|kw| name_lower.contains(kw))
+                PUBLISHER_KEYWORDS.iter().any(|kw| name_lower.contains(kw))
             })
             .collect();
 

@@ -124,9 +124,9 @@ impl ProviderFactory for OktaProviderFactory {
             ));
         }
         if self.selected.iter().any(|s| s == "okta-session-policy") {
-            v.push(Box::new(super::session_policy::OktaSessionPolicyCollector::new(
-                self.client.clone(),
-            )));
+            v.push(Box::new(
+                super::session_policy::OktaSessionPolicyCollector::new(self.client.clone()),
+            ));
         }
         if self.selected.iter().any(|s| s == "okta-publisher-groups") {
             v.push(Box::new(

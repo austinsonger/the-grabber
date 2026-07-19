@@ -4,15 +4,13 @@
 
 use super::ProviderCategory;
 
-pub const TENABLE_CATEGORIES: &[ProviderCategory] = &[
-    ProviderCategory {
-        name: "Vulnerability Scanning",
-        items: &[
-            ("tenable-vulns", "Vulnerability Findings   "),
-            ("tenable-was", "Web App Scanning         "),
-            ("tenable-pci-asv", "PCI ASV Compliance       "),
-            ("tenable-assets", "Asset Inventory          "),
-            ("tenable-compliance", "Compliance Findings      "),
-        ],
-    },
-];
+pub const TENABLE_CATEGORIES: &[ProviderCategory] = &[ProviderCategory {
+    name: "Vulnerability Scanning",
+    items: &[
+        ("tenable-vulns", "Vulnerability Findings   "),
+        ("tenable-was", "Web App Scanning         "),
+        ("tenable-pci-asv", "PCI ASV Compliance       "),
+        ("tenable-assets", "Asset Inventory          "),
+        ("tenable-compliance", "Compliance Findings      "),
+    ],
+}];

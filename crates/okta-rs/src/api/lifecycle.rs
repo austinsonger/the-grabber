@@ -11,7 +11,11 @@ pub struct LifecycleApi<'c>(pub(crate) &'c OktaClient);
 impl<'c> LifecycleApi<'c> {
     /// GET /api/v1/logs?filter=eventType eq "{event_type}"&since={since}
     /// Follows Link pagination.
-    pub async fn events_all(&self, event_type: &str, since: &str) -> Result<Vec<OktaLogEvent>, OktaError> {
+    pub async fn events_all(
+        &self,
+        event_type: &str,
+        since: &str,
+    ) -> Result<Vec<OktaLogEvent>, OktaError> {
         let filter = format!("eventType eq \"{event_type}\"");
         let mut all: Vec<OktaLogEvent> = Vec::new();
         let path = format!(

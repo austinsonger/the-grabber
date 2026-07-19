@@ -104,9 +104,8 @@ impl FedRampMap {
     }
 }
 
-static BUNDLED: Lazy<FedRampMap> = Lazy::new(|| {
-    FedRampMap::from_json(BUNDLED_JSON).expect("bundled fedramp-map.json must parse")
-});
+static BUNDLED: Lazy<FedRampMap> =
+    Lazy::new(|| FedRampMap::from_json(BUNDLED_JSON).expect("bundled fedramp-map.json must parse"));
 
 pub fn bundled() -> &'static FedRampMap {
     &BUNDLED

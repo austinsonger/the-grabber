@@ -86,9 +86,7 @@ impl CsvCollector for GuardDutyRuntimeCoverageCollector {
                             .map(|s| s.as_str().to_string())
                             .unwrap_or_default(),
                         r.issue().unwrap_or("").into(),
-                        r.updated_at()
-                            .map(|t| t.to_string())
-                            .unwrap_or_default(),
+                        r.updated_at().map(|t| t.to_string()).unwrap_or_default(),
                         region.into(),
                     ]);
                 }

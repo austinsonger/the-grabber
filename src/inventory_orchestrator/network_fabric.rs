@@ -377,11 +377,7 @@ async fn collect_subnets(
                 .available_ip_address_count()
                 .map(|n| n.to_string())
                 .unwrap_or_default();
-            let state = subnet
-                .state()
-                .map(|s| s.as_str())
-                .unwrap_or("")
-                .to_string();
+            let state = subnet.state().map(|s| s.as_str()).unwrap_or("").to_string();
             let map_public_ip = subnet.map_public_ip_on_launch().unwrap_or(false);
             let assign_ipv6_on_create = subnet
                 .assign_ipv6_address_on_creation()
@@ -648,8 +644,7 @@ async fn collect_transit_gateway_attachments(
                 .map(|r| r.as_str())
                 .unwrap_or("")
                 .to_string();
-            let transit_gateway_owner_id =
-                att.transit_gateway_owner_id().unwrap_or("").to_string();
+            let transit_gateway_owner_id = att.transit_gateway_owner_id().unwrap_or("").to_string();
             let resource_owner_id = att.resource_owner_id().unwrap_or("").to_string();
             let state = att.state().map(|s| s.as_str()).unwrap_or("").to_string();
             let assoc_route_table_id = att

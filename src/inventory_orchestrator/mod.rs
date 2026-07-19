@@ -18,28 +18,28 @@ mod storage;
 use anyhow::Result;
 use async_trait::async_trait;
 
-use aws_sdk_ec2::Client as Ec2Client;
-use aws_sdk_ecr::Client as EcrClient;
-use aws_sdk_ecs::Client as EcsClient;
-use aws_sdk_eks::Client as EksClient;
-use aws_sdk_elasticache::Client as ElastiCacheClient;
-use aws_sdk_elasticloadbalancingv2::Client as ElbClient;
-use aws_sdk_kms::Client as KmsClient;
-use aws_sdk_lambda::Client as LambdaClient;
-use aws_sdk_rds::Client as RdsClient;
-use aws_sdk_s3::Client as S3Client;
 use aws_sdk_apigateway::Client as ApiGatewayV1Client;
 use aws_sdk_apigatewayv2::Client as ApiGatewayV2Client;
 use aws_sdk_cloudtrail::Client as CloudTrailClient;
 use aws_sdk_config::Client as ConfigClient;
 use aws_sdk_dynamodb::Client as DynamoDbClient;
+use aws_sdk_ec2::Client as Ec2Client;
+use aws_sdk_ecr::Client as EcrClient;
+use aws_sdk_ecs::Client as EcsClient;
 use aws_sdk_efs::Client as EfsClient;
+use aws_sdk_eks::Client as EksClient;
+use aws_sdk_elasticache::Client as ElastiCacheClient;
+use aws_sdk_elasticloadbalancingv2::Client as ElbClient;
 use aws_sdk_eventbridge::Client as EventBridgeClient;
 use aws_sdk_firehose::Client as FirehoseClient;
 use aws_sdk_fsx::Client as FsxClient;
 use aws_sdk_guardduty::Client as GuardDutyClient;
 use aws_sdk_kinesis::Client as KinesisClient;
+use aws_sdk_kms::Client as KmsClient;
+use aws_sdk_lambda::Client as LambdaClient;
+use aws_sdk_rds::Client as RdsClient;
 use aws_sdk_redshift::Client as RedshiftClient;
+use aws_sdk_s3::Client as S3Client;
 use aws_sdk_secretsmanager::Client as SecretsManagerClient;
 use aws_sdk_securityhub::Client as SecurityHubClient;
 use aws_sdk_sns::Client as SnsClient;
@@ -173,23 +173,63 @@ impl CsvCollector for InventoryCollector {
                 }
                 ASSET_KEY_NLB => data_services::collect_nlbs(&self.elb, &region).await,
                 ASSET_KEY_EBS_VOLUME => storage::collect_ebs_volumes(&self.ec2, &region).await,
-                ASSET_KEY_EFS_FILE_SYSTEM => storage::collect_efs_file_systems(&self.efs, &region).await,
-                ASSET_KEY_FSX_FILE_SYSTEM => storage::collect_fsx_file_systems(&self.fsx, &region).await,
-                ASSET_KEY_REDSHIFT_CLUSTER => data_services::collect_redshift_clusters(&self.redshift, &region).await,
-                ASSET_KEY_DYNAMODB_TABLE => data_services::collect_dynamodb_tables(&self.dynamodb, &region).await,
-                ASSET_KEY_APIGW => apigateway::collect_apigw(&self.apigw_v1, &self.apigw_v2, &region).await,
+                ASSET_KEY_EFS_FILE_SYSTEM => {
+                    storage::collect_efs_file_systems(&self.efs, &region).await
+                }
+                ASSET_KEY_FSX_FILE_SYSTEM => {
+                    storage::collect_fsx_file_systems(&self.fsx, &region).await
+                }
+                ASSET_KEY_REDSHIFT_CLUSTER => {
+                    data_services::collect_redshift_clusters(&self.redshift, &region).await
+                }
+                ASSET_KEY_DYNAMODB_TABLE => {
+                    data_services::collect_dynamodb_tables(&self.dynamodb, &region).await
+                }
+                ASSET_KEY_APIGW => {
+                    apigateway::collect_apigw(&self.apigw_v1, &self.apigw_v2, &region).await
+                }
                 ASSET_KEY_SNS_TOPIC => messaging::collect_sns_topics(&self.sns, &region).await,
                 ASSET_KEY_SQS_QUEUE => messaging::collect_sqs_queues(&self.sqs, &region).await,
-                ASSET_KEY_KINESIS_STREAM => messaging::collect_kinesis_streams(&self.kinesis, &region).await,
-                ASSET_KEY_FIREHOSE_STREAM => messaging::collect_firehose_streams(&self.firehose, &region).await,
-                ASSET_KEY_EVENTBRIDGE => messaging::collect_eventbridge(&self.eventbridge, &region).await,
-                ASSET_KEY_SECRETSMANAGER_SECRET => secrets::collect_secretsmanager_secrets(&self.secretsmanager, &region).await,
-                ASSET_KEY_VPC_NETWORK => network_fabric::collect_vpc_network(&self.ec2, account_id, &region).await,
-                ASSET_KEY_CLOUDTRAIL_TRAIL => security_services::collect_cloudtrail_trails(&self.cloudtrail, &region).await,
-                ASSET_KEY_CONFIG_RECORDER => security_services::collect_config_recorders(&self.config_svc, account_id, &region).await,
-                ASSET_KEY_GUARDDUTY_DETECTOR => security_services::collect_guardduty_detectors(&self.guardduty, account_id, &region).await,
-                ASSET_KEY_SECURITYHUB_HUB => security_services::collect_securityhub_hubs(&self.securityhub, &region).await,
-                ASSET_KEY_WAF_WEBACL => security_services::collect_waf_webacls(&self.wafv2, &region).await,
+                ASSET_KEY_KINESIS_STREAM => {
+                    messaging::collect_kinesis_streams(&self.kinesis, &region).await
+                }
+                ASSET_KEY_FIREHOSE_STREAM => {
+                    messaging::collect_firehose_streams(&self.firehose, &region).await
+                }
+                ASSET_KEY_EVENTBRIDGE => {
+                    messaging::collect_eventbridge(&self.eventbridge, &region).await
+                }
+                ASSET_KEY_SECRETSMANAGER_SECRET => {
+                    secrets::collect_secretsmanager_secrets(&self.secretsmanager, &region).await
+                }
+                ASSET_KEY_VPC_NETWORK => {
+                    network_fabric::collect_vpc_network(&self.ec2, account_id, &region).await
+                }
+                ASSET_KEY_CLOUDTRAIL_TRAIL => {
+                    security_services::collect_cloudtrail_trails(&self.cloudtrail, &region).await
+                }
+                ASSET_KEY_CONFIG_RECORDER => {
+                    security_services::collect_config_recorders(
+                        &self.config_svc,
+                        account_id,
+                        &region,
+                    )
+                    .await
+                }
+                ASSET_KEY_GUARDDUTY_DETECTOR => {
+                    security_services::collect_guardduty_detectors(
+                        &self.guardduty,
+                        account_id,
+                        &region,
+                    )
+                    .await
+                }
+                ASSET_KEY_SECURITYHUB_HUB => {
+                    security_services::collect_securityhub_hubs(&self.securityhub, &region).await
+                }
+                ASSET_KEY_WAF_WEBACL => {
+                    security_services::collect_waf_webacls(&self.wafv2, &region).await
+                }
                 other => {
                     eprintln!("WARN: inventory: unknown asset type key '{other}' — skipped");
                     continue;

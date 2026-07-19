@@ -21,7 +21,12 @@ pub struct CoverageRun {
 }
 
 impl CoverageRun {
-    pub fn record(&mut self, filename_prefix: impl Into<String>, source_evidence_file: impl Into<String>, row_count: usize) {
+    pub fn record(
+        &mut self,
+        filename_prefix: impl Into<String>,
+        source_evidence_file: impl Into<String>,
+        row_count: usize,
+    ) {
         self.emitted.push(CoverageEmission {
             filename_prefix: filename_prefix.into(),
             source_evidence_file: source_evidence_file.into(),

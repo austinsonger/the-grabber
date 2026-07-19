@@ -156,7 +156,11 @@ impl App {
         let collector_items: Vec<(&'static str, &'static str, CloudProvider)> = menu
             .categories
             .iter()
-            .flat_map(|cat| cat.items.iter().map(move |(sel, disp)| (*sel, *disp, menu.provider)))
+            .flat_map(|cat| {
+                cat.items
+                    .iter()
+                    .map(move |(sel, disp)| (*sel, *disp, menu.provider))
+            })
             .collect();
         let current_categories = menu.categories;
 
@@ -381,7 +385,10 @@ mod tests {
         // search term every item in the default AWS menu matches.
         let app = make_app();
         for i in 0..app.collector_items.len() {
-            assert!(app.search_matches_item(i), "item {i} should match empty search");
+            assert!(
+                app.search_matches_item(i),
+                "item {i} should match empty search"
+            );
         }
     }
 
@@ -501,7 +508,10 @@ mod tests {
         // Switch to Okta and select the first item.
         app.selected_provider = CloudProvider::Okta;
         app.load_menu_for_current_provider();
-        assert!(!app.collector_items.is_empty(), "Okta menu should have items");
+        assert!(
+            !app.collector_items.is_empty(),
+            "Okta menu should have items"
+        );
         app.collector_selected.insert(0);
         app.persist_collector_selected_to_provider();
         let picked = app.collector_items[0].0.to_string();
@@ -509,14 +519,23 @@ mod tests {
         // Switch to Jira — Okta selection should not leak.
         app.selected_provider = CloudProvider::Jira;
         app.load_menu_for_current_provider();
-        assert!(app.collector_selected.is_empty(), "Jira selection should start empty");
+        assert!(
+            app.collector_selected.is_empty(),
+            "Jira selection should start empty"
+        );
 
         // Switch back to Okta — the original selection should be restored.
         app.selected_provider = CloudProvider::Okta;
         app.load_menu_for_current_provider();
-        assert_eq!(app.collector_selected.len(), 1, "Okta selection should be restored");
-        assert!(app.selected_collectors().contains(&picked),
-            "restored selector should match original: {picked}");
+        assert_eq!(
+            app.collector_selected.len(),
+            1,
+            "Okta selection should be restored"
+        );
+        assert!(
+            app.selected_collectors().contains(&picked),
+            "restored selector should match original: {picked}"
+        );
     }
 
     #[test]

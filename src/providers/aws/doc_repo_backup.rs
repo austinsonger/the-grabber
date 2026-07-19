@@ -52,7 +52,12 @@ impl CsvCollector for DocRepoBackupConfigCollector {
         let mut rows: Vec<Vec<String>> = Vec::new();
 
         // S3 buckets — versioning + replication
-        let buckets = self.s3.list_buckets().send().await.context("s3:ListBuckets")?;
+        let buckets = self
+            .s3
+            .list_buckets()
+            .send()
+            .await
+            .context("s3:ListBuckets")?;
         for b in buckets.buckets() {
             let name = match b.name() {
                 Some(n) => n.to_string(),
@@ -85,9 +90,7 @@ impl CsvCollector for DocRepoBackupConfigCollector {
                                     format!(
                                         "{}→{}",
                                         r.id().unwrap_or(""),
-                                        r.destination()
-                                            .map(|d| d.bucket())
-                                            .unwrap_or("?"),
+                                        r.destination().map(|d| d.bucket()).unwrap_or("?"),
                                     )
                                 })
                                 .collect::<Vec<_>>()

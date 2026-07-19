@@ -419,8 +419,7 @@ pub(super) async fn collect_nlbs(client: &ElbClient, region: &str) -> Result<Vec
             };
 
             // Fetch cross-zone + deletion protection attributes
-            let (mut cross_zone_enabled, mut deletion_protection) =
-                (String::new(), String::new());
+            let (mut cross_zone_enabled, mut deletion_protection) = (String::new(), String::new());
             if let Ok(attrs_resp) = client
                 .describe_load_balancer_attributes()
                 .load_balancer_arn(&arn)
@@ -522,8 +521,10 @@ pub(super) async fn collect_redshift_clusters(
             let cluster_version = cluster.cluster_version().unwrap_or("").to_string();
             let availability_zone = cluster.availability_zone().unwrap_or("").to_string();
             let vpc_id = cluster.vpc_id().unwrap_or("").to_string();
-            let cluster_subnet_group_name =
-                cluster.cluster_subnet_group_name().unwrap_or("").to_string();
+            let cluster_subnet_group_name = cluster
+                .cluster_subnet_group_name()
+                .unwrap_or("")
+                .to_string();
 
             let dns_url = match cluster.endpoint() {
                 Some(e) => format!("{}:{}", e.address().unwrap_or(""), e.port().unwrap_or(0)),
@@ -713,8 +714,7 @@ pub(super) async fn collect_dynamodb_tables(
                 None => (String::new(), String::new()),
             };
 
-            let is_global =
-                table.global_table_version().is_some() || !table.replicas().is_empty();
+            let is_global = table.global_table_version().is_some() || !table.replicas().is_empty();
             let deletion_protection = table
                 .deletion_protection_enabled()
                 .unwrap_or(false)

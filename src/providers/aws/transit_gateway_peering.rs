@@ -73,7 +73,9 @@ impl CsvCollector for TransitGatewayPeeringCollector {
                     "TransitGateway".into(),
                     tgw.transit_gateway_id().unwrap_or("").into(),
                     name,
-                    tgw.state().map(|s| s.as_str().to_string()).unwrap_or_default(),
+                    tgw.state()
+                        .map(|s| s.as_str().to_string())
+                        .unwrap_or_default(),
                     tgw.owner_id().unwrap_or("").into(),
                     String::new(),
                     String::new(),
@@ -109,7 +111,9 @@ impl CsvCollector for TransitGatewayPeeringCollector {
                     "TGWAttachment".into(),
                     att.transit_gateway_attachment_id().unwrap_or("").into(),
                     String::new(),
-                    att.state().map(|s| s.as_str().to_string()).unwrap_or_default(),
+                    att.state()
+                        .map(|s| s.as_str().to_string())
+                        .unwrap_or_default(),
                     att.resource_owner_id().unwrap_or("").into(),
                     String::new(),
                     att.resource_id().unwrap_or("").into(),

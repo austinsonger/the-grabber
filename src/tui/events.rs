@@ -631,11 +631,139 @@ fn handle_confirm(app: &mut App, key: KeyCode) -> Action {
     }
 }
 
-fn handle_results(_app: &mut App, key: KeyCode) -> Action {
+fn handle_results(app: &mut App, key: KeyCode) -> Action {
+    let len = app.result_files.len();
     match key {
         KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
         KeyCode::Char('n') => Action::NewCollection,
+        KeyCode::Up => {
+            if app.result_scroll > 0 {
+                app.result_scroll -= 1;
+            }
+            Action::Continue
+        }
+        KeyCode::Down => {
+            if app.result_scroll + 1 < len {
+                app.result_scroll += 1;
+            }
+            Action::Continue
+        }
+        KeyCode::Home => {
+            app.result_scroll = 0;
+            Action::Continue
+        }
+        KeyCode::End => {
+            app.result_scroll = len.saturating_sub(1);
+            Action::Continue
+        }
+        KeyCode::PageUp => {
+            app.result_scroll = app.result_scroll.saturating_sub(10);
+            Action::Continue
+        }
+        KeyCode::PageDown => {
+            app.result_scroll = (app.result_scroll + 10).min(len.saturating_sub(1));
+            Action::Continue
+        }
         _ => Action::Continue,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_results_app(file_count: usize) -> App {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::Results;
+        app.result_files = (0..file_count).map(|i| format!("file-{i}.json")).collect();
+        app
+    }
+
+    #[test]
+    fn results_scroll_clamps_with_arrow_keys() {
+        let mut app = make_results_app(3);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::Down),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 1);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::Down),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 2);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::Down),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 2);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::Up),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 1);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::Up),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 0);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::Up),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 0);
+    }
+
+    #[test]
+    fn results_home_end_page_keys_clamp_bounds() {
+        let mut app = make_results_app(5);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::End),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 4);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::PageUp),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 0);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::PageDown),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 4);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::Home),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 0);
+    }
+
+    #[test]
+    fn results_keys_are_safe_with_empty_file_list() {
+        let mut app = make_results_app(0);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::End),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 0);
+
+        assert!(matches!(
+            handle_results(&mut app, KeyCode::PageDown),
+            Action::Continue
+        ));
+        assert_eq!(app.result_scroll, 0);
     }
 }
 

@@ -75,9 +75,7 @@ impl CsvCollector for OktaDeprovisioningTimelinessCollector {
                     .to_string();
 
                 let actor = e.actor.as_ref();
-                let actor_type = actor
-                    .and_then(|a| a.actor_type.clone())
-                    .unwrap_or_default();
+                let actor_type = actor.and_then(|a| a.actor_type.clone()).unwrap_or_default();
                 let actor_name = actor
                     .and_then(|a| a.display_name.clone())
                     .unwrap_or_default();

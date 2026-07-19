@@ -39,7 +39,9 @@ impl std::str::FromStr for PoamFormat {
             "xlsx" => Ok(PoamFormat::Xlsx),
             "oscal" => Ok(PoamFormat::Oscal),
             "both" => Ok(PoamFormat::Both),
-            other => anyhow::bail!("invalid --poam-format '{other}' (expected xlsx, oscal, or both)"),
+            other => {
+                anyhow::bail!("invalid --poam-format '{other}' (expected xlsx, oscal, or both)")
+            }
         }
     }
 }
@@ -177,17 +179,25 @@ fn run_poam_with_paths(
             match read_tenable_vulns_csv(&tenable_vulns_path) {
                 Ok((rows, mut tenable_warnings)) => {
                     let rows = dedupe_tenable_vulns_by_stable_key(rows);
-                    triples.extend(rows.iter().map(|r| oscal::build_tenable_vuln_triple(r, &now)));
+                    triples.extend(
+                        rows.iter()
+                            .map(|r| oscal::build_tenable_vuln_triple(r, &now)),
+                    );
                     warnings.append(&mut tenable_warnings);
                 }
                 Err(e) => warnings.push(format!("Tenable vulnerability CSV read failed: {e}")),
             }
         }
-        if let Ok((_, tenable_compliance_path)) = select_latest_tenable_compliance_csv(&evidence_path) {
+        if let Ok((_, tenable_compliance_path)) =
+            select_latest_tenable_compliance_csv(&evidence_path)
+        {
             match read_tenable_compliance_csv(&tenable_compliance_path) {
                 Ok((rows, mut tenable_warnings)) => {
                     let rows = dedupe_tenable_compliance_by_stable_key(rows);
-                    triples.extend(rows.iter().map(|r| oscal::build_tenable_compliance_triple(r, &now)));
+                    triples.extend(
+                        rows.iter()
+                            .map(|r| oscal::build_tenable_compliance_triple(r, &now)),
+                    );
                     warnings.append(&mut tenable_warnings);
                 }
                 Err(e) => warnings.push(format!("Tenable compliance CSV read failed: {e}")),
@@ -237,7 +247,12 @@ pub fn add_custom_poam_item(
     let now = chrono::Utc::now().to_rfc3339();
     let uuid = oscal::add_custom_item(
         &mut doc,
-        oscal::CustomItemInput { title, description, status, deadline },
+        oscal::CustomItemInput {
+            title,
+            description,
+            status,
+            deadline,
+        },
         &now,
     )?;
     oscal::write_oscal_document(&oscal_path, &doc)?;
@@ -315,7 +330,9 @@ fn dedupe_tenable_vulns_by_stable_key(rows: Vec<TenableVulnRow>) -> Vec<TenableV
 /// Real-world trigger: `read_tenable_compliance_csv` falls back to a bare
 /// `asset_id` stable key when "Check ID" is empty, so one asset with several
 /// blank-Check-ID failed checks produces multiple rows sharing one key.
-fn dedupe_tenable_compliance_by_stable_key(rows: Vec<TenableComplianceRow>) -> Vec<TenableComplianceRow> {
+fn dedupe_tenable_compliance_by_stable_key(
+    rows: Vec<TenableComplianceRow>,
+) -> Vec<TenableComplianceRow> {
     let mut by_key: HashMap<String, TenableComplianceRow> = HashMap::new();
     for row in rows {
         match by_key.get(&row.stable_key) {
@@ -462,7 +479,10 @@ mod tests {
         use std::str::FromStr;
 
         assert!(matches!(PoamFormat::from_str("xlsx"), Ok(PoamFormat::Xlsx)));
-        assert!(matches!(PoamFormat::from_str("oscal"), Ok(PoamFormat::Oscal)));
+        assert!(matches!(
+            PoamFormat::from_str("oscal"),
+            Ok(PoamFormat::Oscal)
+        ));
         assert!(matches!(PoamFormat::from_str("both"), Ok(PoamFormat::Both)));
         assert!(PoamFormat::from_str("yaml").is_err());
     }
@@ -608,12 +628,24 @@ mod tests {
             PoamFormat::Oscal,
             None,
             &oscal_path,
-        ).expect("run should succeed");
+        )
+        .expect("run should succeed");
 
-        assert_eq!(result.added_open_count, 2, "both Inspector2 and Tenable findings should be counted");
-        let doc = oscal::read_oscal_document(&oscal_path).expect("read").expect("doc exists");
+        assert_eq!(
+            result.added_open_count, 2,
+            "both Inspector2 and Tenable findings should be counted"
+        );
+        let doc = oscal::read_oscal_document(&oscal_path)
+            .expect("read")
+            .expect("doc exists");
         assert_eq!(doc.poam_items.len(), 2);
-        assert!(doc.poam_items.iter().any(|i| i.props.iter().any(|p| p.name == "finding-source" && p.value == "AWS Inspector2 - ECR")));
-        assert!(doc.poam_items.iter().any(|i| i.props.iter().any(|p| p.name == "finding-source" && p.value == "Tenable.io")));
+        assert!(doc.poam_items.iter().any(|i| i
+            .props
+            .iter()
+            .any(|p| p.name == "finding-source" && p.value == "AWS Inspector2 - ECR")));
+        assert!(doc.poam_items.iter().any(|i| i
+            .props
+            .iter()
+            .any(|p| p.name == "finding-source" && p.value == "Tenable.io")));
     }
 }

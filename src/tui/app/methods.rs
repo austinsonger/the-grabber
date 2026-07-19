@@ -179,7 +179,11 @@ impl App {
         let selectors: std::collections::HashSet<String> = self
             .collector_selected
             .iter()
-            .filter_map(|&i| self.collector_items.get(i).map(|(sel, _, _)| sel.to_string()))
+            .filter_map(|&i| {
+                self.collector_items
+                    .get(i)
+                    .map(|(sel, _, _)| sel.to_string())
+            })
             .collect();
         self.provider_selections
             .insert(self.selected_provider, selectors);
@@ -193,7 +197,11 @@ impl App {
         self.collector_items = menu
             .categories
             .iter()
-            .flat_map(|cat| cat.items.iter().map(move |(sel, disp)| (*sel, *disp, menu.provider)))
+            .flat_map(|cat| {
+                cat.items
+                    .iter()
+                    .map(move |(sel, disp)| (*sel, *disp, menu.provider))
+            })
             .collect();
         self.current_categories = menu.categories;
         self.collector_cursor = 0;

@@ -23,7 +23,10 @@ pub const JIRA_CATEGORIES: &[ProviderCategory] = &[
         name: "Access & Approvals",
         items: &[
             ("jira-remote-access-approvals", "Remote Access Approvals "),
-            ("jira-external-system-approvals", "External System Approvals"),
+            (
+                "jira-external-system-approvals",
+                "External System Approvals",
+            ),
             ("jira-remote-maint", "Remote Maintenance      "),
             ("jira-special-protection", "Special Protection      "),
         ],

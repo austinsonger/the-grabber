@@ -26,9 +26,7 @@ fn event_row(e: OktaLogEvent) -> Vec<String> {
         .to_string();
 
     let actor = e.actor.as_ref();
-    let actor_type = actor
-        .and_then(|a| a.actor_type.clone())
-        .unwrap_or_default();
+    let actor_type = actor.and_then(|a| a.actor_type.clone()).unwrap_or_default();
     let is_system_principal = if actor_type == "SystemPrincipal" {
         "YES"
     } else {

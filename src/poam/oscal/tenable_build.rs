@@ -42,9 +42,7 @@ pub(in crate::poam) fn build_tenable_vuln_triple(
 
     let observation = Observation {
         uuid: observation_uuid.clone(),
-        description: format!(
-            "Tenable vulnerability finding: {plugin_name} ({cves}) on {hostname}"
-        ),
+        description: format!("Tenable vulnerability finding: {plugin_name} ({cves}) on {hostname}"),
         methods: vec!["TEST-AUTOMATED".to_string()],
         collected: now.to_string(),
         props: vec![Prop {
@@ -228,14 +226,20 @@ mod tests {
 
     fn vuln_row() -> TenableVulnRow {
         let mut values = HashMap::new();
-        values.insert("pluginname".to_string(), "SSL Certificate Cannot Be Trusted".to_string());
+        values.insert(
+            "pluginname".to_string(),
+            "SSL Certificate Cannot Be Trusted".to_string(),
+        );
         values.insert("cves".to_string(), "CVE-2026-0001".to_string());
         values.insert("severity".to_string(), "High".to_string());
         values.insert("cvss3basescore".to_string(), "8.1".to_string());
         values.insert("vprscore".to_string(), "7.2".to_string());
         values.insert("state".to_string(), "open".to_string());
         values.insert("hostname".to_string(), "host1".to_string());
-        TenableVulnRow { stable_key: "asset-1:19506:443:tcp".to_string(), values }
+        TenableVulnRow {
+            stable_key: "asset-1:19506:443:tcp".to_string(),
+            values,
+        }
     }
 
     fn compliance_row() -> TenableComplianceRow {
@@ -244,16 +248,32 @@ mod tests {
         values.insert("status".to_string(), "FAILED".to_string());
         values.insert("policyname".to_string(), "CIS Level 1".to_string());
         values.insert("hostname".to_string(), "host2".to_string());
-        TenableComplianceRow { stable_key: "asset-2:check-123".to_string(), values }
+        TenableComplianceRow {
+            stable_key: "asset-2:check-123".to_string(),
+            values,
+        }
     }
 
     #[test]
     fn tenable_vuln_triple_carries_vpr_and_cvss_and_source_label() {
-        let (observation, risk, item) = build_tenable_vuln_triple(&vuln_row(), "2026-07-17T00:00:00Z");
-        assert!(item.props.iter().any(|p| p.name == "weakness-source-identifier" && p.value == "asset-1:19506:443:tcp"));
-        assert!(item.props.iter().any(|p| p.name == "finding-source" && p.value == "Tenable.io"));
-        assert!(risk.characterizations.iter().any(|c| c.facets.iter().any(|p| p.name == "vpr-score" && p.value == "7.2")));
-        assert!(risk.characterizations.iter().any(|c| c.facets.iter().any(|p| p.name == "cvss3-base-score" && p.value == "8.1")));
+        let (observation, risk, item) =
+            build_tenable_vuln_triple(&vuln_row(), "2026-07-17T00:00:00Z");
+        assert!(item
+            .props
+            .iter()
+            .any(|p| p.name == "weakness-source-identifier" && p.value == "asset-1:19506:443:tcp"));
+        assert!(item
+            .props
+            .iter()
+            .any(|p| p.name == "finding-source" && p.value == "Tenable.io"));
+        assert!(risk.characterizations.iter().any(|c| c
+            .facets
+            .iter()
+            .any(|p| p.name == "vpr-score" && p.value == "7.2")));
+        assert!(risk.characterizations.iter().any(|c| c
+            .facets
+            .iter()
+            .any(|p| p.name == "cvss3-base-score" && p.value == "8.1")));
         assert_eq!(risk.status, super::super::RiskStatus::Open);
         assert!(observation.description.contains("CVE-2026-0001"));
     }
@@ -268,16 +288,28 @@ mod tests {
 
     #[test]
     fn tenable_compliance_triple_marks_finding_type_as_compliance_check() {
-        let (_, risk, item) = build_tenable_compliance_triple(&compliance_row(), "2026-07-17T00:00:00Z");
-        assert!(item.props.iter().any(|p| p.name == "weakness-source-identifier" && p.value == "asset-2:check-123"));
-        assert!(item.props.iter().any(|p| p.name == "finding-type" && p.value == "compliance-check"));
-        assert_eq!(risk.status, super::super::RiskStatus::Open, "FAILED compliance checks map to open, same vocabulary as vulnerabilities");
+        let (_, risk, item) =
+            build_tenable_compliance_triple(&compliance_row(), "2026-07-17T00:00:00Z");
+        assert!(item
+            .props
+            .iter()
+            .any(|p| p.name == "weakness-source-identifier" && p.value == "asset-2:check-123"));
+        assert!(item
+            .props
+            .iter()
+            .any(|p| p.name == "finding-type" && p.value == "compliance-check"));
+        assert_eq!(
+            risk.status,
+            super::super::RiskStatus::Open,
+            "FAILED compliance checks map to open, same vocabulary as vulnerabilities"
+        );
     }
 
     #[test]
     fn tenable_compliance_passed_status_maps_to_closed() {
         let mut row = compliance_row();
-        row.values.insert("status".to_string(), "PASSED".to_string());
+        row.values
+            .insert("status".to_string(), "PASSED".to_string());
         let (_, risk, _) = build_tenable_compliance_triple(&row, "2026-07-17T00:00:00Z");
         assert_eq!(risk.status, super::super::RiskStatus::Closed);
     }
