@@ -66,11 +66,15 @@
     "AccessAnalyzer_Findings": {
       "req_ids": [
         "NIST-1066",
-        "NIST-1232"
+        "NIST-1232",
+        "NIST-1233",
+        "NIST-1526"
       ],
       "control_ids": [
         "AC-06(07)(a), AC-06(07)(b)",
-        "CM-05(05)(a)"
+        "CM-05(05)(a)",
+        "CM-05(05)(b)",
+        "PS-05c."
       ]
     },
     "Account_Contacts_Config": {
@@ -146,8 +150,12 @@
       ]
     },
     "CloudTrail_EventSelectors": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1160"
+      ],
+      "control_ids": [
+        "AU-12b."
+      ]
     },
     "CloudTrail_IAM_Changes": {
       "req_ids": [
@@ -210,8 +218,12 @@
       ]
     },
     "Config_ResourceHistory": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1215"
+      ],
+      "control_ids": [
+        "CM-03e."
+      ]
     },
     "Config_Resource_Timeline": {
       "req_ids": [],
@@ -282,12 +294,20 @@
       "control_ids": []
     },
     "EventBridge_Rules_Config": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1143"
+      ],
+      "control_ids": [
+        "AU-06b."
+      ]
     },
     "GuardDuty_Config": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1697"
+      ],
+      "control_ids": [
+        "SI-03b."
+      ]
     },
     "GuardDuty_Findings": {
       "req_ids": [
@@ -326,8 +346,12 @@
       "control_ids": []
     },
     "IAM_Access_Keys": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1521"
+      ],
+      "control_ids": [
+        "PS-04e."
+      ]
     },
     "IAM_Account_Summary": {
       "req_ids": [],
@@ -339,9 +363,11 @@
     },
     "IAM_Credential_Report_Expiration": {
       "req_ids": [
+        "NIST-1233",
         "NIST-1319"
       ],
       "control_ids": [
+        "CM-05(05)(b)",
         "IA-05c."
       ]
     },
@@ -351,10 +377,12 @@
     },
     "IAM_Password_Policy": {
       "req_ids": [
-        "NIST-1319"
+        "NIST-1319",
+        "NIST-1321"
       ],
       "control_ids": [
-        "IA-05c."
+        "IA-05c.",
+        "IA-05e."
       ]
     },
     "IAM_Policies": {
@@ -396,8 +424,14 @@
       ]
     },
     "IAM_User_Policies": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1524",
+        "NIST-1526"
+      ],
+      "control_ids": [
+        "PS-05a.",
+        "PS-05c."
+      ]
     },
     "IAM_Users": {
       "req_ids": [
@@ -671,9 +705,11 @@
     },
     "KMS_Keys": {
       "req_ids": [
+        "NIST-1325",
         "NIST-1341"
       ],
       "control_ids": [
+        "IA-05h.[02]",
         "IA-07"
       ]
     },
@@ -688,6 +724,14 @@
     "Launch_Template_Config": {
       "req_ids": [],
       "control_ids": []
+    },
+    "LicenseManager_Config": {
+      "req_ids": [
+        "NIST-1254"
+      ],
+      "control_ids": [
+        "CM-10a., CM-10b., CM-10c."
+      ]
     },
     "Load_Balancer_Config": {
       "req_ids": [],
@@ -894,8 +938,12 @@
       ]
     },
     "Organizations_SCPs": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1160"
+      ],
+      "control_ids": [
+        "AU-12b."
+      ]
     },
     "Public_Resources": {
       "req_ids": [],
@@ -992,17 +1040,25 @@
       "control_ids": []
     },
     "SNS_Topic_Subscribers": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1143",
+        "NIST-1738"
+      ],
+      "control_ids": [
+        "AU-06b.",
+        "SI-06c."
+      ]
     },
     "SSM_Application_Allowlist": {
       "req_ids": [
         "NIST-1243",
-        "NIST-1246"
+        "NIST-1246",
+        "NIST-1247"
       ],
       "control_ids": [
         "CM-07(02)",
-        "CM-07(05)(b)"
+        "CM-07(05)(b)",
+        "CM-07(05)(c)"
       ]
     },
     "SSM_Automation_Response_Runbooks": {
@@ -1022,16 +1078,24 @@
       "control_ids": []
     },
     "SSM_Parameter_Config": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1325"
+      ],
+      "control_ids": [
+        "IA-05h.[02]"
+      ]
     },
     "SSM_PatchCompliance": {
       "req_ids": [],
       "control_ids": []
     },
     "SSM_Patch_Baseline_Config": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1688"
+      ],
+      "control_ids": [
+        "SI-02b."
+      ]
     },
     "SSM_Patch_Compliance_Detail": {
       "req_ids": [
@@ -1046,15 +1110,21 @@
       "control_ids": []
     },
     "SSM_Patch_Summary": {
-      "req_ids": [],
-      "control_ids": []
+      "req_ids": [
+        "NIST-1688"
+      ],
+      "control_ids": [
+        "SI-02b."
+      ]
     },
     "Secrets_Manager": {
       "req_ids": [
-        "NIST-1323"
+        "NIST-1323",
+        "NIST-1325"
       ],
       "control_ids": [
-        "IA-05g."
+        "IA-05g.",
+        "IA-05h.[02]"
       ]
     },
     "Secrets_Manager_Policies": {
@@ -1063,22 +1133,28 @@
     },
     "SecurityHub_Config": {
       "req_ids": [
-        "NIST-1737"
+        "NIST-1737",
+        "NIST-1738"
       ],
       "control_ids": [
-        "SI-06b."
+        "SI-06b.",
+        "SI-06c."
       ]
     },
     "SecurityHub_Findings": {
       "req_ids": [
+        "NIST-1143",
         "NIST-1277",
         "NIST-1283",
-        "NIST-1556"
+        "NIST-1556",
+        "NIST-1738"
       ],
       "control_ids": [
+        "AU-06b.",
         "CP-06b.",
         "CP-07c.",
-        "RA-05e."
+        "RA-05e.",
+        "SI-06c."
       ]
     },
     "SecurityHub_Standards": {
