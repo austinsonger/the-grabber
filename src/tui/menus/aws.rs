@@ -56,6 +56,7 @@ pub const AWS_CATEGORIES: &[ProviderCategory] = &[
             ("ec2-instances", "EC2 Instances            "),
             ("launch-templates", "EC2 Launch Templates     "),
             ("ssm-allowlist", "SSM Application Allowlist"),
+            ("ssm-assoc-status", "SSM Instance Associations "),
             ("ssm-automation", "SSM Automation Runbooks "),
             ("ssm-maint-windows", "SSM Maintenance Windows  "),
             ("ssm-instances", "SSM Managed Instances    "),

@@ -1075,6 +1075,14 @@
         "SI-06d."
       ]
     },
+    "SSM_Instance_Associations_Status": {
+      "req_ids": [
+        "NIST-1743"
+      ],
+      "control_ids": [
+        "SI-07(01)"
+      ]
+    },
     "SSM_Maintenance_Window": {
       "req_ids": [],
       "control_ids": []

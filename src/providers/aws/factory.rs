@@ -112,7 +112,8 @@ use crate::providers::aws::{
     ssm_allowlist::SsmApplicationAllowlistCollector,
     ssm_automation_runbooks::SsmAutomationRunbooksCollector,
     ssm_extended::{
-        SsmParameterConfigCollector, SsmPatchBaselineCollector, TimeSyncConfigCollector,
+        SsmInstanceAssociationsStatusCollector, SsmParameterConfigCollector,
+        SsmPatchBaselineCollector, TimeSyncConfigCollector,
     },
     ssm_patch_detail::{
         SsmMaintenanceWindowCollector, SsmPatchDetailCollector, SsmPatchExecutionCollector,
@@ -490,6 +491,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ssm-params") {
             v.push(Box::new(SsmParameterConfigCollector::new(cfg)));
+        }
+        if has("ssm-assoc-status") {
+            v.push(Box::new(SsmInstanceAssociationsStatusCollector::new(cfg)));
         }
         if has("time-sync") {
             v.push(Box::new(TimeSyncConfigCollector::new(cfg)));

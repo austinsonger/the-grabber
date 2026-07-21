@@ -304,3 +304,112 @@ impl CsvCollector for TimeSyncConfigCollector {
         Ok(rows)
     }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 4. SSM Instance Associations Status
+// ══════════════════════════════════════════════════════════════════════════════
+
+pub struct SsmInstanceAssociationsStatusCollector {
+    client: SsmClient,
+}
+
+impl SsmInstanceAssociationsStatusCollector {
+    pub fn new(config: &aws_config::SdkConfig) -> Self {
+        Self {
+            client: SsmClient::new(config),
+        }
+    }
+}
+
+#[async_trait]
+impl CsvCollector for SsmInstanceAssociationsStatusCollector {
+    fn name(&self) -> &str {
+        "SSM Instance Associations Status"
+    }
+    fn filename_prefix(&self) -> &str {
+        "SSM_Instance_Associations_Status"
+    }
+    fn headers(&self) -> &'static [&'static str] {
+        &[
+            "Instance ID",
+            "Association ID",
+            "Association Name",
+            "Status",
+            "Error Code",
+            "Executed Date",
+        ]
+    }
+
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
+        let mut rows = Vec::new();
+
+        // Gather managed instance IDs first (same pattern as TimeSyncConfigCollector).
+        let mut instance_ids: Vec<String> = Vec::new();
+        let mut inst_next: Option<String> = None;
+        loop {
+            let mut req = self.client.describe_instance_information();
+            if let Some(ref t) = inst_next {
+                req = req.next_token(t);
+            }
+            let resp = match req.send().await {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("  WARN: SSM describe_instance_information: {e:#}");
+                    break;
+                }
+            };
+            instance_ids.extend(
+                resp.instance_information_list()
+                    .iter()
+                    .filter_map(|i| i.instance_id().map(|s| s.to_string())),
+            );
+            inst_next = resp.next_token().map(|s| s.to_string());
+            if inst_next.is_none() {
+                break;
+            }
+        }
+
+        for instance_id in &instance_ids {
+            let mut assoc_next: Option<String> = None;
+            loop {
+                let mut req = self
+                    .client
+                    .describe_instance_associations_status()
+                    .instance_id(instance_id);
+                if let Some(ref t) = assoc_next {
+                    req = req.next_token(t);
+                }
+                let resp = match req.send().await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        eprintln!(
+                            "  WARN: SSM describe_instance_associations_status {instance_id}: {e:#}"
+                        );
+                        break;
+                    }
+                };
+                for assoc in resp.instance_association_status_infos() {
+                    rows.push(vec![
+                        instance_id.clone(),
+                        assoc.association_id().unwrap_or("").to_string(),
+                        assoc.association_name().unwrap_or("").to_string(),
+                        assoc.status().unwrap_or("").to_string(),
+                        assoc.error_code().unwrap_or("").to_string(),
+                        assoc.execution_date().map(fmt_ssm_dt).unwrap_or_default(),
+                    ]);
+                }
+                assoc_next = resp.next_token().map(|s| s.to_string());
+                if assoc_next.is_none() {
+                    break;
+                }
+            }
+        }
+
+        Ok(rows)
+    }
+}
