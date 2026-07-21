@@ -78,6 +78,46 @@ impl CsvCollector for InspectorConfigCollector {
             lambda_status,
         ]);
 
+        // Coverage: proves resources are actually being scanned right now,
+        // not just that scan-mode is configured (NIST-1557 / RA-05f.).
+        let mut next_token: Option<String> = None;
+        let mut covered = 0i64;
+        let mut uncovered = 0i64;
+        loop {
+            let mut req = self.client.list_coverage();
+            if let Some(ref t) = next_token {
+                req = req.next_token(t);
+            }
+            let resp = match req.send().await {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("  WARN: Inspector2 list_coverage: {e:#}");
+                    break;
+                }
+            };
+            for cov in resp.covered_resources() {
+                // `ScanStatus::status_code()` is a required field on the SDK type,
+                // so it returns `&ScanStatusCode` directly (not `Option`); only
+                // `scan_status()` itself is optional.
+                match cov.scan_status().map(|s| s.status_code()) {
+                    Some(code) if code.as_str() == "ACTIVE" => covered += 1,
+                    _ => uncovered += 1,
+                }
+            }
+            next_token = resp.next_token().map(|s| s.to_string());
+            if next_token.is_none() {
+                break;
+            }
+        }
+        rows.push(vec![
+            "Coverage Summary".to_string(),
+            "N/A".to_string(),
+            "Resource Coverage".to_string(),
+            format!("{covered} active"),
+            format!("{uncovered} not active"),
+            String::new(),
+        ]);
+
         Ok(rows)
     }
 }
