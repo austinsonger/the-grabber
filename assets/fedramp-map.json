@@ -42,7 +42,8 @@
         "NIST-1236",
         "NIST-1242",
         "NIST-1634",
-        "NIST-1742"
+        "NIST-1742",
+        "NIST-1743"
       ],
       "control_ids": [
         "AU-02e.",
@@ -50,6 +51,7 @@
         "CM-06c.",
         "CM-07(01)(a), CM-07(01)(b)",
         "SC-07(04)(e)",
+        "SI-07(01)",
         "SI-07b"
       ]
     },
@@ -112,14 +114,6 @@
       "control_ids": []
     },
     "ClientVPN_Config": {
-      "req_ids": [
-        "NIST-1638"
-      ],
-      "control_ids": [
-        "SC-07(07)"
-      ]
-    },
-    "ClientVPN_SplitTunnel_Config": {
       "req_ids": [
         "NIST-1638"
       ],
@@ -213,16 +207,6 @@
       ],
       "control_ids": [
         "CM-02b.01, CM-02b.02, CM-02b.03"
-      ]
-    },
-    "Config_FIM_Rules": {
-      "req_ids": [
-        "NIST-1742",
-        "NIST-1743"
-      ],
-      "control_ids": [
-        "SI-07(01)",
-        "SI-07b."
       ]
     },
     "Config_ResourceHistory": {
@@ -425,9 +409,13 @@
         "PS-04a., PS-04b., PS-04d."
       ]
     },
-    "Inspector2_ECR_Findings": {
-      "req_ids": [],
-      "control_ids": []
+    "Inspector2_ECR_Image_Findings": {
+      "req_ids": [
+        "NIST-1557"
+      ],
+      "control_ids": [
+        "RA-05f."
+      ]
     },
     "Inspector2_Findings": {
       "req_ids": [
