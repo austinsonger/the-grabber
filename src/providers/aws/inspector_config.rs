@@ -83,6 +83,7 @@ impl CsvCollector for InspectorConfigCollector {
         let mut next_token: Option<String> = None;
         let mut covered = 0i64;
         let mut uncovered = 0i64;
+        let mut coverage_query_succeeded = false;
         loop {
             let mut req = self.client.list_coverage();
             if let Some(ref t) = next_token {
@@ -95,6 +96,7 @@ impl CsvCollector for InspectorConfigCollector {
                     break;
                 }
             };
+            coverage_query_succeeded = true;
             for cov in resp.covered_resources() {
                 // `ScanStatus::status_code()` is a required field on the SDK type,
                 // so it returns `&ScanStatusCode` directly (not `Option`); only
@@ -109,12 +111,23 @@ impl CsvCollector for InspectorConfigCollector {
                 break;
             }
         }
+        let (covered_str, uncovered_str) = if coverage_query_succeeded {
+            (
+                format!("{covered} active"),
+                format!("{uncovered} not active"),
+            )
+        } else {
+            (
+                "N/A (query failed)".to_string(),
+                "N/A (query failed)".to_string(),
+            )
+        };
         rows.push(vec![
             "Coverage Summary".to_string(),
             "N/A".to_string(),
             "Resource Coverage".to_string(),
-            format!("{covered} active"),
-            format!("{uncovered} not active"),
+            covered_str,
+            uncovered_str,
             String::new(),
         ]);
 
