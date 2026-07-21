@@ -17,7 +17,7 @@
       "req_ids": [],
       "control_ids": []
     },
-    "AWS_Backup_job_history_exports": {
+    "AWS_Backup_Job_History_Exports": {
       "req_ids": [
         "NIST-1276",
         "NIST-1293"
