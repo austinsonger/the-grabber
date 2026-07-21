@@ -208,6 +208,11 @@ impl CsvCollector for CloudTrailIamChangesCollector {
             "CreateGroup",
             "AttachGroupPolicy",
             "DetachGroupPolicy",
+            // Group/role membership changes (PS-05b. — 24h reassignment SLA) and
+            // secret rotation on membership change (IA-05i.).
+            "AddUserToGroup",
+            "RemoveUserFromGroup",
+            "RotateSecret",
         ];
 
         for event_name in iam_events {

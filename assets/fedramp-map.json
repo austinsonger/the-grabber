@@ -160,11 +160,17 @@
     "CloudTrail_IAM_Changes": {
       "req_ids": [
         "NIST-1088",
-        "NIST-1231"
+        "NIST-1231",
+        "NIST-1326",
+        "NIST-1521",
+        "NIST-1525"
       ],
       "control_ids": [
         "AC-17(04)(a)[01][03], AC-17(04)(a)[02][04], AC-17(04)(b)",
-        "CM-05(01)(b)"
+        "CM-05(01)(b)",
+        "IA-05i.",
+        "PS-04e.",
+        "PS-05b."
       ]
     },
     "CloudTrail_LogValidation": {
