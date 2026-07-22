@@ -283,12 +283,19 @@ impl TimeSyncConfigCollector {
             // `status_details()` is a free-form string that also uses non-enum values like
             // "Delivery Timed Out" / "Execution Timed Out", so we key off `status()` instead
             // for both this check and the reported "Command Status" column below).
-            let all_terminal = invocations.iter().all(|inv| {
-                matches!(
-                    inv.status().map(|s| s.as_str()).unwrap_or(""),
-                    "Success" | "Failed" | "Cancelled" | "TimedOut"
-                )
-            });
+            //
+            // `Iterator::all()` is vacuously true on an empty slice, so guard against the
+            // eventual-consistency window where AWS hasn't yet materialized invocation
+            // records for the just-sent command -- otherwise we'd exit on attempt 1 with
+            // zero results and report every instance as "Not Run" despite the command
+            // actually running.
+            let all_terminal = !invocations.is_empty()
+                && invocations.iter().all(|inv| {
+                    matches!(
+                        inv.status().map(|s| s.as_str()).unwrap_or(""),
+                        "Success" | "Failed" | "Cancelled" | "TimedOut"
+                    )
+                });
 
             if all_terminal || attempt == TIME_SYNC_MAX_POLL_ATTEMPTS {
                 for inv in invocations {
