@@ -121,6 +121,15 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV201 | Tenable PCI ASV Compliance | `Tenable_PCI_ASV_Compliance` | Asset ID, Hostname, IPv4, Check Name, Status, Policy, Reference, First Found, Last Found |
 | EV202 | Tenable Web App Scanning | `Tenable_WAS_Findings` | Finding ID, State, First Found, Last Found, URL, HTTP Method, Input Type, Input Name, Plugin ID, Plugin Name, Risk Factor, Synopsis, Description, Solution, CVEs, Severity, Severity ID, CVSS Base Score, CVSS3 Base Score, VPR Score, Scan ID, Scan Started At, Scan Completed At |
 
+### Detection & Response — Elastic
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV203 | Elastic Detection Rules | `Elastic_Detection_Rules` | Rule ID, Rule UUID, Rule Name, Type, Enabled, Severity, Risk Score, Interval, Index Patterns, Tags, Author, Max Signals, False Positives, References, Created At, Updated At |
+| EV204 | Elastic Exception List Items | `Elastic_Exception_List_Items` | List ID, Item ID, Name, Description, Type, Entry Count, Tags, Created At, Created By, Updated At |
+| EV205 | Elastic Security Alerts | `Elastic_Security_Alerts` | Alert ID, Rule Name, Rule UUID, Severity, Risk Score, Workflow Status, Host Name, User Name, Timestamp, Reason |
+| EV206 | Elastic Security Cases | `Elastic_Security_Cases` | Case ID, Title, Status, Severity, Tags, Total Alerts, Created At, Created By, Updated At |
+
 ### Certificates & PKI
 
 | # | Name | Filename Prefix | Columns |

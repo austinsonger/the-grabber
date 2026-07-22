@@ -53,7 +53,10 @@ impl CsvCollector for ElasticAlertsCollector {
         // is ever invoked without one.
         let (start_secs, end_secs) = dates.unwrap_or_else(|| {
             let now = Utc::now();
-            ((now - chrono::Duration::days(90)).timestamp(), now.timestamp())
+            (
+                (now - chrono::Duration::days(90)).timestamp(),
+                now.timestamp(),
+            )
         });
         let start = DateTime::<Utc>::from_timestamp(start_secs, 0)
             .unwrap_or_else(Utc::now)

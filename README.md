@@ -850,6 +850,46 @@ Or via environment variables (env wins over TOML):
 
 ---
 
+## Elastic
+
+Optional feature — build with `--features elastic` (enabled by default).
+
+### Configuration
+
+Create `elastic-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name               = "Elastic"
+provider           = "elastic"
+description        = "Elastic Security production deployment"
+output_dir         = "./evidence-output/elastic"
+elastic_kibana_url = "https://my-deployment.kb.us-east-1.aws.found.io"
+elastic_es_url     = "https://my-deployment.es.us-east-1.aws.found.io"
+elastic_api_key    = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `ELASTIC_KIBANA_URL` — Kibana base URL (Detection Engine, Exception Lists, Cases)
+- `ELASTIC_ES_URL` — Elasticsearch base URL (direct alert search)
+- `ELASTIC_API_KEY` — API key, base64-encoded `id:api_key` form
+
+Create an API key in Kibana: **Stack Management → API Keys → Create API key**. Copy the "Encoded" value — this is what Kibana-created keys use to authenticate directly against both Kibana and Elasticsearch. The key needs the Security "Read" feature privilege (or higher) for Cases and Rule Management, plus read access to the `.alerts-security.alerts-*` index.
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `elastic-rules` | CSV | Detection rules inventory (type, severity, risk score, enabled state) |
+| `elastic-exceptions` | CSV | Exception list items across all exception lists |
+| `elastic-alerts` | CSV | Time-windowed security alerts from `.alerts-security.alerts-*` |
+| `elastic-cases` | CSV | Time-windowed Security Solution cases |
+
+Elastic has no region concept, like Tenable/Okta/Jira — `--all-regions` and region selection do not apply.
+
+---
+
 ## Azure / GCP
 
 Both providers are compiled behind opt-in Cargo features (`--features azure`, `--features gcp`). They are stubs today — factory scaffolding exists in `src/providers/{azure,gcp}/` but no collectors ship yet. Enabling the feature will surface an empty provider in the TUI account picker; use `config.example.toml` as a reference for adding an `[[account]]` block when collectors land.

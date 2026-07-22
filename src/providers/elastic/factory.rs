@@ -33,14 +33,14 @@ impl ProviderFactory for ElasticProviderFactory {
     fn csv_collectors(&self) -> Vec<Box<dyn CsvCollector>> {
         let mut v: Vec<Box<dyn CsvCollector>> = Vec::new();
         if self.selected.iter().any(|s| s == "elastic-rules") {
-            v.push(Box::new(super::detection_rules::ElasticDetectionRulesCollector::new(
-                self.client.clone(),
-            )));
+            v.push(Box::new(
+                super::detection_rules::ElasticDetectionRulesCollector::new(self.client.clone()),
+            ));
         }
         if self.selected.iter().any(|s| s == "elastic-exceptions") {
-            v.push(Box::new(super::exception_items::ElasticExceptionItemsCollector::new(
-                self.client.clone(),
-            )));
+            v.push(Box::new(
+                super::exception_items::ElasticExceptionItemsCollector::new(self.client.clone()),
+            ));
         }
         if self.selected.iter().any(|s| s == "elastic-cases") {
             v.push(Box::new(super::cases::ElasticCasesCollector::new(
