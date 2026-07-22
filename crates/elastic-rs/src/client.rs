@@ -1,7 +1,11 @@
 use reqwest::{header, Client};
 use tokio::time::{sleep, Duration};
 
-use crate::api::{alerts::AlertsApi, cases::CasesApi, exceptions::ExceptionsApi, rules::RulesApi};
+use crate::api::{
+    agents::AgentsApi, alerts::AlertsApi, cases::CasesApi, connectors::ConnectorsApi,
+    exceptions::ExceptionsApi, fim::FimApi, ilm::IlmApi, roles::RolesApi, rules::RulesApi,
+    users::UsersApi,
+};
 use crate::error::ElasticError;
 
 const MAX_RETRIES: u32 = 5;
@@ -63,6 +67,15 @@ impl ElasticClient {
         self.send_with_retry(|| self.http.get(&url).send()).await
     }
 
+    /// GET a path directly against the Elasticsearch host (as opposed to
+    /// `kibana_get`, which hits Kibana). Used for native Elasticsearch APIs
+    /// like `_security/user`, `_security/role`, and `_ilm/policy` that
+    /// Kibana does not proxy.
+    pub(crate) async fn es_get(&self, path: &str) -> Result<reqwest::Response, ElasticError> {
+        let url = format!("{}{}", self.es_url, path);
+        self.send_with_retry(|| self.http.get(&url).send()).await
+    }
+
     pub(crate) async fn es_post(
         &self,
         path: &str,
@@ -101,6 +114,24 @@ impl ElasticClient {
     }
     pub fn alerts(&self) -> AlertsApi<'_> {
         AlertsApi(self)
+    }
+    pub fn users(&self) -> UsersApi<'_> {
+        UsersApi(self)
+    }
+    pub fn roles(&self) -> RolesApi<'_> {
+        RolesApi(self)
+    }
+    pub fn connectors(&self) -> ConnectorsApi<'_> {
+        ConnectorsApi(self)
+    }
+    pub fn agents(&self) -> AgentsApi<'_> {
+        AgentsApi(self)
+    }
+    pub fn fim(&self) -> FimApi<'_> {
+        FimApi(self)
+    }
+    pub fn ilm(&self) -> IlmApi<'_> {
+        IlmApi(self)
     }
 }
 

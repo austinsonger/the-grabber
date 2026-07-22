@@ -1,4 +1,10 @@
+pub mod agent;
 pub mod alert;
 pub mod case;
+pub mod connector;
 pub mod exception;
+pub mod fim;
+pub mod ilm;
+pub mod role;
 pub mod rule;
+pub mod user;
