@@ -1,3 +1,4 @@
+pub mod detection_rules;
 pub mod factory;
 
 // Authentication:

@@ -31,9 +31,13 @@ impl ProviderFactory for ElasticProviderFactory {
     }
 
     fn csv_collectors(&self) -> Vec<Box<dyn CsvCollector>> {
-        let _ = &self.client;
-        let _ = &self.selected;
-        Vec::new()
+        let mut v: Vec<Box<dyn CsvCollector>> = Vec::new();
+        if self.selected.iter().any(|s| s == "elastic-rules") {
+            v.push(Box::new(super::detection_rules::ElasticDetectionRulesCollector::new(
+                self.client.clone(),
+            )));
+        }
+        v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
         Vec::new()
