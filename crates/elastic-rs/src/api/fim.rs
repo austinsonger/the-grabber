@@ -15,7 +15,11 @@ impl<'c> FimApi<'c> {
     /// first, capped at `MAX_EVENTS` documents. Returns an empty vec (not an
     /// error) if the customer hasn't deployed the FIM integration — the
     /// index pattern simply matches zero documents.
-    pub async fn search_range(&self, start: &str, end: &str) -> Result<Vec<FimEvent>, ElasticError> {
+    pub async fn search_range(
+        &self,
+        start: &str,
+        end: &str,
+    ) -> Result<Vec<FimEvent>, ElasticError> {
         let body = serde_json::json!({
             "size": MAX_EVENTS,
             "sort": [{ "@timestamp": "desc" }],

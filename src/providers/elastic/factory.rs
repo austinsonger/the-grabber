@@ -63,9 +63,9 @@ impl ProviderFactory for ElasticProviderFactory {
             )));
         }
         if self.selected.iter().any(|s| s == "elastic-agents") {
-            v.push(Box::new(super::fleet_agents::ElasticFleetAgentsCollector::new(
-                self.client.clone(),
-            )));
+            v.push(Box::new(
+                super::fleet_agents::ElasticFleetAgentsCollector::new(self.client.clone()),
+            ));
         }
         if self.selected.iter().any(|s| s == "elastic-fim") {
             v.push(Box::new(super::fim_events::ElasticFimEventsCollector::new(
@@ -73,14 +73,14 @@ impl ProviderFactory for ElasticProviderFactory {
             )));
         }
         if self.selected.iter().any(|s| s == "elastic-connectors") {
-            v.push(Box::new(super::connectors::ElasticConnectorsCollector::new(
-                self.client.clone(),
-            )));
+            v.push(Box::new(
+                super::connectors::ElasticConnectorsCollector::new(self.client.clone()),
+            ));
         }
         if self.selected.iter().any(|s| s == "elastic-ilm") {
-            v.push(Box::new(super::ilm_policies::ElasticIlmPoliciesCollector::new(
-                self.client.clone(),
-            )));
+            v.push(Box::new(
+                super::ilm_policies::ElasticIlmPoliciesCollector::new(self.client.clone()),
+            ));
         }
         v
     }

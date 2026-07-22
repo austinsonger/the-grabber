@@ -16,8 +16,11 @@ impl<'c> RolesApi<'c> {
             .into_iter()
             .map(|(name, r)| {
                 let index_patterns = r.indices.iter().flat_map(|i| i.names.clone()).collect();
-                let index_privileges =
-                    r.indices.iter().flat_map(|i| i.privileges.clone()).collect();
+                let index_privileges = r
+                    .indices
+                    .iter()
+                    .flat_map(|i| i.privileges.clone())
+                    .collect();
                 SecurityRole {
                     name,
                     cluster_privileges: r.cluster,
