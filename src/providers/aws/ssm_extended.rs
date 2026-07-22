@@ -210,8 +210,11 @@ impl CsvCollector for SsmParameterConfigCollector {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 3. EC2 Time Sync Config (via SSM Inventory)
+// 3. EC2 Time Sync Config (executes chronyc/w32tm via SSM Run Command)
 // ══════════════════════════════════════════════════════════════════════════════
+
+const TIME_SYNC_POLL_INTERVAL_SECS: u64 = 5;
+const TIME_SYNC_MAX_POLL_ATTEMPTS: u32 = 24; // 2 minutes
 
 pub struct TimeSyncConfigCollector {
     client: SsmClient,
@@ -222,6 +225,93 @@ impl TimeSyncConfigCollector {
         Self {
             client: SsmClient::new(config),
         }
+    }
+
+    async fn run_and_collect(
+        &self,
+        document_name: &str,
+        command: &str,
+        instance_ids: &[String],
+    ) -> Result<std::collections::HashMap<String, (String, String)>> {
+        let mut results = std::collections::HashMap::new();
+        if instance_ids.is_empty() {
+            return Ok(results);
+        }
+
+        let send_resp = match self
+            .client
+            .send_command()
+            .document_name(document_name)
+            .set_instance_ids(Some(instance_ids.to_vec()))
+            .parameters("commands", vec![command.to_string()])
+            .send()
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("  WARN: SSM send_command [{document_name}]: {e:#}");
+                return Ok(results);
+            }
+        };
+
+        let command_id = match send_resp.command().and_then(|c| c.command_id()) {
+            Some(id) => id.to_string(),
+            None => return Ok(results),
+        };
+
+        let interval = tokio::time::Duration::from_secs(TIME_SYNC_POLL_INTERVAL_SECS);
+        for attempt in 1..=TIME_SYNC_MAX_POLL_ATTEMPTS {
+            tokio::time::sleep(interval).await;
+
+            let list_resp = match self
+                .client
+                .list_command_invocations()
+                .command_id(&command_id)
+                .details(true)
+                .send()
+                .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("  WARN: SSM list_command_invocations {command_id}: {e:#}");
+                    break;
+                }
+            };
+
+            let invocations = list_resp.command_invocations();
+            // Terminal states per the `status()` enum (the coarse, strongly-typed field --
+            // `status_details()` is a free-form string that also uses non-enum values like
+            // "Delivery Timed Out" / "Execution Timed Out", so we key off `status()` instead
+            // for both this check and the reported "Command Status" column below).
+            let all_terminal = invocations.iter().all(|inv| {
+                matches!(
+                    inv.status().map(|s| s.as_str()).unwrap_or(""),
+                    "Success" | "Failed" | "Cancelled" | "TimedOut"
+                )
+            });
+
+            if all_terminal || attempt == TIME_SYNC_MAX_POLL_ATTEMPTS {
+                for inv in invocations {
+                    let instance_id = inv.instance_id().unwrap_or("").to_string();
+                    let status = inv
+                        .status()
+                        .map(|s| s.as_str().to_string())
+                        .unwrap_or_default();
+                    let output = inv
+                        .command_plugins()
+                        .first()
+                        .and_then(|p| p.output())
+                        .unwrap_or("")
+                        .chars()
+                        .take(500)
+                        .collect::<String>();
+                    results.insert(instance_id, (status, output));
+                }
+                break;
+            }
+        }
+
+        Ok(results)
     }
 }
 
@@ -239,7 +329,8 @@ impl CsvCollector for TimeSyncConfigCollector {
             "Computer Name",
             "Platform",
             "SSM Ping Status",
-            "Time Source Note",
+            "Command Status",
+            "Command Output",
         ]
     }
 
@@ -249,7 +340,7 @@ impl CsvCollector for TimeSyncConfigCollector {
         _region: &str,
         _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
-        let mut rows = Vec::new();
+        let mut instances: Vec<(String, String, String, String)> = Vec::new();
         let mut next_token: Option<String> = None;
 
         loop {
@@ -266,39 +357,61 @@ impl CsvCollector for TimeSyncConfigCollector {
             };
 
             for info in resp.instance_information_list() {
-                let instance_id = info.instance_id().unwrap_or("").to_string();
-                let computer_name = info.computer_name().unwrap_or("").to_string();
-                let platform = info
-                    .platform_type()
-                    .map(|p| p.as_str().to_string())
-                    .unwrap_or_default();
-                let ping_status = info
-                    .ping_status()
-                    .map(|p| p.as_str().to_string())
-                    .unwrap_or_default();
-
-                // Time sync config requires SSM Run Command to retrieve (chronyc / timedatectl).
-                // AWS EC2 instances default to the AWS Time Sync Service (169.254.169.123).
-                // A full NTP audit requires running: `chronyc sources` or `w32tm /query /peers`
-                let time_note = if platform.to_lowercase().contains("windows") {
-                    "Verify via: w32tm /query /peers (SSM Run Command)".to_string()
-                } else {
-                    "Verify via: chronyc sources (SSM Run Command)".to_string()
-                };
-
-                rows.push(vec![
-                    instance_id,
-                    computer_name,
-                    platform,
-                    ping_status,
-                    time_note,
-                ]);
+                instances.push((
+                    info.instance_id().unwrap_or("").to_string(),
+                    info.computer_name().unwrap_or("").to_string(),
+                    info.platform_type()
+                        .map(|p| p.as_str().to_string())
+                        .unwrap_or_default(),
+                    info.ping_status()
+                        .map(|p| p.as_str().to_string())
+                        .unwrap_or_default(),
+                ));
             }
 
             next_token = resp.next_token().map(|s| s.to_string());
             if next_token.is_none() {
                 break;
             }
+        }
+
+        let linux_ids: Vec<String> = instances
+            .iter()
+            .filter(|(_, _, platform, _)| !platform.to_lowercase().contains("windows"))
+            .map(|(id, ..)| id.clone())
+            .collect();
+        let windows_ids: Vec<String> = instances
+            .iter()
+            .filter(|(_, _, platform, _)| platform.to_lowercase().contains("windows"))
+            .map(|(id, ..)| id.clone())
+            .collect();
+
+        let mut command_results = self
+            .run_and_collect("AWS-RunShellScript", "chronyc sources -v", &linux_ids)
+            .await?;
+        command_results.extend(
+            self.run_and_collect(
+                "AWS-RunPowerShellScript",
+                "w32tm /query /peers",
+                &windows_ids,
+            )
+            .await?,
+        );
+
+        let mut rows = Vec::new();
+        for (instance_id, computer_name, platform, ping_status) in instances {
+            let (cmd_status, cmd_output) = command_results
+                .get(&instance_id)
+                .cloned()
+                .unwrap_or_else(|| ("Not Run".to_string(), String::new()));
+            rows.push(vec![
+                instance_id,
+                computer_name,
+                platform,
+                ping_status,
+                cmd_status,
+                cmd_output,
+            ]);
         }
 
         Ok(rows)
