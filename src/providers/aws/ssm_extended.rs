@@ -216,6 +216,9 @@ impl CsvCollector for SsmParameterConfigCollector {
 const TIME_SYNC_POLL_INTERVAL_SECS: u64 = 5;
 const TIME_SYNC_MAX_POLL_ATTEMPTS: u32 = 24; // 2 minutes
 
+// AWS SSM `SendCommand` caps `InstanceIds` at 50 per call.
+const TIME_SYNC_INSTANCE_CHUNK_SIZE: usize = 50;
+
 pub struct TimeSyncConfigCollector {
     client: SsmClient,
 }
@@ -227,7 +230,33 @@ impl TimeSyncConfigCollector {
         }
     }
 
+    /// Runs `command` on up to `TIME_SYNC_INSTANCE_CHUNK_SIZE` instances at a time via
+    /// SSM `send_command`, chunking `instance_ids` to stay within AWS's 50-instance-per-call
+    /// `InstanceIds` limit. Each chunk gets its own independent send+poll cycle; a failure in
+    /// one chunk (e.g. its `send_command` call erroring) leaves that chunk's instances out of
+    /// the results map (they fall through to "Not Run" downstream) without affecting any other
+    /// chunk's results.
     async fn run_and_collect(
+        &self,
+        document_name: &str,
+        command: &str,
+        instance_ids: &[String],
+    ) -> Result<std::collections::HashMap<String, (String, String)>> {
+        let mut results = std::collections::HashMap::new();
+
+        for chunk in instance_ids.chunks(TIME_SYNC_INSTANCE_CHUNK_SIZE) {
+            let chunk_results = self
+                .run_and_collect_chunk(document_name, command, chunk)
+                .await?;
+            results.extend(chunk_results);
+        }
+
+        Ok(results)
+    }
+
+    /// Sends a single `send_command` call (at most `TIME_SYNC_INSTANCE_CHUNK_SIZE` instance IDs)
+    /// and polls for its results. See `run_and_collect` for the chunking wrapper.
+    async fn run_and_collect_chunk(
         &self,
         document_name: &str,
         command: &str,
