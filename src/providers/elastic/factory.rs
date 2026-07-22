@@ -62,6 +62,11 @@ impl ProviderFactory for ElasticProviderFactory {
                 self.client.clone(),
             )));
         }
+        if self.selected.iter().any(|s| s == "elastic-agents") {
+            v.push(Box::new(super::fleet_agents::ElasticFleetAgentsCollector::new(
+                self.client.clone(),
+            )));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
