@@ -1,3 +1,4 @@
+pub mod alerts;
 pub mod cases;
 pub mod detection_rules;
 pub mod exception_items;

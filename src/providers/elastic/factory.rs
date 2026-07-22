@@ -47,6 +47,11 @@ impl ProviderFactory for ElasticProviderFactory {
                 self.client.clone(),
             )));
         }
+        if self.selected.iter().any(|s| s == "elastic-alerts") {
+            v.push(Box::new(super::alerts::ElasticAlertsCollector::new(
+                self.client.clone(),
+            )));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
