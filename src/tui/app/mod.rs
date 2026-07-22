@@ -398,7 +398,7 @@ mod tests {
         app.collector_search.value = "iam".to_string();
         app.collector_search.cursor = 3;
         // "access-analyzer" label is "IAM Access Analyzer …" — matches via label
-        assert!(app.search_matches_item(57));
+        assert!(app.search_matches_item(60));
         // "api-gateway" — neither key nor label contains "iam"
         assert!(!app.search_matches_item(0));
     }
@@ -408,7 +408,7 @@ mod tests {
         let mut app = make_app();
         app.collector_search.value = "IAM".to_string();
         app.collector_search.cursor = 3;
-        assert!(app.search_matches_item(57));
+        assert!(app.search_matches_item(60));
     }
 
     #[test]
@@ -492,12 +492,12 @@ mod tests {
     #[test]
     fn clamp_cursors_noop_on_empty_search() {
         let mut app = make_app();
-        app.collector_category_cursor = 5;
-        app.collector_cursor = 50;
+        app.collector_category_cursor = 0;
+        app.collector_cursor = 2;
         app.clamp_collector_cursors();
         // No-op when search is empty — all categories visible
-        assert_eq!(app.collector_category_cursor, 5);
-        assert_eq!(app.collector_cursor, 50);
+        assert_eq!(app.collector_category_cursor, 0);
+        assert_eq!(app.collector_cursor, 2);
     }
 
     #[test]
