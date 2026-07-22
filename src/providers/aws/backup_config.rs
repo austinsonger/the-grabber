@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aws_sdk_backup::Client as BackupClient;
+use aws_sdk_ec2::Client as Ec2Client;
 use aws_sdk_rds::Client as RdsClient;
 
 use crate::evidence::CsvCollector;
@@ -291,6 +292,90 @@ impl CsvCollector for RdsBackupConfigCollector {
             if marker.is_none() {
                 break;
             }
+        }
+
+        Ok(rows)
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 4. Backup Region Settings (+ EC2 Region Opt-In Status)
+// ══════════════════════════════════════════════════════════════════════════════
+
+pub struct BackupRegionSettingsCollector {
+    backup: BackupClient,
+    ec2: Ec2Client,
+}
+
+impl BackupRegionSettingsCollector {
+    pub fn new(config: &aws_config::SdkConfig) -> Self {
+        Self {
+            backup: BackupClient::new(config),
+            ec2: Ec2Client::new(config),
+        }
+    }
+}
+
+#[async_trait]
+impl CsvCollector for BackupRegionSettingsCollector {
+    fn name(&self) -> &str {
+        "Backup Region Settings"
+    }
+    fn filename_prefix(&self) -> &str {
+        "Backup_Region_Settings"
+    }
+    fn headers(&self) -> &'static [&'static str] {
+        &["Setting Type", "Resource/Region", "Value"]
+    }
+
+    async fn collect_rows(
+        &self,
+        _account_id: &str,
+        _region: &str,
+        _dates: Option<(i64, i64)>,
+    ) -> Result<Vec<Vec<String>>> {
+        let mut rows = Vec::new();
+
+        let settings = self
+            .backup
+            .describe_region_settings()
+            .send()
+            .await
+            .context("Backup describe_region_settings")?;
+
+        if let Some(prefs) = settings.resource_type_opt_in_preference() {
+            for (resource_type, opted_in) in prefs {
+                rows.push(vec![
+                    "Resource Type Opt-In".to_string(),
+                    resource_type.clone(),
+                    opted_in.to_string(),
+                ]);
+            }
+        }
+
+        if let Some(prefs) = settings.resource_type_management_preference() {
+            for (resource_type, managed) in prefs {
+                rows.push(vec![
+                    "Resource Type Management".to_string(),
+                    resource_type.clone(),
+                    managed.to_string(),
+                ]);
+            }
+        }
+
+        let regions = self
+            .ec2
+            .describe_regions()
+            .send()
+            .await
+            .context("EC2 describe_regions")?;
+
+        for r in regions.regions() {
+            rows.push(vec![
+                "Region Opt-In Status".to_string(),
+                r.region_name().unwrap_or("").to_string(),
+                r.opt_in_status().unwrap_or("").to_string(),
+            ]);
         }
 
         Ok(rows)

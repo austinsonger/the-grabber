@@ -12,7 +12,8 @@ use crate::providers::aws::{
     autoscaling::AutoScalingCollector,
     backup::BackupCollector,
     backup_config::{
-        BackupPlanConfigCollector, BackupVaultConfigCollector, RdsBackupConfigCollector,
+        BackupPlanConfigCollector, BackupRegionSettingsCollector, BackupVaultConfigCollector,
+        RdsBackupConfigCollector,
     },
     client_vpn::AwsClientVpnCollector,
     cloudformation_drift::CloudFormationDriftCollector,
@@ -527,6 +528,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("backup-vaults") {
             v.push(Box::new(BackupVaultConfigCollector::new(cfg)));
+        }
+        if has("backup-region-settings") {
+            v.push(Box::new(BackupRegionSettingsCollector::new(cfg)));
         }
         if has("rds-backup-config") {
             v.push(Box::new(RdsBackupConfigCollector::new(cfg)));

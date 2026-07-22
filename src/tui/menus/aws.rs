@@ -89,6 +89,7 @@ pub const AWS_CATEGORIES: &[ProviderCategory] = &[
             ("backup", "AWS Backup API"),
             ("backup-plans", "AWS Backup Plans         "),
             ("backup-vaults", "Backup Vault Config      "),
+            ("backup-region-settings", "Backup Region Settings   "),
             ("doc-repo-backup", "Doc Repo Backup Config  "),
             ("rds-backup-config", "RDS Backup Config        "),
             ("rds-inventory", "RDS Inventory            "),

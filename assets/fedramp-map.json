@@ -97,6 +97,14 @@
         "CP-09a."
       ]
     },
+    "Backup_Region_Settings": {
+      "req_ids": [
+        "NIST-1279"
+      ],
+      "control_ids": [
+        "CP-06(03)[01], CP-06(03)[02]"
+      ]
+    },
     "Backup_Vault_Config": {
       "req_ids": [
         "NIST-1276"
