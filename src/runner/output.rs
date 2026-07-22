@@ -179,7 +179,7 @@ pub fn write_inventory_outputs(
     }
 
     let xlsx_filename = now_local
-        .format("%Y-%m-%d_Inventory_%H-%M-%S.xlsx")
+        .format("SSP-Appendix-M-Integrated-Inventory-Workbook-%Y-%m-%d.xlsx")
         .to_string();
     let xlsx_path = inventory_dir.join(&xlsx_filename);
     let template_path = std::path::Path::new("assets/Inventory.xlsx");

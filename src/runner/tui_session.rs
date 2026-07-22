@@ -329,16 +329,15 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 // (or SSO session is not logged in) and every collector would
                 // fail anyway.
                 let sts = aws_sdk_sts::Client::new(&probe_config);
-                let (canary_ok, aws_caller_arn, aws_user_id) =
+                let (canary_ok, aws_caller_arn, aws_user_id, resolved_account_id) =
                     match sts.get_caller_identity().send().await {
                         Ok(resp) => {
                             let arn = resp.arn().unwrap_or("unknown").to_string();
                             let uid = resp.user_id().unwrap_or("unknown").to_string();
-                            app.prep_log.push(format!(
-                                "  ✓ Credentials OK  account={}",
-                                resp.account().unwrap_or("?"),
-                            ));
-                            (true, arn, uid)
+                            let resolved = resp.account().unwrap_or("unknown").to_string();
+                            app.prep_log
+                                .push(format!("  ✓ Credentials OK  account={}", resolved));
+                            (true, arn, uid, resolved)
                         }
                         Err(e) => {
                             app.prep_log.push(format!(
@@ -346,7 +345,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                             profile,
                         ));
                             app.prep_log.push(format!("    ({})", e));
-                            (false, String::new(), String::new())
+                            (false, String::new(), String::new(), String::new())
                         }
                     };
                 terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
@@ -358,6 +357,14 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
                     continue;
                 }
+
+                // From here on, use the real numeric AWS account ID (not the
+                // sanitized display name from config.toml) — this value is
+                // embedded directly into hand-built ARNs (VPC, IGW, NAT,
+                // TGW attachment, Config recorder, GuardDuty detector) by the
+                // inventory orchestrator, so a display name here would
+                // produce malformed ARNs.
+                let account_id = resolved_account_id;
 
                 let names_ref: Vec<&str> = collector_keys.iter().map(|s| s.as_str()).collect();
 
