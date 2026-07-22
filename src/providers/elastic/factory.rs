@@ -67,6 +67,11 @@ impl ProviderFactory for ElasticProviderFactory {
                 self.client.clone(),
             )));
         }
+        if self.selected.iter().any(|s| s == "elastic-fim") {
+            v.push(Box::new(super::fim_events::ElasticFimEventsCollector::new(
+                self.client.clone(),
+            )));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
