@@ -3,6 +3,7 @@ pub mod cases;
 pub mod detection_rules;
 pub mod exception_items;
 pub mod factory;
+pub mod roles;
 pub mod users;
 
 // Authentication:
