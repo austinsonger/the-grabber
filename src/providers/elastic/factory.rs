@@ -37,6 +37,11 @@ impl ProviderFactory for ElasticProviderFactory {
                 self.client.clone(),
             )));
         }
+        if self.selected.iter().any(|s| s == "elastic-exceptions") {
+            v.push(Box::new(super::exception_items::ElasticExceptionItemsCollector::new(
+                self.client.clone(),
+            )));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
