@@ -869,6 +869,8 @@ fn handle_provider_selection(app: &mut App, key: KeyCode) {
         v.push(CloudProvider::Okta);
         #[cfg(feature = "jira")]
         v.push(CloudProvider::Jira);
+        #[cfg(feature = "elastic")]
+        v.push(CloudProvider::Elastic);
         v
     };
     match key {

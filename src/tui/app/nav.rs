@@ -104,11 +104,10 @@ impl App {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
                     Screen::TenableEndpoint
-                } else if self.selected_provider == CloudProvider::Okta {
-                    self.auto_select_provider_accounts();
-                    self.clamp_collector_cursors();
-                    Screen::SelectCollectors
-                } else if self.selected_provider == CloudProvider::Jira {
+                } else if self.selected_provider == CloudProvider::Okta
+                    || self.selected_provider == CloudProvider::Jira
+                    || self.selected_provider == CloudProvider::Elastic
+                {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
                     Screen::SelectCollectors
@@ -160,6 +159,7 @@ impl App {
                     Screen::TenableEndpoint
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
+                    || self.selected_provider == CloudProvider::Elastic
                 {
                     Screen::ProviderSelection
                 } else {
@@ -256,6 +256,18 @@ impl App {
                     if !has_jira {
                         self.error_msg =
                             Some("No Jira accounts configured in jira-config.toml".into());
+                        return false;
+                    }
+                }
+                #[cfg(feature = "elastic")]
+                if self.selected_provider == CloudProvider::Elastic {
+                    let has_elastic = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::Elastic);
+                    if !has_elastic {
+                        self.error_msg =
+                            Some("No Elastic accounts configured in elastic-config.toml".into());
                         return false;
                     }
                 }

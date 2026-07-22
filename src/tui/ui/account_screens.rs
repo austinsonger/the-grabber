@@ -53,6 +53,12 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
             "◆  Jira",
             "Collect projects and issues from Jira Cloud or Jira Server",
         ));
+        #[cfg(feature = "elastic")]
+        v.push((
+            CloudProvider::Elastic,
+            "◆  Elastic Security",
+            "Collect detection rules, exception items, alerts, and cases from Elastic SIEM",
+        ));
         v
     };
 
