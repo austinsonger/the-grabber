@@ -15,6 +15,9 @@ pub mod okta;
 #[cfg(feature = "jira")]
 pub mod jira;
 
+#[cfg(feature = "crowdstrike")]
+pub mod crowdstrike;
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -36,6 +39,7 @@ pub enum CloudProvider {
     Tenable,
     Okta,
     Jira,
+    CrowdStrike,
 }
 
 impl fmt::Display for CloudProvider {
@@ -47,6 +51,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Tenable => write!(f, "Tenable"),
             CloudProvider::Okta => write!(f, "Okta"),
             CloudProvider::Jira => write!(f, "Jira"),
+            CloudProvider::CrowdStrike => write!(f, "CrowdStrike"),
         }
     }
 }

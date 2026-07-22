@@ -55,3 +55,6 @@ okta-config.toml
 
 # Jira credentials — never commit
 jira-config.toml
+
+# CrowdStrike credentials — never commit
+crowdstrike-config.toml

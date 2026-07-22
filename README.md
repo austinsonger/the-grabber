@@ -1,6 +1,6 @@
 # The Grabber
 
-The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, and Tenable, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
+The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, Tenable, and CrowdStrike, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
 ![Alt text](assets/1.Grabber_LandingPage.png)
 
@@ -10,7 +10,7 @@ The Grabber. Collects current-state snapshots and time-windowed audit records fr
 
 - **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
 - **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
-- **200+ collectors across four providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable (see `evidence-list.md` for the current catalog)
+- **200+ collectors across five providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 5 CrowdStrike (see `evidence-list.md` for the current catalog)
 - **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
 - **Chain-of-custody audit trail** — per-run `CHAIN-OF-CUSTODY-*.json` and an append-only `CHAIN-OF-CUSTODY.jsonl` log capture operator identity, hostname, AWS caller ARN, and the sanitized CLI invocation
 - **Run manifest** — `RUN-MANIFEST-*.json` records every collector's outcome (success/empty/error/timeout), record count, and file size
@@ -847,6 +847,54 @@ Or via environment variables (env wins over TOML):
 | `tenable-pci-asv` | CSV | PCI ASV scan results |
 | `tenable-assets` | CSV | Asset inventory |
 | `tenable-compliance` | CSV | Compliance / audit-file findings |
+
+---
+
+## CrowdStrike
+
+Optional feature — build with `--features crowdstrike` (enabled by default).
+
+### Configuration
+
+Create `crowdstrike-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name                      = "CrowdStrike"
+provider                  = "crowdstrike"
+description               = "CrowdStrike Falcon platform"
+output_dir                = "./evidence-output/crowdstrike"
+crowdstrike_client_id     = ""
+crowdstrike_client_secret = ""
+# crowdstrike_base_url    = ""   # omit for US-1; see Falcon cloud table below
+```
+
+Or via environment variables (env wins over TOML):
+
+- `CROWDSTRIKE_CLIENT_ID`
+- `CROWDSTRIKE_CLIENT_SECRET`
+- `CROWDSTRIKE_BASE_URL`
+
+Create an OAuth2 API client in the Falcon console: **Support and resources → API clients and keys → Create API client**, granting read scope for Hosts, Alerts, Vulnerabilities (Spotlight), Prevention Policies, and Sensor Update Policies.
+
+### Falcon clouds
+
+| Cloud | Base URL |
+|-------|----------|
+| US-1 (default) | `https://api.crowdstrike.com` |
+| US-2 | `https://api.us-2.crowdstrike.com` |
+| EU-1 | `https://api.eu-1.crowdstrike.com` |
+| US-GOV-1 | `https://api.laggar.gcw.crowdstrike.com` |
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `crowdstrike-hosts` | CSV | Host/device inventory |
+| `crowdstrike-alerts` | CSV | Detections and incidents (unified Alerts API), time-windowed |
+| `crowdstrike-vulnerabilities` | CSV | Spotlight vulnerability findings |
+| `crowdstrike-prevention-policies` | CSV | Prevention policy configuration |
+| `crowdstrike-sensor-update-policies` | CSV | Sensor update (N/N-1/N-2) policy configuration |
 
 ---
 

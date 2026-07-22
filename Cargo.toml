@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/crowdstrike-rs"]
 resolver = "2"
 
 [package]
@@ -103,13 +103,17 @@ okta-rs = { path = "crates/okta-rs", optional = true }
 # Jira — only compiled with `--features jira`
 jira-rs = { path = "crates/jira-rs", optional = true }
 
+# CrowdStrike — only compiled with `--features crowdstrike`
+crowdstrike-rs = { path = "crates/crowdstrike-rs", optional = true }
+
 [features]
-default = ["tenable", "okta", "jira"]
-azure   = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
-gcp     = ["dep:google-cloud-auth"]
-tenable = ["dep:tenable-rs"]
-okta    = ["dep:okta-rs"]
-jira    = ["dep:jira-rs"]
+default    = ["tenable", "okta", "jira", "crowdstrike"]
+azure      = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
+gcp        = ["dep:google-cloud-auth"]
+tenable    = ["dep:tenable-rs"]
+okta       = ["dep:okta-rs"]
+jira       = ["dep:jira-rs"]
+crowdstrike = ["dep:crowdstrike-rs"]
 
 [dev-dependencies]
 tempfile = "3"

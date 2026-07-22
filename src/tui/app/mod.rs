@@ -190,6 +190,11 @@ impl App {
             "okta-system-log",
             "jira-projects",
             "jira-issues",
+            "crowdstrike-hosts",
+            "crowdstrike-alerts",
+            "crowdstrike-vulnerabilities",
+            "crowdstrike-prevention-policies",
+            "crowdstrike-sensor-update-policies",
         ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {
@@ -522,6 +527,24 @@ mod tests {
         assert!(
             app.collector_selected.is_empty(),
             "Jira selection should start empty"
+        );
+
+        // Switch to CrowdStrike — neither Okta nor Jira selection should leak.
+        app.selected_provider = CloudProvider::CrowdStrike;
+        app.load_menu_for_current_provider();
+        assert!(
+            !app.collector_items.is_empty(),
+            "CrowdStrike menu should have items"
+        );
+        assert!(
+            app.collector_selected.is_empty(),
+            "CrowdStrike selection should start empty"
+        );
+        assert!(
+            app.collector_items
+                .iter()
+                .all(|(_, _, p)| *p == CloudProvider::CrowdStrike),
+            "CrowdStrike menu items must all be tagged CrowdStrike"
         );
 
         // Switch back to Okta — the original selection should be restored.

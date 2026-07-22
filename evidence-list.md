@@ -121,6 +121,16 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV201 | Tenable PCI ASV Compliance | `Tenable_PCI_ASV_Compliance` | Asset ID, Hostname, IPv4, Check Name, Status, Policy, Reference, First Found, Last Found |
 | EV202 | Tenable Web App Scanning | `Tenable_WAS_Findings` | Finding ID, State, First Found, Last Found, URL, HTTP Method, Input Type, Input Name, Plugin ID, Plugin Name, Risk Factor, Synopsis, Description, Solution, CVEs, Severity, Severity ID, CVSS Base Score, CVSS3 Base Score, VPR Score, Scan ID, Scan Started At, Scan Completed At |
 
+### Endpoint Detection & Response — CrowdStrike
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV203 | CrowdStrike Hosts | `CrowdStrike_Hosts` | Device ID, Hostname, Platform, OS Version, Agent Version, First Seen, Last Seen, Status, External IP, Local IP, MAC Address, Serial Number, System Manufacturer, System Product Name, Reduced Functionality Mode |
+| EV204 | CrowdStrike Alerts | `CrowdStrike_Alerts` | Alert ID, Composite ID, Created, Updated, Status, Severity, Severity Name, Type, Product, Tactic, Technique, Description, Device Hostname, Device ID, Agent ID |
+| EV205 | CrowdStrike Vulnerabilities | `CrowdStrike_Vulnerabilities` | Vulnerability ID, CVE ID, Severity, Status, Base Score, Exploit Status, Hostname, Device ID, Platform, Created, Updated, Closed |
+| EV206 | CrowdStrike Prevention Policies | `CrowdStrike_Prevention_Policies` | Policy ID, Name, Platform, Enabled, Description, Precedence, Created, Modified, Created By, Modified By |
+| EV207 | CrowdStrike Sensor Update Policies | `CrowdStrike_Sensor_Update_Policies` | Policy ID, Name, Platform, Enabled, Build, Scheduler Enabled, Uninstall Protection, Created, Modified, Created By, Modified By |
+
 ### Certificates & PKI
 
 | # | Name | Filename Prefix | Columns |
@@ -391,7 +401,8 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Okta collectors | 24 |
 | Jira collectors | 28 |
 | Tenable collectors | 5 |
-| **Total evidence collectors** | **201** |
+| CrowdStrike collectors | 5 |
+| **Total evidence collectors** | **206** |
 | Asset Inventory asset types (Inventory feature) | 8 |
 
 Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.

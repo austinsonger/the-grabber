@@ -367,6 +367,15 @@ Jira credentials come from `jira-config.toml` (or `JIRA_DOMAIN` / `JIRA_EMAIL` /
 
 Credentials come from `tenable-config.toml` (or `TENABLE_ACCESS_KEY` / `TENABLE_SECRET_KEY`). Tenable is region-agnostic — `--region`, `--all-regions`, and `--regions` have no effect.
 
+## CrowdStrike
+
+```bash
+./target/release/grabber \
+  --collectors crowdstrike-hosts,crowdstrike-alerts,crowdstrike-vulnerabilities,crowdstrike-prevention-policies,crowdstrike-sensor-update-policies
+```
+
+Credentials come from `crowdstrike-config.toml` (or `CROWDSTRIKE_CLIENT_ID` / `CROWDSTRIKE_CLIENT_SECRET` / `CROWDSTRIKE_BASE_URL`). CrowdStrike is region-agnostic — `--region`, `--all-regions`, and `--regions` have no effect. `crowdstrike-alerts` respects `--start-date`/`--end-date` (or `--lookback`) like any other time-windowed collector; the others are point-in-time snapshots.
+
 ## Useful local commands
 
 ### Show generated help

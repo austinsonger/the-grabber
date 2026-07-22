@@ -203,6 +203,24 @@ pub struct Account {
     pub jira_api_token: Option<String>,
 
     // ------------------------------------------------------------------
+    // CrowdStrike fields
+    // ------------------------------------------------------------------
+    /// CrowdStrike Falcon OAuth2 API client ID.
+    /// Can also be supplied via `CROWDSTRIKE_CLIENT_ID` env var (env wins over TOML).
+    pub crowdstrike_client_id: Option<String>,
+
+    /// CrowdStrike Falcon OAuth2 API client secret.
+    /// Can also be supplied via `CROWDSTRIKE_CLIENT_SECRET` env var (env wins over TOML).
+    pub crowdstrike_client_secret: Option<String>,
+
+    /// CrowdStrike Falcon cloud base URL.
+    /// Omit for US-1 (defaults to `https://api.crowdstrike.com`). Other Falcon
+    /// clouds: US-2 `https://api.us-2.crowdstrike.com`, EU-1
+    /// `https://api.eu-1.crowdstrike.com`, US-GOV-1
+    /// `https://api.laggar.gcw.crowdstrike.com`.
+    pub crowdstrike_base_url: Option<String>,
+
+    // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
     /// Per-account collector overrides (enable_extra / disable).
@@ -270,6 +288,30 @@ impl Account {
             .map(|s| s.trim().trim_end_matches('/').to_string())
             .filter(|s| !s.is_empty())
     }
+
+    /// Resolve CrowdStrike client ID: env var takes precedence over TOML.
+    pub fn crowdstrike_client_id_resolved(&self) -> Option<String> {
+        std::env::var("CROWDSTRIKE_CLIENT_ID")
+            .ok()
+            .or_else(|| self.crowdstrike_client_id.clone())
+    }
+
+    /// Resolve CrowdStrike client secret: env var takes precedence over TOML.
+    pub fn crowdstrike_client_secret_resolved(&self) -> Option<String> {
+        std::env::var("CROWDSTRIKE_CLIENT_SECRET")
+            .ok()
+            .or_else(|| self.crowdstrike_client_secret.clone())
+    }
+
+    /// Resolve CrowdStrike Falcon cloud base URL, defaulting to US-1.
+    pub fn crowdstrike_base_url_resolved(&self) -> String {
+        std::env::var("CROWDSTRIKE_BASE_URL")
+            .ok()
+            .or_else(|| self.crowdstrike_base_url.clone())
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "https://api.crowdstrike.com".to_string())
+    }
 }
 
 /// Best-effort load of config, checking in order:
@@ -277,7 +319,8 @@ impl Account {
 ///   2. `~/.config/evidence/config.toml`  (user-global)
 ///
 /// After loading the primary config, `./tenable-config.toml`, `./okta-config.toml`,
-/// and `./jira-config.toml` are merged in (accounts only) if those files exist.
+/// `./jira-config.toml`, and `./crowdstrike-config.toml` are merged in (accounts
+/// only) if those files exist.
 pub fn load_config() -> Option<AppConfig> {
     let mut cfg: AppConfig = {
         let local = PathBuf::from("config.toml");
@@ -324,6 +367,16 @@ pub fn load_config() -> Option<AppConfig> {
         if let Ok(contents) = fs::read_to_string(&jira_path) {
             if let Ok(jira_cfg) = toml::from_str::<AppConfig>(&contents) {
                 cfg.account.extend(jira_cfg.account);
+            }
+        }
+    }
+
+    // Merge crowdstrike-config.toml accounts if present
+    let crowdstrike_path = PathBuf::from("crowdstrike-config.toml");
+    if crowdstrike_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&crowdstrike_path) {
+            if let Ok(crowdstrike_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(crowdstrike_cfg.account);
             }
         }
     }

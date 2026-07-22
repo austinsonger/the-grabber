@@ -53,6 +53,12 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
             "◆  Jira",
             "Collect projects and issues from Jira Cloud or Jira Server",
         ));
+        #[cfg(feature = "crowdstrike")]
+        v.push((
+            CloudProvider::CrowdStrike,
+            "◆  CrowdStrike",
+            "Collect hosts, alerts, vulnerabilities, and policy configuration from Falcon",
+        ));
         v
     };
 
