@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/elastic-rs"]
 resolver = "2"
 
 [package]
