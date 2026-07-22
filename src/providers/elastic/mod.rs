@@ -1,5 +1,6 @@
 pub mod alerts;
 pub mod cases;
+pub mod connectors;
 pub mod detection_rules;
 pub mod exception_items;
 pub mod factory;
