@@ -955,6 +955,125 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 }
             }
 
+            // ── Elastic accounts ────────────────────────────────────────────────────
+            #[cfg(feature = "elastic")]
+            if !app.selected_accounts.is_empty() {
+                use crate::providers::ProviderFactory as _;
+
+                let sorted_all: Vec<usize> = {
+                    let mut v: Vec<usize> = app.selected_accounts.iter().copied().collect();
+                    v.sort();
+                    v
+                };
+                for &idx in &sorted_all {
+                    if app.accounts[idx].provider != crate::providers::CloudProvider::Elastic {
+                        continue;
+                    }
+                    let acct = &app.accounts[idx];
+                    let deployment_name = acct.name.clone();
+
+                    let kibana_url = match acct.elastic_kibana_url_resolved() {
+                        Some(u) => u,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Elastic '{}' — missing elastic_kibana_url (or ELASTIC_KIBANA_URL env)",
+                                deployment_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let es_url = match acct.elastic_es_url_resolved() {
+                        Some(u) => u,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Elastic '{}' — missing elastic_es_url (or ELASTIC_ES_URL env)",
+                                deployment_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let api_key = match acct.elastic_api_key_resolved() {
+                        Some(k) => k,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Elastic '{}' — missing elastic_api_key (or ELASTIC_API_KEY env)",
+                                deployment_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    app.prep_log
+                        .push(format!("  Elastic '{}' → {}", deployment_name, kibana_url));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+                    let client = match elastic_rs::ElasticClient::new(&kibana_url, &es_url, &api_key) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            app.prep_log.push(format!(
+                                "  ✗ Elastic '{}' — client build failed: {e}",
+                                deployment_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    let selected_keys: Vec<String> = app
+                        .selected_collectors()
+                        .into_iter()
+                        .filter(|k| k.starts_with("elastic-"))
+                        .collect();
+
+                    let factory = crate::providers::elastic::factory::ElasticProviderFactory::new(
+                        client,
+                        deployment_name.clone(),
+                        selected_keys.clone(),
+                    );
+                    let csv_cols = factory.csv_collectors();
+                    let json_inv_cols = factory.json_collectors();
+                    let evidence_cols = factory.evidence_collectors();
+                    let display_names: Vec<String> = csv_cols
+                        .iter()
+                        .map(|c| c.name().to_string())
+                        .chain(json_inv_cols.iter().map(|c| c.name().to_string()))
+                        .chain(evidence_cols.iter().map(|c| c.name().to_string()))
+                        .collect();
+
+                    let output_path = Some(
+                        base_output_path
+                            .clone()
+                            .unwrap_or_else(|| PathBuf::from("."))
+                            .join(&deployment_name),
+                    );
+
+                    prepared.push(crate::runner::multi_account::AccountCollectors {
+                        account_id: deployment_name.clone(),
+                        aws_caller_arn: String::new(),
+                        aws_user_id: String::new(),
+                        profile: String::new(),
+                        region: String::new(),
+                        output_path,
+                        collector_keys: selected_keys,
+                        json_collectors: evidence_cols,
+                        json_inv_collectors: json_inv_cols,
+                        csv_collectors: csv_cols,
+                        display_names,
+                        discovered_regions: Vec::new(),
+                        regional_collectors: Vec::new(),
+                        inventory_multi_region: Vec::new(),
+                        endpoint_label: Some(format!("Elastic — {}", kibana_url)),
+                    });
+
+                    app.prep_log
+                        .push(format!("  ✓ Elastic '{}' ready.", deployment_name));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                }
+            }
+
             // Guard: if every account failed the canary check, prepared is empty.
             // Show an error on the Preparing screen and return cleanly instead of
             // panicking at prepared[0].
