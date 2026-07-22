@@ -45,6 +45,7 @@ pub const AWS_CATEGORIES: &[ProviderCategory] = &[
             ("config-snapshot", "Config Snapshot (PiT)"),
             ("ct-config-changes", "CT Config Change Events  "),
             ("ct-iam-changes", "CT IAM Changes (Hi-Risk) "),
+            ("ct-logs-insights", "CT Logs Insights Query   "),
         ],
     },
     ProviderCategory {

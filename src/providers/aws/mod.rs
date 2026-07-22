@@ -18,6 +18,7 @@ pub mod cloudtrail_config;
 pub mod cloudtrail_details;
 pub mod cloudtrail_iam;
 pub mod cloudtrail_inventory;
+pub mod cloudtrail_logs_insights;
 pub mod cloudtrail_s3;
 pub mod cloudwatch;
 pub mod cloudwatch_alarms;

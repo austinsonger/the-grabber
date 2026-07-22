@@ -189,6 +189,14 @@
       "req_ids": [],
       "control_ids": []
     },
+    "CloudTrail_Logs_Insights_Query": {
+      "req_ids": [
+        "NIST-1151"
+      ],
+      "control_ids": [
+        "AU-07(01), AU-07a., AU-07b."
+      ]
+    },
     "CloudTrail_S3DataEvents": {
       "req_ids": [],
       "control_ids": []

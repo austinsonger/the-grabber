@@ -26,6 +26,7 @@ use crate::providers::aws::{
     },
     cloudtrail_iam::{CloudTrailConfigChangesCollector, CloudTrailIamChangesCollector},
     cloudtrail_inventory::CloudTrailInventoryCollector,
+    cloudtrail_logs_insights::CloudTrailLogsInsightsCollector,
     cloudwatch::MetricFilterAlarmCollector,
     cloudwatch_alarms::CloudWatchConfigAlarmsCollector,
     cloudwatch_config::{CwLogGroupConfigCollector, MetricFilterConfigCollector},
@@ -640,6 +641,9 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("ct-config-changes") {
             v.push(Box::new(CloudTrailConfigChangesCollector::new(cfg)));
+        }
+        if has("ct-logs-insights") {
+            v.push(Box::new(CloudTrailLogsInsightsCollector::new(cfg)));
         }
         if has("kms-config") {
             v.push(Box::new(KmsKeyConfigCollector::new(cfg)));
