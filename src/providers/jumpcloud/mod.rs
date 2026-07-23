@@ -16,5 +16,6 @@ pub mod password_policy;
 pub mod policies;
 pub mod session_policy;
 pub mod systems;
+pub mod system_groups;
 pub mod user_groups;
 pub mod users;
