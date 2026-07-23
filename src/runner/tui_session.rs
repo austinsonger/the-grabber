@@ -835,6 +835,125 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 }
             }
 
+            // ── Jamf accounts ────────────────────────────────────────────────────
+            #[cfg(feature = "jamf")]
+            if !app.selected_accounts.is_empty() {
+                use crate::providers::ProviderFactory as _;
+
+                let sorted_all: Vec<usize> = {
+                    let mut v: Vec<usize> = app.selected_accounts.iter().copied().collect();
+                    v.sort();
+                    v
+                };
+                for &idx in &sorted_all {
+                    if app.accounts[idx].provider != crate::providers::CloudProvider::Jamf {
+                        continue;
+                    }
+                    let acct = &app.accounts[idx];
+                    let tenant_name = acct.name.clone();
+
+                    let base_url = match acct.jamf_base_url_resolved() {
+                        Some(u) => u,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jamf '{}' — missing jamf_base_url (or JAMF_BASE_URL env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let client_id = match acct.jamf_client_id_resolved() {
+                        Some(c) => c,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jamf '{}' — missing jamf_client_id (or JAMF_CLIENT_ID env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let client_secret = match acct.jamf_client_secret_resolved() {
+                        Some(s) => s,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jamf '{}' — missing jamf_client_secret (or JAMF_CLIENT_SECRET env)",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    app.prep_log
+                        .push(format!("  Jamf '{}' → {}", tenant_name, base_url));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+                    let client = match jamf_rs::JamfClient::new(&base_url, &client_id, &client_secret) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            app.prep_log.push(format!(
+                                "  ✗ Jamf '{}' — client build failed: {e}",
+                                tenant_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    let selected_keys: Vec<String> = app
+                        .selected_collectors()
+                        .into_iter()
+                        .filter(|k| k.starts_with("jamf-"))
+                        .collect();
+
+                    let factory = crate::providers::jamf::factory::JamfProviderFactory::new(
+                        client,
+                        tenant_name.clone(),
+                        selected_keys.clone(),
+                    );
+                    let csv_cols = factory.csv_collectors();
+                    let json_inv_cols = factory.json_collectors();
+                    let evidence_cols = factory.evidence_collectors();
+                    let display_names: Vec<String> = csv_cols
+                        .iter()
+                        .map(|c| c.name().to_string())
+                        .chain(json_inv_cols.iter().map(|c| c.name().to_string()))
+                        .chain(evidence_cols.iter().map(|c| c.name().to_string()))
+                        .collect();
+
+                    let output_path = Some(
+                        base_output_path
+                            .clone()
+                            .unwrap_or_else(|| PathBuf::from("."))
+                            .join(&tenant_name),
+                    );
+
+                    prepared.push(crate::runner::multi_account::AccountCollectors {
+                        account_id: tenant_name.clone(),
+                        aws_caller_arn: String::new(),
+                        aws_user_id: String::new(),
+                        profile: String::new(),
+                        region: String::new(),
+                        output_path,
+                        collector_keys: selected_keys,
+                        json_collectors: evidence_cols,
+                        json_inv_collectors: json_inv_cols,
+                        csv_collectors: csv_cols,
+                        display_names,
+                        discovered_regions: Vec::new(),
+                        regional_collectors: Vec::new(),
+                        inventory_multi_region: Vec::new(),
+                        endpoint_label: Some(format!("Jamf — {}", base_url)),
+                    });
+
+                    app.prep_log
+                        .push(format!("  ✓ Jamf '{}' ready.", tenant_name));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                }
+            }
+
             // ── Jira accounts ─────────────────────────────────────────────────────
             #[cfg(feature = "jira")]
             if !app.selected_accounts.is_empty() {
