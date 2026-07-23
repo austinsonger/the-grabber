@@ -1,6 +1,6 @@
 # The Grabber
 
-The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, Tenable, and CrowdStrike, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
+The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, Tenable, CrowdStrike, and Elastic, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
 ![Alt text](assets/1.Grabber_LandingPage.png)
 
@@ -10,7 +10,7 @@ The Grabber. Collects current-state snapshots and time-windowed audit records fr
 
 - **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
 - **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
-- **200+ collectors across five providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 5 CrowdStrike (see `evidence-list.md` for the current catalog)
+- **200+ collectors across six providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 10 Elastic, 5 CrowdStrike (see `evidence-list.md` for the current catalog)
 - **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
 - **Chain-of-custody audit trail** — per-run `CHAIN-OF-CUSTODY-*.json` and an append-only `CHAIN-OF-CUSTODY.jsonl` log capture operator identity, hostname, AWS caller ARN, and the sanitized CLI invocation
 - **Run manifest** — `RUN-MANIFEST-*.json` records every collector's outcome (success/empty/error/timeout), record count, and file size
@@ -895,6 +895,52 @@ Create an OAuth2 API client in the Falcon console: **Support and resources → A
 | `crowdstrike-vulnerabilities` | CSV | Spotlight vulnerability findings |
 | `crowdstrike-prevention-policies` | CSV | Prevention policy configuration |
 | `crowdstrike-sensor-update-policies` | CSV | Sensor update (N/N-1/N-2) policy configuration |
+
+---
+
+## Elastic
+
+Optional feature — build with `--features elastic` (enabled by default).
+
+### Configuration
+
+Create `elastic-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name               = "Elastic"
+provider           = "elastic"
+description        = "Elastic Security production deployment"
+output_dir         = "./evidence-output/elastic"
+elastic_kibana_url = "https://my-deployment.kb.us-east-1.aws.found.io"
+elastic_es_url     = "https://my-deployment.es.us-east-1.aws.found.io"
+elastic_api_key    = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `ELASTIC_KIBANA_URL` — Kibana base URL (Detection Engine, Exception Lists, Cases)
+- `ELASTIC_ES_URL` — Elasticsearch base URL (direct alert search)
+- `ELASTIC_API_KEY` — API key, base64-encoded `id:api_key` form
+
+Create an API key in Kibana: **Stack Management → API Keys → Create API key**. Copy the "Encoded" value — this is what Kibana-created keys use to authenticate directly against both Kibana and Elasticsearch. The key needs the Security "Read" feature privilege (or higher) for Cases and Rule Management, `read_security`/`manage_security` cluster privilege for the users/roles/ILM collectors, the Kibana "Fleet" and "Actions and Connectors" feature privileges for the Fleet agents and connectors collectors, plus read access to the `.alerts-security.alerts-*` and `logs-file_integrity.event-*` indices.
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `elastic-rules` | CSV | Detection rules inventory (type, severity, risk score, enabled state) |
+| `elastic-exceptions` | CSV | Exception list items across all exception lists |
+| `elastic-alerts` | CSV | Time-windowed security alerts from `.alerts-security.alerts-*` |
+| `elastic-cases` | CSV | Time-windowed Security Solution cases |
+| `elastic-connectors` | CSV | Configured alerting connectors (email, Slack, PagerDuty, webhook, etc.) |
+| `elastic-users` | CSV | Elasticsearch security users, roles, and enabled state |
+| `elastic-roles` | CSV | Elasticsearch security roles and their cluster/index privileges |
+| `elastic-agents` | CSV | Enrolled Fleet agent inventory (version, policy, last checkin) |
+| `elastic-fim` | CSV | Time-windowed File Integrity Monitoring events (requires the FIM Elastic Agent integration) |
+| `elastic-ilm` | CSV | Index Lifecycle Management policies — retention/deletion configuration per policy (AU-11 evidence) |
+
+Elastic has no region concept, like Tenable/Okta/Jira — `--all-regions` and region selection do not apply.
 
 ---
 

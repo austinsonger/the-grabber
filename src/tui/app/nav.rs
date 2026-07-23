@@ -107,6 +107,7 @@ impl App {
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::CrowdStrike
+                    || self.selected_provider == CloudProvider::Elastic
                 {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
@@ -160,6 +161,7 @@ impl App {
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::CrowdStrike
+                    || self.selected_provider == CloudProvider::Elastic
                 {
                     Screen::ProviderSelection
                 } else {
@@ -269,6 +271,18 @@ impl App {
                         self.error_msg = Some(
                             "No CrowdStrike accounts configured in crowdstrike-config.toml".into(),
                         );
+                        return false;
+                    }
+                }
+                #[cfg(feature = "elastic")]
+                if self.selected_provider == CloudProvider::Elastic {
+                    let has_elastic = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::Elastic);
+                    if !has_elastic {
+                        self.error_msg =
+                            Some("No Elastic accounts configured in elastic-config.toml".into());
                         return false;
                     }
                 }

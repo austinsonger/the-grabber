@@ -436,7 +436,7 @@ grabber --inventory --ec2 --rds --skip-inventory-csv
 
 ## Collector Keys Reference
 
-All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `tenable-*`) — see the provider sections in the main [README](../README.md) for the canonical lists.
+All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `tenable-*`, `elastic-*`) — see the provider sections in the main [README](../README.md) for the canonical lists. Non-AWS providers (Okta, Jira, Tenable, Elastic) are TUI-only today; `--collectors` only affects the AWS headless CLI path.
 
 ### App Layer & DNS
 

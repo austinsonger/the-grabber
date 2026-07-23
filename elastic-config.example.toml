@@ -1,0 +1,20 @@
+# Elastic Security credentials — keep this file out of version control
+# Add to .gitignore: elastic-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: ELASTIC_KIBANA_URL, ELASTIC_ES_URL, ELASTIC_API_KEY
+
+[[account]]
+name                = "Elastic"
+provider            = "elastic"
+description         = "Elastic Security production deployment"
+output_dir          = "./evidence-output/elastic"
+elastic_kibana_url  = "https://my-deployment.kb.us-east-1.aws.found.io"
+elastic_es_url      = "https://my-deployment.es.us-east-1.aws.found.io"
+elastic_api_key     = ""
+
+# Create the API key in Kibana: Stack Management -> API Keys -> Create API key.
+# Copy the "Encoded" value (base64 id:api_key) into elastic_api_key above.
+# The key needs read access to the .alerts-security.alerts-* index and the
+# Kibana Security "Read" feature privilege (or higher) for Cases and Rule
+# Management.

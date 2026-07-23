@@ -4,6 +4,7 @@
 
 pub mod aws;
 pub mod crowdstrike;
+pub mod elastic;
 pub mod jira;
 pub mod okta;
 pub mod tenable;
@@ -42,6 +43,10 @@ pub const PROVIDER_MENUS: &[ProviderMenu] = &[
     ProviderMenu {
         provider: CloudProvider::CrowdStrike,
         categories: crowdstrike::CROWDSTRIKE_CATEGORIES,
+    },
+    ProviderMenu {
+        provider: CloudProvider::Elastic,
+        categories: elastic::ELASTIC_CATEGORIES,
     },
 ];
 

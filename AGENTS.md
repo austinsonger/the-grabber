@@ -21,7 +21,7 @@ Your primary goal is to safely modify, expand, or debug this application while s
 ## 🛠️ Code Style & Conventions
 
 ### 1. Architecture & Structure
-- Provider-scoped module tree. Every collector lives under `src/providers/<provider>/<service>.rs`, where `<provider>` is one of `aws`, `okta`, `jira`, `tenable`, `azure`, or `gcp`. Each provider has a `factory.rs` (implements `CloudProvider` / `ProviderFactory` from `src/providers/mod.rs`) that registers keys to concrete collectors.
+- Provider-scoped module tree. Every collector lives under `src/providers/<provider>/<service>.rs`, where `<provider>` is one of `aws`, `okta`, `jira`, `tenable`, `elastic`, `azure`, or `gcp`. Each provider has a `factory.rs` (implements `CloudProvider` / `ProviderFactory` from `src/providers/mod.rs`) that registers keys to concrete collectors.
 - Cross-cutting orchestration lives under `src/runner/` (collector dispatch, multi-region, output paths). TUI code lives under `src/tui/`. POA&M lives under `src/poam/`. Inventory orchestration lives under `src/inventory_orchestrator/`.
 - When you add a new AWS/Okta/Jira/Tenable collector: create `src/providers/<provider>/<name>.rs`, declare it in `src/providers/<provider>/mod.rs`, and register its key in that provider's `factory.rs`. Do **not** touch `main.rs` — new provider modules do not need to be declared there.
 - When you add a new top-level provider: create `src/providers/<provider>/`, add it to `src/providers/mod.rs`, implement `ProviderFactory` in its `factory.rs`, and (if it should be feature-gated) wire the Cargo feature in the root `Cargo.toml`.

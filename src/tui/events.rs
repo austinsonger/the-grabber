@@ -871,6 +871,8 @@ fn handle_provider_selection(app: &mut App, key: KeyCode) {
         v.push(CloudProvider::Jira);
         #[cfg(feature = "crowdstrike")]
         v.push(CloudProvider::CrowdStrike);
+        #[cfg(feature = "elastic")]
+        v.push(CloudProvider::Elastic);
         v
     };
     match key {

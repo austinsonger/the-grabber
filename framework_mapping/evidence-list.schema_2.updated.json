@@ -1,0 +1,539 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usernotfound.example/schemas/evidence-list.schema.json",
+  "title": "Evidence List (nested, multi-auditor)",
+  "description": "Audit evidence list. Each evidence item maps through framework -> class -> family -> control -> requirement -> auditor_request. Every control (any framework) has a requirements[] array; it holds one entry per auditor evidence-request issued against that control, and is empty when no auditor has requested evidence for it yet. Auditors are defined once in the top-level auditors[] registry; each auditor_request references one via auditor_id, so requests from different auditors can sit side by side under the same control. auditor_request_id (e.g. NIST-1143) is the auditor's own request identifier, not a NIST control number; the control is control_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "program",
+    "auditors",
+    "category_taxonomy",
+    "evidence"
+  ],
+  "properties": {
+    "program": {
+      "$ref": "#/$defs/program"
+    },
+    "category_taxonomy": {
+      "$ref": "#/$defs/categoryTaxonomy"
+    },
+    "auditors": {
+      "type": "array",
+      "description": "Registry of every auditor referenced anywhere by auditor_id. Add one object per auditing firm.",
+      "items": {
+        "$ref": "#/$defs/auditor"
+      },
+      "minItems": 1
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceItem"
+      }
+    }
+  },
+  "$defs": {
+    "program": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "generated_at"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "auditor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "auditor_id",
+        "company"
+      ],
+      "properties": {
+        "auditor_id": {
+          "type": "string",
+          "description": "Stable key referenced by auditor_request.auditor_id. Unique across the auditors[] array."
+        },
+        "company": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "frameworks": {
+          "type": "array",
+          "description": "Frameworks this auditor assesses.",
+          "items": {
+            "$ref": "#/$defs/frameworkName"
+          }
+        },
+        "engagement": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "period": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date"
+                },
+                "end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date"
+                }
+              }
+            }
+          }
+        },
+        "contact": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "email"
+            }
+          }
+        }
+      }
+    },
+    "frameworkName": {
+      "type": "string",
+      "enum": [
+        "SOC2_TSC",
+        "HIPAA_Security_Rule",
+        "NIST_800_53",
+        "DoD_IL5",
+        "IRS_1075",
+        "NIST_CSF_2_0",
+        "CJIS",
+        "CMMC_L2"
+      ]
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "identity",
+        "collection",
+        "classification",
+        "auditor_guidance",
+        "mappings"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "pattern": "^EV[0-9]+$"
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "filename_prefix": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "collection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_systems"
+          ],
+          "properties": {
+            "source_systems": {
+              "type": "array",
+              "description": "One or more systems this evidence item is collected from.",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "AWS",
+                  "Jira",
+                  "Okta",
+                  "Tenable"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "csv",
+                "json"
+              ]
+            },
+            "method": {
+              "type": "string",
+              "enum": [
+                "automated",
+                "manual"
+              ]
+            },
+            "cadence": {
+              "type": "string",
+              "enum": [
+                "on-demand",
+                "continuous",
+                "daily",
+                "weekly",
+                "monthly",
+                "quarterly",
+                "annual"
+              ]
+            }
+          }
+        },
+        "classification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "primary_categories"
+          ],
+          "properties": {
+            "primary_categories": {
+              "type": "array",
+              "description": "Primary categories this evidence item falls under. One or more canonical names; normalize any alias via category_taxonomy.normalization_lookup before storing.",
+              "items": {
+                "$ref": "#/$defs/primaryCategory"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "taxonomy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sub_category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "auditor_guidance": {
+          "type": "array",
+          "description": "Item-level guidance from an auditor about how to collect, format, scope, or present this evidence item. One entry per auditor; empty when none. Distinct from a control-level auditor_request, which is a request against a single control.",
+          "items": {
+            "$ref": "#/$defs/guidanceEntry"
+          }
+        },
+        "mappings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "frameworks"
+          ],
+          "properties": {
+            "frameworks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/framework"
+              }
+            }
+          }
+        }
+      }
+    },
+    "primaryCategory": {
+      "type": "string",
+      "enum": [
+        "Access Management",
+        "Authentication",
+        "Cryptography & Encryption",
+        "Configuration Management",
+        "Network & Communications Security",
+        "System & Information Integrity",
+        "Logging & Monitoring",
+        "Incident Response",
+        "Business Continuity & Recovery",
+        "Physical & Environmental Security",
+        "Asset Management & Maintenance",
+        "Risk Management",
+        "Assessment & Authorization",
+        "Software Development & Acquisition",
+        "Data Protection & Lifecycle",
+        "Privacy",
+        "Third-Party & Supply Chain Risk",
+        "Personnel Security",
+        "Security Awareness & Training",
+        "Governance & Program Management",
+        "AI Governance",
+        "Endpoint & Mobile",
+        "Compliance & Reporting",
+        "Audit Testing & Sampling",
+        "Uncategorized"
+      ]
+    },
+    "categoryTaxonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_categories",
+        "normalization_lookup"
+      ],
+      "description": "Controlled vocabulary of primary categories plus an alias-to-canonical normalization map. Reference data for classification.primary_categories.",
+      "properties": {
+        "primary_categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "primary_category",
+              "alternative_names"
+            ],
+            "properties": {
+              "primary_category": {
+                "$ref": "#/$defs/primaryCategory"
+              },
+              "alternative_names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "normalization_lookup": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/primaryCategory"
+          }
+        }
+      }
+    },
+    "guidanceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "auditor_id",
+        "guidance"
+      ],
+      "properties": {
+        "auditor_id": {
+          "type": "string",
+          "description": "References auditors[].auditor_id. Which auditor gave this guidance."
+        },
+        "guidance": {
+          "type": "string"
+        },
+        "updated": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "framework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "framework",
+        "classes"
+      ],
+      "properties": {
+        "framework": {
+          "$ref": "#/$defs/frameworkName"
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frameworkClass"
+          }
+        }
+      }
+    },
+    "frameworkClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "families"
+      ],
+      "properties": {
+        "class": {
+          "type": "string"
+        },
+        "families": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/family"
+          }
+        }
+      }
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "controls"
+      ],
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "family_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/control"
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_id",
+        "requirements"
+      ],
+      "properties": {
+        "control_id": {
+          "type": "string"
+        },
+        "requirements": {
+          "type": "array",
+          "description": "One entry per auditor evidence-request issued against this control. Empty when no auditor has requested evidence for it. Works for any framework and any number of auditors.",
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "auditor_request"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string"
+        },
+        "auditor_request": {
+          "$ref": "#/$defs/auditorRequest"
+        }
+      }
+    },
+    "auditorRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "auditor_id",
+        "auditor_request_id",
+        "request_text"
+      ],
+      "properties": {
+        "auditor_id": {
+          "type": "string",
+          "description": "References auditors[].auditor_id. Identifies which auditing firm issued this request."
+        },
+        "auditor_request_id": {
+          "type": "string",
+          "description": "The auditor's own evidence-request ID (e.g. NIST-1143 from A-LIGN). Not a NIST control number."
+        },
+        "request_text": {
+          "type": "string"
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "not_started",
+            "requested",
+            "received",
+            "accepted",
+            "rejected"
+          ]
+        },
+        "expected_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact"
+            ],
+            "properties": {
+              "artifact": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -121,15 +121,30 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV201 | Tenable PCI ASV Compliance | `Tenable_PCI_ASV_Compliance` | Asset ID, Hostname, IPv4, Check Name, Status, Policy, Reference, First Found, Last Found |
 | EV202 | Tenable Web App Scanning | `Tenable_WAS_Findings` | Finding ID, State, First Found, Last Found, URL, HTTP Method, Input Type, Input Name, Plugin ID, Plugin Name, Risk Factor, Synopsis, Description, Solution, CVEs, Severity, Severity ID, CVSS Base Score, CVSS3 Base Score, VPR Score, Scan ID, Scan Started At, Scan Completed At |
 
+### Detection & Response — Elastic
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV203 | Elastic Detection Rules | `Elastic_Detection_Rules` | Rule ID, Rule UUID, Rule Name, Type, Enabled, Severity, Risk Score, Interval, Index Patterns, Tags, Author, Max Signals, False Positives, References, Created At, Updated At |
+| EV204 | Elastic Exception List Items | `Elastic_Exception_List_Items` | List ID, Item ID, Name, Description, Type, Entry Count, Tags, Created At, Created By, Updated At |
+| EV205 | Elastic Security Alerts | `Elastic_Security_Alerts` | Alert ID, Rule Name, Rule UUID, Severity, Risk Score, Workflow Status, Host Name, User Name, Timestamp, Reason |
+| EV206 | Elastic Security Cases | `Elastic_Security_Cases` | Case ID, Title, Status, Severity, Tags, Total Alerts, Created At, Created By, Updated At |
+| EV207 | Elastic Alerting Connectors | `Elastic_Alerting_Connectors` | Connector ID, Name, Type, Preconfigured, Deprecated, Missing Secrets, Referenced By Count |
+| EV208 | Elastic Security Users | `Elastic_Security_Users` | Username, Full Name, Email, Enabled, Roles |
+| EV209 | Elastic Security Roles | `Elastic_Security_Roles` | Role Name, Cluster Privileges, Index Patterns, Index Privileges, Application Privilege Count |
+| EV210 | Elastic Fleet Agents | `Elastic_Fleet_Agents` | Agent ID, Policy ID, Policy Revision, Active, Status, Last Checkin Status, Agent Version, Hostname, Enrolled At, Last Checkin |
+| EV211 | Elastic File Integrity Monitoring Events | `Elastic_File_Integrity_Monitoring_Events` | Event ID, File Path, Event Action, File Hash SHA256, Host Name, User Name, Timestamp |
+| EV212 | Elastic Index Lifecycle Management Policies | `Elastic_ILM_Policies` | Policy Name, Modified Date, Has Hot Phase, Has Warm Phase, Has Cold Phase, Has Frozen Phase, Has Delete Phase, Delete Min Age (Retention Period) |
+
 ### Endpoint Detection & Response — CrowdStrike
 
 | # | Name | Filename Prefix | Columns |
 |---|------|----------------|---------|
-| EV203 | CrowdStrike Hosts | `CrowdStrike_Hosts` | Device ID, Hostname, Platform, OS Version, Agent Version, First Seen, Last Seen, Status, External IP, Local IP, MAC Address, Serial Number, System Manufacturer, System Product Name, Reduced Functionality Mode |
-| EV204 | CrowdStrike Alerts | `CrowdStrike_Alerts` | Alert ID, Composite ID, Created, Updated, Status, Severity, Severity Name, Type, Product, Tactic, Technique, Description, Device Hostname, Device ID, Agent ID |
-| EV205 | CrowdStrike Vulnerabilities | `CrowdStrike_Vulnerabilities` | Vulnerability ID, CVE ID, Severity, Status, Base Score, Exploit Status, Hostname, Device ID, Platform, Created, Updated, Closed |
-| EV206 | CrowdStrike Prevention Policies | `CrowdStrike_Prevention_Policies` | Policy ID, Name, Platform, Enabled, Description, Precedence, Created, Modified, Created By, Modified By |
-| EV207 | CrowdStrike Sensor Update Policies | `CrowdStrike_Sensor_Update_Policies` | Policy ID, Name, Platform, Enabled, Build, Scheduler Enabled, Uninstall Protection, Created, Modified, Created By, Modified By |
+| EV213 | CrowdStrike Hosts | `CrowdStrike_Hosts` | Device ID, Hostname, Platform, OS Version, Agent Version, First Seen, Last Seen, Status, External IP, Local IP, MAC Address, Serial Number, System Manufacturer, System Product Name, Reduced Functionality Mode |
+| EV214 | CrowdStrike Alerts | `CrowdStrike_Alerts` | Alert ID, Composite ID, Created, Updated, Status, Severity, Severity Name, Type, Product, Tactic, Technique, Description, Device Hostname, Device ID, Agent ID |
+| EV215 | CrowdStrike Vulnerabilities | `CrowdStrike_Vulnerabilities` | Vulnerability ID, CVE ID, Severity, Status, Base Score, Exploit Status, Hostname, Device ID, Platform, Created, Updated, Closed |
+| EV216 | CrowdStrike Prevention Policies | `CrowdStrike_Prevention_Policies` | Policy ID, Name, Platform, Enabled, Description, Precedence, Created, Modified, Created By, Modified By |
+| EV217 | CrowdStrike Sensor Update Policies | `CrowdStrike_Sensor_Update_Policies` | Policy ID, Name, Platform, Enabled, Build, Scheduler Enabled, Uninstall Protection, Created, Modified, Created By, Modified By |
 
 ### Certificates & PKI
 
@@ -401,8 +416,9 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Okta collectors | 24 |
 | Jira collectors | 28 |
 | Tenable collectors | 5 |
+| Elastic collectors | 10 |
 | CrowdStrike collectors | 5 |
-| **Total evidence collectors** | **206** |
+| **Total evidence collectors** | **216** |
 | Asset Inventory asset types (Inventory feature) | 8 |
 
 Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.

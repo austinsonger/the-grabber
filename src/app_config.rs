@@ -221,6 +221,22 @@ pub struct Account {
     pub crowdstrike_base_url: Option<String>,
 
     // ------------------------------------------------------------------
+    // Elastic fields (Elastic Security / SIEM)
+    // ------------------------------------------------------------------
+    /// Kibana base URL (e.g. `https://x.kb.us-east-1.aws.found.io`).
+    /// Serves the Detection Engine, Exception Lists, and Cases APIs.
+    pub elastic_kibana_url: Option<String>,
+
+    /// Elasticsearch base URL (e.g. `https://x.es.us-east-1.aws.found.io`).
+    /// Serves direct queries against the `.alerts-security.alerts-*` index.
+    pub elastic_es_url: Option<String>,
+
+    /// Elastic API key in the base64-encoded `id:api_key` form (the
+    /// "Encoded" value from Kibana's Stack Management → API Keys UI).
+    /// Can also be supplied via `ELASTIC_API_KEY` env var (env wins over TOML).
+    pub elastic_api_key: Option<String>,
+
+    // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
     /// Per-account collector overrides (enable_extra / disable).
@@ -312,6 +328,31 @@ impl Account {
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| "https://api.crowdstrike.com".to_string())
     }
+
+    /// Resolve the Elastic Kibana URL, trimming any trailing slash.
+    pub fn elastic_kibana_url_resolved(&self) -> Option<String> {
+        std::env::var("ELASTIC_KIBANA_URL")
+            .ok()
+            .or_else(|| self.elastic_kibana_url.clone())
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+    }
+
+    /// Resolve the Elastic Elasticsearch URL, trimming any trailing slash.
+    pub fn elastic_es_url_resolved(&self) -> Option<String> {
+        std::env::var("ELASTIC_ES_URL")
+            .ok()
+            .or_else(|| self.elastic_es_url.clone())
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+    }
+
+    /// Resolve the Elastic API key: env var takes precedence over TOML.
+    pub fn elastic_api_key_resolved(&self) -> Option<String> {
+        std::env::var("ELASTIC_API_KEY")
+            .ok()
+            .or_else(|| self.elastic_api_key.clone())
+    }
 }
 
 /// Best-effort load of config, checking in order:
@@ -319,8 +360,8 @@ impl Account {
 ///   2. `~/.config/evidence/config.toml`  (user-global)
 ///
 /// After loading the primary config, `./tenable-config.toml`, `./okta-config.toml`,
-/// `./jira-config.toml`, and `./crowdstrike-config.toml` are merged in (accounts
-/// only) if those files exist.
+/// `./jira-config.toml`, `./crowdstrike-config.toml`, and `./elastic-config.toml`
+/// are merged in (accounts only) if those files exist.
 pub fn load_config() -> Option<AppConfig> {
     let mut cfg: AppConfig = {
         let local = PathBuf::from("config.toml");
@@ -377,6 +418,16 @@ pub fn load_config() -> Option<AppConfig> {
         if let Ok(contents) = fs::read_to_string(&crowdstrike_path) {
             if let Ok(crowdstrike_cfg) = toml::from_str::<AppConfig>(&contents) {
                 cfg.account.extend(crowdstrike_cfg.account);
+            }
+        }
+    }
+
+    // Merge elastic-config.toml accounts if present
+    let elastic_path = PathBuf::from("elastic-config.toml");
+    if elastic_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&elastic_path) {
+            if let Ok(elastic_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(elastic_cfg.account);
             }
         }
     }

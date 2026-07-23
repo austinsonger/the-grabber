@@ -58,3 +58,6 @@ jira-config.toml
 
 # CrowdStrike credentials — never commit
 crowdstrike-config.toml
+
+# Elastic credentials — never commit
+elastic-config.toml
