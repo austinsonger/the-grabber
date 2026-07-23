@@ -52,6 +52,36 @@ impl ProviderFactory for ElasticProviderFactory {
                 self.client.clone(),
             )));
         }
+        if self.selected.iter().any(|s| s == "elastic-users") {
+            v.push(Box::new(super::users::ElasticUsersCollector::new(
+                self.client.clone(),
+            )));
+        }
+        if self.selected.iter().any(|s| s == "elastic-roles") {
+            v.push(Box::new(super::roles::ElasticRolesCollector::new(
+                self.client.clone(),
+            )));
+        }
+        if self.selected.iter().any(|s| s == "elastic-agents") {
+            v.push(Box::new(
+                super::fleet_agents::ElasticFleetAgentsCollector::new(self.client.clone()),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "elastic-fim") {
+            v.push(Box::new(super::fim_events::ElasticFimEventsCollector::new(
+                self.client.clone(),
+            )));
+        }
+        if self.selected.iter().any(|s| s == "elastic-connectors") {
+            v.push(Box::new(
+                super::connectors::ElasticConnectorsCollector::new(self.client.clone()),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "elastic-ilm") {
+            v.push(Box::new(
+                super::ilm_policies::ElasticIlmPoliciesCollector::new(self.client.clone()),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {

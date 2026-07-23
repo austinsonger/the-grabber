@@ -129,6 +129,12 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV204 | Elastic Exception List Items | `Elastic_Exception_List_Items` | List ID, Item ID, Name, Description, Type, Entry Count, Tags, Created At, Created By, Updated At |
 | EV205 | Elastic Security Alerts | `Elastic_Security_Alerts` | Alert ID, Rule Name, Rule UUID, Severity, Risk Score, Workflow Status, Host Name, User Name, Timestamp, Reason |
 | EV206 | Elastic Security Cases | `Elastic_Security_Cases` | Case ID, Title, Status, Severity, Tags, Total Alerts, Created At, Created By, Updated At |
+| EV207 | Elastic Alerting Connectors | `Elastic_Alerting_Connectors` | Connector ID, Name, Type, Preconfigured, Deprecated, Missing Secrets, Referenced By Count |
+| EV208 | Elastic Security Users | `Elastic_Security_Users` | Username, Full Name, Email, Enabled, Roles |
+| EV209 | Elastic Security Roles | `Elastic_Security_Roles` | Role Name, Cluster Privileges, Index Patterns, Index Privileges, Application Privilege Count |
+| EV210 | Elastic Fleet Agents | `Elastic_Fleet_Agents` | Agent ID, Policy ID, Policy Revision, Active, Status, Last Checkin Status, Agent Version, Hostname, Enrolled At, Last Checkin |
+| EV211 | Elastic File Integrity Monitoring Events | `Elastic_File_Integrity_Monitoring_Events` | Event ID, File Path, Event Action, File Hash SHA256, Host Name, User Name, Timestamp |
+| EV212 | Elastic Index Lifecycle Management Policies | `Elastic_ILM_Policies` | Policy Name, Modified Date, Has Hot Phase, Has Warm Phase, Has Cold Phase, Has Frozen Phase, Has Delete Phase, Delete Min Age (Retention Period) |
 
 ### Certificates & PKI
 

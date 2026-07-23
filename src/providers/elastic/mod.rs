@@ -1,8 +1,14 @@
 pub mod alerts;
 pub mod cases;
+pub mod connectors;
 pub mod detection_rules;
 pub mod exception_items;
 pub mod factory;
+pub mod fim_events;
+pub mod fleet_agents;
+pub mod ilm_policies;
+pub mod roles;
+pub mod users;
 
 // Authentication:
 //   Authorization: ApiKey <base64 id:api_key>  (the "Encoded" value from

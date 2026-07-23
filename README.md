@@ -875,7 +875,7 @@ Or set the values via environment variables (env wins over TOML):
 - `ELASTIC_ES_URL` — Elasticsearch base URL (direct alert search)
 - `ELASTIC_API_KEY` — API key, base64-encoded `id:api_key` form
 
-Create an API key in Kibana: **Stack Management → API Keys → Create API key**. Copy the "Encoded" value — this is what Kibana-created keys use to authenticate directly against both Kibana and Elasticsearch. The key needs the Security "Read" feature privilege (or higher) for Cases and Rule Management, plus read access to the `.alerts-security.alerts-*` index.
+Create an API key in Kibana: **Stack Management → API Keys → Create API key**. Copy the "Encoded" value — this is what Kibana-created keys use to authenticate directly against both Kibana and Elasticsearch. The key needs the Security "Read" feature privilege (or higher) for Cases and Rule Management, `read_security`/`manage_security` cluster privilege for the users/roles/ILM collectors, the Kibana "Fleet" and "Actions and Connectors" feature privileges for the Fleet agents and connectors collectors, plus read access to the `.alerts-security.alerts-*` and `logs-file_integrity.event-*` indices.
 
 ### Collectors
 
@@ -885,6 +885,12 @@ Create an API key in Kibana: **Stack Management → API Keys → Create API key*
 | `elastic-exceptions` | CSV | Exception list items across all exception lists |
 | `elastic-alerts` | CSV | Time-windowed security alerts from `.alerts-security.alerts-*` |
 | `elastic-cases` | CSV | Time-windowed Security Solution cases |
+| `elastic-connectors` | CSV | Configured alerting connectors (email, Slack, PagerDuty, webhook, etc.) |
+| `elastic-users` | CSV | Elasticsearch security users, roles, and enabled state |
+| `elastic-roles` | CSV | Elasticsearch security roles and their cluster/index privileges |
+| `elastic-agents` | CSV | Enrolled Fleet agent inventory (version, policy, last checkin) |
+| `elastic-fim` | CSV | Time-windowed File Integrity Monitoring events (requires the FIM Elastic Agent integration) |
+| `elastic-ilm` | CSV | Index Lifecycle Management policies — retention/deletion configuration per policy (AU-11 evidence) |
 
 Elastic has no region concept, like Tenable/Okta/Jira — `--all-regions` and region selection do not apply.
 
