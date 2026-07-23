@@ -35,4 +35,45 @@ impl<'c> PoliciesApi<'c> {
         }
         Ok(resp.json().await?)
     }
+
+    /// PUT /api/v1/policies/{policy_id}
+    ///
+    /// `body` must be the full policy object (fetch via `list_by_type`,
+    /// mutate the field(s) you need, then pass the whole thing back —
+    /// Okta's Policy API replaces the resource, it does not merge-patch).
+    pub async fn update_policy(
+        &self,
+        policy_id: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, OktaError> {
+        let path = format!("/api/v1/policies/{policy_id}");
+        let resp = self.0.put_json(&path, body).await?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let message = resp.text().await.unwrap_or_default();
+            return Err(OktaError::Api { status, message });
+        }
+        Ok(resp.json().await?)
+    }
+
+    /// PUT /api/v1/policies/{policy_id}/rules/{rule_id}
+    ///
+    /// `body` must be the full rule object (fetch via `list_rules`, mutate,
+    /// then pass the whole thing back — same full-replace semantics as
+    /// `update_policy`).
+    pub async fn update_rule(
+        &self,
+        policy_id: &str,
+        rule_id: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, OktaError> {
+        let path = format!("/api/v1/policies/{policy_id}/rules/{rule_id}");
+        let resp = self.0.put_json(&path, body).await?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let message = resp.text().await.unwrap_or_default();
+            return Err(OktaError::Api { status, message });
+        }
+        Ok(resp.json().await?)
+    }
 }
