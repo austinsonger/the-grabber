@@ -12,6 +12,8 @@ enum Action {
     Quit,
     StartCollection,
     NewCollection,
+    StigScan,
+    StigApply,
 }
 
 pub(crate) fn event_loop(
@@ -35,6 +37,8 @@ pub(crate) fn event_loop(
                 match handle_key(app, key.code, key.modifiers) {
                     Action::Quit => return Ok(()),
                     Action::StartCollection => return Ok(()),
+                    Action::StigScan => return Ok(()),
+                    Action::StigApply => return Ok(()),
                     Action::NewCollection => {
                         app.reset();
                     }
@@ -75,9 +79,9 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::Results => return handle_results(app, key),
         Screen::ProviderSelection => handle_provider_selection(app, key),
         Screen::TenableEndpoint => handle_tenable_endpoint(app, key),
-        Screen::StigRemediationAccount => handle_stig_remediation_account(app, key),
+        Screen::StigRemediationAccount => return handle_stig_remediation_account(app, key),
         Screen::StigRemediationScanning | Screen::StigRemediationApplying => {}
-        Screen::StigRemediationList => handle_stig_remediation_list(app, key),
+        Screen::StigRemediationList => return handle_stig_remediation_list(app, key),
         Screen::StigRemediationResults => return handle_stig_remediation_results(app, key),
     }
 
@@ -674,26 +678,34 @@ fn handle_results(app: &mut App, key: KeyCode) -> Action {
     }
 }
 
-fn handle_stig_remediation_account(app: &mut App, key: KeyCode) {
+fn handle_stig_remediation_account(app: &mut App, key: KeyCode) -> Action {
     let len = app.stig_account_list.len();
     match key {
         KeyCode::Up => {
             if app.stig_account_cursor > 0 {
                 app.stig_account_cursor -= 1;
             }
+            Action::Continue
         }
         KeyCode::Down => {
             if app.stig_account_cursor + 1 < len {
                 app.stig_account_cursor += 1;
             }
+            Action::Continue
         }
-        KeyCode::Enter => app.next_screen(),
-        KeyCode::Esc => app.prev_screen(),
-        _ => {}
+        KeyCode::Enter => {
+            app.next_screen();
+            Action::StigScan
+        }
+        KeyCode::Esc => {
+            app.prev_screen();
+            Action::Continue
+        }
+        _ => Action::Continue,
     }
 }
 
-fn handle_stig_remediation_list(app: &mut App, key: KeyCode) {
+fn handle_stig_remediation_list(app: &mut App, key: KeyCode) -> Action {
     let actionable: Vec<usize> = app
         .stig_findings
         .iter()
@@ -710,28 +722,42 @@ fn handle_stig_remediation_list(app: &mut App, key: KeyCode) {
             .map(|t| t.needs_text_input())
             .unwrap_or(false);
 
-        match key {
-            KeyCode::Char(c) if needs_text => app.stig_text_input.insert(c),
-            KeyCode::Backspace if needs_text => app.stig_text_input.backspace(),
-            KeyCode::Left if needs_text => app.stig_text_input.move_left(),
-            KeyCode::Right if needs_text => app.stig_text_input.move_right(),
+        return match key {
+            KeyCode::Char(c) if needs_text => {
+                app.stig_text_input.insert(c);
+                Action::Continue
+            }
+            KeyCode::Backspace if needs_text => {
+                app.stig_text_input.backspace();
+                Action::Continue
+            }
+            KeyCode::Left if needs_text => {
+                app.stig_text_input.move_left();
+                Action::Continue
+            }
+            KeyCode::Right if needs_text => {
+                app.stig_text_input.move_right();
+                Action::Continue
+            }
             KeyCode::Enter => {
                 if needs_text && app.stig_text_input.value.trim().is_empty() {
                     app.error_msg = Some("Enter the text to apply, or Esc to cancel".into());
-                    return;
+                    return Action::Continue;
                 }
                 app.screen = crate::tui::state::Screen::StigRemediationApplying;
+                Action::StigApply
             }
             KeyCode::Char('y') if !needs_text => {
                 app.screen = crate::tui::state::Screen::StigRemediationApplying;
+                Action::StigApply
             }
             KeyCode::Esc | KeyCode::Char('n') => {
                 app.stig_confirm_pending = false;
                 app.stig_text_input.clear();
+                Action::Continue
             }
-            _ => {}
-        }
-        return;
+            _ => Action::Continue,
+        };
     }
 
     match key {
@@ -739,20 +765,29 @@ fn handle_stig_remediation_list(app: &mut App, key: KeyCode) {
             if app.stig_finding_cursor > 0 {
                 app.stig_finding_cursor -= 1;
             }
+            Action::Continue
         }
         KeyCode::Down => {
             if app.stig_finding_cursor + 1 < actionable.len() {
                 app.stig_finding_cursor += 1;
             }
+            Action::Continue
         }
         KeyCode::Enter => {
             if !actionable.is_empty() {
                 app.stig_confirm_pending = true;
             }
+            Action::Continue
         }
-        KeyCode::Char('q') => app.next_screen(), // → StigRemediationResults
-        KeyCode::Esc => app.prev_screen(),
-        _ => {}
+        KeyCode::Char('q') => {
+            app.next_screen(); // → StigRemediationResults
+            Action::Continue
+        }
+        KeyCode::Esc => {
+            app.prev_screen();
+            Action::Continue
+        }
+        _ => Action::Continue,
     }
 }
 
