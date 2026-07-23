@@ -18,7 +18,7 @@ use okta_rs::types::policy::OktaPolicy;
 use okta_rs::OktaClient;
 
 use super::{is_feature_unavailable, json_str};
-use crate::stig_status::{StigCheckResult, StigStatus};
+use crate::stig_status::{RemediationTarget, StigCheckResult, StigStatus};
 
 struct AppTarget {
     label_substring: &'static str,
@@ -179,13 +179,22 @@ fn phishing_resistant(v_id: &str, rule: &serde_json::Value, policy_id: &str) -> 
             ),
         )
     } else {
-        StigCheckResult::new(
+        let rule_id = rule.get("id").and_then(|v| v.as_str());
+        let mut result = StigCheckResult::new(
             v_id,
             StigStatus::Open,
             "possession.phishingResistant = REQUIRED",
             "not set / OPTIONAL",
             format!("Top rule on policy {policy_id} does not require a phishing-resistant possession factor. Field path/schema for this constraint needs live-tenant verification."),
-        )
+        );
+        if let Some(rule_id) = rule_id {
+            result = result.with_remediation(RemediationTarget::AccessPolicyPhishingResistant {
+                policy_id: policy_id.to_string(),
+                rule_id: rule_id.to_string(),
+                resource_label: format!("top rule on policy {policy_id}"),
+            });
+        }
+        result
     }
 }
 
@@ -199,13 +208,28 @@ fn mfa_required(v_id: &str, rule: &serde_json::Value, policy_id: &str) -> StigCh
             "2FA",
             format!("Top rule on policy {policy_id} requires two-factor authentication."),
         ),
-        Some(other) => StigCheckResult::new(
-            v_id,
-            StigStatus::Open,
-            "2FA",
-            other,
-            format!("Top rule on policy {policy_id} does not require two-factor authentication."),
-        ),
+        Some(other) => {
+            let mut result = StigCheckResult::new(
+                v_id,
+                StigStatus::Open,
+                "2FA",
+                other,
+                format!("Top rule on policy {policy_id} does not require two-factor authentication."),
+            );
+            if let Some(rule_id) = rule.get("id").and_then(|v| v.as_str()) {
+                result = result.with_remediation(RemediationTarget::PolicyField {
+                    policy_id: policy_id.to_string(),
+                    policy_type: "ACCESS_POLICY",
+                    rule_id: Some(rule_id.to_string()),
+                    fields: vec![(
+                        "/actions/appSignOn/verificationMethod/factorMode".to_string(),
+                        serde_json::json!("2FA"),
+                    )],
+                    resource_label: format!("top rule on policy {policy_id}"),
+                });
+            }
+            result
+        }
         None => StigCheckResult::not_reviewed(
             v_id,
             format!("verificationMethod.factorMode not found on policy {policy_id}'s top rule — field path needs live-tenant verification."),
