@@ -10,6 +10,7 @@ pub mod admin_roles;
 pub mod applications;
 pub mod directory_alerts;
 pub mod directory_insights;
+pub mod disabled_users;
 pub mod factory;
 pub mod mfa_factors;
 pub mod password_policy;
