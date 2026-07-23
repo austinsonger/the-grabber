@@ -98,16 +98,18 @@ fn handle_feature_selection(app: &mut App, key: KeyCode) {
     match key {
         KeyCode::Up | KeyCode::Left => {
             app.selected_feature = match app.selected_feature {
-                Feature::Collectors => Feature::Poam,
+                Feature::Collectors => Feature::StigRemediation,
                 Feature::Inventory => Feature::Collectors,
                 Feature::Poam => Feature::Inventory,
+                Feature::StigRemediation => Feature::Poam,
             };
         }
         KeyCode::Down | KeyCode::Right => {
             app.selected_feature = match app.selected_feature {
                 Feature::Collectors => Feature::Inventory,
                 Feature::Inventory => Feature::Poam,
-                Feature::Poam => Feature::Collectors,
+                Feature::Poam => Feature::StigRemediation,
+                Feature::StigRemediation => Feature::Collectors,
             };
         }
         KeyCode::Enter | KeyCode::Char(' ') => app.next_screen(),
@@ -754,7 +756,7 @@ fn handle_stig_remediation_list(app: &mut App, key: KeyCode) {
     }
 }
 
-fn handle_stig_remediation_results(app: &mut App, key: KeyCode) -> Action {
+fn handle_stig_remediation_results(_app: &mut App, key: KeyCode) -> Action {
     match key {
         KeyCode::Char('n') => Action::NewCollection,
         KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
