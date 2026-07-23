@@ -54,5 +54,8 @@ okta-config.toml
 # Jira credentials — never commit
 jira-config.toml
 
-
+# Elastic credentials — never commit
 elastic-config.toml
+
+# JumpCloud credentials — never commit
+jumpcloud-config.toml
