@@ -18,6 +18,9 @@ pub mod jira;
 #[cfg(feature = "elastic")]
 pub mod elastic;
 
+#[cfg(feature = "jumpcloud")]
+pub mod jumpcloud;
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -40,6 +43,7 @@ pub enum CloudProvider {
     Okta,
     Jira,
     Elastic,
+    JumpCloud,
 }
 
 impl fmt::Display for CloudProvider {
@@ -52,6 +56,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Okta => write!(f, "Okta"),
             CloudProvider::Jira => write!(f, "Jira"),
             CloudProvider::Elastic => write!(f, "Elastic"),
+            CloudProvider::JumpCloud => write!(f, "JumpCloud"),
         }
     }
 }
@@ -76,6 +81,8 @@ impl CloudProvider {
         v.push(CloudProvider::Jira);
         #[cfg(feature = "elastic")]
         v.push(CloudProvider::Elastic);
+        #[cfg(feature = "jumpcloud")]
+        v.push(CloudProvider::JumpCloud);
         v
     }
 
@@ -92,6 +99,7 @@ impl CloudProvider {
             CloudProvider::Okta => "Okta",
             CloudProvider::Jira => "Jira",
             CloudProvider::Elastic => "Elastic Security",
+            CloudProvider::JumpCloud => "JumpCloud",
         }
     }
 
@@ -111,6 +119,9 @@ impl CloudProvider {
             CloudProvider::Jira => "Collect projects and issues from Jira Cloud or Jira Server",
             CloudProvider::Elastic => {
                 "Collect detection rules, exception items, alerts, and cases from Elastic SIEM"
+            }
+            CloudProvider::JumpCloud => {
+                "Collect users, groups, applications, MFA factors, policies, admin roles, and device inventory from JumpCloud"
             }
         }
     }
