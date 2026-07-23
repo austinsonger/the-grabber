@@ -1,4 +1,4 @@
-//! Okta collector menu. 24 collectors across 5 categories.
+//! Okta collector menu. 25 collectors across 5 categories.
 
 use super::ProviderCategory;
 
@@ -23,6 +23,7 @@ pub const OKTA_CATEGORIES: &[ProviderCategory] = &[
             ("okta-password-policy", "Password Policy         "),
             ("okta-factors", "MFA Factors              "),
             ("okta-shared-account-broker", "Shared-Account Broker   "),
+            ("okta-stig-compliance", "STIG Compliance (DISA)  "),
         ],
     },
     ProviderCategory {

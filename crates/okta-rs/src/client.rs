@@ -2,8 +2,9 @@ use reqwest::{header, Client, Response};
 use tokio::time::{sleep, Duration};
 
 use crate::api::{
-    AccessReviewsApi, AdminRolesApi, AppsApi, GroupsApi, LifecycleApi, PoliciesApi,
-    SignInWidgetApi, SystemLogApi, ThreatInsightApi, UsersApi,
+    AccessReviewsApi, AdminRolesApi, AppsApi, AuthenticatorsApi, AutomationsApi, GroupsApi,
+    LifecycleApi, LogStreamsApi, PoliciesApi, SignInWidgetApi, SystemLogApi, ThreatInsightApi,
+    UsersApi,
 };
 use crate::error::OktaError;
 
@@ -116,6 +117,15 @@ impl OktaClient {
     }
     pub fn threat_insight(&self) -> ThreatInsightApi<'_> {
         ThreatInsightApi(self)
+    }
+    pub fn authenticators(&self) -> AuthenticatorsApi<'_> {
+        AuthenticatorsApi(self)
+    }
+    pub fn automations(&self) -> AutomationsApi<'_> {
+        AutomationsApi(self)
+    }
+    pub fn log_streams(&self) -> LogStreamsApi<'_> {
+        LogStreamsApi(self)
     }
 }
 

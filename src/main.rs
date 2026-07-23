@@ -8,11 +8,13 @@ mod fedramp_map;
 mod inventory_core;
 mod inventory_orchestrator;
 mod inventory_xlsx;
+mod okta_stig_map;
 mod platform;
 mod poam;
 mod providers;
 mod runner;
 mod signing;
+mod stig_status;
 mod tui;
 mod zip_bundle;
 

@@ -18,4 +18,21 @@ impl<'c> PoliciesApi<'c> {
         }
         Ok(resp.json().await?)
     }
+
+    /// GET /api/v1/policies/{policy_id}/rules
+    ///
+    /// Rule `actions`/`conditions` shape varies drastically per policy type
+    /// (`signon` session actions vs. `appSignOn` verification-method
+    /// constraints vs. `enroll` factor requirements), so rules are returned
+    /// as raw JSON rather than a single typed struct.
+    pub async fn list_rules(&self, policy_id: &str) -> Result<Vec<serde_json::Value>, OktaError> {
+        let path = format!("/api/v1/policies/{policy_id}/rules");
+        let resp = self.0.get(&path).await?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let message = resp.text().await.unwrap_or_default();
+            return Err(OktaError::Api { status, message });
+        }
+        Ok(resp.json().await?)
+    }
 }

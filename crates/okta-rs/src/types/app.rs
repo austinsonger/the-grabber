@@ -15,4 +15,9 @@ pub struct OktaApp {
     pub created: Option<String>,
     #[serde(default, rename = "lastUpdated")]
     pub last_updated: Option<String>,
+    /// HAL links, e.g. `_links.accessPolicy.href` (the Identity Engine
+    /// Authentication Policy assigned to this app). Shape varies per app
+    /// type, so kept as raw JSON.
+    #[serde(default, rename = "_links")]
+    pub links: serde_json::Value,
 }
