@@ -101,10 +101,10 @@ impl JumpCloudClient {
 
     /// v1 (`/api/*`) list endpoints return `{"results": [...], "totalCount": n}`.
     /// Walk pages by incrementing `skip` in chunks of `V1_PAGE_LIMIT`.
-    pub async fn list_v1<T: DeserializeOwned + Default>(&self, path: &str) -> Result<Vec<T>, JumpCloudError> {
+    pub async fn list_v1<T: DeserializeOwned>(&self, path: &str) -> Result<Vec<T>, JumpCloudError> {
         #[derive(serde::Deserialize)]
         struct V1Page<T> {
-            #[serde(default)]
+            #[serde(default = "Vec::new")]
             results: Vec<T>,
             #[serde(rename = "totalCount", default)]
             total_count: usize,
