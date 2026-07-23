@@ -26,6 +26,7 @@ impl App {
                         Screen::SelectProfile
                     }
                 }
+                Feature::StigRemediation => Screen::StigRemediationAccount,
             },
             Screen::PoamAccount => Screen::PoamRegion,
             Screen::SelectAccount => Screen::SetDates,
@@ -38,6 +39,7 @@ impl App {
                 }
                 Feature::Inventory => Screen::Inventory,
                 Feature::Poam => Screen::PoamRegion,
+                Feature::StigRemediation => Screen::StigRemediationAccount,
             },
             Screen::Inventory => Screen::SetOptions,
             Screen::PoamRegion => Screen::PoamYear,
@@ -119,6 +121,22 @@ impl App {
                     Screen::SelectProfile
                 }
             }
+            Screen::StigRemediationAccount => {
+                self.stig_selected_account_idx = self
+                    .stig_account_list
+                    .get(self.stig_account_cursor)
+                    .copied();
+                Screen::StigRemediationScanning
+            }
+            // Driven by the async session loop (see runner/tui_session.rs),
+            // not by a keypress — Enter here is a no-op until the scan
+            // finishes and the loop advances the screen itself.
+            Screen::StigRemediationScanning => Screen::StigRemediationScanning,
+            Screen::StigRemediationList => Screen::StigRemediationResults,
+            // Driven by the async session loop once the confirmed fix has
+            // been applied.
+            Screen::StigRemediationApplying => Screen::StigRemediationList,
+            Screen::StigRemediationResults => Screen::StigRemediationResults,
         };
     }
 
@@ -177,6 +195,7 @@ impl App {
                 Feature::Collectors => Screen::SelectCollectors,
                 Feature::Inventory => Screen::Inventory,
                 Feature::Poam => Screen::PoamMonth,
+                Feature::StigRemediation => Screen::StigRemediationAccount,
             },
             Screen::Confirm => match self.selected_feature {
                 Feature::Poam => Screen::PoamMonth,
@@ -185,6 +204,8 @@ impl App {
                 }
                 _ => Screen::SetOptions,
             },
+            Screen::StigRemediationAccount => Screen::FeatureSelection,
+            Screen::StigRemediationList => Screen::StigRemediationAccount,
             _ => return,
         };
     }
@@ -324,6 +345,24 @@ impl App {
                 }
                 true
             }
+            Screen::FeatureSelection => {
+                if self.selected_feature == Feature::StigRemediation {
+                    self.stig_account_list = self
+                        .accounts
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, a)| a.provider == CloudProvider::Okta)
+                        .map(|(i, _)| i)
+                        .collect();
+                    self.stig_account_cursor = 0;
+                    if self.stig_account_list.is_empty() {
+                        self.error_msg =
+                            Some("No Okta accounts configured in okta-config.toml".into());
+                        return false;
+                    }
+                }
+                true
+            }
             _ => true,
         }
     }
@@ -366,6 +405,16 @@ impl App {
         self.selected_feature = Feature::Collectors;
         self.selected_provider = CloudProvider::Aws;
         self.provider_cursor = 0;
+        self.stig_account_list.clear();
+        self.stig_account_cursor = 0;
+        self.stig_selected_account_idx = None;
+        self.stig_findings.clear();
+        self.stig_finding_cursor = 0;
+        self.stig_confirm_pending = false;
+        self.stig_text_input.clear();
+        self.stig_outcomes.clear();
+        self.stig_scan_error = None;
+        self.stig_log_path = None;
         // Preserve options_selected_regions so the user's choices carry over.
     }
 
