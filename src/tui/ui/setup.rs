@@ -4,11 +4,11 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph};
 use ratatui::Frame;
 
-use super::widgets::content_inset;
+use super::widgets::{content_inset, draw_list_with_detail};
 use super::Feature;
 use super::{
-    App, AMBER, BG_ELEVATED, BG_MAIN, BG_SELECTED, BORDER_SUBTLE, CYAN, CYAN_DIM, GREEN, LOGO,
-    LOGO_COLORS, TEXT_BRIGHT, TEXT_DIM, TEXT_NORMAL,
+    App, AMBER, BG_SELECTED, BORDER_SUBTLE, CYAN, CYAN_DIM, GREEN, LOGO, LOGO_COLORS, TEXT_BRIGHT,
+    TEXT_DIM, TEXT_NORMAL,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -101,16 +101,10 @@ pub(super) fn draw_welcome(f: &mut Frame, area: Rect) {
 
 pub(super) fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::vertical([
-        Constraint::Fill(1),
         Constraint::Length(1), // title
         Constraint::Length(1), // subtitle
-        Constraint::Length(2), // blank
-        Constraint::Length(5), // Collectors card
-        Constraint::Length(1), // gap
-        Constraint::Length(5), // Inventory card
-        Constraint::Length(1), // gap
-        Constraint::Length(5), // POAM card
-        Constraint::Fill(1),
+        Constraint::Length(1), // blank
+        Constraint::Fill(1),   // list + detail panels
     ])
     .split(area);
 
@@ -122,7 +116,7 @@ pub(super) fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center),
-        chunks[1],
+        chunks[0],
     );
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -130,72 +124,37 @@ pub(super) fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
             Style::default().fg(TEXT_DIM),
         ))
         .alignment(Alignment::Center),
-        chunks[2],
+        chunks[1],
     );
 
     let options = [
         (
             Feature::Collectors,
-            "◆  Collectors",
+            "Collectors",
             "Run 100+ compliance evidence collectors (CloudTrail, S3, IAM, RDS, …)",
         ),
         (
             Feature::Inventory,
-            "◆  Inventory",
+            "Inventory",
             "Build a unified asset-inventory CSV across selected AWS resource types",
         ),
         (
             Feature::Poam,
-            "◆  POAM",
+            "POAM",
             "Reconcile Inspector2 ECR findings into FedRAMP-POAM.xlsx (add new, close resolved)",
         ),
     ];
 
-    let card_areas = [chunks[4], chunks[6], chunks[8]];
-    for (idx, (feature, label, desc)) in options.iter().enumerate() {
-        let selected = app.selected_feature == *feature;
-        let border_style = if selected {
-            Style::default().fg(CYAN)
-        } else {
-            Style::default().fg(BORDER_SUBTLE)
-        };
-        let label_style = if selected {
-            Style::default().fg(CYAN).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(TEXT_NORMAL)
-        };
+    let items: Vec<(String, String)> = options
+        .iter()
+        .map(|(_, name, desc)| (name.to_string(), desc.to_string()))
+        .collect();
+    let selected = options
+        .iter()
+        .position(|(feature, _, _)| *feature == app.selected_feature)
+        .unwrap_or(0);
 
-        let card_block = Block::bordered()
-            .border_type(if selected {
-                BorderType::Thick
-            } else {
-                BorderType::Plain
-            })
-            .border_style(border_style)
-            .style(Style::default().bg(if selected { BG_ELEVATED } else { BG_MAIN }));
-        let inner = card_block.inner(card_areas[idx]);
-        f.render_widget(card_block, card_areas[idx]);
-
-        let inner_layout = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(1),
-        ])
-        .split(inner);
-
-        let indicator = if selected { " ▶ " } else { "   " };
-        f.render_widget(
-            Paragraph::new(Line::from(vec![
-                Span::styled(indicator, Style::default().fg(AMBER)),
-                Span::styled(*label, label_style),
-            ])),
-            inner_layout[0],
-        );
-        f.render_widget(
-            Paragraph::new(Span::styled(*desc, Style::default().fg(TEXT_DIM))),
-            inner_layout[2],
-        );
-    }
+    draw_list_with_detail(f, chunks[3], "Features", &items, selected);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,66 @@
+name: "Setup grabber"
+description: "Download a prebuilt grabber release binary and add it to PATH"
+
+inputs:
+  version:
+    description: "Release version to install (e.g. v1.1.0), or 'latest'"
+    required: false
+    default: "latest"
+
+outputs:
+  binary-path:
+    description: "Absolute path to the installed grabber binary"
+    value: ${{ steps.install.outputs.binary-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve target triple
+      id: target
+      shell: bash
+      run: |
+        set -euo pipefail
+        os="${{ runner.os }}"
+        arch="${{ runner.arch }}"
+        case "$os-$arch" in
+          Linux-X64)   triple="x86_64-unknown-linux-gnu" ;;
+          macOS-X64)   triple="x86_64-apple-darwin" ;;
+          macOS-ARM64) triple="aarch64-apple-darwin" ;;
+          *)
+            echo "::error::setup-grabber has no published binary for $os/$arch"
+            exit 1
+            ;;
+        esac
+        echo "triple=$triple" >> "$GITHUB_OUTPUT"
+
+    - name: Download and install grabber
+      id: install
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        triple="${{ steps.target.outputs.triple }}"
+        dest="$RUNNER_TEMP/grabber-install"
+        mkdir -p "$dest"
+
+        if [ "$VERSION" = "latest" ]; then
+          gh release download \
+            --repo austinsonger/the-grabber \
+            --pattern "grabber-${triple}.tar.gz" \
+            --dir "$dest" \
+            --clobber
+        else
+          gh release download "$VERSION" \
+            --repo austinsonger/the-grabber \
+            --pattern "grabber-${triple}.tar.gz" \
+            --dir "$dest" \
+            --clobber
+        fi
+
+        tar -xzf "$dest/grabber-${triple}.tar.gz" -C "$dest"
+        chmod +x "$dest/grabber-${triple}/grabber"
+
+        echo "$dest/grabber-${triple}" >> "$GITHUB_PATH"
+        echo "binary-path=$dest/grabber-${triple}/grabber" >> "$GITHUB_OUTPUT"

@@ -950,6 +950,25 @@ Both providers are compiled behind opt-in Cargo features (`--features azure`, `-
 
 ---
 
+## Releases & Prebuilt Binaries
+
+Prebuilt `grabber` binaries for Linux (x86_64) and macOS (Intel + Apple Silicon) are published as GitHub Releases — no need to `cargo build` from source in every downstream CI pipeline.
+
+**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`) — no `azure`/`gcp`.
+
+**Using the binary from another repo's GitHub Action:**
+
+```yaml
+- uses: austinsonger/the-grabber/.github/actions/setup-grabber@main
+  with:
+    version: v1.1.0   # or omit to use "latest"
+- run: grabber --help
+```
+
+This downloads the binary matching the runner's OS/architecture, adds it to `PATH`, and requires no extra authentication — the repo is public and the action uses the calling workflow's own `GITHUB_TOKEN`.
+
+---
+
 ## Troubleshooting
 
 **SSO token expired**
