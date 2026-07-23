@@ -43,6 +43,13 @@ pub(crate) struct PagedResponse<T> {
 }
 
 impl JamfClient {
+    pub fn computers(&self) -> crate::api::computers::ComputersApi<'_> {
+        crate::api::computers::ComputersApi(self)
+    }
+    pub fn mobile_devices(&self) -> crate::api::mobile_devices::MobileDevicesApi<'_> {
+        crate::api::mobile_devices::MobileDevicesApi(self)
+    }
+
     /// Build a client for a Jamf Pro server URL (e.g. `https://acme.jamfcloud.com`).
     /// Works identically for Jamf Cloud and self-hosted/on-prem servers.
     pub fn new(base_url: &str, client_id: &str, client_secret: &str) -> Result<Self, JamfError> {

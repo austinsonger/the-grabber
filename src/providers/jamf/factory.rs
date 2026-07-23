@@ -31,7 +31,18 @@ impl ProviderFactory for JamfProviderFactory {
     }
 
     fn csv_collectors(&self) -> Vec<Box<dyn CsvCollector>> {
-        Vec::new()
+        let mut v: Vec<Box<dyn CsvCollector>> = Vec::new();
+        if self.selected.iter().any(|s| s == "jamf-computers") {
+            v.push(Box::new(super::computers::JamfComputersCollector::new(
+                self.client.clone(),
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jamf-mobile-devices") {
+            v.push(Box::new(
+                super::mobile_devices::JamfMobileDevicesCollector::new(self.client.clone()),
+            ));
+        }
+        v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
         Vec::new()

@@ -1,4 +1,6 @@
+pub mod computers;
 pub mod factory;
+pub mod mobile_devices;
 
 // Authentication:
 //   POST {base_url}/api/oauth/token  (client_id + client_secret, grant_type=client_credentials)
