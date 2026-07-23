@@ -1,6 +1,34 @@
 {
   "schema": 1,
   "collectors": {
+    "Jamf_Computers": {
+      "req_ids": ["NIST-1098", "NIST-1099", "NIST-1100"],
+      "control_ids": ["AC-19a.", "AC-19b.", "AC-19(05)"]
+    },
+    "Jamf_Mobile_Devices": {
+      "req_ids": ["NIST-1098", "NIST-1099", "NIST-1100"],
+      "control_ids": ["AC-19a.", "AC-19b.", "AC-19(05)"]
+    },
+    "Jamf_Computer_Config_Profiles": {
+      "req_ids": ["NIST-1235", "NIST-1236", "NIST-1237"],
+      "control_ids": ["CM-06a., CM-06b.", "CM-06c.", "CM-06d."]
+    },
+    "Jamf_Mobile_Config_Profiles": {
+      "req_ids": ["NIST-1235", "NIST-1236", "NIST-1237"],
+      "control_ids": ["CM-06a., CM-06b.", "CM-06c.", "CM-06d."]
+    },
+    "Jamf_Policies": {
+      "req_ids": ["NIST-1237"],
+      "control_ids": ["CM-06d."]
+    },
+    "Jamf_Patch_Titles": {
+      "req_ids": ["NIST-1688"],
+      "control_ids": ["SI-02b."]
+    },
+    "Jamf_Patch_Compliance": {
+      "req_ids": ["NIST-1689"],
+      "control_ids": ["SI-02c."]
+    },
     "ALB_AccessLogs": {
       "req_ids": [],
       "control_ids": []
