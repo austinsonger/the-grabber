@@ -393,6 +393,31 @@ Credentials come from `tenable-config.toml` (or `TENABLE_ACCESS_KEY` / `TENABLE_
 
 Credentials come from `crowdstrike-config.toml` (or `CROWDSTRIKE_CLIENT_ID` / `CROWDSTRIKE_CLIENT_SECRET` / `CROWDSTRIKE_BASE_URL`). CrowdStrike is region-agnostic — `--region`, `--all-regions`, and `--regions` have no effect. `crowdstrike-alerts` respects `--start-date`/`--end-date` (or `--lookback`) like any other time-windowed collector; the others are point-in-time snapshots.
 
+## JumpCloud
+
+### JumpCloud — default collector set
+
+```bash
+grabber --account "Acme JumpCloud" --no-tui
+```
+
+### JumpCloud — identity subset
+
+```bash
+grabber --account "Acme JumpCloud" \
+  --collectors jumpcloud-users,jumpcloud-admin-roles,jumpcloud-disabled-users
+```
+
+### JumpCloud — directory insights for a date window
+
+```bash
+grabber --account "Acme JumpCloud" \
+  --collectors jumpcloud-directory-insights,jumpcloud-directory-alerts \
+  --start-date 2026-04-18 --end-date 2026-07-17
+```
+
+JumpCloud credentials come from `jumpcloud-config.toml` (or `JUMPCLOUD_API_KEY` / `JUMPCLOUD_ORG_ID`). The CLI auto-discovers the configured JumpCloud account by `provider = "jumpcloud"`.
+
 ## Useful local commands
 
 ### Show generated help

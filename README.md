@@ -1001,6 +1001,64 @@ Elastic has no region concept, like Tenable/Okta/Jira — `--all-regions` and re
 
 ---
 
+## JumpCloud
+
+Optional feature — build with `--features jumpcloud` (enabled by default).
+
+JumpCloud is a directory-as-a-service platform for identity, SSO, MFA, and device management. The Grabber pulls audit-ready evidence of identities, groups, applications, policies, admin roles, security alerts, and managed devices.
+
+### Configuration
+
+Create `jumpcloud-config.toml` in the repo root (gitignored — copy from `jumpcloud-config.example.toml`):
+
+```toml
+[[account]]
+name              = "Acme JumpCloud"
+provider          = "jumpcloud"
+description       = "Acme production JumpCloud org"
+output_dir        = "./evidence-output/jumpcloud"
+jumpcloud_api_key = ""
+
+# Optional — defaults to https://console.jumpcloud.com
+# jumpcloud_base_url = "https://console.jumpcloud.com"
+
+# Only required for Multi-Tenant Portal (MSP) API keys.
+# jumpcloud_org_id = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `JUMPCLOUD_API_KEY` — org-scoped API key (Settings → API Settings → API Key)
+- `JUMPCLOUD_ORG_ID` — only required for Multi-Tenant Portal (MSP) API keys
+- `JUMPCLOUD_BASE_URL` — override the API host (defaults to `https://console.jumpcloud.com`)
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `jumpcloud-users` | CSV | User inventory with MFA state, suspension, activation, password expiration |
+| `jumpcloud-user-groups` | CSV | User group inventory |
+| `jumpcloud-user-group-members` | JSON | Per-group membership |
+| `jumpcloud-applications` | CSV | SSO app inventory with SAML/OIDC type |
+| `jumpcloud-mfa-factors` | CSV | Per-user enrolled MFA factors (TOTP, WebAuthn, Push, Duo) |
+| `jumpcloud-directory-insights` | JSON (time-windowed) | Directory Insights event log across directory/systems/radius/sso/ldap/mdm/alerts services |
+| `jumpcloud-policies` | JSON | Every policy document with template + values |
+| `jumpcloud-password-policy` | JSON | Device password policies + org-level `passwordPolicy` settings |
+| `jumpcloud-session-policy` | JSON | Session/MFA/lockout policies + org settings |
+| `jumpcloud-admin-roles` | CSV | Org administrators with roles and MFA state |
+| `jumpcloud-directory-alerts` | JSON (time-windowed) | Directory Insights security alerts |
+| `jumpcloud-systems` | CSV | Managed endpoints — OS, agent version, FDE, SSH config |
+| `jumpcloud-system-groups` | CSV | Device (system) group inventory |
+| `jumpcloud-system-group-members` | JSON | Per-device-group membership |
+| `jumpcloud-system-user-associations` | JSON | User↔system bindings (which users can log into which devices) |
+| `jumpcloud-disabled-users` | CSV | Users where suspended, account-locked, or never-activated — with computed disable reason |
+
+Time-windowed collectors (`jumpcloud-directory-insights`, `jumpcloud-directory-alerts`) honor `--start-date`/`--end-date` and `start_date_offset_days`.
+
+JumpCloud has no region concept, like Tenable/Okta/Jira/Elastic — `--all-regions` and region selection do not apply.
+
+---
+
 ## Azure / GCP
 
 Both providers are compiled behind opt-in Cargo features (`--features azure`, `--features gcp`). They are stubs today — factory scaffolding exists in `src/providers/{azure,gcp}/` but no collectors ship yet. Enabling the feature will surface an empty provider in the TUI account picker; use `config.example.toml` as a reference for adding an `[[account]]` block when collectors land.
