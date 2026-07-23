@@ -24,7 +24,13 @@ impl CsvCollector for JamfPatchComplianceCollector {
     }
 
     fn headers(&self) -> &'static [&'static str] {
-        &["Title ID", "Display Name", "Latest Version", "Compliant Devices", "Out Of Date Devices"]
+        &[
+            "Title ID",
+            "Display Name",
+            "Latest Version",
+            "Compliant Devices",
+            "Out Of Date Devices",
+        ]
     }
 
     async fn collect_rows(

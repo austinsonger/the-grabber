@@ -55,7 +55,11 @@ impl CsvCollector for JamfMobileDeviceGroupsCollector {
                 vec![
                     g.id.to_string(),
                     g.name,
-                    if g.is_smart { "Smart".to_string() } else { "Static".to_string() },
+                    if g.is_smart {
+                        "Smart".to_string()
+                    } else {
+                        "Static".to_string()
+                    },
                     criteria_summary(&g.criteria),
                     g.member_count.to_string(),
                 ]

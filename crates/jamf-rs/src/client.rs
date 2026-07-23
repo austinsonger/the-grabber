@@ -49,10 +49,14 @@ impl JamfClient {
     pub fn mobile_devices(&self) -> crate::api::mobile_devices::MobileDevicesApi<'_> {
         crate::api::mobile_devices::MobileDevicesApi(self)
     }
-    pub fn computer_config_profiles(&self) -> crate::api::config_profiles::ComputerConfigProfilesApi<'_> {
+    pub fn computer_config_profiles(
+        &self,
+    ) -> crate::api::config_profiles::ComputerConfigProfilesApi<'_> {
         crate::api::config_profiles::ComputerConfigProfilesApi(self)
     }
-    pub fn mobile_config_profiles(&self) -> crate::api::config_profiles::MobileConfigProfilesApi<'_> {
+    pub fn mobile_config_profiles(
+        &self,
+    ) -> crate::api::config_profiles::MobileConfigProfilesApi<'_> {
         crate::api::config_profiles::MobileConfigProfilesApi(self)
     }
     pub fn computer_groups(&self) -> crate::api::groups::ComputerGroupsApi<'_> {

@@ -36,7 +36,10 @@ pub struct ProfileScope {
 
 #[derive(Debug, Deserialize)]
 struct ListEnvelope<T> {
-    #[serde(alias = "os_x_configuration_profiles", alias = "mobile_device_configuration_profiles")]
+    #[serde(
+        alias = "os_x_configuration_profiles",
+        alias = "mobile_device_configuration_profiles"
+    )]
     items: Vec<T>,
 }
 
@@ -47,7 +50,10 @@ struct ListItem {
 
 #[derive(Debug, Deserialize)]
 struct DetailEnvelope {
-    #[serde(alias = "os_x_configuration_profile", alias = "mobile_device_configuration_profile")]
+    #[serde(
+        alias = "os_x_configuration_profile",
+        alias = "mobile_device_configuration_profile"
+    )]
     general: DetailGeneral,
 }
 

@@ -41,7 +41,13 @@ impl CsvCollector for JamfMobileConfigProfilesCollector {
     }
 
     fn headers(&self) -> &'static [&'static str] {
-        &["Profile ID", "Name", "Category", "Distribution Method", "Scope"]
+        &[
+            "Profile ID",
+            "Name",
+            "Category",
+            "Distribution Method",
+            "Scope",
+        ]
     }
 
     async fn collect_rows(

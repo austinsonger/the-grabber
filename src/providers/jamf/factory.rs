@@ -42,14 +42,22 @@ impl ProviderFactory for JamfProviderFactory {
                 super::mobile_devices::JamfMobileDevicesCollector::new(self.client.clone()),
             ));
         }
-        if self.selected.iter().any(|s| s == "jamf-computer-config-profiles") {
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "jamf-computer-config-profiles")
+        {
             v.push(Box::new(
                 super::computer_config_profiles::JamfComputerConfigProfilesCollector::new(
                     self.client.clone(),
                 ),
             ));
         }
-        if self.selected.iter().any(|s| s == "jamf-mobile-config-profiles") {
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "jamf-mobile-config-profiles")
+        {
             v.push(Box::new(
                 super::mobile_config_profiles::JamfMobileConfigProfilesCollector::new(
                     self.client.clone(),
@@ -57,19 +65,25 @@ impl ProviderFactory for JamfProviderFactory {
             ));
         }
         if self.selected.iter().any(|s| s == "jamf-computer-groups") {
-            v.push(Box::new(super::computer_groups::JamfComputerGroupsCollector::new(
-                self.client.clone(),
-            )));
-        }
-        if self.selected.iter().any(|s| s == "jamf-mobile-device-groups") {
             v.push(Box::new(
-                super::mobile_device_groups::JamfMobileDeviceGroupsCollector::new(self.client.clone()),
+                super::computer_groups::JamfComputerGroupsCollector::new(self.client.clone()),
+            ));
+        }
+        if self
+            .selected
+            .iter()
+            .any(|s| s == "jamf-mobile-device-groups")
+        {
+            v.push(Box::new(
+                super::mobile_device_groups::JamfMobileDeviceGroupsCollector::new(
+                    self.client.clone(),
+                ),
             ));
         }
         if self.selected.iter().any(|s| s == "jamf-patch-titles") {
-            v.push(Box::new(super::patch_titles::JamfPatchTitlesCollector::new(
-                self.client.clone(),
-            )));
+            v.push(Box::new(
+                super::patch_titles::JamfPatchTitlesCollector::new(self.client.clone()),
+            ));
         }
         if self.selected.iter().any(|s| s == "jamf-patch-compliance") {
             v.push(Box::new(

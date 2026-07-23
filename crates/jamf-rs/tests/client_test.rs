@@ -22,9 +22,6 @@ async fn fetches_token_and_attaches_bearer_auth() {
         .await;
 
     let client = JamfClient::new(&server.uri(), "id", "secret").expect("client builds");
-    let resp = client
-        .get("/api/v1/ping")
-        .await
-        .expect("request succeeds");
+    let resp = client.get("/api/v1/ping").await.expect("request succeeds");
     assert!(resp.status().is_success());
 }

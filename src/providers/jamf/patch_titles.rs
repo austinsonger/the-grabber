@@ -38,7 +38,10 @@ impl CsvCollector for JamfPatchTitlesCollector {
             Err(jamf_rs::JamfError::Api { status: 404, .. }) => return Ok(vec![]),
             Err(e) => return Err(e.into()),
         };
-        let rows = titles.into_iter().map(|t| vec![t.id, t.display_name]).collect();
+        let rows = titles
+            .into_iter()
+            .map(|t| vec![t.id, t.display_name])
+            .collect();
         Ok(rows)
     }
 }

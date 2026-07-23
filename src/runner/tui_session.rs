@@ -890,17 +890,18 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         .push(format!("  Jamf '{}' → {}", tenant_name, base_url));
                     terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
 
-                    let client = match jamf_rs::JamfClient::new(&base_url, &client_id, &client_secret) {
-                        Ok(c) => c,
-                        Err(e) => {
-                            app.prep_log.push(format!(
-                                "  ✗ Jamf '{}' — client build failed: {e}",
-                                tenant_name,
-                            ));
-                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
-                            continue;
-                        }
-                    };
+                    let client =
+                        match jamf_rs::JamfClient::new(&base_url, &client_id, &client_secret) {
+                            Ok(c) => c,
+                            Err(e) => {
+                                app.prep_log.push(format!(
+                                    "  ✗ Jamf '{}' — client build failed: {e}",
+                                    tenant_name,
+                                ));
+                                terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                                continue;
+                            }
+                        };
 
                     let selected_keys: Vec<String> = app
                         .selected_collectors()
