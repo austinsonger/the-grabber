@@ -21,6 +21,7 @@ pub mod automations;
 pub mod log_streams;
 pub mod manual_review;
 pub mod password_policy;
+pub mod remediate;
 pub mod sign_on_session;
 
 use okta_rs::OktaClient;
