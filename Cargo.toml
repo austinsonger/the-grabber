@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/elastic-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/elastic-rs", "crates/github-rs"]
 resolver = "2"
 
 [package]
@@ -106,14 +106,18 @@ jira-rs = { path = "crates/jira-rs", optional = true }
 # Elastic — only compiled with `--features elastic`
 elastic-rs = { path = "crates/elastic-rs", optional = true }
 
+# GitHub — only compiled with `--features github`
+github-rs = { path = "crates/github-rs", optional = true }
+
 [features]
-default = ["tenable", "okta", "jira", "elastic"]
+default = ["tenable", "okta", "jira", "elastic", "github"]
 azure   = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
 gcp     = ["dep:google-cloud-auth"]
 tenable = ["dep:tenable-rs"]
 okta    = ["dep:okta-rs"]
 jira    = ["dep:jira-rs"]
 elastic = ["dep:elastic-rs"]
+github  = ["dep:github-rs"]
 
 [dev-dependencies]
 tempfile = "3"

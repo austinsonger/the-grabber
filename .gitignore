@@ -56,3 +56,6 @@ jira-config.toml
 
 
 elastic-config.toml
+
+# GitHub credentials — never commit
+github-config.toml

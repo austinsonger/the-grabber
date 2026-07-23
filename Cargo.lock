@@ -3014,6 +3014,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "github-rs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
 name = "google-cloud-auth"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5312,6 +5326,7 @@ dependencies = [
  "dirs-next",
  "elastic-rs",
  "flate2",
+ "github-rs",
  "google-cloud-auth",
  "hmac",
  "jira-rs",
