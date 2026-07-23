@@ -764,6 +764,16 @@ Never treat `Not_Applicable` or `Not_Reviewed` as a pass when scoring compliance
 
 The SSWS token is bound to a user; minimum role: **Read-only Administrator**. For the System Log specifically, the user must also have permission to view the System Log (granted by the Read-only Administrator role by default). The STIG compliance checks additionally read Authentication/Sign-On Policy rules, Authenticators, Log Streams, and Automations — all covered by the Read-only Administrator role, but Log Streams and Automations require Identity Engine; on Classic Engine tenants those checks report `Not_Applicable`.
 
+### STIG Remediation (interactive)
+
+From the TUI's feature-selection screen, **STIG Remediation** runs the same 24 checks live, then lets you fix the failing ones one at a time: pick a check, see exactly what would change (old value → new value), confirm, and grabber applies it via the Okta API. Every attempt — applied, failed, or manually acknowledged — is appended to `Okta_STIG_Remediation_Log.jsonl` in that tenant's evidence-output directory (never truncated, one line per attempt, across every session).
+
+There is no unattended/batch-apply mode — every write requires an explicit per-check confirmation, and every write is a read-modify-write (grabber re-fetches the live resource immediately before writing, so it only ever touches the field(s) the check owns).
+
+Three checks are intentionally **not** API-remediable even though they involve tenant configuration, because neither this tool nor the evaluator that reads them is confident enough in the write schema to safely automate a change to live security policy: V-273188 (inactivity automation), V-273202 (log streaming), V-273207 (Smart Card CA identity provider). Two more are conditionally remediable — V-273204 (Smart Card/PIV authenticator) and V-273205 (Okta Verify FIPS-only) only get an automated fix when the evaluator found a concrete resource/field to act on; otherwise they fall back to the same manual-acknowledgement path. For all of these, the wizard still shows the STIG's own Fix Text and lets you record that you did it yourself in the Admin Console.
+
+**Write access:** remediation reuses the same `okta_api_token` configured for evidence collection — there is no separate elevated-credential setting. If that token's role doesn't have write access to the resource being changed, the specific API call fails with Okta's own error text, which is shown in the wizard and recorded in the audit log; grabber does not pre-validate token scope.
+
 ---
 
 ## Jira
