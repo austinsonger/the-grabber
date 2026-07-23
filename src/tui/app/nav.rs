@@ -108,6 +108,7 @@ impl App {
                     Screen::TenableEndpoint
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
+                    || self.selected_provider == CloudProvider::CrowdStrike
                     || self.selected_provider == CloudProvider::Elastic
                     || self.selected_provider == CloudProvider::Jamf
                     || self.selected_provider == CloudProvider::Github
@@ -179,6 +180,7 @@ impl App {
                     Screen::TenableEndpoint
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
+                    || self.selected_provider == CloudProvider::CrowdStrike
                     || self.selected_provider == CloudProvider::Elastic
                     || self.selected_provider == CloudProvider::Jamf
                     || self.selected_provider == CloudProvider::Github
@@ -281,6 +283,19 @@ impl App {
                     if !has_jira {
                         self.error_msg =
                             Some("No Jira accounts configured in jira-config.toml".into());
+                        return false;
+                    }
+                }
+                #[cfg(feature = "crowdstrike")]
+                if self.selected_provider == CloudProvider::CrowdStrike {
+                    let has_crowdstrike = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::CrowdStrike);
+                    if !has_crowdstrike {
+                        self.error_msg = Some(
+                            "No CrowdStrike accounts configured in crowdstrike-config.toml".into(),
+                        );
                         return false;
                     }
                 }

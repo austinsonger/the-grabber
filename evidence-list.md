@@ -165,6 +165,16 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV211 | Elastic File Integrity Monitoring Events | `Elastic_File_Integrity_Monitoring_Events` | Event ID, File Path, Event Action, File Hash SHA256, Host Name, User Name, Timestamp |
 | EV212 | Elastic Index Lifecycle Management Policies | `Elastic_ILM_Policies` | Policy Name, Modified Date, Has Hot Phase, Has Warm Phase, Has Cold Phase, Has Frozen Phase, Has Delete Phase, Delete Min Age (Retention Period) |
 
+### Endpoint Detection & Response — CrowdStrike
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV213 | CrowdStrike Hosts | `CrowdStrike_Hosts` | Device ID, Hostname, Platform, OS Version, Agent Version, First Seen, Last Seen, Status, External IP, Local IP, MAC Address, Serial Number, System Manufacturer, System Product Name, Reduced Functionality Mode |
+| EV214 | CrowdStrike Alerts | `CrowdStrike_Alerts` | Alert ID, Composite ID, Created, Updated, Status, Severity, Severity Name, Type, Product, Tactic, Technique, Description, Device Hostname, Device ID, Agent ID |
+| EV215 | CrowdStrike Vulnerabilities | `CrowdStrike_Vulnerabilities` | Vulnerability ID, CVE ID, Severity, Status, Base Score, Exploit Status, Hostname, Device ID, Platform, Created, Updated, Closed |
+| EV216 | CrowdStrike Prevention Policies | `CrowdStrike_Prevention_Policies` | Policy ID, Name, Platform, Enabled, Description, Precedence, Created, Modified, Created By, Modified By |
+| EV217 | CrowdStrike Sensor Update Policies | `CrowdStrike_Sensor_Update_Policies` | Policy ID, Name, Platform, Enabled, Build, Scheduler Enabled, Uninstall Protection, Created, Modified, Created By, Modified By |
+
 ### Certificates & PKI
 
 | # | Name | Filename Prefix | Columns |
@@ -432,13 +442,14 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Category | Count |
 |----------|-------|
 | AWS collectors | 144 |
-| Okta collectors | 24 |
+| Okta collectors | 25 |
 | Jira collectors | 28 |
 | Tenable collectors | 5 |
 | Elastic collectors | 10 |
 | Jamf collectors | 9 |
 | GitHub collectors | 10 |
-| **Total evidence collectors** | **220** |
+| CrowdStrike collectors | 5 |
+| **Total evidence collectors** | **236** |
 | Asset Inventory asset types (Inventory feature) | 8 |
 
 Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.
