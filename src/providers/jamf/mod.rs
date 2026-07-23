@@ -5,6 +5,7 @@ pub mod factory;
 pub mod mobile_config_profiles;
 pub mod mobile_devices;
 pub mod mobile_device_groups;
+pub mod policies;
 
 // Authentication:
 //   POST {base_url}/api/oauth/token  (client_id + client_secret, grant_type=client_credentials)

@@ -69,7 +69,13 @@ impl ProviderFactory for JamfProviderFactory {
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
-        Vec::new()
+        let mut v: Vec<Box<dyn JsonCollector>> = Vec::new();
+        if self.selected.iter().any(|s| s == "jamf-policies") {
+            v.push(Box::new(super::policies::JamfPoliciesCollector::new(
+                self.client.clone(),
+            )));
+        }
+        v
     }
     fn evidence_collectors(&self) -> Vec<Box<dyn EvidenceCollector>> {
         Vec::new()

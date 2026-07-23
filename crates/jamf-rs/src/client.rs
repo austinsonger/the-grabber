@@ -61,6 +61,9 @@ impl JamfClient {
     pub fn mobile_device_groups(&self) -> crate::api::groups::MobileDeviceGroupsApi<'_> {
         crate::api::groups::MobileDeviceGroupsApi(self)
     }
+    pub fn policies(&self) -> crate::api::policies::PoliciesApi<'_> {
+        crate::api::policies::PoliciesApi(self)
+    }
 
     /// Build a client for a Jamf Pro server URL (e.g. `https://acme.jamfcloud.com`).
     /// Works identically for Jamf Cloud and self-hosted/on-prem servers.
