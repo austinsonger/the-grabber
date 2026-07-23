@@ -8,5 +8,6 @@
 
 pub mod applications;
 pub mod factory;
+pub mod mfa_factors;
 pub mod user_groups;
 pub mod users;
