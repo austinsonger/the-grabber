@@ -42,6 +42,20 @@ impl ProviderFactory for JamfProviderFactory {
                 super::mobile_devices::JamfMobileDevicesCollector::new(self.client.clone()),
             ));
         }
+        if self.selected.iter().any(|s| s == "jamf-computer-config-profiles") {
+            v.push(Box::new(
+                super::computer_config_profiles::JamfComputerConfigProfilesCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
+        if self.selected.iter().any(|s| s == "jamf-mobile-config-profiles") {
+            v.push(Box::new(
+                super::mobile_config_profiles::JamfMobileConfigProfilesCollector::new(
+                    self.client.clone(),
+                ),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {

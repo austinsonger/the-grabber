@@ -49,6 +49,12 @@ impl JamfClient {
     pub fn mobile_devices(&self) -> crate::api::mobile_devices::MobileDevicesApi<'_> {
         crate::api::mobile_devices::MobileDevicesApi(self)
     }
+    pub fn computer_config_profiles(&self) -> crate::api::config_profiles::ComputerConfigProfilesApi<'_> {
+        crate::api::config_profiles::ComputerConfigProfilesApi(self)
+    }
+    pub fn mobile_config_profiles(&self) -> crate::api::config_profiles::MobileConfigProfilesApi<'_> {
+        crate::api::config_profiles::MobileConfigProfilesApi(self)
+    }
 
     /// Build a client for a Jamf Pro server URL (e.g. `https://acme.jamfcloud.com`).
     /// Works identically for Jamf Cloud and self-hosted/on-prem servers.

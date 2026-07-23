@@ -1,5 +1,7 @@
+pub mod computer_config_profiles;
 pub mod computers;
 pub mod factory;
+pub mod mobile_config_profiles;
 pub mod mobile_devices;
 
 // Authentication:
