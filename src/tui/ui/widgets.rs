@@ -1,10 +1,15 @@
-use ratatui::layout::{Alignment, Rect};
+use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph};
+use ratatui::widgets::{
+    Block, BorderType, Clear, List, ListItem, ListState, Padding, Paragraph, Wrap,
+};
 use ratatui::Frame;
 
-use super::{BORDER_SUBTLE, CYAN, RED, RED_BG, TEXT_BRIGHT, TEXT_DIM};
+use super::{
+    AMBER, BG_SELECTED, BORDER_SUBTLE, CYAN, CYAN_DIM, RED, RED_BG, TEXT_BRIGHT, TEXT_DIM,
+    TEXT_NORMAL,
+};
 
 pub(super) fn draw_stat_card(f: &mut Frame, area: Rect, title: &str, value: &str, color: Color) {
     let block = Block::bordered()
@@ -143,4 +148,88 @@ pub(super) fn format_number(n: usize) -> String {
         result.push(c);
     }
     result.chars().rev().collect()
+}
+
+/// Auto-scrolling list (left, 30% width) + detail panel (right, 70% width)
+/// for single-column selection screens with a description per item.
+/// `items` is `(name, description)` pairs; `selected` indexes into `items`
+/// and drives both the list highlight and the detail panel content.
+#[allow(dead_code)]
+pub(super) fn draw_list_with_detail(
+    f: &mut Frame,
+    area: Rect,
+    list_title: &str,
+    items: &[(String, String)],
+    selected: usize,
+) {
+    let chunks =
+        Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)]).split(area);
+
+    let list_items: Vec<ListItem> = items
+        .iter()
+        .enumerate()
+        .map(|(idx, (name, _))| {
+            let style = if idx == selected {
+                Style::default()
+                    .fg(AMBER)
+                    .add_modifier(Modifier::BOLD)
+                    .bg(BG_SELECTED)
+            } else {
+                Style::default().fg(TEXT_NORMAL)
+            };
+            ListItem::new(Line::from(Span::styled(format!(" {name}"), style)))
+        })
+        .collect();
+
+    let list_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(CYAN))
+        .title(Line::from(vec![Span::styled(
+            format!(" {list_title} "),
+            Style::default().fg(CYAN),
+        )]));
+
+    let mut list_state = ListState::default();
+    list_state.select(Some(selected));
+
+    f.render_stateful_widget(
+        List::new(list_items)
+            .block(list_block)
+            .highlight_symbol("▸ ")
+            .highlight_style(Style::default()),
+        chunks[0],
+        &mut list_state,
+    );
+
+    let (detail_name, detail_desc) = items
+        .get(selected)
+        .map(|(n, d)| (n.as_str(), d.as_str()))
+        .unwrap_or(("", ""));
+
+    let detail_block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_SUBTLE))
+        .title(Line::from(vec![Span::styled(
+            " Details ",
+            Style::default().fg(CYAN_DIM),
+        )]))
+        .padding(Padding::horizontal(1));
+
+    let detail_lines = vec![
+        Line::from(Span::styled(
+            detail_name,
+            Style::default()
+                .fg(TEXT_BRIGHT)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::raw(""),
+        Line::from(Span::styled(detail_desc, Style::default().fg(TEXT_DIM))),
+    ];
+
+    f.render_widget(
+        Paragraph::new(detail_lines)
+            .wrap(Wrap { trim: true })
+            .block(detail_block),
+        chunks[1],
+    );
 }
