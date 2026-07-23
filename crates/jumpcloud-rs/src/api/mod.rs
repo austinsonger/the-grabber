@@ -1,1 +1,19 @@
-// API modules populated in Task 4.
+pub mod administrators;
+pub mod applications;
+pub mod insights;
+pub mod organizations;
+pub mod policies;
+pub mod system_groups;
+pub mod systems;
+pub mod user_groups;
+pub mod users;
+
+pub use administrators::AdministratorsApi;
+pub use applications::ApplicationsApi;
+pub use insights::InsightsApi;
+pub use organizations::OrganizationsApi;
+pub use policies::PoliciesApi;
+pub use system_groups::SystemGroupsApi;
+pub use systems::SystemsApi;
+pub use user_groups::UserGroupsApi;
+pub use users::UsersApi;

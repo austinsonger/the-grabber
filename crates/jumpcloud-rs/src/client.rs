@@ -187,8 +187,33 @@ impl JumpCloudClient {
         Ok(value)
     }
 
-    // NOTE: API accessors (users(), systems(), ...) are added in Task 4 once
-    // the api::* structs exist. Do not add them here.
+    pub fn users(&self) -> crate::api::UsersApi<'_> {
+        crate::api::UsersApi(self)
+    }
+    pub fn user_groups(&self) -> crate::api::UserGroupsApi<'_> {
+        crate::api::UserGroupsApi(self)
+    }
+    pub fn systems(&self) -> crate::api::SystemsApi<'_> {
+        crate::api::SystemsApi(self)
+    }
+    pub fn system_groups(&self) -> crate::api::SystemGroupsApi<'_> {
+        crate::api::SystemGroupsApi(self)
+    }
+    pub fn applications(&self) -> crate::api::ApplicationsApi<'_> {
+        crate::api::ApplicationsApi(self)
+    }
+    pub fn policies(&self) -> crate::api::PoliciesApi<'_> {
+        crate::api::PoliciesApi(self)
+    }
+    pub fn administrators(&self) -> crate::api::AdministratorsApi<'_> {
+        crate::api::AdministratorsApi(self)
+    }
+    pub fn organizations(&self) -> crate::api::OrganizationsApi<'_> {
+        crate::api::OrganizationsApi(self)
+    }
+    pub fn insights(&self) -> crate::api::InsightsApi<'_> {
+        crate::api::InsightsApi(self)
+    }
 
     /// Concurrency helper used by member-listing collectors that fan out per
     /// group. Runs `fut_of(id)` for each id with `concurrency` in flight.
