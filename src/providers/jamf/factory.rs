@@ -1,0 +1,42 @@
+use jamf_rs::JamfClient;
+
+use crate::evidence::{CsvCollector, EvidenceCollector, JsonCollector};
+use crate::providers::{CloudProvider, ProviderFactory};
+
+pub struct JamfProviderFactory {
+    client: JamfClient,
+    tenant_name: String,
+    selected: Vec<String>,
+}
+
+impl JamfProviderFactory {
+    pub fn new(client: JamfClient, tenant_name: String, selected: Vec<String>) -> Self {
+        Self {
+            client,
+            tenant_name,
+            selected,
+        }
+    }
+}
+
+impl ProviderFactory for JamfProviderFactory {
+    fn provider(&self) -> CloudProvider {
+        CloudProvider::Jamf
+    }
+    fn account_id(&self) -> &str {
+        &self.tenant_name
+    }
+    fn region(&self) -> &str {
+        ""
+    }
+
+    fn csv_collectors(&self) -> Vec<Box<dyn CsvCollector>> {
+        Vec::new()
+    }
+    fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
+        Vec::new()
+    }
+    fn evidence_collectors(&self) -> Vec<Box<dyn EvidenceCollector>> {
+        Vec::new()
+    }
+}

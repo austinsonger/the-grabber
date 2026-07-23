@@ -18,6 +18,9 @@ pub mod jira;
 #[cfg(feature = "elastic")]
 pub mod elastic;
 
+#[cfg(feature = "jamf")]
+pub mod jamf;
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -40,6 +43,7 @@ pub enum CloudProvider {
     Okta,
     Jira,
     Elastic,
+    Jamf,
 }
 
 impl fmt::Display for CloudProvider {
@@ -52,6 +56,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Okta => write!(f, "Okta"),
             CloudProvider::Jira => write!(f, "Jira"),
             CloudProvider::Elastic => write!(f, "Elastic"),
+            CloudProvider::Jamf => write!(f, "Jamf"),
         }
     }
 }
