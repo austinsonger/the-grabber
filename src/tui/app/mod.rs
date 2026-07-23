@@ -195,6 +195,10 @@ impl App {
             "crowdstrike-vulnerabilities",
             "crowdstrike-prevention-policies",
             "crowdstrike-sensor-update-policies",
+            "github-audit-log",
+            "github-dependabot-alerts",
+            "github-secret-scanning-alerts",
+            "github-code-scanning-alerts",
         ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {

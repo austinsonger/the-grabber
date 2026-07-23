@@ -1065,6 +1065,117 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 }
             }
 
+            // ── GitHub accounts ──────────────────────────────────────────────────
+            #[cfg(feature = "github")]
+            if !app.selected_accounts.is_empty() {
+                use crate::providers::ProviderFactory as _;
+
+                let sorted_all: Vec<usize> = {
+                    let mut v: Vec<usize> = app.selected_accounts.iter().copied().collect();
+                    v.sort();
+                    v
+                };
+                for &idx in &sorted_all {
+                    if app.accounts[idx].provider != crate::providers::CloudProvider::Github {
+                        continue;
+                    }
+                    let acct = &app.accounts[idx];
+                    let account_name = acct.name.clone();
+
+                    let org = match acct.github_org_resolved() {
+                        Some(o) => o,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ GitHub '{}' — missing github_org (or GITHUB_ORG env)",
+                                account_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let token = match acct.github_token_resolved() {
+                        Some(t) => t,
+                        None => {
+                            app.prep_log.push(format!(
+                                "  ✗ GitHub '{}' — missing github_token (or GITHUB_TOKEN env)",
+                                account_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+                    let base_url = acct.github_base_url_resolved();
+
+                    app.prep_log.push(format!(
+                        "  GitHub '{}' → {} ({})",
+                        account_name, org, base_url
+                    ));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+                    let client = match github_rs::GithubClient::new(&base_url, &token, &org) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            app.prep_log.push(format!(
+                                "  ✗ GitHub '{}' — client build failed: {e}",
+                                account_name,
+                            ));
+                            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                            continue;
+                        }
+                    };
+
+                    let selected_keys: Vec<String> = app
+                        .selected_collectors()
+                        .into_iter()
+                        .filter(|k| k.starts_with("github-"))
+                        .collect();
+
+                    let factory = crate::providers::github::factory::GithubProviderFactory::new(
+                        client,
+                        org.clone(),
+                        selected_keys.clone(),
+                    );
+                    let csv_cols = factory.csv_collectors();
+                    let json_inv_cols = factory.json_collectors();
+                    let evidence_cols = factory.evidence_collectors();
+                    let display_names: Vec<String> = csv_cols
+                        .iter()
+                        .map(|c| c.name().to_string())
+                        .chain(json_inv_cols.iter().map(|c| c.name().to_string()))
+                        .chain(evidence_cols.iter().map(|c| c.name().to_string()))
+                        .collect();
+
+                    let output_path = Some(
+                        base_output_path
+                            .clone()
+                            .unwrap_or_else(|| PathBuf::from("."))
+                            .join(&account_name),
+                    );
+
+                    prepared.push(crate::runner::multi_account::AccountCollectors {
+                        account_id: org.clone(),
+                        aws_caller_arn: String::new(),
+                        aws_user_id: String::new(),
+                        profile: String::new(),
+                        region: String::new(),
+                        output_path,
+                        collector_keys: selected_keys,
+                        json_collectors: evidence_cols,
+                        json_inv_collectors: json_inv_cols,
+                        csv_collectors: csv_cols,
+                        display_names,
+                        discovered_regions: Vec::new(),
+                        regional_collectors: Vec::new(),
+                        inventory_multi_region: Vec::new(),
+                        endpoint_label: Some(format!("GitHub — {}", org)),
+                    });
+
+                    app.prep_log
+                        .push(format!("  ✓ GitHub '{}' ready.", account_name));
+                    terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+                }
+            }
+
             // ── Elastic accounts ────────────────────────────────────────────────────
             #[cfg(feature = "elastic")]
             if !app.selected_accounts.is_empty() {

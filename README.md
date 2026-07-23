@@ -1,6 +1,6 @@
 # The Grabber
 
-The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, Tenable, CrowdStrike, and Elastic, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
+The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, Tenable, CrowdStrike, Elastic, and GitHub, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
 ![Alt text](assets/1.Grabber_LandingPage.png)
 
@@ -10,7 +10,7 @@ The Grabber. Collects current-state snapshots and time-windowed audit records fr
 
 - **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
 - **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
-- **200+ collectors across six providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 10 Elastic, 5 CrowdStrike (see `evidence-list.md` for the current catalog)
+- **200+ collectors across seven providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 10 Elastic, 10 GitHub, 5 CrowdStrike (see `evidence-list.md` for the current catalog)
 - **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
 - **Chain-of-custody audit trail** — per-run `CHAIN-OF-CUSTODY-*.json` and an append-only `CHAIN-OF-CUSTODY.jsonl` log capture operator identity, hostname, AWS caller ARN, and the sanitized CLI invocation
 - **Run manifest** — `RUN-MANIFEST-*.json` records every collector's outcome (success/empty/error/timeout), record count, and file size
@@ -175,7 +175,7 @@ These dates bound all time-windowed collectors (CloudTrail events, Backup job hi
 
 ### Collectors
 
-A scrollable checklist of 144 AWS collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.). Non-AWS providers (Okta, Jira, Tenable) surface their own per-provider collector menus with only the keys relevant to that provider.
+A scrollable checklist of 144 AWS collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.). Non-AWS providers (Okta, Jira, Tenable, GitHub) surface their own per-provider collector menus with only the keys relevant to that provider.
 
 - `Space` toggles the collector under the cursor.
 - The title shows **X of Y selected** as you make changes.
@@ -316,7 +316,7 @@ Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`
 
 1. Any of `--start-date`, `--lookback`, `--inventory`, `--poam`, or `--verify-manifest` bypasses the TUI.
 2. `--verify-manifest` is a standalone verification path and requires `--signing-key`.
-3. `--collectors` accepts keys across every enabled provider (AWS/Okta/Jira/Tenable); the maintained key list lives in `evidence-list.md`.
+3. `--collectors` accepts keys across every enabled provider (AWS/Okta/Jira/Tenable/GitHub); the maintained key list lives in `evidence-list.md`.
 4. `--inventory` writes the unified `AWS_Inventory-<timestamp>.csv` plus the FedRAMP-templated `.xlsx` when `assets/Inventory.xlsx` is present. `RUN-MANIFEST` and `CHAIN-OF-CUSTODY` files are opt-in via their `--write-*` flags in collectors mode only.
 
 ---
@@ -815,6 +815,63 @@ The user behind the API token needs **Browse Projects** permission on every proj
 
 ---
 
+## GitHub
+
+Optional feature — build with `--features github` (enabled by default).
+
+### Configuration
+
+Create `github-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name             = "GitHub"
+provider         = "github"
+description      = "GitHub.com organization"
+output_dir       = "./evidence-output/github"
+github_org       = "acme"
+github_token     = ""
+# For GitHub Enterprise Server, uncomment and point at your instance:
+# github_base_url = "https://github.acme.internal/api/v3"
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `GITHUB_ORG` — org login, e.g. `acme`
+- `GITHUB_TOKEN` — Personal Access Token (fine-grained or classic)
+- `GITHUB_BASE_URL` — REST API root; omit for GitHub.com (defaults to `https://api.github.com`), or set to `https://HOST/api/v3` for GitHub Enterprise Server
+
+Create a token at **Settings → Developer settings → Personal access tokens**. Required scopes/permissions:
+
+| Collector(s) | Fine-grained permission | Classic scope |
+|---|---|---|
+| Org Members, Teams, Team Membership | Members: Read-only | `read:org` |
+| Org Security Settings | Administration: Read-only (org) | `read:org` |
+| Repositories, Branch Protection | Contents: Read-only, Administration: Read-only | `repo` |
+| Org Audit Log | Organization audit log: Read-only — **requires GitHub Enterprise Cloud** | `read:audit_log` |
+| Dependabot Alerts | Dependabot alerts: Read-only | `security_events` |
+| Secret Scanning Alerts | Secret scanning alerts: Read-only | `security_events` |
+| Code Scanning Alerts | Code scanning alerts: Read-only | `security_events` |
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `github-members` | CSV | Org members with role (admin/member), site-admin flag, and 2FA-disabled status (2FA status requires an org-owner token) |
+| `github-teams` | CSV | Teams with slug, privacy, and permission level |
+| `github-team-members` | CSV | Per-team membership lists |
+| `github-security-settings` | CSV | Org-wide 2FA requirement, default repo permission, member repo-creation rights |
+| `github-repos` | CSV | Repositories with visibility, default branch, archived status |
+| `github-branch-protection` | CSV | Default-branch protection rules per repo (required reviews, status checks, force-push policy) |
+| `github-audit-log` | CSV | Time-windowed org audit log events — **requires GitHub Enterprise Cloud** |
+| `github-dependabot-alerts` | CSV | Dependency vulnerability alerts, time-windowed by `created_at` |
+| `github-secret-scanning-alerts` | CSV | Leaked-secret alerts, time-windowed by `created_at` |
+| `github-code-scanning-alerts` | CSV | Static-analysis (e.g. CodeQL) findings, time-windowed by `created_at` |
+
+`github-audit-log`, `github-dependabot-alerts`, `github-secret-scanning-alerts`, and `github-code-scanning-alerts` are opt-in by default in the TUI (they depend on a GitHub plan/feature the org may not have) — pass them explicitly via `--collectors` or enable them in the TUI's collector-selection screen.
+
+---
+
 ## Tenable
 
 Optional feature — build with `--features tenable` (enabled by default).
@@ -954,7 +1011,7 @@ Both providers are compiled behind opt-in Cargo features (`--features azure`, `-
 
 Prebuilt `grabber` binaries for Linux (x86_64) and macOS (Intel + Apple Silicon) are published as GitHub Releases — no need to `cargo build` from source in every downstream CI pipeline.
 
-**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`) — no `azure`/`gcp`.
+**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`, `github`) — no `azure`/`gcp`.
 
 **Using the binary from another repo's GitHub Action:**
 

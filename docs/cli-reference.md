@@ -216,7 +216,7 @@ Skip writing the `AWS_Inventory-*.csv` file. Useful when only the XLSX output is
 
 ### `--inventory-all-accounts`
 
-Merge inventory from every authenticated AWS account listed in `config.toml` (and every non-AWS account listed in `tenable-config.toml` / `okta-config.toml` / `jira-config.toml`) into a single unified CSV + XLSX, matching the TUI multi-account inventory output. Accounts whose profile cannot resolve an AWS identity (expired SSO, missing credentials) are skipped with a `WARN` and the run continues against the rest.
+Merge inventory from every authenticated AWS account listed in `config.toml` (and every non-AWS account listed in `tenable-config.toml` / `okta-config.toml` / `jira-config.toml` / `github-config.toml`) into a single unified CSV + XLSX, matching the TUI multi-account inventory output. Accounts whose profile cannot resolve an AWS identity (expired SSO, missing credentials) are skipped with a `WARN` and the run continues against the rest.
 
 - Requires `--inventory`.
 - Cannot be combined with `--profile` — profiles are read from the per-account config blocks.
@@ -436,7 +436,7 @@ grabber --inventory --ec2 --rds --skip-inventory-csv
 
 ## Collector Keys Reference
 
-All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `tenable-*`, `elastic-*`) — see the provider sections in the main [README](../README.md) for the canonical lists. Non-AWS providers (Okta, Jira, Tenable, Elastic) are TUI-only today; `--collectors` only affects the AWS headless CLI path.
+All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `tenable-*`, `elastic-*`, `github-*`) — see the provider sections in the main [README](../README.md) for the canonical lists. Non-AWS providers (Okta, Jira, Tenable, Elastic, GitHub) are TUI-only today; `--collectors` only affects the AWS headless CLI path.
 
 ### App Layer & DNS
 

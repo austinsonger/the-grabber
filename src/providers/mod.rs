@@ -21,6 +21,9 @@ pub mod crowdstrike;
 #[cfg(feature = "elastic")]
 pub mod elastic;
 
+#[cfg(feature = "github")]
+pub mod github;
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -44,6 +47,7 @@ pub enum CloudProvider {
     Jira,
     CrowdStrike,
     Elastic,
+    Github,
 }
 
 impl fmt::Display for CloudProvider {
@@ -57,6 +61,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Jira => write!(f, "Jira"),
             CloudProvider::CrowdStrike => write!(f, "CrowdStrike"),
             CloudProvider::Elastic => write!(f, "Elastic"),
+            CloudProvider::Github => write!(f, "GitHub"),
         }
     }
 }
@@ -82,6 +87,8 @@ impl CloudProvider {
         v.push(CloudProvider::CrowdStrike);
         #[cfg(feature = "elastic")]
         v.push(CloudProvider::Elastic);
+        #[cfg(feature = "github")]
+        v.push(CloudProvider::Github);
         v
     }
 
@@ -98,6 +105,7 @@ impl CloudProvider {
             CloudProvider::Jira => "Jira",
             CloudProvider::CrowdStrike => "CrowdStrike",
             CloudProvider::Elastic => "Elastic Security",
+            CloudProvider::Github => "GitHub",
         }
     }
 
@@ -119,6 +127,9 @@ impl CloudProvider {
             }
             CloudProvider::Elastic => {
                 "Collect detection rules, exception items, alerts, and cases from Elastic SIEM"
+            }
+            CloudProvider::Github => {
+                "Collect org members, teams, repos, branch protection, audit log, and security alerts"
             }
         }
     }
