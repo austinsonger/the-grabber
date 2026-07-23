@@ -59,6 +59,12 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
             "◆  Elastic Security",
             "Collect detection rules, exception items, alerts, and cases from Elastic SIEM",
         ));
+        #[cfg(feature = "jumpcloud")]
+        v.push((
+            CloudProvider::JumpCloud,
+            "◆  JumpCloud",
+            "Collect users, groups, applications, MFA factors, policies, admin roles, and device inventory from JumpCloud",
+        ));
         v
     };
 

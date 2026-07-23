@@ -107,6 +107,7 @@ impl App {
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::Elastic
+                    || self.selected_provider == CloudProvider::JumpCloud
                 {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
@@ -160,6 +161,7 @@ impl App {
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::Elastic
+                    || self.selected_provider == CloudProvider::JumpCloud
                 {
                     Screen::ProviderSelection
                 } else {
@@ -268,6 +270,19 @@ impl App {
                     if !has_elastic {
                         self.error_msg =
                             Some("No Elastic accounts configured in elastic-config.toml".into());
+                        return false;
+                    }
+                }
+                #[cfg(feature = "jumpcloud")]
+                if self.selected_provider == CloudProvider::JumpCloud {
+                    let has_jumpcloud = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::JumpCloud);
+                    if !has_jumpcloud {
+                        self.error_msg = Some(
+                            "No JumpCloud accounts configured in jumpcloud-config.toml".into(),
+                        );
                         return false;
                     }
                 }
