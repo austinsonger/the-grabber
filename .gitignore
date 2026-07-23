@@ -56,3 +56,6 @@ jira-config.toml
 
 
 elastic-config.toml
+
+# Jamf credentials — never commit
+jamf-config.toml

@@ -219,6 +219,21 @@ pub struct Account {
     pub elastic_api_key: Option<String>,
 
     // ------------------------------------------------------------------
+    // Jamf fields
+    // ------------------------------------------------------------------
+    /// Jamf Pro server base URL (e.g. `https://acme.jamfcloud.com`, or a
+    /// self-hosted URL — the API is identical either way).
+    pub jamf_base_url: Option<String>,
+
+    /// Jamf Pro API OAuth2 client ID (client-credentials flow).
+    /// Can also be supplied via `JAMF_CLIENT_ID` env var (env wins over TOML).
+    pub jamf_client_id: Option<String>,
+
+    /// Jamf Pro API OAuth2 client secret.
+    /// Can also be supplied via `JAMF_CLIENT_SECRET` env var (env wins over TOML).
+    pub jamf_client_secret: Option<String>,
+
+    // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
     /// Per-account collector overrides (enable_extra / disable).
@@ -311,6 +326,29 @@ impl Account {
             .ok()
             .or_else(|| self.elastic_api_key.clone())
     }
+
+    /// Resolve Jamf base URL, trimming any trailing slash. Returns None if unset.
+    pub fn jamf_base_url_resolved(&self) -> Option<String> {
+        std::env::var("JAMF_BASE_URL")
+            .ok()
+            .or_else(|| self.jamf_base_url.clone())
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+    }
+
+    /// Resolve Jamf OAuth2 client ID: env var takes precedence over TOML.
+    pub fn jamf_client_id_resolved(&self) -> Option<String> {
+        std::env::var("JAMF_CLIENT_ID")
+            .ok()
+            .or_else(|| self.jamf_client_id.clone())
+    }
+
+    /// Resolve Jamf OAuth2 client secret: env var takes precedence over TOML.
+    pub fn jamf_client_secret_resolved(&self) -> Option<String> {
+        std::env::var("JAMF_CLIENT_SECRET")
+            .ok()
+            .or_else(|| self.jamf_client_secret.clone())
+    }
 }
 
 /// Best-effort load of config, checking in order:
@@ -318,8 +356,8 @@ impl Account {
 ///   2. `~/.config/evidence/config.toml`  (user-global)
 ///
 /// After loading the primary config, `./tenable-config.toml`, `./okta-config.toml`,
-/// `./jira-config.toml`, and `./elastic-config.toml` are merged in (accounts only)
-/// if those files exist.
+/// `./jira-config.toml`, `./elastic-config.toml`, and `./jamf-config.toml` are merged
+/// in (accounts only) if those files exist.
 pub fn load_config() -> Option<AppConfig> {
     let mut cfg: AppConfig = {
         let local = PathBuf::from("config.toml");
@@ -376,6 +414,16 @@ pub fn load_config() -> Option<AppConfig> {
         if let Ok(contents) = fs::read_to_string(&elastic_path) {
             if let Ok(elastic_cfg) = toml::from_str::<AppConfig>(&contents) {
                 cfg.account.extend(elastic_cfg.account);
+            }
+        }
+    }
+
+    // Merge jamf-config.toml accounts if present
+    let jamf_path = PathBuf::from("jamf-config.toml");
+    if jamf_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&jamf_path) {
+            if let Ok(jamf_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(jamf_cfg.account);
             }
         }
     }
