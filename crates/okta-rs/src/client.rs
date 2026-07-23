@@ -63,6 +63,38 @@ impl OktaClient {
         self.send_with_retry(|| self.http.get(&owned).send()).await
     }
 
+    /// PUT a relative path with a JSON body. Internal helper.
+    #[allow(dead_code)]
+    pub(crate) async fn put_json(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<Response, OktaError> {
+        let url = self.url(path);
+        self.send_with_retry(|| self.http.put(&url).json(body).send())
+            .await
+    }
+
+    /// POST a relative path with a JSON body. Internal helper.
+    #[allow(dead_code)]
+    pub(crate) async fn post_json(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<Response, OktaError> {
+        let url = self.url(path);
+        self.send_with_retry(|| self.http.post(&url).json(body).send())
+            .await
+    }
+
+    /// POST a relative path with no body (lifecycle actions like
+    /// `/lifecycle/activate`). Internal helper.
+    #[allow(dead_code)]
+    pub(crate) async fn post_empty(&self, path: &str) -> Result<Response, OktaError> {
+        let url = self.url(path);
+        self.send_with_retry(|| self.http.post(&url).send()).await
+    }
+
     /// Public escape hatch used by integration tests.
     #[doc(hidden)]
     pub async fn raw_get(&self, path: &str) -> Result<Response, OktaError> {
