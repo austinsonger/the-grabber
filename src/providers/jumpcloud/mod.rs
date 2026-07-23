@@ -12,5 +12,6 @@ pub mod factory;
 pub mod mfa_factors;
 pub mod password_policy;
 pub mod policies;
+pub mod session_policy;
 pub mod user_groups;
 pub mod users;
