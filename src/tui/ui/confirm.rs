@@ -210,6 +210,7 @@ pub(super) fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
             ]);
         }
         Feature::Poam => {}
+        Feature::StigRemediation => {}
     }
     rows.push(Line::raw(""));
 
@@ -235,6 +236,7 @@ pub(super) fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         Feature::Collectors => "▸▸  Start Collection  ◂◂",
         Feature::Inventory => "▸▸  Start Inventory   ◂◂",
         Feature::Poam => "▸▸  Start POAM Run    ◂◂",
+        Feature::StigRemediation => "▸▸  Start Remediation  ◂◂",
     };
     f.render_widget(
         Paragraph::new(Span::styled(

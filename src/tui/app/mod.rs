@@ -85,6 +85,37 @@ pub struct App {
     pub jira_project_selected: HashSet<usize>,
     pub selected_jira_project_keys: Vec<String>,
 
+    // ── STIG remediation wizard (Okta) ─────────────────────────────────────────
+    /// Indices into `accounts` that are Okta accounts, computed when
+    /// FeatureSelection → StigRemediationAccount.
+    pub stig_account_list: Vec<usize>,
+    pub stig_account_cursor: usize,
+    /// Resolved once the user confirms an account on StigRemediationAccount.
+    pub stig_selected_account_idx: Option<usize>,
+    /// All 24 check results from the most recent live evaluation. Populated
+    /// by the async driver when entering StigRemediationScanning.
+    pub stig_findings: Vec<crate::stig_status::StigCheckResult>,
+    /// Cursor over the *actionable* subset of `stig_findings` (status not
+    /// NotAFinding/NotApplicable) shown on StigRemediationList.
+    pub stig_finding_cursor: usize,
+    /// True once the user has pressed Enter on the highlighted finding and
+    /// is being shown the confirm/apply prompt inline.
+    pub stig_confirm_pending: bool,
+    /// Free-text buffer for remediations that need user-supplied content
+    /// (e.g. SetSignInBanner). Shown instead of the plain confirm prompt
+    /// when the highlighted finding's remediation needs it.
+    pub stig_text_input: TextInput,
+    /// (v_id, outcome) for every remediation attempted this session, in
+    /// the order they were applied. Shown on StigRemediationResults.
+    pub stig_outcomes: Vec<(String, crate::stig_status::RemediationOutcome)>,
+    /// Set by the async driver if the live evaluation itself fails
+    /// (e.g. client build failure) — shown on StigRemediationList in place
+    /// of the findings list.
+    pub stig_scan_error: Option<String>,
+    /// Path to `Okta_STIG_Remediation_Log.jsonl`, set after the first
+    /// applied/failed/acknowledged remediation this session.
+    pub stig_log_path: Option<String>,
+
     // Options
     pub output_dir: TextInput,
     pub filter_input: TextInput,
@@ -332,6 +363,16 @@ impl App {
             jira_project_cursor: 0,
             jira_project_selected: HashSet::new(),
             selected_jira_project_keys: Vec::new(),
+            stig_account_list: Vec::new(),
+            stig_account_cursor: 0,
+            stig_selected_account_idx: None,
+            stig_findings: Vec::new(),
+            stig_finding_cursor: 0,
+            stig_confirm_pending: false,
+            stig_text_input: TextInput::default(),
+            stig_outcomes: Vec::new(),
+            stig_scan_error: None,
+            stig_log_path: None,
             output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,

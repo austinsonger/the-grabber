@@ -1,0 +1,363 @@
+{
+  "schema": 1,
+  "stig_id": "Okta_IDaaS_STIG",
+  "stig_version": "v1r1",
+  "checks": {
+    "V-273186": {
+      "sv_rule_id": "SV-273186r1098825_rule",
+      "stig_id_version": "OKTA-APP-000020",
+      "severity": "medium",
+      "title": "Okta must log out a session after a 15-minute period of inactivity.",
+      "check_text": "From the Admin Console: 1. Select Security >> Global Session Policy. 2. In the Default Policy, verify a rule is configured at Priority 1 that is not named \"Default Rule\". 3. Click the edit icon next to the Priority 1 rule. 4. Verify the \"Maximum Okta global session idle time\" is set to 15 minutes. If \"Maximum Okta global session idle time\" is not set to 15 minutes, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Global Session Policy. 2. Select the Default Policy. 3. In the Rules table, make these updates: - Click \"Add rule\". - Set \"Maximum Okta global session idle time\" to 15 minutes.",
+      "cci": [
+        "CCI-000057",
+        "CCI-001133"
+      ],
+      "fedramp_req_ids": [
+        "AC-11",
+        "SC-10"
+      ]
+    },
+    "V-273187": {
+      "sv_rule_id": "SV-273187r1098828_rule",
+      "stig_id_version": "OKTA-APP-000025",
+      "severity": "medium",
+      "title": "The Okta Admin Console must log out a session after a 15-minute period of inactivity.",
+      "check_text": "From the Admin Console: 1. Select Applications >> Applications >> Okta Admin Console. 2. In the Sign On tab, under \"Okta Admin Console session\", verify the \"Maximum app session idle time\" is set to 15 minutes. If the \"Maximum app session idle time\" is not set to 15 minutes, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Applications >> Applications >> Okta Admin Console. 2. In the Sign On tab, under \"Okta Admin Console session\", set the \"Maximum app session idle time\" to 15 minutes.",
+      "cci": [
+        "CCI-000057"
+      ],
+      "fedramp_req_ids": [
+        "AC-11"
+      ]
+    },
+    "V-273188": {
+      "sv_rule_id": "SV-273188r1098831_rule",
+      "stig_id_version": "OKTA-APP-000090",
+      "severity": "medium",
+      "title": "Okta must automatically disable accounts after a 35-day period of account inactivity.",
+      "check_text": "If Okta Services rely on external directory services for user sourcing, this is not applicable, and the connected directory services must perform this function. Go to Workflows >> Automations and verify that an Automation has been created to disable accounts after 35 days of inactivity. If the Okta configuration does not automatically disable accounts after a 35-day period of account inactivity, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Workflow >> Automations and select \"Add Automation\". 2. Create a name for the Automation (e.g., \"User Inactivity\"). 3. Click \"Add Condition\" and select \"User Inactivity in Okta\". 4. In the duration field, enter 35 days and click \"Save\". 5 Click the edit button next to \"Select Schedule\". 6. Configure the \"Schedule\" field for \"Run Daily\" and set the \"Time\" field to an organizationally defined time to run this automation. Click \"Save\". 7. Click the edit button next to \"Select group membership\". 8. In the \"Applies to\" field, select the group \"Everyone\" by typing it into the field. Click \"Save\". 9. Click \"Add Action\" and select \"Change User lifecycle state in Okta\". 10. In the \"Change user state to\" field, select \"Suspended\" and click \"Save\". 11. Click the \"Inactive\" button near the top of the section screen and select \"Activate\".",
+      "cci": [
+        "CCI-000017",
+        "CCI-000795",
+        "CCI-003627"
+      ],
+      "fedramp_req_ids": [
+        "AC-2(3)"
+      ]
+    },
+    "V-273189": {
+      "sv_rule_id": "SV-273189r1098834_rule",
+      "stig_id_version": "OKTA-APP-000170",
+      "severity": "medium",
+      "title": "Okta must enforce the limit of three consecutive invalid login attempts by a user during a 15-minute time period.",
+      "check_text": "If Okta Services rely on external directory services for user sourcing, this check is not applicable, and the connected directory services must perform this function. From the Admin Console: 1. Go to Security >> Authenticators. 2. Click the \"Actions\" button next to \"Password\" and select \"Edit\". 3. For each Password Policy, verify the \"Lock Out\" section has the following values: - \"Lock out after 3 unsuccessful attempts\" is checked. - The value is set to \"3\". If Okta Services are not configured to automatically lock user accounts after three consecutive invalid login attempts, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Authenticators. 2. Click the \"Actions\" button next to \"Password\" and select \"Edit\". 3. For each Password Policy, ensure the \"Lock Out\" section has the following values: - \"Lock out after 3 unsuccessful attempts\" is checked. - The value is set to \"3\".",
+      "cci": [
+        "CCI-000044",
+        "CCI-002238"
+      ],
+      "fedramp_req_ids": [
+        "AC-7"
+      ]
+    },
+    "V-273190": {
+      "sv_rule_id": "SV-273190r1099763_rule",
+      "stig_id_version": "OKTA-APP-000180",
+      "severity": "medium",
+      "title": "The Okta Dashboard application must be configured to allow authentication only via non-phishable authenticators.",
+      "check_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Dashboard\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"Possession factor constraints are\" section, verify the \"Phishing resistant\" box is checked. This will ensure that only phishing-resistant factors are used to access the Okta Dashboard. If in the \"Possession factor constraints are\" section the \"Phishing resistant\" box is not checked, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Dashboard\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"Possession factor constraints are\" section, ensure the \"Phishing resistant\" box is checked.",
+      "cci": [
+        "CCI-000044"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(2)"
+      ]
+    },
+    "V-273191": {
+      "sv_rule_id": "SV-273191r1099764_rule",
+      "stig_id_version": "OKTA-APP-000190",
+      "severity": "medium",
+      "title": "The Okta Admin Console application must be configured to allow authentication only via non-phishable authenticators.",
+      "check_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Admin Console\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"Possession factor constraints are\" section, verify the \"Phishing resistant\" box is checked. This will ensure that only phishing-resistant factors are used to access the Okta Dashboard. If in the \"Possession factor constraints are\" section the \"Phishing resistant\" box is not checked, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Admin Console\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"Possession factor constraints are\" section, ensure the \"Phishing resistant\" box is checked.",
+      "cci": [
+        "CCI-000044"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(1)"
+      ]
+    },
+    "V-273192": {
+      "sv_rule_id": "SV-273192r1098843_rule",
+      "stig_id_version": "OKTA-APP-000200",
+      "severity": "medium",
+      "title": "Okta must display the Standard Mandatory DOD Notice and Consent Banner before granting access to the application.",
+      "check_text": "Attempt to log in to the Okta tenant and verify the DOD-approved warning banner is in place. If the required warning banner is not present and complete, this is a finding.",
+      "fix_text": "Follow the supplemental instructions in the \"Okta DOD Warning Banner Configuration Guide\" provided with this STIG package.",
+      "cci": [
+        "CCI-000048",
+        "CCI-000050",
+        "CCI-001384",
+        "CCI-001385",
+        "CCI-001386",
+        "CCI-001387",
+        "CCI-001388"
+      ],
+      "fedramp_req_ids": [
+        "AC-8"
+      ]
+    },
+    "V-273193": {
+      "sv_rule_id": "SV-273193r1098846_rule",
+      "stig_id_version": "OKTA-APP-000560",
+      "severity": "high",
+      "title": "The Okta Admin Console application must be configured to use multifactor authentication.",
+      "check_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Admin Console\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"User must authenticate with\" field, verify that either \"Password/IdP + Another factor\" or \"Any 2 factor types\" is selected. If either of these settings is incorrect, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Admin Console\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"User must authenticate with\" field, select either \"Password/IdP + Another factor\" or \"Any 2 factor types\".",
+      "cci": [
+        "CCI-000765",
+        "CCI-004046"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(1)"
+      ]
+    },
+    "V-273194": {
+      "sv_rule_id": "SV-273194r1098849_rule",
+      "stig_id_version": "OKTA-APP-000570",
+      "severity": "high",
+      "title": "The Okta Dashboard application must be configured to use multifactor authentication.",
+      "check_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Dashboard\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"User must authenticate with\" field, verify that either \"Password/IdP + Another factor\" or \"Any 2 factor types\" is selected. If either of these settings is incorrect, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Dashboard\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"User must authenticate with\" field, select either \"Password/IdP + Another factor\" or \"Any 2 factor types\".",
+      "cci": [
+        "CCI-000766",
+        "CCI-004046"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(2)"
+      ]
+    },
+    "V-273195": {
+      "sv_rule_id": "SV-273195r1098852_rule",
+      "stig_id_version": "OKTA-APP-000650",
+      "severity": "medium",
+      "title": "Okta must enforce a minimum 15-character password length.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy, verify the \"Minimum Length\" field is set to at least \"15\" characters. If any policy is not set to at least \"15\", this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set the \"Minimum Length\" field to at least \"15\" characters.",
+      "cci": [
+        "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273196": {
+      "sv_rule_id": "SV-273196r1098855_rule",
+      "stig_id_version": "OKTA-APP-000670",
+      "severity": "medium",
+      "title": "Okta must enforce password complexity by requiring that at least one uppercase character be used.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy, verify \"Upper case letter\" is checked. For each policy, if \"Upper case letter\" is not checked, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Upper case letter\" to checked.",
+      "cci": [
+        "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273197": {
+      "sv_rule_id": "SV-273197r1098858_rule",
+      "stig_id_version": "OKTA-APP-000680",
+      "severity": "medium",
+      "title": "Okta must enforce password complexity by requiring that at least one lowercase character be used.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy, verify \"Lower case letter\" is checked. For each policy, if \"Lower case letter\" is not checked, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Lower case letter\" to checked.",
+      "cci": [
+        "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273198": {
+      "sv_rule_id": "SV-273198r1098861_rule",
+      "stig_id_version": "OKTA-APP-000690",
+      "severity": "medium",
+      "title": "Okta must enforce password complexity by requiring that at least one numeric character be used.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy, verify \"Number (0-9)\" is checked. For each policy, if \"Number (0-9)\" is not checked, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Number (0-9)\" to checked.",
+      "cci": [
+        "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273199": {
+      "sv_rule_id": "SV-273199r1098864_rule",
+      "stig_id_version": "OKTA-APP-000700",
+      "severity": "medium",
+      "title": "Okta must enforce password complexity by requiring that at least one special character be used.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy, verify \"Symbol (e.g., !@#$%^&*)\" is checked. For each policy, if \"Symbol (e.g., !@#$%^&*)\" is not checked, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Symbol (e.g., !@#$%^&*)\" to checked.",
+      "cci": [
+        "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273200": {
+      "sv_rule_id": "SV-273200r1098867_rule",
+      "stig_id_version": "OKTA-APP-000740",
+      "severity": "medium",
+      "title": "Okta must enforce 24 hours/one day as the minimum password lifetime.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy, verify \"Minimum password age is XX hours\" is set to at least \"24\". For each policy, if \"Minimum password age is XX hours\" is not set to at least \"24\", this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Minimum password age is XX hours\" to at least \"24\".",
+      "cci": [
+        "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273201": {
+      "sv_rule_id": "SV-273201r1098870_rule",
+      "stig_id_version": "OKTA-APP-000745",
+      "severity": "medium",
+      "title": "Okta must enforce a 60-day maximum password lifetime restriction.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy, verify \"Password expires after XX days\" is set to \"60\". For each policy, if \"Password expires after XX days\" is not set to \"60\", this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Password expires after XX days\" to \"60\".",
+      "cci": [
+        "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273202": {
+      "sv_rule_id": "SV-273202r1099766_rule",
+      "stig_id_version": "OKTA-APP-001430",
+      "severity": "high",
+      "title": "Okta must off-load audit records onto a central log server.",
+      "check_text": "From the Admin Console: 1. Go to Reports >> Log Streaming. 2. Verify that a Log Stream connection is configured and active. Alternately, interview the information system security manager (ISSM) and verify that an external Security Information and Event Management (SIEM) system is pulling Okta logs via an Application Programming Interface (API). If either of these is not configured, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Reports >> Log Streaming. 2. Select either \"AWS EventBridge\" or \"Splunk Cloud\" and click \"Next\". 3. Complete the necessary fields and click \"Save\". If Log Streaming is not an option because the SIEM required is not an option, customers can use the Okta Log API to export system logs in real time.",
+      "cci": [
+        "CCI-001851",
+        "CCI-000166",
+        "CCI-001348"
+      ],
+      "fedramp_req_ids": [
+        "AU-4(1)",
+        "AU-9(2)"
+      ]
+    },
+    "V-273203": {
+      "sv_rule_id": "SV-273203r1099958_rule",
+      "stig_id_version": "OKTA-APP-001665",
+      "severity": "medium",
+      "title": "Okta must be configured to limit the global session lifetime to 18 hours.",
+      "check_text": "From the Admin Console: 1. Select Security >> Global Session Policy. 2. In the Default Policy, verify a rule is configured at Priority 1 that is not named \"Default Rule\". 3. Click the \"Edit\" icon next to the Priority 1 rule. 4. Verify \"Maximum Okta global session lifetime\" is set to 18 hours. If the above is not set, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Global Session Policy. 2. Select the Default Policy. 3. In the Rules table, make these updates: - Click \"Add rule\". - Set \"Maximum Okta global session lifetime\" to 18 hours.",
+      "cci": [
+        "CCI-002038"
+      ],
+      "fedramp_req_ids": [
+        "IA-11"
+      ]
+    },
+    "V-273204": {
+      "sv_rule_id": "SV-273204r1098879_rule",
+      "stig_id_version": "OKTA-APP-001670",
+      "severity": "medium",
+      "title": "Okta must be configured to accept Personal Identity Verification (PIV) credentials.",
+      "check_text": "From the Admin Console: 1. Go to Security >> Authenticators. 2. Verify that \"Smart Card Authenticator\" is listed and has \"Status\" listed as \"Active\". If \"Smart Card Authenticator\" is not listed or is not listed as \"Active\", this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Authenticators. 2. In the \"Setup\" tab, click \"Add authenticator\". 3. Select the configured Smart Card Identity Provider and finish configuration.",
+      "cci": [
+        "CCI-001953",
+        "CCI-002009",
+        "CCI-002010"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(12)"
+      ]
+    },
+    "V-273205": {
+      "sv_rule_id": "SV-273205r1098882_rule",
+      "stig_id_version": "OKTA-APP-001700",
+      "severity": "medium",
+      "title": "The Okta Verify application must be configured to connect only to FIPS-compliant devices.",
+      "check_text": "From the Admin Console: 1. Go to Security >> Authenticators. 2. From the \"Setup\" tab, select \"Edit Okta Verify\". 3. Review the \"FIPS Compliance\" field. If FIPS-compliant authentication is not enabled, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Authenticators. 2. From the \"Setup\" tab, select \"Edit Okta Verify\". 3. In the \"FIPS Compliance\" field, choose whether users enrolling in Okta Verify can use FIPS-compliant devices only or any device. 4. Click \"Save\" after making any changes.",
+      "cci": [
+        "CCI-001967"
+      ],
+      "fedramp_req_ids": [
+        "IA-3(1)"
+      ]
+    },
+    "V-273206": {
+      "sv_rule_id": "SV-273206r1098885_rule",
+      "stig_id_version": "OKTA-APP-001710",
+      "severity": "medium",
+      "title": "Okta must be configured to disable persistent global session cookies.",
+      "check_text": "From the Admin Console: 1. Select Security >> Global Session Policy. 2. In the Default Policy, verify a rule is configured at Priority 1 that is not named \"Default Rule\". 3. Click the \"Edit\" icon next to the Priority 1 rule. 4. Verify \"Okta global session cookies persist across browser sessions\" is set to \"Disabled\". If the above it not set, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Global Session Policy. 2. Select the Default Policy. 3. In the \"Rules\" table, make these updates: - Click \"Add rule\". - Set \"Okta global session cookies persist across browser sessions\" to Disable.",
+      "cci": [
+        "CCI-002007",
+        "CCI-001942"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(13)"
+      ]
+    },
+    "V-273207": {
+      "sv_rule_id": "SV-273207r1098888_rule",
+      "stig_id_version": "OKTA-APP-001920",
+      "severity": "medium",
+      "title": "Okta must be configured to use only DOD-approved certificate authorities.",
+      "check_text": "From the Admin Console: 1. Select Security >> Identity Providers (IdPs). 2. Review the list of IdPs with \"Type\" as \"Smart Card\". If the IdP is not listed as \"Active\", this is a finding. 3. Select Actions >> Configure. 4. Under \"Certificate chain\", verify the certificate is from a DOD-approved CA. If the certificate is not from a DOD-approved CA, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Go to Security >> Identity Providers. 2. Click \"Add identity provider.\" 3. Click \"Smart Card IdP\". Click \"Next\". 4. Enter the name of the identity provider. 5. Build a certificate chain and finish configuration. 6. In \"IdP username\", select the \"idpuser.subjectAltNameUpn\" attribute. 7. In the \"Match Against\" field, select the Okta Profile Attribute in which the EDIPI is to be stored.",
+      "cci": [
+        "CCI-002470",
+        "CCI-004909"
+      ],
+      "fedramp_req_ids": [
+        "SC-23(5)"
+      ]
+    },
+    "V-273208": {
+      "sv_rule_id": "SV-273208r1099769_rule",
+      "stig_id_version": "OKTA-APP-002980",
+      "severity": "medium",
+      "title": "Okta must validate passwords against a list of commonly used, expected, or compromised passwords.",
+      "check_text": "From the Admin Console: 1. Navigate to Security >> Authenticators. 2. Click the \"Actions\" button next to the Password authenticator and select \"Edit\". 3. Under the \"Password Settings\" section, verify the \"Common Password Check\" box is checked. If \"Common Password Check\" is not selected, this is a finding.",
+      "fix_text": "From the Admin Console: 1. Navigate to Security >> Authenticators. 2. Click the \"Actions\" button next to the Password authenticator and select \"Edit\". 3. Under the \"Password Settings\" section, check the \"Common Password Check\" box.",
+      "cci": [
+        "CCI-004058"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    },
+    "V-273209": {
+      "sv_rule_id": "SV-273209r1098894_rule",
+      "stig_id_version": "OKTA-APP-003010",
+      "severity": "medium",
+      "title": "Okta must prohibit password reuse for a minimum of five generations.",
+      "check_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password row\" and select \"Edit\". 3. For each listed policy, verify \"Enforce password history for last XX passwords\" is set to \"5\". If any policy is not set to at least \"5\", this is a finding.",
+      "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Enforce password history for last XX passwords\" to \"5\".",
+      "cci": [
+        "CCI-004061"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
+      ]
+    }
+  }
+}

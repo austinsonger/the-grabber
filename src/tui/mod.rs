@@ -90,7 +90,11 @@ pub fn run(mut app: App) -> Result<Option<App>> {
     restore_terminal(&mut terminal)?;
     result?;
 
-    if app.screen == Screen::Running || app.screen == Screen::Results {
+    if app.screen == Screen::Running
+        || app.screen == Screen::Results
+        || app.screen == Screen::StigRemediationScanning
+        || app.screen == Screen::StigRemediationApplying
+    {
         Ok(Some(app))
     } else {
         Ok(None)

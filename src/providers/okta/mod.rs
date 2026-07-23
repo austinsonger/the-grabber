@@ -18,6 +18,8 @@ pub mod risk_account_suspend_timing;
 pub mod session_policy;
 pub mod shared_account_broker_config;
 pub mod signin_widget_config;
+pub mod stig;
+pub mod stig_compliance;
 pub mod system_log;
 pub mod threat_insight_detections;
 pub mod transfer_access_diff;

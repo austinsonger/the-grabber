@@ -186,6 +186,11 @@ impl ProviderFactory for OktaProviderFactory {
                 ),
             ));
         }
+        if self.selected.iter().any(|s| s == "okta-stig-compliance") {
+            v.push(Box::new(
+                super::stig_compliance::OktaStigComplianceCollector::new(self.client.clone()),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {

@@ -16,13 +16,14 @@ mod results;
 mod running;
 mod scan_selection;
 mod setup;
+mod stig_remediation;
 pub(super) mod theme;
 mod widgets;
 
 use self::frame::{
     draw_footer, draw_header, draw_separator, draw_step_indicator, get_hints, screen_to_step,
     STEPS_INV_ACCOUNTS, STEPS_INV_LEGACY, STEPS_POAM, STEPS_POAM_NO_ACCOUNTS,
-    STEPS_PROVIDER_ACCOUNTS, STEPS_PROVIDER_LEGACY, STEPS_TENABLE,
+    STEPS_PROVIDER_ACCOUNTS, STEPS_PROVIDER_LEGACY, STEPS_STIG_REMEDIATION, STEPS_TENABLE,
 };
 use self::theme::{BG_DARK, BG_MAIN, CYAN_DIM};
 use self::widgets::draw_error_banner;
@@ -51,6 +52,9 @@ pub fn draw(f: &mut Frame, app: &App) {
             | Screen::ProviderSelection
             | Screen::Preparing
             | Screen::Results
+            | Screen::StigRemediationScanning
+            | Screen::StigRemediationApplying
+            | Screen::StigRemediationResults
     );
     let step_height = if show_steps { 2 } else { 0 };
 
@@ -98,6 +102,7 @@ pub fn draw(f: &mut Frame, app: &App) {
                 STEPS_POAM_NO_ACCOUNTS
             }
         }
+        Feature::StigRemediation => STEPS_STIG_REMEDIATION,
     };
 
     draw_header(
@@ -141,6 +146,21 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::Preparing => confirm::draw_preparing(f, content, app),
         Screen::Running => running::draw_running(f, content, app),
         Screen::Results => results::draw_results(f, content, app),
+        Screen::StigRemediationAccount => {
+            stig_remediation::draw_stig_remediation_account(f, content, app)
+        }
+        Screen::StigRemediationScanning => {
+            stig_remediation::draw_stig_remediation_scanning(f, content, app)
+        }
+        Screen::StigRemediationList => {
+            stig_remediation::draw_stig_remediation_list(f, content, app)
+        }
+        Screen::StigRemediationApplying => {
+            stig_remediation::draw_stig_remediation_applying(f, content, app)
+        }
+        Screen::StigRemediationResults => {
+            stig_remediation::draw_stig_remediation_results(f, content, app)
+        }
     }
 
     draw_separator(f, layout[6]);

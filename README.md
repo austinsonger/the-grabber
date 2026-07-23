@@ -10,7 +10,7 @@ The Grabber. Collects current-state snapshots and time-windowed audit records fr
 
 - **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
 - **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
-- **200+ collectors across eight providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 10 Elastic, 9 Jamf, 10 GitHub, 5 CrowdStrike (see `evidence-list.md` for the current catalog)
+- **200+ collectors across eight providers** — 144 AWS, 25 Okta, 28 Jira, 5 Tenable, 10 Elastic, 9 Jamf, 10 GitHub, 5 CrowdStrike (see `evidence-list.md` for the current catalog)
 - **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
 - **Chain-of-custody audit trail** — per-run `CHAIN-OF-CUSTODY-*.json` and an append-only `CHAIN-OF-CUSTODY.jsonl` log capture operator identity, hostname, AWS caller ARN, and the sanitized CLI invocation
 - **Run manifest** — `RUN-MANIFEST-*.json` records every collector's outcome (success/empty/error/timeout), record count, and file size
@@ -733,10 +733,46 @@ Compliance evidence (audit-oriented — most are time-windowed):
 | `okta-signin-widget` | CSV | Sign-in widget configuration |
 | `okta-threat-insight` | CSV | ThreatInsight detections |
 | `okta-transfer-diff` | CSV | Access diff on internal transfer |
+| `okta-stig-compliance` | CSV | DISA STIG pass/fail compliance checks (see below) |
+
+### STIG Compliance (DISA)
+
+`okta-stig-compliance` is different from every other Okta collector: instead of dumping raw config as evidence for a human to judge, it evaluates the tenant's live configuration against the 24 checks in DISA's **Okta Identity as a Service (IDaaS) Security Technical Implementation Guide (v1r1)** and reports a pass/fail verdict for each one — session timeouts, account lockout/inactivity, MFA and phishing-resistant auth policy, password complexity/age/history, log streaming to a SIEM, PIV/smart-card and FIPS-compliant Okta Verify, DOD-approved CAs, and the DOD warning banner.
+
+Output (`Okta_STIG_Compliance-*.csv`) has one row per STIG check:
+
+| Column | Description |
+|--------|-------------|
+| `V-ID` / `Rule ID` / `STIG ID` / `CCI` / `Severity` / `Title` | Identifiers pulled from the STIG itself |
+| `Status` | The check's verdict — see below |
+| `Expected Value` / `Actual Value` | What the check requires vs. what was found on the tenant |
+| `Details/Evidence` | Rationale, or why a check couldn't be evaluated |
+| `Check Text` / `Fix Text` | The STIG's own check and remediation instructions |
+
+`Status` uses the standard DISA STIG Viewer/CKL vocabulary:
+
+| Status | Meaning | When grabber assigns it |
+|--------|---------|--------------------------|
+| `Open` | **Finding.** The tenant's live setting does not meet the STIG's required value. | The relevant API call succeeded and the fetched setting fails the check's threshold (e.g. minimum password length is 8, not ≥15). `Actual Value` shows what was actually configured. |
+| `NotAFinding` | **Pass.** The tenant's live setting meets or exceeds the requirement. | The relevant API call succeeded and the fetched setting satisfies the check's threshold. |
+| `Not_Applicable` | **Confirmed out of scope.** The control doesn't apply to this tenant. | The API call failed with 400/401/403/404 — the endpoint or feature doesn't exist on this tenant (e.g. a Classic Engine org calling an Identity Engine-only endpoint, or a licensing gap). This is a confirmed "doesn't apply," not a guess. |
+| `Not_Reviewed` | **Needs a human.** grabber could not determine a verdict — this is *not* the same as passing. | Three situations: (1) an unexpected error (5xx, timeout, unparseable response) where the outcome is genuinely unknown; (2) checks the STIG itself requires visual/manual verification for (the DOD warning banner, DOD-approved CA certificate chain matching); (3) checks whose exact API field path isn't confirmed against a live tenant (noted in `Details/Evidence`) and so are matched defensively rather than guessed. |
+
+Never treat `Not_Applicable` or `Not_Reviewed` as a pass when scoring compliance — only `NotAFinding` is. `Not_Applicable` is deliberately conservative (a real outage is reported as `Not_Reviewed`, not silently marked N/A) so a transient failure can never masquerade as "doesn't apply." Rows whose `Details/Evidence` mentions "needs live-tenant verification" are a prompt to confirm manually, not an authoritative result.
 
 ### Required Okta API scopes
 
-The SSWS token is bound to a user; minimum role: **Read-only Administrator**. For the System Log specifically, the user must also have permission to view the System Log (granted by the Read-only Administrator role by default).
+The SSWS token is bound to a user; minimum role: **Read-only Administrator**. For the System Log specifically, the user must also have permission to view the System Log (granted by the Read-only Administrator role by default). The STIG compliance checks additionally read Authentication/Sign-On Policy rules, Authenticators, Log Streams, and Automations — all covered by the Read-only Administrator role, but Log Streams and Automations require Identity Engine; on Classic Engine tenants those checks report `Not_Applicable`.
+
+### STIG Remediation (interactive)
+
+From the TUI's feature-selection screen, **STIG Remediation** runs the same 24 checks live, then lets you fix the failing ones one at a time: pick a check, see exactly what would change (old value → new value), confirm, and grabber applies it via the Okta API. Every attempt — applied, failed, or manually acknowledged — is appended to `Okta_STIG_Remediation_Log.jsonl` in that tenant's evidence-output directory (never truncated, one line per attempt, across every session).
+
+There is no unattended/batch-apply mode — every write requires an explicit per-check confirmation, and every write is a read-modify-write (grabber re-fetches the live resource immediately before writing, so it only ever touches the field(s) the check owns).
+
+Three checks are intentionally **not** API-remediable even though they involve tenant configuration, because neither this tool nor the evaluator that reads them is confident enough in the write schema to safely automate a change to live security policy: V-273188 (inactivity automation), V-273202 (log streaming), V-273207 (Smart Card CA identity provider). Two more are conditionally remediable — V-273204 (Smart Card/PIV authenticator) and V-273205 (Okta Verify FIPS-only) only get an automated fix when the evaluator found a concrete resource/field to act on; otherwise they fall back to the same manual-acknowledgement path. For all of these, the wizard still shows the STIG's own Fix Text and lets you record that you did it yourself in the Admin Console.
+
+**Write access:** remediation reuses the same `okta_api_token` configured for evidence collection — there is no separate elevated-credential setting. If that token's role doesn't have write access to the resource being changed, the specific API call fails with Okta's own error text, which is shown in the wizard and recorded in the audit log; grabber does not pre-validate token scope.
 
 ---
 

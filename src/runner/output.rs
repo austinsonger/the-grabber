@@ -11,6 +11,12 @@ pub const FEDRAMP_HEADERS: [&str; 3] = [
     "Source Evidence File",
 ];
 
+/// Same as `FEDRAMP_HEADERS` but without the "FedRAMP Control IDs" column,
+/// for collectors that opt out of it (e.g. the STIG collector, whose Req
+/// IDs already hold the NIST 800-53 controls, so a second column would be a
+/// duplicate).
+pub const FEDRAMP_HEADERS_NO_CONTROL: [&str; 2] = ["FedRAMP Req IDs", "Source Evidence File"];
+
 /// Preferred writer. Appends three metadata columns to every row and writes
 /// a two-line footer identifying the file and its FedRAMP mapping.
 pub fn write_csv_bytes_with_manifest(
@@ -19,10 +25,52 @@ pub fn write_csv_bytes_with_manifest(
     mapping: &FedRampMapping,
     source_evidence_file: &str,
 ) -> Result<Vec<u8>> {
+    write_csv_bytes_with_manifest_impl(headers, rows, mapping, source_evidence_file, |_| None, true)
+}
+
+/// Like `write_csv_bytes_with_manifest`, but lets each row supply its own
+/// FedRAMP mapping — for collectors where every row is a distinct control
+/// (e.g. a STIG/compliance-checklist CSV) rather than a uniform snapshot of
+/// one resource type. Rows for which `row_mapping` returns `None` fall back
+/// to `mapping`. The footer still reports the collector-wide `mapping` — a
+/// single summary line can't represent N different per-row values.
+///
+/// `emit_control_ids` controls whether the "FedRAMP Control IDs" column is
+/// written; pass `false` to suppress it for collectors that don't need it.
+pub fn write_csv_bytes_with_manifest_per_row(
+    headers: &[&str],
+    rows: &[Vec<String>],
+    mapping: &FedRampMapping,
+    source_evidence_file: &str,
+    row_mapping: impl Fn(&[String]) -> Option<FedRampMapping>,
+    emit_control_ids: bool,
+) -> Result<Vec<u8>> {
+    write_csv_bytes_with_manifest_impl(
+        headers,
+        rows,
+        mapping,
+        source_evidence_file,
+        row_mapping,
+        emit_control_ids,
+    )
+}
+
+fn write_csv_bytes_with_manifest_impl(
+    headers: &[&str],
+    rows: &[Vec<String>],
+    mapping: &FedRampMapping,
+    source_evidence_file: &str,
+    row_mapping: impl Fn(&[String]) -> Option<FedRampMapping>,
+    emit_control_ids: bool,
+) -> Result<Vec<u8>> {
     let mut writer = csv::Writer::from_writer(Vec::new());
 
     let mut full_headers: Vec<&str> = headers.to_vec();
-    full_headers.extend_from_slice(&FEDRAMP_HEADERS);
+    if emit_control_ids {
+        full_headers.extend_from_slice(&FEDRAMP_HEADERS);
+    } else {
+        full_headers.extend_from_slice(&FEDRAMP_HEADERS_NO_CONTROL);
+    }
     writer
         .write_record(&full_headers)
         .context("CSV write headers")?;
@@ -31,9 +79,15 @@ pub fn write_csv_bytes_with_manifest(
     let control_joined = mapping.control_ids_joined();
 
     for row in rows {
+        let (row_req, row_control) = match row_mapping(row) {
+            Some(m) => (m.req_ids_joined(), m.control_ids_joined()),
+            None => (req_joined.clone(), control_joined.clone()),
+        };
         let mut full_row: Vec<String> = row.clone();
-        full_row.push(req_joined.clone());
-        full_row.push(control_joined.clone());
+        full_row.push(row_req);
+        if emit_control_ids {
+            full_row.push(row_control);
+        }
         full_row.push(source_evidence_file.to_string());
         writer.write_record(&full_row).context("CSV write row")?;
     }

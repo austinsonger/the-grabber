@@ -442,14 +442,14 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Category | Count |
 |----------|-------|
 | AWS collectors | 144 |
-| Okta collectors | 24 |
+| Okta collectors | 25 |
 | Jira collectors | 28 |
 | Tenable collectors | 5 |
 | Elastic collectors | 10 |
 | Jamf collectors | 9 |
 | GitHub collectors | 10 |
 | CrowdStrike collectors | 5 |
-| **Total evidence collectors** | **235** |
+| **Total evidence collectors** | **236** |
 | Asset Inventory asset types (Inventory feature) | 8 |
 
 Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.

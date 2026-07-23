@@ -2,8 +2,9 @@ use reqwest::{header, Client, Response};
 use tokio::time::{sleep, Duration};
 
 use crate::api::{
-    AccessReviewsApi, AdminRolesApi, AppsApi, GroupsApi, LifecycleApi, PoliciesApi,
-    SignInWidgetApi, SystemLogApi, ThreatInsightApi, UsersApi,
+    AccessReviewsApi, AdminRolesApi, AppsApi, AuthenticatorsApi, AutomationsApi, GroupsApi,
+    LifecycleApi, LogStreamsApi, PoliciesApi, SignInWidgetApi, SystemLogApi, ThreatInsightApi,
+    UsersApi,
 };
 use crate::error::OktaError;
 
@@ -62,6 +63,38 @@ impl OktaClient {
         self.send_with_retry(|| self.http.get(&owned).send()).await
     }
 
+    /// PUT a relative path with a JSON body. Internal helper.
+    #[allow(dead_code)]
+    pub(crate) async fn put_json(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<Response, OktaError> {
+        let url = self.url(path);
+        self.send_with_retry(|| self.http.put(&url).json(body).send())
+            .await
+    }
+
+    /// POST a relative path with a JSON body. Internal helper.
+    #[allow(dead_code)]
+    pub(crate) async fn post_json(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+    ) -> Result<Response, OktaError> {
+        let url = self.url(path);
+        self.send_with_retry(|| self.http.post(&url).json(body).send())
+            .await
+    }
+
+    /// POST a relative path with no body (lifecycle actions like
+    /// `/lifecycle/activate`). Internal helper.
+    #[allow(dead_code)]
+    pub(crate) async fn post_empty(&self, path: &str) -> Result<Response, OktaError> {
+        let url = self.url(path);
+        self.send_with_retry(|| self.http.post(&url).send()).await
+    }
+
     /// Public escape hatch used by integration tests.
     #[doc(hidden)]
     pub async fn raw_get(&self, path: &str) -> Result<Response, OktaError> {
@@ -116,6 +149,15 @@ impl OktaClient {
     }
     pub fn threat_insight(&self) -> ThreatInsightApi<'_> {
         ThreatInsightApi(self)
+    }
+    pub fn authenticators(&self) -> AuthenticatorsApi<'_> {
+        AuthenticatorsApi(self)
+    }
+    pub fn automations(&self) -> AutomationsApi<'_> {
+        AutomationsApi(self)
+    }
+    pub fn log_streams(&self) -> LogStreamsApi<'_> {
+        LogStreamsApi(self)
     }
 }
 

@@ -143,6 +143,11 @@ pub(super) fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
             "POAM",
             "Reconcile Inspector2 ECR findings into FedRAMP-POAM.xlsx (add new, close resolved)",
         ),
+        (
+            Feature::StigRemediation,
+            "STIG Remediation",
+            "Fix Okta DISA STIG compliance failures interactively, one confirmed change at a time",
+        ),
     ];
 
     let items: Vec<(String, String)> = options

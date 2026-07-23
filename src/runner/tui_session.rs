@@ -136,6 +136,124 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
             }
             continue;
         }
+
+        if app.screen == crate::tui::Screen::StigRemediationScanning {
+            let mut terminal = setup_terminal()?;
+            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+            let idx = app.stig_selected_account_idx;
+            match idx.and_then(|i| app.accounts.get(i)) {
+                None => {
+                    app.stig_scan_error = Some("No Okta account selected".to_string());
+                }
+                Some(acct) => {
+                    let domain = acct.okta_domain_resolved();
+                    let token = acct.okta_api_token_resolved();
+                    match (domain, token) {
+                        (Some(domain), Some(token)) => {
+                            match okta_rs::OktaClient::new(&domain, &token) {
+                                Ok(client) => {
+                                    app.stig_findings =
+                                        crate::providers::okta::stig::evaluate_all(&client).await;
+                                    app.stig_scan_error = None;
+                                }
+                                Err(e) => {
+                                    app.stig_scan_error = Some(format!("Client build failed: {e}"));
+                                }
+                            }
+                        }
+                        _ => {
+                            app.stig_scan_error = Some(
+                                "Missing okta_domain or okta_api_token for this account"
+                                    .to_string(),
+                            );
+                        }
+                    }
+                }
+            }
+            app.screen = crate::tui::Screen::StigRemediationList;
+            restore_terminal(&mut terminal)?;
+            continue;
+        }
+
+        if app.screen == crate::tui::Screen::StigRemediationApplying {
+            let mut terminal = setup_terminal()?;
+            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+            let actionable_idx = app
+                .stig_findings
+                .iter()
+                .enumerate()
+                .filter(|(_, r)| r.status.is_actionable())
+                .map(|(i, _)| i)
+                .nth(app.stig_finding_cursor);
+
+            if let Some(i) = actionable_idx {
+                let (v_id, title, description, targets) = {
+                    let finding = &app.stig_findings[i];
+                    (
+                        finding.v_id.clone(),
+                        crate::okta_stig_map::bundled()
+                            .get(&finding.v_id)
+                            .map(|m| m.title.clone())
+                            .unwrap_or_default(),
+                        finding.details.clone(),
+                        finding.remediation.clone(),
+                    )
+                };
+
+                if let Some(acct_idx) = app.stig_selected_account_idx {
+                    let acct = &app.accounts[acct_idx];
+                    let domain = acct.okta_domain_resolved().unwrap_or_default();
+                    let token = acct.okta_api_token_resolved().unwrap_or_default();
+                    let tenant_name = acct.name.clone();
+                    let out_dir = std::path::PathBuf::from(&app.output_dir.value)
+                        .join(&tenant_name)
+                        .join(date_path_suffix());
+                    let client = okta_rs::OktaClient::new(&domain, &token);
+
+                    for target in &targets {
+                        let outcome = match &client {
+                            Ok(client) => {
+                                let inputs = crate::stig_status::RemediationInputs {
+                                    text: Some(app.stig_text_input.value.clone())
+                                        .filter(|s| !s.is_empty()),
+                                };
+                                crate::providers::okta::stig::remediate::apply(
+                                    client, target, &inputs,
+                                )
+                                .await
+                            }
+                            Err(e) => crate::stig_status::RemediationOutcome::Failed {
+                                error: format!("Client build failed: {e}"),
+                            },
+                        };
+
+                        let entry = crate::stig_remediation_log::RemediationLogEntry::new(
+                            &tenant_name,
+                            &v_id,
+                            &title,
+                            &description,
+                            outcome.label(),
+                            &outcome.detail(),
+                        );
+                        if let Ok(path) =
+                            crate::stig_remediation_log::append_remediation_log(&out_dir, &entry)
+                        {
+                            app.stig_log_path = Some(path.display().to_string());
+                        }
+
+                        app.stig_outcomes.push((v_id.clone(), outcome));
+                    }
+                }
+            }
+
+            app.stig_confirm_pending = false;
+            app.stig_text_input.clear();
+            app.screen = crate::tui::Screen::StigRemediationList;
+            restore_terminal(&mut terminal)?;
+            continue;
+        }
         {
             // Build params from what the user configured in the TUI.
             #[cfg(feature = "tenable")]

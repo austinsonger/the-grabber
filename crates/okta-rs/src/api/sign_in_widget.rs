@@ -27,6 +27,26 @@ impl<'c> SignInWidgetApi<'c> {
         Ok(resp.json().await?)
     }
 
+    /// PUT /api/v1/brands/{brand_id}/pages/sign-in/customized
+    ///
+    /// `body` must be the full customized-page object (fetch via
+    /// `customized_page`, mutate the content field, pass the whole thing
+    /// back).
+    pub async fn update_customized_page(
+        &self,
+        brand_id: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, OktaError> {
+        let path = format!("/api/v1/brands/{brand_id}/pages/sign-in/customized");
+        let resp = self.0.put_json(&path, body).await?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let message = resp.text().await.unwrap_or_default();
+            return Err(OktaError::Api { status, message });
+        }
+        Ok(resp.json().await?)
+    }
+
     pub async fn sign_on_policies(&self) -> Result<serde_json::Value, OktaError> {
         let resp = self.0.get("/api/v1/policies?type=OKTA_SIGN_ON").await?;
         if !resp.status().is_success() {

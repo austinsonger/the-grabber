@@ -967,6 +967,36 @@
         "AC-08b."
       ]
     },
+    "Okta_STIG_Compliance": {
+      "req_ids": [
+        "NIST-1041",
+        "NIST-1071",
+        "NIST-1073",
+        "NIST-1076",
+        "NIST-1078",
+        "NIST-1152",
+        "NIST-1306",
+        "NIST-1307",
+        "NIST-1310",
+        "NIST-1311",
+        "NIST-1318",
+        "NIST-1658"
+      ],
+      "control_ids": [
+        "AC-02(07)(d), AC-02e., AC-02f., AC-02i.01, AC-02i.02, AC-02i.03, AC-03, AC-06",
+        "AC-08a.",
+        "AC-08b.",
+        "AC-11a., AC-11b.",
+        "AC-12",
+        "AU-09(04), AU-09a., AU-09b.",
+        "IA-02(01)",
+        "IA-02(02)",
+        "IA-02(08)",
+        "IA-02(12)",
+        "IA-05b.",
+        "AC-17(02), CP-09(08), IA-02(06)(b), IA-05(01)(c), IA-05(01)(d), SC-08, SC-08(01), SC-13a, SC-13b, SC-28, SC-28(01)"
+      ]
+    },
     "Okta_ThreatInsight_Detections": {
       "req_ids": [
         "NIST-1055"
