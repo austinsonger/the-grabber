@@ -1,6 +1,14 @@
 use github_rs::GithubClient;
 use wiremock::matchers::{method, path, query_param};
-use wiremock::{Mock, MockServer, ResponseTemplate};
+use wiremock::{Match, Mock, MockServer, Request, ResponseTemplate};
+
+struct MissingQueryParam(&'static str);
+
+impl Match for MissingQueryParam {
+    fn matches(&self, request: &Request) -> bool {
+        !request.url.query_pairs().any(|(k, _)| k == self.0)
+    }
+}
 
 #[tokio::test]
 async fn list_by_role_filters_and_paginates() {
@@ -10,6 +18,7 @@ async fn list_by_role_filters_and_paginates() {
     Mock::given(method("GET"))
         .and(path("/orgs/acme/members"))
         .and(query_param("role", "admin"))
+        .and(MissingQueryParam("page"))
         .respond_with(
             ResponseTemplate::new(200)
                 .insert_header("link", format!("<{}>; rel=\"next\"", page2).as_str())

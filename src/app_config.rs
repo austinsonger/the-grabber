@@ -203,6 +203,22 @@ pub struct Account {
     pub jira_api_token: Option<String>,
 
     // ------------------------------------------------------------------
+    // GitHub fields
+    // ------------------------------------------------------------------
+    /// GitHub org login (e.g. "acme").
+    pub github_org: Option<String>,
+
+    /// GitHub Personal Access Token (fine-grained or classic).
+    /// Can also be supplied via `GITHUB_TOKEN` env var (env wins over TOML).
+    pub github_token: Option<String>,
+
+    /// Full REST API root. Defaults to `https://api.github.com` for
+    /// GitHub.com. For GitHub Enterprise Server, set to
+    /// `https://HOST/api/v3`.
+    /// Can also be supplied via `GITHUB_BASE_URL` env var (env wins over TOML).
+    pub github_base_url: Option<String>,
+
+    // ------------------------------------------------------------------
     // Elastic fields (Elastic Security / SIEM)
     // ------------------------------------------------------------------
     /// Kibana base URL (e.g. `https://x.kb.us-east-1.aws.found.io`).
@@ -287,6 +303,31 @@ impl Account {
             .filter(|s| !s.is_empty())
     }
 
+    /// Resolve the GitHub org: env var takes precedence over TOML.
+    pub fn github_org_resolved(&self) -> Option<String> {
+        std::env::var("GITHUB_ORG")
+            .ok()
+            .or_else(|| self.github_org.clone())
+            .filter(|s| !s.trim().is_empty())
+    }
+
+    /// Resolve the GitHub PAT: env var takes precedence over TOML.
+    pub fn github_token_resolved(&self) -> Option<String> {
+        std::env::var("GITHUB_TOKEN")
+            .ok()
+            .or_else(|| self.github_token.clone())
+    }
+
+    /// Resolve the GitHub REST API base URL, defaulting to GitHub.com.
+    pub fn github_base_url_resolved(&self) -> String {
+        std::env::var("GITHUB_BASE_URL")
+            .ok()
+            .or_else(|| self.github_base_url.clone())
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "https://api.github.com".to_string())
+    }
+
     /// Resolve the Elastic Kibana URL, trimming any trailing slash.
     pub fn elastic_kibana_url_resolved(&self) -> Option<String> {
         std::env::var("ELASTIC_KIBANA_URL")
@@ -318,8 +359,8 @@ impl Account {
 ///   2. `~/.config/evidence/config.toml`  (user-global)
 ///
 /// After loading the primary config, `./tenable-config.toml`, `./okta-config.toml`,
-/// `./jira-config.toml`, and `./elastic-config.toml` are merged in (accounts only)
-/// if those files exist.
+/// `./jira-config.toml`, `./elastic-config.toml`, and `./github-config.toml`
+/// are merged in (accounts only) if those files exist.
 pub fn load_config() -> Option<AppConfig> {
     let mut cfg: AppConfig = {
         let local = PathBuf::from("config.toml");
@@ -376,6 +417,16 @@ pub fn load_config() -> Option<AppConfig> {
         if let Ok(contents) = fs::read_to_string(&elastic_path) {
             if let Ok(elastic_cfg) = toml::from_str::<AppConfig>(&contents) {
                 cfg.account.extend(elastic_cfg.account);
+            }
+        }
+    }
+
+    // Merge github-config.toml accounts if present
+    let github_path = PathBuf::from("github-config.toml");
+    if github_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&github_path) {
+            if let Ok(github_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(github_cfg.account);
             }
         }
     }

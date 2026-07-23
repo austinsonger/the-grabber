@@ -190,6 +190,10 @@ impl App {
             "okta-system-log",
             "jira-projects",
             "jira-issues",
+            "github-audit-log",
+            "github-dependabot-alerts",
+            "github-secret-scanning-alerts",
+            "github-code-scanning-alerts",
         ];
 
         if let Some(ref enable_list) = config.defaults.collectors.enable {

@@ -1,0 +1,15 @@
+# GitHub credentials — keep this file out of version control
+# Add to .gitignore: github-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: GITHUB_ORG, GITHUB_TOKEN, GITHUB_BASE_URL
+
+[[account]]
+name             = "GitHub"
+provider         = "github"
+description      = "GitHub.com organization"
+output_dir       = "./evidence-output/github"
+github_org       = "acme"
+github_token     = ""
+# For GitHub Enterprise Server, uncomment and point at your instance:
+# github_base_url = "https://github.acme.internal/api/v3"
