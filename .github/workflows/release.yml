@@ -17,9 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check version format
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if [[ ! "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::version '${{ inputs.version }}' must match vX.Y.Z (e.g. v1.1.0)"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version '$VERSION' must match vX.Y.Z (e.g. v1.1.0)"
             exit 1
           fi
 
@@ -80,9 +82,10 @@ jobs:
       - name: Fail if version already exists
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
         run: |
-          if gh release view "${{ inputs.version }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "::error::release ${{ inputs.version }} already exists"
+          if gh release view "$VERSION" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "::error::release $VERSION already exists"
             exit 1
           fi
 
@@ -96,10 +99,11 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
         run: |
-          gh release create "${{ inputs.version }}" \
+          gh release create "$VERSION" \
             --repo "${{ github.repository }}" \
             --target "${{ github.sha }}" \
-            --title "${{ inputs.version }}" \
+            --title "$VERSION" \
             --generate-notes \
             dist/*.tar.gz
