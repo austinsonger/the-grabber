@@ -69,6 +69,8 @@ pub enum Feature {
     Inventory,
     /// POA&M reconciliation flow.
     Poam,
+    /// Interactive Okta STIG compliance-failure remediation flow.
+    StigRemediation,
 }
 
 /// Which panel has focus on the SelectCollectors screen.
@@ -112,6 +114,16 @@ pub enum Screen {
     Preparing,
     Running,
     Results,
+    /// STIG remediation: pick exactly one Okta account.
+    StigRemediationAccount,
+    /// STIG remediation: live-evaluating all 24 checks against the chosen account.
+    StigRemediationScanning,
+    /// STIG remediation: step through non-passing checks, review, confirm, apply.
+    StigRemediationList,
+    /// STIG remediation: applying the confirmed fix for the currently selected check.
+    StigRemediationApplying,
+    /// STIG remediation: session summary (applied/failed/manual counts, log path).
+    StigRemediationResults,
 }
 
 /// User-selected Tenable endpoint. Overrides per-account `tenable_url`.
