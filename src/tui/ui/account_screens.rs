@@ -4,10 +4,9 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, List, ListItem, ListState, Padding, Paragraph};
 use ratatui::Frame;
 
-use super::widgets::{content_inset, draw_text_field};
+use super::widgets::{content_inset, draw_list_with_detail, draw_text_field};
 use super::{
-    App, AMBER, BG_ELEVATED, BG_MAIN, BG_SELECTED, BORDER_SUBTLE, CYAN, CYAN_DIM, GREEN,
-    TEXT_BRIGHT, TEXT_DIM, TEXT_NORMAL,
+    App, AMBER, BG_SELECTED, BORDER_SUBTLE, CYAN_DIM, GREEN, TEXT_BRIGHT, TEXT_DIM, TEXT_NORMAL,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -17,69 +16,21 @@ use super::{
 pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
     use crate::providers::CloudProvider;
 
-    let providers: Vec<(CloudProvider, &str, &str)> = {
-        let mut v = vec![(
-            CloudProvider::Aws,
-            "◆  Amazon Web Services (AWS)",
-            "Run 100+ compliance evidence collectors (CloudTrail, S3, IAM, RDS, …)",
-        )];
-        #[cfg(feature = "azure")]
-        v.push((
-            CloudProvider::Azure,
-            "◆  Microsoft Azure",
-            "Collect compliance evidence from Azure resources",
-        ));
-        #[cfg(feature = "gcp")]
-        v.push((
-            CloudProvider::Gcp,
-            "◆  Google Cloud Platform (GCP)",
-            "Collect compliance evidence from GCP resources",
-        ));
-        #[cfg(feature = "tenable")]
-        v.push((
-            CloudProvider::Tenable,
-            "◆  Tenable",
-            "Export vulnerability findings from Tenable.io or Tenable.sc",
-        ));
-        #[cfg(feature = "okta")]
-        v.push((
-            CloudProvider::Okta,
-            "◆  Okta",
-            "Collect users, groups, apps, policies, MFA factors, and system log events",
-        ));
-        #[cfg(feature = "jira")]
-        v.push((
-            CloudProvider::Jira,
-            "◆  Jira",
-            "Collect projects and issues from Jira Cloud or Jira Server",
-        ));
-        #[cfg(feature = "elastic")]
-        v.push((
-            CloudProvider::Elastic,
-            "◆  Elastic Security",
-            "Collect detection rules, exception items, alerts, and cases from Elastic SIEM",
-        ));
-        #[cfg(feature = "jamf")]
-        v.push((
-            CloudProvider::Jamf,
-            "◆  Jamf",
-            "Collect computer/mobile device inventory, configuration profiles, policies, and patch compliance from Jamf Pro",
-        ));
-        v
-    };
-
-    let card_height: u16 = 5;
-    let gap: u16 = 1;
-    let total_cards_height =
-        providers.len() as u16 * card_height + providers.len().saturating_sub(1) as u16 * gap;
+    let providers = CloudProvider::available();
+    let items: Vec<(String, String)> = providers
+        .iter()
+        .map(|p| (p.display_name().to_string(), p.description().to_string()))
+        .collect();
+    let selected = providers
+        .iter()
+        .position(|p| *p == app.selected_provider)
+        .unwrap_or(0);
 
     let chunks = Layout::vertical([
-        Constraint::Fill(1),
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Length(2),
-        Constraint::Length(total_cards_height),
-        Constraint::Fill(1),
+        Constraint::Length(1), // title
+        Constraint::Length(1), // subtitle
+        Constraint::Length(1), // blank
+        Constraint::Fill(1),   // list + detail panels
     ])
     .split(area);
 
@@ -91,7 +42,7 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
                 .add_modifier(Modifier::BOLD),
         ))
         .alignment(Alignment::Center),
-        chunks[1],
+        chunks[0],
     );
     f.render_widget(
         Paragraph::new(Span::styled(
@@ -99,61 +50,10 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
             Style::default().fg(TEXT_DIM),
         ))
         .alignment(Alignment::Center),
-        chunks[2],
+        chunks[1],
     );
 
-    let cards_area = chunks[4];
-    for (idx, (provider, label, desc)) in providers.iter().enumerate() {
-        let selected = app.selected_provider == *provider;
-        let card_area = Rect {
-            x: cards_area.x,
-            y: cards_area.y + idx as u16 * (card_height + gap),
-            width: cards_area.width,
-            height: card_height,
-        };
-
-        let border_style = if selected {
-            Style::default().fg(CYAN)
-        } else {
-            Style::default().fg(BORDER_SUBTLE)
-        };
-        let label_style = if selected {
-            Style::default().fg(CYAN).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(TEXT_NORMAL)
-        };
-
-        let card_block = Block::bordered()
-            .border_type(if selected {
-                BorderType::Thick
-            } else {
-                BorderType::Plain
-            })
-            .border_style(border_style)
-            .style(Style::default().bg(if selected { BG_ELEVATED } else { BG_MAIN }));
-        let inner = card_block.inner(card_area);
-        f.render_widget(card_block, card_area);
-
-        let inner_layout = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(1),
-        ])
-        .split(inner);
-
-        let indicator = if selected { " ▶ " } else { "   " };
-        f.render_widget(
-            Paragraph::new(Line::from(vec![
-                Span::styled(indicator, Style::default().fg(AMBER)),
-                Span::styled(*label, label_style),
-            ])),
-            inner_layout[0],
-        );
-        f.render_widget(
-            Paragraph::new(Span::styled(*desc, Style::default().fg(TEXT_DIM))),
-            inner_layout[2],
-        );
-    }
+    draw_list_with_detail(f, chunks[3], "Providers", &items, selected);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

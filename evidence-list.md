@@ -125,6 +125,21 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV196 | Jira Projects | `Jira_Projects` | Project ID, Key, Name, Type, Style, Lead Account ID, Lead Name |
 | EV197 | Jira Issues | `Jira_Issues` | Issue Key, Summary, Type, Status, Priority, Assignee, Reporter, Created, Updated, Resolved |
 
+### Source Control — GitHub
+
+| ID | Evidence | Filename Prefix | Key Columns |
+|----|----------|-----------------|--------------|
+| EV203 | GitHub Org Members | `Github_Org_Members` | Login, User ID, Role, Site Admin, 2FA Disabled |
+| EV204 | GitHub Teams | `Github_Teams` | Team ID, Slug, Name, Privacy, Permission, Description |
+| EV205 | GitHub Team Members | `Github_Team_Members` | Team Slug, Team Name, Member Login, Member ID |
+| EV206 | GitHub Org Security Settings | `Github_Org_Security_Settings` | Org Login, Two-Factor Requirement Enabled, Default Repository Permission, Members Can Create Repositories, Members Can Create Private Repositories |
+| EV207 | GitHub Repositories | `Github_Repositories` | Repo ID, Name, Full Name, Visibility, Private, Default Branch, Archived, Created At, Pushed At |
+| EV208 | GitHub Branch Protection | `Github_Branch_Protection` | Repository, Branch, Protected, Enforce Admins, Required Approving Review Count, Require Code Owner Reviews, Required Status Checks Strict, Allow Force Pushes |
+| EV209 | GitHub Org Audit Log | `Github_Org_Audit_Log` | Action, Actor, User, Org, Created At, Document ID |
+| EV210 | GitHub Dependabot Alerts | `Github_Dependabot_Alerts` | Repository, Alert Number, State, Package Ecosystem, Package Name, Severity, GHSA ID, CVE ID, Summary, Created At, Updated At |
+| EV211 | GitHub Secret Scanning Alerts | `Github_Secret_Scanning_Alerts` | Repository, Alert Number, State, Secret Type, Secret Type Display Name, Resolution, Push Protection Bypassed, Created At |
+| EV212 | GitHub Code Scanning Alerts | `Github_Code_Scanning_Alerts` | Repository, Alert Number, State, Rule ID, Severity, Security Severity Level, Description, Created At |
+
 ### Vulnerability Management — Tenable
 
 | # | Name | Filename Prefix | Columns |
@@ -420,8 +435,10 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Okta collectors | 24 |
 | Jira collectors | 28 |
 | Tenable collectors | 5 |
+| Elastic collectors | 10 |
 | Jamf collectors | 9 |
-| **Total evidence collectors** | **210** |
+| GitHub collectors | 10 |
+| **Total evidence collectors** | **220** |
 | Asset Inventory asset types (Inventory feature) | 8 |
 
 Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.

@@ -108,6 +108,7 @@ impl App {
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::Elastic
                     || self.selected_provider == CloudProvider::Jamf
+                    || self.selected_provider == CloudProvider::Github
                 {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
@@ -162,6 +163,7 @@ impl App {
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::Elastic
                     || self.selected_provider == CloudProvider::Jamf
+                    || self.selected_provider == CloudProvider::Github
                 {
                     Screen::ProviderSelection
                 } else {
@@ -282,6 +284,18 @@ impl App {
                     if !has_jamf {
                         self.error_msg =
                             Some("No Jamf accounts configured in jamf-config.toml".into());
+                        return false;
+                    }
+                }
+                #[cfg(feature = "github")]
+                if self.selected_provider == CloudProvider::Github {
+                    let has_github = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::Github);
+                    if !has_github {
+                        self.error_msg =
+                            Some("No GitHub accounts configured in github-config.toml".into());
                         return false;
                     }
                 }

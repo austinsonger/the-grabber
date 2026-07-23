@@ -123,7 +123,7 @@ Use `--inventory` to run the unified inventory mode. When no type flags are prov
 ### Multi-account merged inventory
 
 ```bash
-# Merges inventory from every account in config.toml / okta-config / jira-config / tenable-config
+# Merges inventory from every account in config.toml / okta-config / jira-config / tenable-config / github-config
 ./target/release/grabber --inventory --inventory-all-accounts \
   --output ./evidence-output/inventory-all
 ```
@@ -357,6 +357,23 @@ The Okta tenant URL and API token come from `okta-config.toml` (or `OKTA_DOMAIN`
 ```
 
 Jira credentials come from `jira-config.toml` (or `JIRA_DOMAIN` / `JIRA_EMAIL` / `JIRA_API_TOKEN`). The compliance collectors additionally consult a `[project_keys]` block in `jira-config.toml` for the project/JQL scope of each key.
+
+## GitHub
+
+```bash
+# Baseline collectors (members, teams, team membership, security settings, repos, branch protection)
+grabber --mode collectors --provider github \
+  --collectors github-members,github-teams,github-team-members,github-security-settings,github-repos,github-branch-protection \
+  --output ./evidence-output/github
+
+# Include audit log + security alerts, last 30 days
+grabber --mode collectors --provider github \
+  --collectors github-members,github-teams,github-repos,github-branch-protection,github-audit-log,github-dependabot-alerts,github-secret-scanning-alerts,github-code-scanning-alerts \
+  --lookback 30d \
+  --output ./evidence-output/github
+```
+
+Credentials come from `github-config.toml` (or `GITHUB_ORG` / `GITHUB_TOKEN` / `GITHUB_BASE_URL`). GitHub is region-agnostic — `--region`, `--all-regions`, and `--regions` have no effect.
 
 ## Tenable
 
