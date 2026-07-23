@@ -55,3 +55,6 @@ okta-config.toml
 
 # Jira credentials — never commit
 jira-config.toml
+
+
+elastic-config.toml
