@@ -2,8 +2,9 @@
 //!
 //! Compiled into the binary via `include_str!`, same pattern as
 //! `fedramp_map.rs`. This table is purely descriptive (V-ID, rule ID,
-//! severity, title, check/fix text, CCI references) — no evaluation logic
-//! lives here; that lives in `providers::okta::stig`.
+//! severity, title, check/fix text, CCI references, and the per-check
+//! NIST 800-53 control IDs the STIG maps to) — no evaluation logic lives
+//! here; that lives in `providers::okta::stig`.
 
 use std::collections::BTreeMap;
 
@@ -25,6 +26,12 @@ pub struct StigCheckMeta {
     pub fix_text: String,
     #[serde(default)]
     pub cci: Vec<String>,
+    /// NIST 800-53 control IDs this check maps to (e.g. `["AC-11", "SC-10"]`).
+    /// Written verbatim to the "FedRAMP Req IDs" column. Unlike most
+    /// collectors, a STIG checklist has one row per control, so this varies
+    /// per V-ID rather than applying uniformly to the whole file.
+    #[serde(default)]
+    pub fedramp_req_ids: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

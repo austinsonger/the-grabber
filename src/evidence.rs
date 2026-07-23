@@ -97,6 +97,25 @@ pub trait CsvCollector: Send + Sync {
     fn fedramp_mapping(&self) -> FedRampMapping {
         bundled().get(self.filename_prefix())
     }
+
+    /// Optional per-row FedRAMP mapping override, given the row's own
+    /// already-collected cell data. Return `Some` when this specific row
+    /// maps to different FedRAMP requirements than the rest of the file —
+    /// e.g. a compliance-checklist collector where each row is a distinct
+    /// control. Default: `None` for every row, meaning the collector-wide
+    /// `fedramp_mapping()` value is used (unchanged behavior for every
+    /// other `CsvCollector`).
+    fn fedramp_mapping_for_row(&self, _row: &[String]) -> Option<FedRampMapping> {
+        None
+    }
+
+    /// Whether to emit the "FedRAMP Control IDs" column. Default `true`.
+    /// Collectors whose "FedRAMP Req IDs" already carry the NIST 800-53
+    /// controls (so the control column would just duplicate it) return
+    /// `false` to drop it.
+    fn emit_fedramp_control_ids_column(&self) -> bool {
+        true
+    }
 }
 
 /// Parameters passed to every collector.

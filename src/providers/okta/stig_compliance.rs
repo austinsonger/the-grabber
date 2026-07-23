@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use okta_rs::OktaClient;
 
 use crate::evidence::CsvCollector;
+use crate::fedramp_map::FedRampMapping;
 use crate::okta_stig_map;
 
 pub struct OktaStigComplianceCollector {
@@ -74,5 +75,25 @@ impl CsvCollector for OktaStigComplianceCollector {
 
         rows.sort_by(|a, b| a[0].cmp(&b[0]));
         Ok(rows)
+    }
+
+    /// Each row is a distinct STIG control, so the FedRAMP mapping is
+    /// resolved per V-ID from the check's own `fedramp_req_ids` (the NIST
+    /// 800-53 control IDs stored directly in `okta-stig-map.json`) rather
+    /// than one blanket mapping applied to the whole file. Those IDs
+    /// populate the "FedRAMP Req IDs" column verbatim.
+    fn fedramp_mapping_for_row(&self, row: &[String]) -> Option<FedRampMapping> {
+        let v_id = row.first()?;
+        let ids = okta_stig_map::bundled().get(v_id)?.fedramp_req_ids.clone();
+        Some(FedRampMapping {
+            req_ids: ids,
+            control_ids: Vec::new(),
+        })
+    }
+
+    /// The "FedRAMP Req IDs" column already holds the NIST 800-53 controls,
+    /// so a separate "FedRAMP Control IDs" column would just duplicate it.
+    fn emit_fedramp_control_ids_column(&self) -> bool {
+        false
     }
 }

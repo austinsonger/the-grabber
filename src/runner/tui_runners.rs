@@ -10,7 +10,7 @@ use crate::evidence::{
     JsonInventoryReport, ReportMetadata,
 };
 use crate::runner::failure_classifier;
-use crate::runner::output::{evidence_basename, write_csv_bytes_with_manifest};
+use crate::runner::output::{evidence_basename, write_csv_bytes_with_manifest_per_row};
 use crate::tui::{App, PoamSummary, Progress, Screen};
 
 pub async fn run_tui_csv_collector(
@@ -46,9 +46,14 @@ pub async fn run_tui_csv_collector(
                 evidence_basename(account_id, collector.filename_prefix(), timestamp, "csv");
             let mapping = collector.fedramp_mapping();
             let path = out_dir.join(&basename);
-            if let Ok(bytes) =
-                write_csv_bytes_with_manifest(collector.headers(), &rows, &mapping, &basename)
-            {
+            if let Ok(bytes) = write_csv_bytes_with_manifest_per_row(
+                collector.headers(),
+                &rows,
+                &mapping,
+                &basename,
+                |row| collector.fedramp_mapping_for_row(row),
+                collector.emit_fedramp_control_ids_column(),
+            ) {
                 if std::fs::write(&path, bytes).is_ok() {
                     outcomes.push(audit_log::CollectorOutcome::success(&name, count, &path));
                     written.push(path.display().to_string());

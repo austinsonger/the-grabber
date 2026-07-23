@@ -10,7 +10,7 @@ use crate::evidence::{
 };
 use crate::fedramp_coverage::CoverageRun;
 use crate::runner::output::{
-    evidence_basename, format_path_with_osc8, write_csv_bytes_with_manifest,
+    evidence_basename, format_path_with_osc8, write_csv_bytes_with_manifest_per_row,
 };
 
 pub(crate) async fn run_json_collectors(
@@ -102,8 +102,14 @@ pub(crate) async fn run_csv_collectors(
                     evidence_basename(account_id, collector.filename_prefix(), timestamp, "csv");
                 let mapping = collector.fedramp_mapping();
                 let path = output_dir.join(&basename);
-                let bytes =
-                    write_csv_bytes_with_manifest(collector.headers(), &rows, &mapping, &basename)?;
+                let bytes = write_csv_bytes_with_manifest_per_row(
+                    collector.headers(),
+                    &rows,
+                    &mapping,
+                    &basename,
+                    |row| collector.fedramp_mapping_for_row(row),
+                    collector.emit_fedramp_control_ids_column(),
+                )?;
                 std::fs::write(&path, bytes)
                     .with_context(|| format!("Failed to write {}", path.display()))?;
                 eprintln!("  Written: {}", format_path_with_osc8(&path));

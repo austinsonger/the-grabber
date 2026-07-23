@@ -13,6 +13,10 @@
       "cci": [
         "CCI-000057",
         "CCI-001133"
+      ],
+      "fedramp_req_ids": [
+        "AC-11",
+        "SC-10"
       ]
     },
     "V-273187": {
@@ -24,6 +28,9 @@
       "fix_text": "From the Admin Console: 1. Select Applications >> Applications >> Okta Admin Console. 2. In the Sign On tab, under \"Okta Admin Console session\", set the \"Maximum app session idle time\" to 15 minutes.",
       "cci": [
         "CCI-000057"
+      ],
+      "fedramp_req_ids": [
+        "AC-11"
       ]
     },
     "V-273188": {
@@ -37,6 +44,9 @@
         "CCI-000017",
         "CCI-000795",
         "CCI-003627"
+      ],
+      "fedramp_req_ids": [
+        "AC-2(3)"
       ]
     },
     "V-273189": {
@@ -49,6 +59,9 @@
       "cci": [
         "CCI-000044",
         "CCI-002238"
+      ],
+      "fedramp_req_ids": [
+        "AC-7"
       ]
     },
     "V-273190": {
@@ -60,6 +73,9 @@
       "fix_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Dashboard\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"Possession factor constraints are\" section, ensure the \"Phishing resistant\" box is checked.",
       "cci": [
         "CCI-000044"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(2)"
       ]
     },
     "V-273191": {
@@ -71,6 +87,9 @@
       "fix_text": "From the Admin Console: 1. Go to Security >> Authentication Policies. 2. Click the \"Okta Admin Console\" policy. 3. Click the \"Actions\" button next to the top rule and select \"Edit\". 4. In the \"Possession factor constraints are\" section, ensure the \"Phishing resistant\" box is checked.",
       "cci": [
         "CCI-000044"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(1)"
       ]
     },
     "V-273192": {
@@ -88,6 +107,9 @@
         "CCI-001386",
         "CCI-001387",
         "CCI-001388"
+      ],
+      "fedramp_req_ids": [
+        "AC-8"
       ]
     },
     "V-273193": {
@@ -100,6 +122,9 @@
       "cci": [
         "CCI-000765",
         "CCI-004046"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(1)"
       ]
     },
     "V-273194": {
@@ -112,6 +137,9 @@
       "cci": [
         "CCI-000766",
         "CCI-004046"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(2)"
       ]
     },
     "V-273195": {
@@ -123,6 +151,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set the \"Minimum Length\" field to at least \"15\" characters.",
       "cci": [
         "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273196": {
@@ -134,6 +165,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Upper case letter\" to checked.",
       "cci": [
         "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273197": {
@@ -145,6 +179,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Lower case letter\" to checked.",
       "cci": [
         "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273198": {
@@ -156,6 +193,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Number (0-9)\" to checked.",
       "cci": [
         "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273199": {
@@ -167,6 +207,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Symbol (e.g., !@#$%^&*)\" to checked.",
       "cci": [
         "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273200": {
@@ -178,6 +221,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Minimum password age is XX hours\" to at least \"24\".",
       "cci": [
         "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273201": {
@@ -189,6 +235,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Password expires after XX days\" to \"60\".",
       "cci": [
         "CCI-004066"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273202": {
@@ -202,6 +251,10 @@
         "CCI-001851",
         "CCI-000166",
         "CCI-001348"
+      ],
+      "fedramp_req_ids": [
+        "AU-4(1)",
+        "AU-9(2)"
       ]
     },
     "V-273203": {
@@ -213,6 +266,9 @@
       "fix_text": "From the Admin Console: 1. Go to Security >> Global Session Policy. 2. Select the Default Policy. 3. In the Rules table, make these updates: - Click \"Add rule\". - Set \"Maximum Okta global session lifetime\" to 18 hours.",
       "cci": [
         "CCI-002038"
+      ],
+      "fedramp_req_ids": [
+        "IA-11"
       ]
     },
     "V-273204": {
@@ -226,6 +282,9 @@
         "CCI-001953",
         "CCI-002009",
         "CCI-002010"
+      ],
+      "fedramp_req_ids": [
+        "IA-2(12)"
       ]
     },
     "V-273205": {
@@ -237,6 +296,9 @@
       "fix_text": "From the Admin Console: 1. Go to Security >> Authenticators. 2. From the \"Setup\" tab, select \"Edit Okta Verify\". 3. In the \"FIPS Compliance\" field, choose whether users enrolling in Okta Verify can use FIPS-compliant devices only or any device. 4. Click \"Save\" after making any changes.",
       "cci": [
         "CCI-001967"
+      ],
+      "fedramp_req_ids": [
+        "IA-3(1)"
       ]
     },
     "V-273206": {
@@ -249,6 +311,9 @@
       "cci": [
         "CCI-002007",
         "CCI-001942"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(13)"
       ]
     },
     "V-273207": {
@@ -261,6 +326,9 @@
       "cci": [
         "CCI-002470",
         "CCI-004909"
+      ],
+      "fedramp_req_ids": [
+        "SC-23(5)"
       ]
     },
     "V-273208": {
@@ -272,6 +340,9 @@
       "fix_text": "From the Admin Console: 1. Navigate to Security >> Authenticators. 2. Click the \"Actions\" button next to the Password authenticator and select \"Edit\". 3. Under the \"Password Settings\" section, check the \"Common Password Check\" box.",
       "cci": [
         "CCI-004058"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     },
     "V-273209": {
@@ -283,6 +354,9 @@
       "fix_text": "From the Admin Console: 1. Select Security >> Authenticators. 2. Click the \"Actions\" button next to the \"Password\" row and select \"Edit\". 3. For each listed policy: - Click \"Edit\". - Set \"Enforce password history for last XX passwords\" to \"5\".",
       "cci": [
         "CCI-004061"
+      ],
+      "fedramp_req_ids": [
+        "IA-5(1)"
       ]
     }
   }
