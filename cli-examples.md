@@ -367,6 +367,26 @@ Jira credentials come from `jira-config.toml` (or `JIRA_DOMAIN` / `JIRA_EMAIL` /
 
 Credentials come from `tenable-config.toml` (or `TENABLE_ACCESS_KEY` / `TENABLE_SECRET_KEY`). Tenable is region-agnostic — `--region`, `--all-regions`, and `--regions` have no effect.
 
+## JumpCloud
+
+```bash
+# Default collector set
+./target/release/grabber --account "Acme JumpCloud" --no-tui
+
+# Identity subset
+./target/release/grabber \
+  --account "Acme JumpCloud" \
+  --collectors jumpcloud-users,jumpcloud-admin-roles,jumpcloud-disabled-users
+
+# Directory insights for a date window
+./target/release/grabber \
+  --account "Acme JumpCloud" \
+  --collectors jumpcloud-directory-insights,jumpcloud-directory-alerts \
+  --start-date 2026-04-18 --end-date 2026-07-17
+```
+
+JumpCloud credentials come from `jumpcloud-config.toml` (or `JUMPCLOUD_API_KEY` / `JUMPCLOUD_ORG_ID`). The CLI auto-discovers the configured JumpCloud account by `provider = "jumpcloud"`.
+
 ## Useful local commands
 
 ### Show generated help
