@@ -7,7 +7,6 @@
 **/*.rs.bk
 
 # Rust/Cargo specific
-Cargo.lock
 
 # Backup and log files
 *.log
