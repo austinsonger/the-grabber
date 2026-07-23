@@ -10,5 +10,6 @@ pub mod applications;
 pub mod directory_insights;
 pub mod factory;
 pub mod mfa_factors;
+pub mod policies;
 pub mod user_groups;
 pub mod users;
