@@ -55,8 +55,8 @@ impl JsonCollector for JumpCloudPasswordPolicyCollector {
         let org_password_policy = if self.org_id.is_empty() {
             // If no org_id provided, list all orgs and take the first one
             match self.client.organizations().list_all().await {
-                Ok(mut orgs) => {
-                    if let Some(org) = orgs.pop() {
+                Ok(orgs) => {
+                    if let Some(org) = orgs.into_iter().next() {
                         org.settings
                             .as_ref()
                             .and_then(|s| s.get("passwordPolicy"))
