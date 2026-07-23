@@ -8,6 +8,7 @@
 
 pub mod admin_roles;
 pub mod applications;
+pub mod directory_alerts;
 pub mod directory_insights;
 pub mod factory;
 pub mod mfa_factors;
