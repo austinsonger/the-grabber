@@ -60,5 +60,8 @@ crowdstrike-config.toml
 # Elastic credentials — never commit
 elastic-config.toml
 
+# Jamf credentials — never commit
+jamf-config.toml
+
 # GitHub credentials — never commit
 github-config.toml

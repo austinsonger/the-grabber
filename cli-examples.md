@@ -418,6 +418,26 @@ grabber --account "Acme JumpCloud" \
 
 JumpCloud credentials come from `jumpcloud-config.toml` (or `JUMPCLOUD_API_KEY` / `JUMPCLOUD_ORG_ID`). The CLI auto-discovers the configured JumpCloud account by `provider = "jumpcloud"`.
 
+---
+
+## Jamf
+
+### Jamf — core device inventory
+
+```bash
+./target/release/grabber \
+  --collectors jamf-computers,jamf-mobile-devices,jamf-computer-groups,jamf-mobile-device-groups
+```
+
+### Jamf — configuration and patch compliance
+
+```bash
+./target/release/grabber \
+  --collectors jamf-computer-config-profiles,jamf-mobile-config-profiles,jamf-policies,jamf-patch-titles,jamf-patch-compliance
+```
+
+The Jamf Pro server URL and OAuth client credentials come from `jamf-config.toml` (or `JAMF_BASE_URL` / `JAMF_CLIENT_ID` / `JAMF_CLIENT_SECRET`). Jamf is a TUI/config-driven provider today (like Okta/Jira/Elastic) — run the interactive wizard to select a Jamf account and these collector keys.
+
 ## Useful local commands
 
 ### Show generated help

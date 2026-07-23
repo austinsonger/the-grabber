@@ -1,0 +1,14 @@
+# Jamf credentials — keep this file out of version control
+# Add to .gitignore: jamf-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: JAMF_BASE_URL, JAMF_CLIENT_ID, JAMF_CLIENT_SECRET
+
+[[account]]
+name               = "Jamf"
+provider           = "jamf"
+description        = "Jamf Pro production tenant"
+output_dir         = "./evidence-output/jamf"
+jamf_base_url      = "https://acme.jamfcloud.com"
+jamf_client_id     = ""
+jamf_client_secret = ""

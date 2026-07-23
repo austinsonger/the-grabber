@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/crowdstrike-rs", "crates/elastic-rs", "crates/github-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/crowdstrike-rs", "crates/elastic-rs", "crates/jamf-rs", "crates/github-rs"]
 resolver = "2"
 
 [package]
@@ -109,11 +109,14 @@ crowdstrike-rs = { path = "crates/crowdstrike-rs", optional = true }
 # Elastic — only compiled with `--features elastic`
 elastic-rs = { path = "crates/elastic-rs", optional = true }
 
+# Jamf — only compiled with `--features jamf`
+jamf-rs = { path = "crates/jamf-rs", optional = true }
+
 # GitHub — only compiled with `--features github`
 github-rs = { path = "crates/github-rs", optional = true }
 
 [features]
-default     = ["tenable", "okta", "jira", "crowdstrike", "elastic", "github"]
+default     = ["tenable", "okta", "jira", "crowdstrike", "elastic", "jamf", "github"]
 azure       = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
 gcp         = ["dep:google-cloud-auth"]
 tenable     = ["dep:tenable-rs"]
@@ -121,6 +124,7 @@ okta        = ["dep:okta-rs"]
 jira        = ["dep:jira-rs"]
 crowdstrike = ["dep:crowdstrike-rs"]
 elastic     = ["dep:elastic-rs"]
+jamf        = ["dep:jamf-rs"]
 github      = ["dep:github-rs"]
 
 [dev-dependencies]

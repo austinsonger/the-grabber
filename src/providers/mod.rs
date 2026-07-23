@@ -21,6 +21,9 @@ pub mod crowdstrike;
 #[cfg(feature = "elastic")]
 pub mod elastic;
 
+#[cfg(feature = "jamf")]
+pub mod jamf;
+
 #[cfg(feature = "github")]
 pub mod github;
 
@@ -47,6 +50,7 @@ pub enum CloudProvider {
     Jira,
     CrowdStrike,
     Elastic,
+    Jamf,
     Github,
 }
 
@@ -61,6 +65,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Jira => write!(f, "Jira"),
             CloudProvider::CrowdStrike => write!(f, "CrowdStrike"),
             CloudProvider::Elastic => write!(f, "Elastic"),
+            CloudProvider::Jamf => write!(f, "Jamf"),
             CloudProvider::Github => write!(f, "GitHub"),
         }
     }
@@ -87,6 +92,8 @@ impl CloudProvider {
         v.push(CloudProvider::CrowdStrike);
         #[cfg(feature = "elastic")]
         v.push(CloudProvider::Elastic);
+        #[cfg(feature = "jamf")]
+        v.push(CloudProvider::Jamf);
         #[cfg(feature = "github")]
         v.push(CloudProvider::Github);
         v
@@ -105,6 +112,7 @@ impl CloudProvider {
             CloudProvider::Jira => "Jira",
             CloudProvider::CrowdStrike => "CrowdStrike",
             CloudProvider::Elastic => "Elastic Security",
+            CloudProvider::Jamf => "Jamf",
             CloudProvider::Github => "GitHub",
         }
     }
@@ -127,6 +135,9 @@ impl CloudProvider {
             }
             CloudProvider::Elastic => {
                 "Collect detection rules, exception items, alerts, and cases from Elastic SIEM"
+            }
+            CloudProvider::Jamf => {
+                "Collect computer/mobile device inventory, configuration profiles, policies, and patch compliance from Jamf Pro"
             }
             CloudProvider::Github => {
                 "Collect org members, teams, repos, branch protection, audit log, and security alerts"
