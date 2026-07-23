@@ -24,7 +24,14 @@ impl CsvCollector for GithubAuditLogCollector {
         "Github_Org_Audit_Log"
     }
     fn headers(&self) -> &'static [&'static str] {
-        &["Action", "Actor", "User", "Org", "Created At", "Document ID"]
+        &[
+            "Action",
+            "Actor",
+            "User",
+            "Org",
+            "Created At",
+            "Document ID",
+        ]
     }
 
     async fn collect_rows(
@@ -63,7 +70,7 @@ impl CsvCollector for GithubAuditLogCollector {
             .map(|e| {
                 let created_at = e
                     .created_at
-                    .and_then(|ms| DateTime::<Utc>::from_timestamp_millis(ms))
+                    .and_then(DateTime::<Utc>::from_timestamp_millis)
                     .map(|dt| dt.to_rfc3339())
                     .unwrap_or_default();
                 vec![

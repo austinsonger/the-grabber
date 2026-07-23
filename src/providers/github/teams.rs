@@ -23,7 +23,14 @@ impl CsvCollector for GithubTeamsCollector {
         "Github_Teams"
     }
     fn headers(&self) -> &'static [&'static str] {
-        &["Team ID", "Slug", "Name", "Privacy", "Permission", "Description"]
+        &[
+            "Team ID",
+            "Slug",
+            "Name",
+            "Privacy",
+            "Permission",
+            "Description",
+        ]
     }
 
     async fn collect_rows(
@@ -82,7 +89,12 @@ impl CsvCollector for GithubTeamMembersCollector {
         for t in teams {
             let members = self.client.teams().list_members(&t.slug).await?;
             if members.is_empty() {
-                rows.push(vec![t.slug.clone(), t.name.clone(), String::new(), String::new()]);
+                rows.push(vec![
+                    t.slug.clone(),
+                    t.name.clone(),
+                    String::new(),
+                    String::new(),
+                ]);
                 continue;
             }
             for m in members {

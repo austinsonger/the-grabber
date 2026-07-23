@@ -78,13 +78,22 @@ impl CsvCollector for GithubDependabotAlertsCollector {
                     a.state,
                     a.dependency.package.ecosystem,
                     a.dependency.package.name,
-                    advisory.as_ref().map(|s| s.severity.clone()).unwrap_or_default(),
-                    advisory.as_ref().map(|s| s.ghsa_id.clone()).unwrap_or_default(),
+                    advisory
+                        .as_ref()
+                        .map(|s| s.severity.clone())
+                        .unwrap_or_default(),
+                    advisory
+                        .as_ref()
+                        .map(|s| s.ghsa_id.clone())
+                        .unwrap_or_default(),
                     advisory
                         .as_ref()
                         .and_then(|s| s.cve_id.clone())
                         .unwrap_or_default(),
-                    advisory.as_ref().map(|s| s.summary.clone()).unwrap_or_default(),
+                    advisory
+                        .as_ref()
+                        .map(|s| s.summary.clone())
+                        .unwrap_or_default(),
                     a.created_at,
                     a.updated_at.unwrap_or_default(),
                 ]

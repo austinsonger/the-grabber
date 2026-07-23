@@ -996,8 +996,10 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     };
                     let base_url = acct.github_base_url_resolved();
 
-                    app.prep_log
-                        .push(format!("  GitHub '{}' → {} ({})", account_name, org, base_url));
+                    app.prep_log.push(format!(
+                        "  GitHub '{}' → {} ({})",
+                        account_name, org, base_url
+                    ));
                     terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
 
                     let client = match github_rs::GithubClient::new(&base_url, &token, &org) {
