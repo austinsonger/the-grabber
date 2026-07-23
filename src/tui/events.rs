@@ -116,7 +116,11 @@ fn handle_feature_selection(app: &mut App, key: KeyCode) {
                 Feature::StigRemediation => Feature::Collectors,
             };
         }
-        KeyCode::Enter | KeyCode::Char(' ') => app.next_screen(),
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            if app.validate_current() {
+                app.next_screen();
+            }
+        }
         KeyCode::Esc => app.prev_screen(),
         _ => {}
     }

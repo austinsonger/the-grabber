@@ -129,16 +129,25 @@ pub(super) fn draw_stig_remediation_list(f: &mut Frame, area: Rect, app: &App) {
         .map(|r| {
             let (icon, _) = status_icon(r.status);
             let name = format!("{icon} {}", r.v_id);
+            let remediation_desc = match r.remediation.len() {
+                0 => String::new(),
+                1 => r.remediation[0].describe(),
+                n => format!(
+                    "{n} resources will be updated:\n{}",
+                    r.remediation
+                        .iter()
+                        .map(|t| format!("  - {}", t.describe()))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                ),
+            };
             let mut desc = format!(
                 "{}\n\nStatus: {}\nExpected: {}\nActual: {}\n\n{}",
                 r.details,
                 r.status.as_stig_str(),
                 r.expected_value,
                 r.actual_value,
-                r.remediation
-                    .first()
-                    .map(|t| t.describe())
-                    .unwrap_or_default(),
+                remediation_desc,
             );
             if app.stig_confirm_pending
                 && actionable

@@ -189,7 +189,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 .nth(app.stig_finding_cursor);
 
             if let Some(i) = actionable_idx {
-                let (v_id, title, description, target) = {
+                let (v_id, title, description, targets) = {
                     let finding = &app.stig_findings[i];
                     (
                         finding.v_id.clone(),
@@ -198,50 +198,53 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                             .map(|m| m.title.clone())
                             .unwrap_or_default(),
                         finding.details.clone(),
-                        finding.remediation.first().cloned(),
+                        finding.remediation.clone(),
                     )
                 };
 
-                if let (Some(target), Some(acct_idx)) = (target, app.stig_selected_account_idx) {
+                if let Some(acct_idx) = app.stig_selected_account_idx {
                     let acct = &app.accounts[acct_idx];
                     let domain = acct.okta_domain_resolved().unwrap_or_default();
                     let token = acct.okta_api_token_resolved().unwrap_or_default();
                     let tenant_name = acct.name.clone();
-
-                    let outcome = match okta_rs::OktaClient::new(&domain, &token) {
-                        Ok(client) => {
-                            let inputs = crate::stig_status::RemediationInputs {
-                                text: Some(app.stig_text_input.value.clone())
-                                    .filter(|s| !s.is_empty()),
-                            };
-                            crate::providers::okta::stig::remediate::apply(
-                                &client, &target, &inputs,
-                            )
-                            .await
-                        }
-                        Err(e) => crate::stig_status::RemediationOutcome::Failed {
-                            error: format!("Client build failed: {e}"),
-                        },
-                    };
-
                     let out_dir = std::path::PathBuf::from(&app.output_dir.value)
                         .join(&tenant_name)
                         .join(date_path_suffix());
-                    let entry = crate::stig_remediation_log::RemediationLogEntry::new(
-                        &tenant_name,
-                        &v_id,
-                        &title,
-                        &description,
-                        outcome.label(),
-                        &outcome.detail(),
-                    );
-                    if let Ok(path) =
-                        crate::stig_remediation_log::append_remediation_log(&out_dir, &entry)
-                    {
-                        app.stig_log_path = Some(path.display().to_string());
-                    }
+                    let client = okta_rs::OktaClient::new(&domain, &token);
 
-                    app.stig_outcomes.push((v_id, outcome));
+                    for target in &targets {
+                        let outcome = match &client {
+                            Ok(client) => {
+                                let inputs = crate::stig_status::RemediationInputs {
+                                    text: Some(app.stig_text_input.value.clone())
+                                        .filter(|s| !s.is_empty()),
+                                };
+                                crate::providers::okta::stig::remediate::apply(
+                                    client, target, &inputs,
+                                )
+                                .await
+                            }
+                            Err(e) => crate::stig_status::RemediationOutcome::Failed {
+                                error: format!("Client build failed: {e}"),
+                            },
+                        };
+
+                        let entry = crate::stig_remediation_log::RemediationLogEntry::new(
+                            &tenant_name,
+                            &v_id,
+                            &title,
+                            &description,
+                            outcome.label(),
+                            &outcome.detail(),
+                        );
+                        if let Ok(path) =
+                            crate::stig_remediation_log::append_remediation_log(&out_dir, &entry)
+                        {
+                            app.stig_log_path = Some(path.display().to_string());
+                        }
+
+                        app.stig_outcomes.push((v_id.clone(), outcome));
+                    }
                 }
             }
 
