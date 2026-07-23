@@ -5,13 +5,15 @@
 //! V-273187 (Admin Console app-level session idle timeout — distinct field
 //! from V-273186's global session policy, exact API location unconfirmed),
 //! V-273192 (DOD warning banner — inherently a browser-rendering check per
-//! the STIG's own check text), V-273207 (DOD-approved CA for the Smart
-//! Card IdP — matching a certificate issuer against "DOD-approved" is a
-//! policy judgment call, not a value comparison).
+//! the STIG's own check text, but the sign-in page's custom content *can*
+//! be written via the Brand API once the user supplies the banner text),
+//! V-273207 (DOD-approved CA for the Smart Card IdP — matching a
+//! certificate issuer against "DOD-approved" is a policy judgment call,
+//! not a value comparison).
 
 use okta_rs::OktaClient;
 
-use crate::stig_status::StigCheckResult;
+use crate::stig_status::{RemediationTarget, StigCheckResult};
 
 pub async fn evaluate(client: &OktaClient) -> Vec<StigCheckResult> {
     vec![
@@ -26,6 +28,7 @@ fn admin_console_session_idle() -> StigCheckResult {
         "V-273187",
         "The Okta Admin Console app's own \"Maximum app session idle time\" setting (Applications >> Okta Admin Console >> Sign On tab) is not currently reachable through a confirmed API field — verify manually in the Admin Console. Note this is distinct from the global session policy evaluated for V-273186.",
     )
+    .with_remediation(RemediationTarget::ManualOnly)
 }
 
 async fn dod_warning_banner(client: &OktaClient) -> StigCheckResult {
@@ -35,10 +38,12 @@ async fn dod_warning_banner(client: &OktaClient) -> StigCheckResult {
             return StigCheckResult::not_reviewed(
                 "V-273192",
                 format!("Could not fetch brands to inspect the sign-in page: {e}"),
-            );
+            )
+            .with_remediation(RemediationTarget::ManualOnly);
         }
         Err(e) => {
             return StigCheckResult::not_reviewed("V-273192", format!("Error fetching brands: {e}"))
+                .with_remediation(RemediationTarget::ManualOnly)
         }
     };
 
@@ -48,7 +53,8 @@ async fn dod_warning_banner(client: &OktaClient) -> StigCheckResult {
         .and_then(|b| b.get("id"))
         .and_then(|v| v.as_str())
     else {
-        return StigCheckResult::not_reviewed("V-273192", "No brand found — cannot inspect sign-in page for a DOD warning banner. Verify by logging in to the tenant.");
+        return StigCheckResult::not_reviewed("V-273192", "No brand found — cannot inspect sign-in page for a DOD warning banner. Verify by logging in to the tenant.")
+            .with_remediation(RemediationTarget::ManualOnly);
     };
 
     let page = client
@@ -75,6 +81,9 @@ async fn dod_warning_banner(client: &OktaClient) -> StigCheckResult {
             format!("Brand {brand_id} has no custom sign-in page content configured — a DOD warning banner is unlikely to be present. Verify by logging in to the tenant.")
         },
     )
+    .with_remediation(RemediationTarget::SetSignInBanner {
+        brand_id: brand_id.to_string(),
+    })
 }
 
 async fn dod_approved_ca(client: &OktaClient) -> StigCheckResult {
@@ -84,13 +93,15 @@ async fn dod_approved_ca(client: &OktaClient) -> StigCheckResult {
             return StigCheckResult::not_reviewed(
                 "V-273207",
                 format!("Identity Providers endpoint unavailable on this tenant: {e}"),
-            );
+            )
+            .with_remediation(RemediationTarget::ManualOnly);
         }
         Err(e) => {
             return StigCheckResult::not_reviewed(
                 "V-273207",
                 format!("Error fetching Identity Providers: {e}"),
             )
+            .with_remediation(RemediationTarget::ManualOnly)
         }
     };
 
@@ -125,4 +136,5 @@ async fn dod_approved_ca(client: &OktaClient) -> StigCheckResult {
             format!("Smart Card IdP(s) found: {}. Certificate issuer/chain must be manually verified against the DOD-approved CA list — this cannot be determined from the IdP configuration alone.", smart_card_idps.join(", "))
         },
     )
+    .with_remediation(RemediationTarget::ManualOnly)
 }

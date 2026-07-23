@@ -3,7 +3,7 @@
 
 use okta_rs::OktaClient;
 
-use crate::stig_status::{StigCheckResult, StigStatus};
+use crate::stig_status::{RemediationTarget, StigCheckResult, StigStatus};
 
 const V_ID: &str = "V-273202";
 
@@ -37,6 +37,7 @@ pub async fn evaluate(client: &OktaClient) -> Vec<StigCheckResult> {
             format!("{} log stream(s), none ACTIVE", streams.len()),
             "No ACTIVE Log Streaming connection found. If logs are pulled by an external SIEM via the Okta System Log API instead, verify manually and mark NotAFinding.",
         )
+        .with_remediation(RemediationTarget::ManualOnly)
     } else {
         StigCheckResult::new(
             V_ID,
