@@ -14,6 +14,7 @@ mod poam;
 mod providers;
 mod runner;
 mod signing;
+mod stig_remediation_log;
 mod stig_status;
 mod tui;
 mod zip_bundle;

@@ -8,7 +8,7 @@
 
 use okta_rs::OktaClient;
 
-use crate::stig_status::{StigCheckResult, StigStatus};
+use crate::stig_status::{RemediationTarget, StigCheckResult, StigStatus};
 
 const V_ID: &str = "V-273188";
 
@@ -30,7 +30,8 @@ pub async fn evaluate(client: &OktaClient) -> Vec<StigCheckResult> {
             "an ACTIVE automation disabling accounts after 35 days of inactivity",
             format!("{} automation(s), none ACTIVE", automations.len()),
             "No ACTIVE Okta Automation was found.",
-        )];
+        )
+        .with_remediation(RemediationTarget::ManualOnly)];
     }
 
     for a in &active {
@@ -55,6 +56,7 @@ pub async fn evaluate(client: &OktaClient) -> Vec<StigCheckResult> {
                     format!("{name} = {days} days"),
                     "An ACTIVE inactivity automation exists but its threshold is under 35 days.",
                 )
+                .with_remediation(RemediationTarget::ManualOnly)
             };
             return vec![result];
         }
@@ -66,7 +68,8 @@ pub async fn evaluate(client: &OktaClient) -> Vec<StigCheckResult> {
         ">= 35 days",
         format!("{} ACTIVE automation(s), inactivity threshold not identifiable", active.len()),
         "ACTIVE automation(s) exist but the inactivity-duration field could not be located — schema needs live-tenant verification. If user sourcing is via an external directory, this control may be Not_Applicable instead.",
-    )]
+    )
+    .with_remediation(RemediationTarget::ManualOnly)]
 }
 
 /// Try a few plausible field shapes for "N days of inactivity" on an

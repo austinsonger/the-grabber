@@ -10,7 +10,7 @@ use okta_rs::types::policy::OktaPolicy;
 use okta_rs::OktaClient;
 
 use super::{is_feature_unavailable, json_bool, json_i64};
-use crate::stig_status::{StigCheckResult, StigStatus};
+use crate::stig_status::{RemediationTarget, StigCheckResult, StigStatus};
 
 const V_IDS: &[&str] = &[
     "V-273189", "V-273195", "V-273196", "V-273197", "V-273198", "V-273199", "V-273200", "V-273201",
@@ -125,14 +125,19 @@ fn at_least(
 ) -> StigCheckResult {
     let mut failing = Vec::new();
     let mut actuals = Vec::new();
+    let mut targets = Vec::new();
     for p in policies {
         match json_i64(&p.settings, pointer) {
             Some(v) if v >= required && v <= ceiling => actuals.push(v.to_string()),
             Some(v) => {
                 actuals.push(v.to_string());
                 failing.push(p.id.clone());
+                targets.push(policy_field_target(p, pointer, serde_json::json!(required)));
             }
-            None => failing.push(format!("{} (field missing)", p.id)),
+            None => {
+                failing.push(format!("{} (field missing)", p.id));
+                targets.push(policy_field_target(p, pointer, serde_json::json!(required)));
+            }
         }
     }
     if failing.is_empty() {
@@ -148,7 +153,7 @@ fn at_least(
             ),
         )
     } else {
-        StigCheckResult::new(
+        let mut result = StigCheckResult::new(
             v_id,
             StigStatus::Open,
             format!(">= {required}"),
@@ -158,7 +163,11 @@ fn at_least(
                 if failing.len() == 1 { "y" } else { "ies" },
                 failing.join(", ")
             ),
-        )
+        );
+        for t in targets {
+            result = result.with_remediation(t);
+        }
+        result
     }
 }
 
@@ -173,14 +182,19 @@ fn at_most(
 ) -> StigCheckResult {
     let mut failing = Vec::new();
     let mut actuals = Vec::new();
+    let mut targets = Vec::new();
     for p in policies {
         match json_i64(&p.settings, pointer) {
             Some(v) if v > 0 && v <= required => actuals.push(v.to_string()),
             Some(v) => {
                 actuals.push(v.to_string());
                 failing.push(p.id.clone());
+                targets.push(policy_field_target(p, pointer, serde_json::json!(required)));
             }
-            None => failing.push(format!("{} (field missing)", p.id)),
+            None => {
+                failing.push(format!("{} (field missing)", p.id));
+                targets.push(policy_field_target(p, pointer, serde_json::json!(required)));
+            }
         }
     }
     if failing.is_empty() {
@@ -196,7 +210,7 @@ fn at_most(
             ),
         )
     } else {
-        StigCheckResult::new(
+        let mut result = StigCheckResult::new(
             v_id,
             StigStatus::Open,
             format!("<= {required}"),
@@ -206,24 +220,31 @@ fn at_most(
                 if failing.len() == 1 { "y" } else { "ies" },
                 failing.join(", ")
             ),
-        )
+        );
+        for t in targets {
+            result = result.with_remediation(t);
+        }
+        result
     }
 }
 
 fn common_password_check(policies: &[&OktaPolicy]) -> StigCheckResult {
+    let pointer = "/password/complexity/dictionary/common/exclude";
     let mut failing = Vec::new();
     let mut actuals = Vec::new();
+    let mut targets = Vec::new();
     for p in policies {
-        match json_bool(
-            &p.settings,
-            "/password/complexity/dictionary/common/exclude",
-        ) {
+        match json_bool(&p.settings, pointer) {
             Some(true) => actuals.push("true".to_string()),
             Some(false) => {
                 actuals.push("false".to_string());
                 failing.push(p.id.clone());
+                targets.push(policy_field_target(p, pointer, serde_json::json!(true)));
             }
-            None => failing.push(format!("{} (field missing)", p.id)),
+            None => {
+                failing.push(format!("{} (field missing)", p.id));
+                targets.push(policy_field_target(p, pointer, serde_json::json!(true)));
+            }
         }
     }
     if failing.is_empty() {
@@ -238,7 +259,7 @@ fn common_password_check(policies: &[&OktaPolicy]) -> StigCheckResult {
             ),
         )
     } else {
-        StigCheckResult::new(
+        let mut result = StigCheckResult::new(
             "V-273208",
             StigStatus::Open,
             "true",
@@ -247,6 +268,32 @@ fn common_password_check(policies: &[&OktaPolicy]) -> StigCheckResult {
                 "Policies not excluding common passwords: {}",
                 failing.join(", ")
             ),
-        )
+        );
+        for t in targets {
+            result = result.with_remediation(t);
+        }
+        result
+    }
+}
+
+/// Build a `RemediationTarget::PolicyField` for one failing PASSWORD
+/// policy field. Pointers here are relative to the policy's `settings`
+/// object (`rule_id: None`), matching how `json_i64`/`json_bool` above
+/// read them.
+fn policy_field_target(
+    policy: &OktaPolicy,
+    pointer: &str,
+    new_value: serde_json::Value,
+) -> RemediationTarget {
+    RemediationTarget::PolicyField {
+        policy_id: policy.id.clone(),
+        policy_type: "PASSWORD",
+        rule_id: None,
+        fields: vec![(pointer.to_string(), new_value)],
+        resource_label: if policy.name.is_empty() {
+            policy.id.clone()
+        } else {
+            policy.name.clone()
+        },
     }
 }

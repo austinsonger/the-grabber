@@ -18,4 +18,35 @@ impl<'c> AuthenticatorsApi<'c> {
         }
         Ok(resp.json().await?)
     }
+
+    /// PUT /api/v1/authenticators/{authenticator_id}
+    ///
+    /// `body` must be the full authenticator object (fetch via `list_all`,
+    /// find by id, mutate the field(s) you need, pass the whole thing back).
+    pub async fn update(
+        &self,
+        authenticator_id: &str,
+        body: &serde_json::Value,
+    ) -> Result<serde_json::Value, OktaError> {
+        let path = format!("/api/v1/authenticators/{authenticator_id}");
+        let resp = self.0.put_json(&path, body).await?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let message = resp.text().await.unwrap_or_default();
+            return Err(OktaError::Api { status, message });
+        }
+        Ok(resp.json().await?)
+    }
+
+    /// POST /api/v1/authenticators/{authenticator_id}/lifecycle/activate
+    pub async fn activate(&self, authenticator_id: &str) -> Result<serde_json::Value, OktaError> {
+        let path = format!("/api/v1/authenticators/{authenticator_id}/lifecycle/activate");
+        let resp = self.0.post_empty(&path).await?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let message = resp.text().await.unwrap_or_default();
+            return Err(OktaError::Api { status, message });
+        }
+        Ok(resp.json().await?)
+    }
 }

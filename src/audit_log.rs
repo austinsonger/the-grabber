@@ -346,13 +346,13 @@ pub async fn resolve_aws_identity(config: &aws_config::SdkConfig) -> Option<AwsI
 // System info helpers
 // ---------------------------------------------------------------------------
 
-fn get_operator() -> String {
+pub(crate) fn get_operator() -> String {
     std::env::var("USER")
         .or_else(|_| std::env::var("USERNAME"))
         .unwrap_or_else(|_| "unknown".to_string())
 }
 
-fn get_hostname() -> String {
+pub(crate) fn get_hostname() -> String {
     #[cfg(unix)]
     {
         let mut buf = vec![0u8; 256];

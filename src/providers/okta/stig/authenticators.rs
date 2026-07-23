@@ -7,12 +7,13 @@
 //! field's exact path inside `okta_verify`'s `settings` is confirmed
 //! against a live tenant — both are matched defensively and fall back to
 //! `NotReviewed` with the raw JSON surfaced as evidence rather than
-//! guessing a PASS/FAIL.
+//! guessing a PASS/FAIL. Remediation mirrors that same honesty: a real fix
+//! is only offered when a concrete resource/field was actually found.
 
 use okta_rs::OktaClient;
 
 use super::json_bool;
-use crate::stig_status::{StigCheckResult, StigStatus};
+use crate::stig_status::{RemediationTarget, StigCheckResult, StigStatus};
 
 pub async fn evaluate(client: &OktaClient) -> Vec<StigCheckResult> {
     let authenticators = match client.authenticators().list_all().await {
@@ -63,14 +64,28 @@ fn smart_card(authenticators: &[serde_json::Value]) -> StigCheckResult {
             "an ACTIVE Smart Card/PIV authenticator",
             "none found",
             "No authenticator matching smart_card/piv/cac was found. Verify the exact authenticator key on this tenant if this looks wrong.",
-        ),
-        None => StigCheckResult::new(
-            "V-273204",
-            StigStatus::Open,
-            "an ACTIVE Smart Card/PIV authenticator",
-            "found but not ACTIVE",
-            "A Smart Card/PIV-matching authenticator exists but is not ACTIVE.",
-        ),
+        )
+        .with_remediation(RemediationTarget::ManualOnly),
+        None => {
+            let inactive = candidates[0];
+            let key = inactive.get("key").and_then(|v| v.as_str()).unwrap_or("(unknown key)");
+            let mut result = StigCheckResult::new(
+                "V-273204",
+                StigStatus::Open,
+                "an ACTIVE Smart Card/PIV authenticator",
+                "found but not ACTIVE",
+                "A Smart Card/PIV-matching authenticator exists but is not ACTIVE.",
+            );
+            if let Some(id) = inactive.get("id").and_then(|v| v.as_str()) {
+                result = result.with_remediation(RemediationTarget::ActivateAuthenticator {
+                    authenticator_id: id.to_string(),
+                    resource_label: key.to_string(),
+                });
+            } else {
+                result = result.with_remediation(RemediationTarget::ManualOnly);
+            }
+            result
+        }
     }
 }
 
@@ -82,8 +97,10 @@ fn okta_verify_fips(authenticators: &[serde_json::Value]) -> StigCheckResult {
         return StigCheckResult::not_reviewed(
             "V-273205",
             "No authenticator with key \"okta_verify\" found on this tenant.",
-        );
+        )
+        .with_remediation(RemediationTarget::ManualOnly);
     };
+    let authenticator_id = okta_verify.get("id").and_then(|v| v.as_str());
 
     // Field path unconfirmed — try a few plausible shapes before giving up.
     for pointer in [
@@ -103,13 +120,22 @@ fn okta_verify_fips(authenticators: &[serde_json::Value]) -> StigCheckResult {
                     ),
                 )
             } else {
-                StigCheckResult::new(
+                let mut result = StigCheckResult::new(
                     "V-273205",
                     StigStatus::Open,
                     "FIPS-compliant devices only",
                     "false",
                     format!("okta_verify authenticator field {pointer} indicates FIPS compliance is not required."),
-                )
+                );
+                result = match authenticator_id {
+                    Some(id) => result.with_remediation(RemediationTarget::AuthenticatorField {
+                        authenticator_id: id.to_string(),
+                        fields: vec![(pointer.to_string(), serde_json::json!(true))],
+                        resource_label: "okta_verify".to_string(),
+                    }),
+                    None => result.with_remediation(RemediationTarget::ManualOnly),
+                };
+                result
             };
         }
     }
@@ -121,4 +147,5 @@ fn okta_verify_fips(authenticators: &[serde_json::Value]) -> StigCheckResult {
         okta_verify.get("settings").cloned().unwrap_or_default().to_string(),
         "Could not locate a FIPS-compliance field in the okta_verify authenticator's settings — field path needs live-tenant verification. Raw settings captured in Actual Value for manual review.",
     )
+    .with_remediation(RemediationTarget::ManualOnly)
 }
