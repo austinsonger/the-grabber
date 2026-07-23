@@ -59,6 +59,12 @@ pub(super) fn draw_provider_selection(f: &mut Frame, area: Rect, app: &App) {
             "◆  Elastic Security",
             "Collect detection rules, exception items, alerts, and cases from Elastic SIEM",
         ));
+        #[cfg(feature = "jamf")]
+        v.push((
+            CloudProvider::Jamf,
+            "◆  Jamf",
+            "Collect computer/mobile device inventory, configuration profiles, policies, and patch compliance from Jamf Pro",
+        ));
         v
     };
 

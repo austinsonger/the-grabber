@@ -871,6 +871,8 @@ fn handle_provider_selection(app: &mut App, key: KeyCode) {
         v.push(CloudProvider::Jira);
         #[cfg(feature = "elastic")]
         v.push(CloudProvider::Elastic);
+        #[cfg(feature = "jamf")]
+        v.push(CloudProvider::Jamf);
         v
     };
     match key {
