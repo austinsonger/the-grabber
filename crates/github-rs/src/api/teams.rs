@@ -9,8 +9,10 @@ impl<'c> TeamsApi<'c> {
     /// GET /orgs/{org}/teams — paginated.
     pub async fn list_all(&self) -> Result<Vec<GithubTeam>, GithubError> {
         let mut all = Vec::new();
-        let mut next: Option<String> =
-            Some(self.0.url(&format!("/orgs/{}/teams?per_page=100", self.0.org())));
+        let mut next: Option<String> = Some(
+            self.0
+                .url(&format!("/orgs/{}/teams?per_page=100", self.0.org())),
+        );
         while let Some(url) = next {
             let resp = self.0.get_absolute(&url).await?;
             if !resp.status().is_success() {

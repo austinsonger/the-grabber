@@ -38,7 +38,9 @@ impl GithubClient {
         }
         let org_trimmed = org.trim();
         if org_trimmed.is_empty() {
-            return Err(GithubError::InvalidBaseUrl("org must not be empty".to_string()));
+            return Err(GithubError::InvalidBaseUrl(
+                "org must not be empty".to_string(),
+            ));
         }
 
         let auth = format!("Bearer {token}");

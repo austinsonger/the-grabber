@@ -1,6 +1,8 @@
 use crate::client::{next_link, GithubClient};
 use crate::error::GithubError;
-use crate::types::alert::{GithubCodeScanningAlert, GithubDependabotAlert, GithubSecretScanningAlert};
+use crate::types::alert::{
+    GithubCodeScanningAlert, GithubDependabotAlert, GithubSecretScanningAlert,
+};
 
 pub struct AlertsApi<'c>(pub(crate) &'c GithubClient);
 

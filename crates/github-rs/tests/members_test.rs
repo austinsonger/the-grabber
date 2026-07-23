@@ -5,7 +5,10 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 #[tokio::test]
 async fn list_by_role_filters_and_paginates() {
     let server = MockServer::start().await;
-    let page2 = format!("{}/orgs/acme/members?role=admin&per_page=100&page=2", server.uri());
+    let page2 = format!(
+        "{}/orgs/acme/members?role=admin&per_page=100&page=2",
+        server.uri()
+    );
 
     Mock::given(method("GET"))
         .and(path("/orgs/acme/members"))

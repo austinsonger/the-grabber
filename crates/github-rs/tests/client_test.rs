@@ -82,6 +82,9 @@ async fn does_not_retry_a_bare_403() {
         .await;
 
     let client = GithubClient::new(&server.uri(), "test-token", "acme").unwrap();
-    let resp = client.raw_get("/orgs/acme/dependabot/alerts").await.unwrap();
+    let resp = client
+        .raw_get("/orgs/acme/dependabot/alerts")
+        .await
+        .unwrap();
     assert_eq!(resp.status(), 403);
 }
