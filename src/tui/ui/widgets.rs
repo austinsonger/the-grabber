@@ -154,7 +154,6 @@ pub(super) fn format_number(n: usize) -> String {
 /// for single-column selection screens with a description per item.
 /// `items` is `(name, description)` pairs; `selected` indexes into `items`
 /// and drives both the list highlight and the detail panel content.
-#[allow(dead_code)]
 pub(super) fn draw_list_with_detail(
     f: &mut Frame,
     area: Rect,
