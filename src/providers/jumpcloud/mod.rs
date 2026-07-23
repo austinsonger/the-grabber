@@ -6,6 +6,7 @@
 //!
 //! Base URL: `https://console.jumpcloud.com` unless overridden per account.
 
+pub mod applications;
 pub mod factory;
 pub mod user_groups;
 pub mod users;
