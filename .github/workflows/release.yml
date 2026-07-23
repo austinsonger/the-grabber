@@ -78,7 +78,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Fail if version already exists
+      - name: Check release/tag state
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
@@ -87,9 +87,11 @@ jobs:
             echo "::error::release $VERSION already exists"
             exit 1
           fi
+
           if gh api "repos/${{ github.repository }}/git/ref/tags/$VERSION" >/dev/null 2>&1; then
-            echo "::error::tag $VERSION already exists (with no attached release)"
-            exit 1
+            echo "TAG_EXISTS=true" >> "$GITHUB_ENV"
+          else
+            echo "TAG_EXISTS=false" >> "$GITHUB_ENV"
           fi
 
       - name: Download build artifacts
@@ -104,9 +106,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
-          gh release create "$VERSION" \
-            --repo "${{ github.repository }}" \
-            --target "${{ github.sha }}" \
-            --title "$VERSION" \
-            --generate-notes \
-            dist/*.tar.gz
+          if [ "${TAG_EXISTS}" = "true" ]; then
+            gh release create "$VERSION" \
+              --repo "${{ github.repository }}" \
+              --title "$VERSION" \
+              --generate-notes \
+              dist/*.tar.gz
+          else
+            gh release create "$VERSION" \
+              --repo "${{ github.repository }}" \
+              --target "${{ github.sha }}" \
+              --title "$VERSION" \
+              --generate-notes \
+              dist/*.tar.gz
+          fi
