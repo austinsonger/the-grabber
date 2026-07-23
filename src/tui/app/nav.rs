@@ -107,6 +107,7 @@ impl App {
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::Elastic
+                    || self.selected_provider == CloudProvider::Jamf
                     || self.selected_provider == CloudProvider::Github
                 {
                     self.auto_select_provider_accounts();
@@ -161,6 +162,7 @@ impl App {
                 } else if self.selected_provider == CloudProvider::Okta
                     || self.selected_provider == CloudProvider::Jira
                     || self.selected_provider == CloudProvider::Elastic
+                    || self.selected_provider == CloudProvider::Jamf
                     || self.selected_provider == CloudProvider::Github
                 {
                     Screen::ProviderSelection
@@ -270,6 +272,18 @@ impl App {
                     if !has_elastic {
                         self.error_msg =
                             Some("No Elastic accounts configured in elastic-config.toml".into());
+                        return false;
+                    }
+                }
+                #[cfg(feature = "jamf")]
+                if self.selected_provider == CloudProvider::Jamf {
+                    let has_jamf = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::Jamf);
+                    if !has_jamf {
+                        self.error_msg =
+                            Some("No Jamf accounts configured in jamf-config.toml".into());
                         return false;
                     }
                 }

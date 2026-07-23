@@ -3620,6 +3620,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
+name = "jamf-rs"
+version = "0.1.0"
+dependencies = [
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
 name = "jira-rs"
 version = "0.1.0"
 dependencies = [
@@ -5329,6 +5341,7 @@ dependencies = [
  "github-rs",
  "google-cloud-auth",
  "hmac",
+ "jamf-rs",
  "jira-rs",
  "jsonschema",
  "libc",

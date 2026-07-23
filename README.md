@@ -1,6 +1,6 @@
 # The Grabber
 
-The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, Tenable, and GitHub, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
+The Grabber. Collects current-state snapshots and time-windowed audit records from AWS, Okta, Jira, Tenable, Jamf, and GitHub, writing them as CSV and JSON. Supports exporting inventory and POA&M artifacts using FedRAMP-aligned templates, suitable for FedRAMP, SOC 2, HIPAA, or internal audits.
 
 ![Alt text](assets/1.Grabber_LandingPage.png)
 
@@ -10,7 +10,7 @@ The Grabber. Collects current-state snapshots and time-windowed audit records fr
 
 - **Interactive TUI** — wizard-style interface for selecting accounts, date ranges, collectors, and options
 - **Multi-account support** — TOML config drives an account picker; each account maps to an AWS SSO profile
-- **200+ collectors across five providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 10 GitHub (see `evidence-list.md` for the current catalog)
+- **200+ collectors across six providers** — 144 AWS, 24 Okta, 28 Jira, 5 Tenable, 9 Jamf, 10 GitHub (see `evidence-list.md` for the current catalog)
 - **Dual output formats** — structured JSON (inventory/policy data) and CSV (tabular snapshots)
 - **Chain-of-custody audit trail** — per-run `CHAIN-OF-CUSTODY-*.json` and an append-only `CHAIN-OF-CUSTODY.jsonl` log capture operator identity, hostname, AWS caller ARN, and the sanitized CLI invocation
 - **Run manifest** — `RUN-MANIFEST-*.json` records every collector's outcome (success/empty/error/timeout), record count, and file size
@@ -175,7 +175,7 @@ These dates bound all time-windowed collectors (CloudTrail events, Backup job hi
 
 ### Collectors
 
-A scrollable checklist of 144 AWS collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.). Non-AWS providers (Okta, Jira, Tenable, GitHub) surface their own per-provider collector menus with only the keys relevant to that provider.
+A scrollable checklist of 144 AWS collectors grouped into categories (IAM, EC2/Networking, Storage, RDS, KMS, CloudTrail, Config, Security Services, SSM, Monitoring, Containers, etc.). Non-AWS providers (Okta, Jira, Tenable, Jamf, GitHub) surface their own per-provider collector menus with only the keys relevant to that provider.
 
 - `Space` toggles the collector under the cursor.
 - The title shows **X of Y selected** as you make changes.
@@ -1011,6 +1011,53 @@ JumpCloud has no region concept, like Tenable/Okta/Jira/Elastic — `--all-regio
 
 ---
 
+## Jamf
+
+Optional feature — build with `--features jamf` (enabled by default).
+
+### Configuration
+
+Create `jamf-config.toml` in the repo root (gitignored):
+
+```toml
+[[account]]
+name               = "Jamf"
+provider           = "jamf"
+description        = "Jamf Pro production tenant"
+output_dir         = "./evidence-output/jamf"
+jamf_base_url      = "https://acme.jamfcloud.com"
+jamf_client_id     = ""
+jamf_client_secret = ""
+```
+
+Or set the values via environment variables (env wins over TOML):
+
+- `JAMF_BASE_URL` — e.g. `https://acme.jamfcloud.com` (works identically for Jamf Cloud and self-hosted servers)
+- `JAMF_CLIENT_ID` — OAuth2 API client ID
+- `JAMF_CLIENT_SECRET` — OAuth2 API client secret
+
+Create an API client in the Jamf Pro console: **Settings → System → API Roles and Clients → New**. Grant it a read-only API role scoped to Computers, Mobile Devices, Configuration Profiles, Policies, Groups, and Patch Management.
+
+### Collectors
+
+| Key | Output | Description |
+|-----|--------|-------------|
+| `jamf-computers` | CSV | Computer inventory: serial, model, OS version, last check-in, FileVault status |
+| `jamf-mobile-devices` | CSV | Mobile device inventory: serial, model, OS version, supervised state |
+| `jamf-computer-config-profiles` | CSV | Computer configuration profiles with scope |
+| `jamf-mobile-config-profiles` | CSV | Mobile device configuration profiles with scope |
+| `jamf-computer-groups` | CSV | Smart and static computer groups with criteria and member counts |
+| `jamf-mobile-device-groups` | CSV | Smart and static mobile device groups with criteria and member counts |
+| `jamf-policies` | JSON | Policies with category, scope, and frequency |
+| `jamf-patch-titles` | CSV | Configured patch software titles |
+| `jamf-patch-compliance` | CSV | Per-title compliant vs. out-of-date device counts |
+
+### Security note
+
+Only FileVault **status** (enabled/disabled) is collected — recovery keys are never retrieved.
+
+---
+
 ## Azure / GCP
 
 Both providers are compiled behind opt-in Cargo features (`--features azure`, `--features gcp`). They are stubs today — factory scaffolding exists in `src/providers/{azure,gcp}/` but no collectors ship yet. Enabling the feature will surface an empty provider in the TUI account picker; use `config.example.toml` as a reference for adding an `[[account]]` block when collectors land.
@@ -1021,7 +1068,7 @@ Both providers are compiled behind opt-in Cargo features (`--features azure`, `-
 
 Prebuilt `grabber` binaries for Linux (x86_64) and macOS (Intel + Apple Silicon) are published as GitHub Releases — no need to `cargo build` from source in every downstream CI pipeline.
 
-**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`, `github`) — no `azure`/`gcp`.
+**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`, `github`, `jamf`) — no `azure`/`gcp`.
 
 **Using the binary from another repo's GitHub Action:**
 

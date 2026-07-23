@@ -18,6 +18,9 @@ pub mod jira;
 #[cfg(feature = "elastic")]
 pub mod elastic;
 
+#[cfg(feature = "jamf")]
+pub mod jamf;
+
 #[cfg(feature = "github")]
 pub mod github;
 
@@ -43,6 +46,7 @@ pub enum CloudProvider {
     Okta,
     Jira,
     Elastic,
+    Jamf,
     Github,
 }
 
@@ -56,6 +60,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Okta => write!(f, "Okta"),
             CloudProvider::Jira => write!(f, "Jira"),
             CloudProvider::Elastic => write!(f, "Elastic"),
+            CloudProvider::Jamf => write!(f, "Jamf"),
             CloudProvider::Github => write!(f, "GitHub"),
         }
     }
@@ -80,6 +85,8 @@ impl CloudProvider {
         v.push(CloudProvider::Jira);
         #[cfg(feature = "elastic")]
         v.push(CloudProvider::Elastic);
+        #[cfg(feature = "jamf")]
+        v.push(CloudProvider::Jamf);
         #[cfg(feature = "github")]
         v.push(CloudProvider::Github);
         v
@@ -97,6 +104,7 @@ impl CloudProvider {
             CloudProvider::Okta => "Okta",
             CloudProvider::Jira => "Jira",
             CloudProvider::Elastic => "Elastic Security",
+            CloudProvider::Jamf => "Jamf",
             CloudProvider::Github => "GitHub",
         }
     }
@@ -116,6 +124,9 @@ impl CloudProvider {
             CloudProvider::Jira => "Collect projects and issues from Jira Cloud or Jira Server",
             CloudProvider::Elastic => {
                 "Collect detection rules, exception items, alerts, and cases from Elastic SIEM"
+            }
+            CloudProvider::Jamf => {
+                "Collect computer/mobile device inventory, configuration profiles, policies, and patch compliance from Jamf Pro"
             }
             CloudProvider::Github => {
                 "Collect org members, teams, repos, branch protection, audit log, and security alerts"
