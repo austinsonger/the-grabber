@@ -5,6 +5,8 @@ pub mod factory;
 pub mod mobile_config_profiles;
 pub mod mobile_devices;
 pub mod mobile_device_groups;
+pub mod patch_compliance;
+pub mod patch_titles;
 pub mod policies;
 
 // Authentication:

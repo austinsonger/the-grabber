@@ -66,6 +66,16 @@ impl ProviderFactory for JamfProviderFactory {
                 super::mobile_device_groups::JamfMobileDeviceGroupsCollector::new(self.client.clone()),
             ));
         }
+        if self.selected.iter().any(|s| s == "jamf-patch-titles") {
+            v.push(Box::new(super::patch_titles::JamfPatchTitlesCollector::new(
+                self.client.clone(),
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jamf-patch-compliance") {
+            v.push(Box::new(
+                super::patch_compliance::JamfPatchComplianceCollector::new(self.client.clone()),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {

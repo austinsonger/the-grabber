@@ -64,6 +64,9 @@ impl JamfClient {
     pub fn policies(&self) -> crate::api::policies::PoliciesApi<'_> {
         crate::api::policies::PoliciesApi(self)
     }
+    pub fn patch(&self) -> crate::api::patch::PatchApi<'_> {
+        crate::api::patch::PatchApi(self)
+    }
 
     /// Build a client for a Jamf Pro server URL (e.g. `https://acme.jamfcloud.com`).
     /// Works identically for Jamf Cloud and self-hosted/on-prem servers.
