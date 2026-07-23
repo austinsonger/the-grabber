@@ -1,8 +1,10 @@
 pub mod computer_config_profiles;
+pub mod computer_groups;
 pub mod computers;
 pub mod factory;
 pub mod mobile_config_profiles;
 pub mod mobile_devices;
+pub mod mobile_device_groups;
 
 // Authentication:
 //   POST {base_url}/api/oauth/token  (client_id + client_secret, grant_type=client_credentials)

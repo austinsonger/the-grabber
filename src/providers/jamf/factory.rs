@@ -56,6 +56,16 @@ impl ProviderFactory for JamfProviderFactory {
                 ),
             ));
         }
+        if self.selected.iter().any(|s| s == "jamf-computer-groups") {
+            v.push(Box::new(super::computer_groups::JamfComputerGroupsCollector::new(
+                self.client.clone(),
+            )));
+        }
+        if self.selected.iter().any(|s| s == "jamf-mobile-device-groups") {
+            v.push(Box::new(
+                super::mobile_device_groups::JamfMobileDeviceGroupsCollector::new(self.client.clone()),
+            ));
+        }
         v
     }
     fn json_collectors(&self) -> Vec<Box<dyn JsonCollector>> {
