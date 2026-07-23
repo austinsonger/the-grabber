@@ -17,5 +17,6 @@ pub mod policies;
 pub mod session_policy;
 pub mod systems;
 pub mod system_groups;
+pub mod system_user_associations;
 pub mod user_groups;
 pub mod users;
