@@ -367,6 +367,24 @@ Jira credentials come from `jira-config.toml` (or `JIRA_DOMAIN` / `JIRA_EMAIL` /
 
 Credentials come from `tenable-config.toml` (or `TENABLE_ACCESS_KEY` / `TENABLE_SECRET_KEY`). Tenable is region-agnostic — `--region`, `--all-regions`, and `--regions` have no effect.
 
+## Jamf
+
+### Jamf — core device inventory
+
+```bash
+./target/release/grabber \
+  --collectors jamf-computers,jamf-mobile-devices,jamf-computer-groups,jamf-mobile-device-groups
+```
+
+### Jamf — configuration and patch compliance
+
+```bash
+./target/release/grabber \
+  --collectors jamf-computer-config-profiles,jamf-mobile-config-profiles,jamf-policies,jamf-patch-titles,jamf-patch-compliance
+```
+
+The Jamf Pro server URL and OAuth client credentials come from `jamf-config.toml` (or `JAMF_BASE_URL` / `JAMF_CLIENT_ID` / `JAMF_CLIENT_SECRET`). Jamf is a TUI/config-driven provider today (like Okta/Jira/Elastic) — run the interactive wizard to select a Jamf account and these collector keys.
+
 ## Useful local commands
 
 ### Show generated help

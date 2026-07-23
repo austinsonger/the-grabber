@@ -78,6 +78,20 @@ These collectors query the current configuration of AWS resources and write CSV 
 | EV194 | Okta MFA Factors | `Okta_MFA_Factors` | User ID, User Login, Factor ID, Factor Type, Provider, Vendor, Status, Created, Last Updated |
 | EV195 | Okta System Log | `Okta_System_Log_Events` | Event UUID, Published, Event Type, Display Message, Severity, Outcome Result, Outcome Reason, Actor ID, Actor Display Name, Actor Alternate ID, Actor Type, Client IP, Client User Agent, Target Summary |
 
+### Device Management — Jamf
+
+| # | Name | Filename Prefix | Columns |
+|---|------|----------------|---------|
+| EV196 | Jamf Computers | `Jamf_Computers` | Computer ID, Name, Serial Number, Model, OS Version, Last Contact Time, Managed, FileVault Status |
+| EV197 | Jamf Mobile Devices | `Jamf_Mobile_Devices` | Device ID, Name, Serial Number, Model, OS Version, Last Enrolled, Managed, Supervised |
+| EV198 | Jamf Computer Configuration Profiles | `Jamf_Computer_Config_Profiles` | Profile ID, Name, Category, Distribution Method, Scope |
+| EV199 | Jamf Mobile Configuration Profiles | `Jamf_Mobile_Config_Profiles` | Profile ID, Name, Category, Distribution Method, Scope |
+| EV200 | Jamf Computer Groups | `Jamf_Computer_Groups` | Group ID, Name, Type, Criteria, Member Count |
+| EV201 | Jamf Mobile Device Groups | `Jamf_Mobile_Device_Groups` | Group ID, Name, Type, Criteria, Member Count |
+| EV202 | Jamf Policies | `Jamf_Policies` | Policy ID, Name, Category, Frequency, Scope |
+| EV203 | Jamf Patch Titles | `Jamf_Patch_Titles` | Title ID, Display Name |
+| EV204 | Jamf Patch Compliance | `Jamf_Patch_Compliance` | Title ID, Display Name, Latest Version, Compliant Devices, Out Of Date Devices |
+
 ### Ticketing — Jira
 
 | # | Name | Filename Prefix | Columns |
@@ -406,7 +420,8 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | Okta collectors | 24 |
 | Jira collectors | 28 |
 | Tenable collectors | 5 |
-| **Total evidence collectors** | **201** |
+| Jamf collectors | 9 |
+| **Total evidence collectors** | **210** |
 | Asset Inventory asset types (Inventory feature) | 8 |
 
 Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.
