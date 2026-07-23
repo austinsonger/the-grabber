@@ -61,7 +61,6 @@ impl CloudProvider {
     /// Single source of truth for the Provider Selection screen — both
     /// the renderer and the key handler call this instead of maintaining
     /// their own copies.
-    #[allow(dead_code)]
     pub fn available() -> Vec<CloudProvider> {
         let mut v = vec![CloudProvider::Aws];
         #[cfg(feature = "azure")]
@@ -82,7 +81,6 @@ impl CloudProvider {
     /// Long-form display name for the Provider Selection UI, e.g.
     /// "Amazon Web Services (AWS)". Distinct from `Display`, which yields
     /// the short form ("AWS") used in filenames/report metadata.
-    #[allow(dead_code)]
     pub fn display_name(&self) -> &'static str {
         match self {
             CloudProvider::Aws => "Amazon Web Services (AWS)",
@@ -96,7 +94,6 @@ impl CloudProvider {
     }
 
     /// One-line description shown in the Provider Selection detail panel.
-    #[allow(dead_code)]
     pub fn description(&self) -> &'static str {
         match self {
             CloudProvider::Aws => {

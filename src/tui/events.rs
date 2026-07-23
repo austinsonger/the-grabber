@@ -854,25 +854,7 @@ fn handle_jira_project_selection(app: &mut App, key: KeyCode) {
 
 fn handle_provider_selection(app: &mut App, key: KeyCode) {
     use crate::providers::CloudProvider;
-    // Keep this list in sync with `draw_provider_selection` in src/tui/ui/account_screens.rs —
-    // both must enumerate the same providers in the same order or arrow-key navigation
-    // will desynchronize from the rendered tiles.
-    let providers: Vec<CloudProvider> = {
-        let mut v = vec![CloudProvider::Aws];
-        #[cfg(feature = "azure")]
-        v.push(CloudProvider::Azure);
-        #[cfg(feature = "gcp")]
-        v.push(CloudProvider::Gcp);
-        #[cfg(feature = "tenable")]
-        v.push(CloudProvider::Tenable);
-        #[cfg(feature = "okta")]
-        v.push(CloudProvider::Okta);
-        #[cfg(feature = "jira")]
-        v.push(CloudProvider::Jira);
-        #[cfg(feature = "elastic")]
-        v.push(CloudProvider::Elastic);
-        v
-    };
+    let providers = CloudProvider::available();
     match key {
         KeyCode::Up => {
             if app.provider_cursor > 0 {
