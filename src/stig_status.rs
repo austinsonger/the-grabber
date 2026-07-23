@@ -26,6 +26,7 @@ impl StigStatus {
     /// Whether a remediation wizard should offer this check for action.
     /// `NotAFinding` (already passing) and `NotApplicable` (confirmed out
     /// of scope) are excluded; `Open` and `NotReviewed` are not.
+    #[allow(dead_code)]
     pub fn is_actionable(&self) -> bool {
         !matches!(self, StigStatus::NotAFinding | StigStatus::NotApplicable)
     }
@@ -44,6 +45,7 @@ pub struct StigCheckResult {
     /// the check is passing/not-applicable, or when nothing was computed
     /// for it. One entry per affected resource (e.g. three PASSWORD
     /// policies all failing the same field yields three targets).
+    #[allow(dead_code)]
     pub remediation: Vec<RemediationTarget>,
 }
 
@@ -75,6 +77,7 @@ impl StigCheckResult {
 
     /// Attach one remediation target. Chainable at the evaluator call site:
     /// `StigCheckResult::new(...).with_remediation(RemediationTarget::...)`.
+    #[allow(dead_code)]
     pub fn with_remediation(mut self, target: RemediationTarget) -> Self {
         self.remediation.push(target);
         self
@@ -89,6 +92,7 @@ impl StigCheckResult {
 /// not-actionable) fix for a single STIG finding, attached to a
 /// `StigCheckResult` by the evaluator that produced it.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum RemediationTarget {
     /// Overwrite one or more JSON-pointer fields on an existing policy or
     /// policy rule. `rule_id: None` means the fields are relative to the
@@ -142,6 +146,7 @@ pub enum RemediationTarget {
 impl RemediationTarget {
     /// Human-readable one-line description of what applying this target
     /// would do, shown in the remediation wizard before confirmation.
+    #[allow(dead_code)]
     pub fn describe(&self) -> String {
         match self {
             RemediationTarget::PolicyField {
@@ -184,6 +189,7 @@ impl RemediationTarget {
 
     /// Whether the wizard must collect free text from the user before this
     /// target can be applied.
+    #[allow(dead_code)]
     pub fn needs_text_input(&self) -> bool {
         matches!(self, RemediationTarget::SetSignInBanner { .. })
     }
@@ -192,12 +198,14 @@ impl RemediationTarget {
 /// User-supplied input the wizard collects for targets where
 /// `needs_text_input()` is true.
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct RemediationInputs {
     pub text: Option<String>,
 }
 
 /// What happened when a `RemediationTarget` was applied (or acknowledged).
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum RemediationOutcome {
     Applied { summary: String },
     ManuallyAcknowledged,
@@ -205,6 +213,7 @@ pub enum RemediationOutcome {
 }
 
 impl RemediationOutcome {
+    #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
         match self {
             RemediationOutcome::Applied { .. } => "applied",
@@ -213,6 +222,7 @@ impl RemediationOutcome {
         }
     }
 
+    #[allow(dead_code)]
     pub fn detail(&self) -> String {
         match self {
             RemediationOutcome::Applied { summary } => summary.clone(),
