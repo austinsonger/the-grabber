@@ -11,7 +11,7 @@
 use okta_rs::OktaClient;
 
 use super::{is_feature_unavailable, json_bool, json_i64};
-use crate::stig_status::{StigCheckResult, StigStatus};
+use crate::stig_status::{RemediationTarget, StigCheckResult, StigStatus};
 
 const V_IDS: &[&str] = &["V-273186", "V-273203", "V-273206"];
 
@@ -57,14 +57,15 @@ pub async fn evaluate(client: &OktaClient) -> Vec<StigCheckResult> {
     }
 
     vec![
-        idle_timeout(&active_rules),
-        session_lifetime(&active_rules),
-        persistent_cookie(&active_rules),
+        idle_timeout(&policy.id, &active_rules),
+        session_lifetime(&policy.id, &active_rules),
+        persistent_cookie(&policy.id, &active_rules),
     ]
 }
 
-fn idle_timeout(rules: &[&serde_json::Value]) -> StigCheckResult {
+fn idle_timeout(policy_id: &str, rules: &[&serde_json::Value]) -> StigCheckResult {
     at_most_minutes(
+        policy_id,
         rules,
         "V-273186",
         "/actions/signon/session/maxSessionIdleMinutes",
@@ -73,8 +74,9 @@ fn idle_timeout(rules: &[&serde_json::Value]) -> StigCheckResult {
     )
 }
 
-fn session_lifetime(rules: &[&serde_json::Value]) -> StigCheckResult {
+fn session_lifetime(policy_id: &str, rules: &[&serde_json::Value]) -> StigCheckResult {
     at_most_minutes(
+        policy_id,
         rules,
         "V-273203",
         "/actions/signon/session/maxSessionLifetimeMinutes",
@@ -83,7 +85,33 @@ fn session_lifetime(rules: &[&serde_json::Value]) -> StigCheckResult {
     )
 }
 
+fn rule_id_and_name(rule: &serde_json::Value) -> (Option<String>, &str) {
+    let id = rule.get("id").and_then(|v| v.as_str()).map(String::from);
+    let name = rule
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("(unnamed)");
+    (id, name)
+}
+
+fn rule_field_target(
+    policy_id: &str,
+    rule: &serde_json::Value,
+    pointer: &str,
+    new_value: serde_json::Value,
+) -> Option<RemediationTarget> {
+    let (id, name) = rule_id_and_name(rule);
+    id.map(|rule_id| RemediationTarget::PolicyField {
+        policy_id: policy_id.to_string(),
+        policy_type: "OKTA_SIGN_ON",
+        rule_id: Some(rule_id),
+        fields: vec![(pointer.to_string(), new_value)],
+        resource_label: name.to_string(),
+    })
+}
+
 fn at_most_minutes(
+    policy_id: &str,
     rules: &[&serde_json::Value],
     v_id: &str,
     pointer: &str,
@@ -92,16 +120,19 @@ fn at_most_minutes(
 ) -> StigCheckResult {
     let mut failing = Vec::new();
     let mut actuals = Vec::new();
+    let mut targets = Vec::new();
     for r in rules {
-        let name = r
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("(unnamed)");
+        let (_, name) = rule_id_and_name(r);
         match json_i64(r, pointer) {
             Some(v) if v > 0 && v <= required_minutes => actuals.push(format!("{name}={v}")),
             Some(v) => {
                 actuals.push(format!("{name}={v}"));
                 failing.push(name.to_string());
+                if let Some(t) =
+                    rule_field_target(policy_id, r, pointer, serde_json::json!(required_minutes))
+                {
+                    targets.push(t);
+                }
             }
             None => failing.push(format!("{name} (field missing)")),
         }
@@ -115,7 +146,7 @@ fn at_most_minutes(
             format!("Every enabled rule meets the {label} requirement."),
         )
     } else {
-        StigCheckResult::new(
+        let mut result = StigCheckResult::new(
             v_id,
             StigStatus::Open,
             format!("<= {required_minutes} minutes"),
@@ -124,23 +155,30 @@ fn at_most_minutes(
                 "Rules not meeting the {label} requirement: {}",
                 failing.join(", ")
             ),
-        )
+        );
+        for t in targets {
+            result = result.with_remediation(t);
+        }
+        result
     }
 }
 
-fn persistent_cookie(rules: &[&serde_json::Value]) -> StigCheckResult {
+fn persistent_cookie(policy_id: &str, rules: &[&serde_json::Value]) -> StigCheckResult {
+    let pointer = "/actions/signon/session/usePersistentCookie";
     let mut failing = Vec::new();
     let mut actuals = Vec::new();
+    let mut targets = Vec::new();
     for r in rules {
-        let name = r
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("(unnamed)");
-        match json_bool(r, "/actions/signon/session/usePersistentCookie") {
+        let (_, name) = rule_id_and_name(r);
+        match json_bool(r, pointer) {
             Some(false) => actuals.push(format!("{name}=false")),
             Some(true) => {
                 actuals.push(format!("{name}=true"));
                 failing.push(name.to_string());
+                if let Some(t) = rule_field_target(policy_id, r, pointer, serde_json::json!(false))
+                {
+                    targets.push(t);
+                }
             }
             None => failing.push(format!("{name} (field missing)")),
         }
@@ -154,7 +192,7 @@ fn persistent_cookie(rules: &[&serde_json::Value]) -> StigCheckResult {
             "Every enabled rule disables persistent session cookies.",
         )
     } else {
-        StigCheckResult::new(
+        let mut result = StigCheckResult::new(
             "V-273206",
             StigStatus::Open,
             "false",
@@ -163,6 +201,10 @@ fn persistent_cookie(rules: &[&serde_json::Value]) -> StigCheckResult {
                 "Rules with persistent cookies enabled: {}",
                 failing.join(", ")
             ),
-        )
+        );
+        for t in targets {
+            result = result.with_remediation(t);
+        }
+        result
     }
 }
