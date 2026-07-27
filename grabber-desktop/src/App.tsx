@@ -1,5 +1,7 @@
+import CredentialVault from "./screens/CredentialVault";
+
 function App() {
-  return <div>The Grabber Desktop</div>;
+  return <CredentialVault />;
 }
 
 export default App;
