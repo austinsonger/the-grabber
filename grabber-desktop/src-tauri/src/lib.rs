@@ -26,7 +26,11 @@ pub fn run() {
             app.manage(AppState::new(engine, config));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            commands::config::load_app_config,
+            commands::config::save_app_config,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
 }

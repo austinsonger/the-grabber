@@ -36,7 +36,7 @@ pub struct CredentialWriteDto {
     pub profile_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfigDto {
     pub accounts: Vec<AccountDto>,
     pub defaults: DefaultsDto,
@@ -53,7 +53,7 @@ pub struct AccountDto {
     pub output_dir: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DefaultsDto {
     pub region: String,
     pub output_dir: String,
