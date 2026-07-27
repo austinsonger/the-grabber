@@ -6,7 +6,7 @@ use clap::Parser;
 
 use crate::inventory_core::INVENTORY_ITEMS;
 
-#[derive(Parser)]
+#[derive(Parser, Default)]
 #[command(
     name = "evidence",
     about = "Collect AWS compliance evidence — run with no args for interactive TUI"

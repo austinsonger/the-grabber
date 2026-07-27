@@ -49,6 +49,23 @@ pub struct CollectorMetaDto {
     pub category: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CollectionRequestDto {
+    pub account_name: String,
+    pub credential_id: String,
+    pub regions: Vec<String>,
+    pub start_date: String,
+    pub end_date: String,
+    pub collectors: Vec<String>,
+    pub output_dir: String,
+    pub zip: bool,
+    pub sign: bool,
+    pub include_raw: bool,
+    pub write_run_manifest: bool,
+    pub write_chain_of_custody: bool,
+    pub signing_key: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct IdentityInfoDto {
     pub account: Option<String>,
