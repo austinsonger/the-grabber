@@ -11,7 +11,7 @@ use crate::providers::CloudProvider;
 /// global defaults, and per-account collector overrides.
 /// If the file is missing or invalid, the application falls back to
 /// built-in defaults.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 pub struct AppConfig {
     /// Global defaults applied when not overridden by an account.
     #[serde(default)]
@@ -30,7 +30,7 @@ pub struct AppConfig {
 }
 
 /// Global default values for the TUI wizard.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 pub struct Defaults {
     /// Prefer profiles whose name contains this substring when
     /// pre-selecting a default profile (legacy flow).
