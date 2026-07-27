@@ -67,6 +67,42 @@ pub struct CollectionRequestDto {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct InventoryTypeDto {
+    pub key: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InventoryRequestDto {
+    pub account_name: String,
+    pub credential_id: String,
+    pub regions: Vec<String>,
+    /// Empty means "every inventory asset type".
+    pub inventory_types: Vec<String>,
+    pub output_dir: String,
+    pub all_accounts: bool,
+    pub zip: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PoamRequestDto {
+    pub evidence_base: String,
+    pub year: Option<String>,
+    pub month: Option<String>,
+    pub format: String,
+    pub output_dir: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StigApplyRequestDto {
+    pub credential_id: String,
+    pub tenant_name: String,
+    pub v_ids: Vec<String>,
+    pub text_input: Option<String>,
+    pub output_dir: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct ArtifactDto {
     pub name: String,
     pub path: String,

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { AccountDto } from "./api/accounts";
-import { CollectionRequestDto } from "./api/collection";
+import { CollectionRequestDto, startCollection } from "./api/collection";
+import { startInventory } from "./api/inventory";
+import { startPoam } from "./api/poam";
 import AccountSelection from "./screens/AccountSelection";
 import CollectorSelection from "./screens/CollectorSelection";
 import ConfirmScreen from "./screens/ConfirmScreen";
@@ -8,10 +10,13 @@ import CredentialVault from "./screens/CredentialVault";
 import Dashboard from "./screens/Dashboard";
 import DateRangeSelection from "./screens/DateRangeSelection";
 import FeatureSelection, { Feature } from "./screens/FeatureSelection";
+import InventoryScreen, { InventorySettings } from "./screens/InventoryScreen";
 import OptionsScreen, { RunOptions } from "./screens/OptionsScreen";
+import PoamScreen, { PoamSettings } from "./screens/PoamScreen";
 import RegionSelection from "./screens/RegionSelection";
 import ResultsScreen from "./screens/ResultsScreen";
 import RunningScreen from "./screens/RunningScreen";
+import StigScreen from "./screens/StigScreen";
 
 type Screen =
   | "dashboard"
@@ -23,6 +28,9 @@ type Screen =
   | "collectorSelection"
   | "options"
   | "confirm"
+  | "inventory"
+  | "poam"
+  | "stig"
   | "running"
   | "results";
 
@@ -34,6 +42,9 @@ function App() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [collectors, setCollectors] = useState<string[]>([]);
   const [runOptions, setRunOptions] = useState<RunOptions | null>(null);
+  const [inventorySettings, setInventorySettings] =
+    useState<InventorySettings | null>(null);
+  const [poamSettings, setPoamSettings] = useState<PoamSettings | null>(null);
 
   const account = selectedAccounts[0];
   const effectiveRegions = regions.length > 0 ? regions : account ? [account.region] : [];
@@ -63,6 +74,25 @@ function App() {
   const goDashboard = () => setScreen("dashboard");
   const navigate = (target: string) =>
     setScreen(target === "accounts" ? "accountSelection" : "vault");
+
+  /** Where the results screen should look, per feature. */
+  const resultsDir =
+    feature === "inventory"
+      ? (inventorySettings?.outputDir ?? "")
+      : feature === "poam"
+        ? (poamSettings?.outputDir ?? "")
+        : (runOptions?.outputDir ?? "");
+
+  const missingCredential = (
+    <div style={{ padding: 24 }}>
+      <h1>Cannot start run</h1>
+      <p>
+        The selected account has no credential assigned. Add one in the
+        Credential Vault, then attach it to the account in config.toml.
+      </p>
+      <button onClick={() => setScreen("accountSelection")}>Back</button>
+    </div>
+  );
 
   switch (screen) {
     case "vault":
@@ -100,7 +130,15 @@ function App() {
         <FeatureSelection
           onNext={(selected) => {
             setFeature(selected);
-            setScreen("dateRangeSelection");
+            setScreen(
+              selected === "evidence"
+                ? "dateRangeSelection"
+                : selected === "inventory"
+                  ? "inventory"
+                  : selected === "poam"
+                    ? "poam"
+                    : "stig",
+            );
           }}
           onBack={() => setScreen("regionSelection")}
         />
@@ -153,33 +191,91 @@ function App() {
           onBack={() => setScreen("options")}
         />
       );
+    case "inventory":
+      return (
+        <InventoryScreen
+          onNext={(settings) => {
+            setInventorySettings(settings);
+            setScreen("running");
+          }}
+          onBack={() => setScreen("featureSelection")}
+        />
+      );
+    case "poam":
+      return (
+        <PoamScreen
+          onNext={(settings) => {
+            setPoamSettings(settings);
+            setScreen("running");
+          }}
+          onBack={() => setScreen("featureSelection")}
+        />
+      );
+    case "stig":
+      return (
+        <StigScreen
+          onDone={goDashboard}
+          onBack={() => setScreen("featureSelection")}
+        />
+      );
     case "running":
-      if (!request) {
+      if (feature === "inventory") {
+        if (!account?.credential_id || !inventorySettings) return missingCredential;
+        const settings = inventorySettings;
+        const credentialId = account.credential_id;
         return (
-          <div style={{ padding: 24 }}>
-            <h1>Cannot start run</h1>
-            <p>
-              The selected account has no credential assigned. Add one in the
-              Credential Vault, then attach it to the account in config.toml.
-            </p>
-            <button onClick={() => setScreen("accountSelection")}>Back</button>
-          </div>
+          <RunningScreen
+            title="Collecting Inventory"
+            subtitle={`Inventorying assets for ${account.name}…`}
+            start={() =>
+              startInventory({
+                account_name: account.name,
+                credential_id: credentialId,
+                regions: effectiveRegions,
+                inventory_types: settings.types,
+                output_dir: settings.outputDir,
+                all_accounts: settings.allAccounts,
+                zip: settings.zip,
+              })
+            }
+            onFinished={() => setScreen("results")}
+            onBack={() => setScreen("inventory")}
+          />
         );
       }
+      if (feature === "poam") {
+        if (!poamSettings) return <Dashboard onNavigate={navigate} />;
+        const settings = poamSettings;
+        return (
+          <RunningScreen
+            title="Generating POA&M"
+            subtitle={`Reconciling findings under ${settings.evidenceBase}…`}
+            start={() =>
+              startPoam({
+                evidence_base: settings.evidenceBase,
+                year: settings.year,
+                month: settings.month,
+                format: settings.format,
+                output_dir: settings.outputDir,
+              })
+            }
+            onFinished={() => setScreen("results")}
+            onBack={() => setScreen("poam")}
+          />
+        );
+      }
+      if (!request) return missingCredential;
       return (
         <RunningScreen
-          request={request}
+          title="Collecting Evidence"
+          subtitle={`Running ${request.collectors.length} collectors for ${request.account_name}…`}
+          start={() => startCollection(request)}
           onFinished={() => setScreen("results")}
           onBack={() => setScreen("confirm")}
         />
       );
     case "results":
-      return (
-        <ResultsScreen
-          outputDir={runOptions?.outputDir ?? ""}
-          onDone={goDashboard}
-        />
-      );
+      return <ResultsScreen outputDir={resultsDir} onDone={goDashboard} />;
     default:
       return <Dashboard onNavigate={navigate} />;
   }

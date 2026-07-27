@@ -43,6 +43,11 @@ pub fn run() {
             commands::credentials::list_credentials,
             commands::credentials::create_credential,
             commands::credentials::delete_credential,
+            commands::inventory::list_inventory_types,
+            commands::inventory::start_inventory,
+            commands::poam::start_poam,
+            commands::stig::stig_scan,
+            commands::stig::start_stig_remediation,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

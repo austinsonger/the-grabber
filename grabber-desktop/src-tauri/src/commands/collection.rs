@@ -45,6 +45,29 @@ struct ProgressPayload {
     message: Option<String>,
 }
 
+/// Emit the terminal `failed` event for a run whose engine call returned an
+/// error. Shared by every workflow that spawns a background run.
+pub fn emit_failure(
+    app: &tauri::AppHandle,
+    run_id: &str,
+    account: &str,
+    collector: &str,
+    error: &anyhow::Error,
+) {
+    let _ = app.emit(
+        "collection:progress",
+        ProgressPayload {
+            run_id: run_id.to_string(),
+            account: account.to_string(),
+            region: None,
+            collector: collector.to_string(),
+            status: "failed".into(),
+            records: 0,
+            message: Some(format!("{error:#}")),
+        },
+    );
+}
+
 #[tauri::command]
 pub async fn start_collection(
     request: CollectionRequestDto,
@@ -74,20 +97,8 @@ pub async fn start_collection(
 
     let task_run_id = run_id.clone();
     let handle = tokio::spawn(async move {
-        let result = engine.collect(req, Box::new(sink)).await;
-        if let Err(e) = result {
-            let _ = app.emit(
-                "collection:progress",
-                ProgressPayload {
-                    run_id: task_run_id.clone(),
-                    account: account_name,
-                    region: None,
-                    collector: "all".into(),
-                    status: "failed".into(),
-                    records: 0,
-                    message: Some(format!("{e:#}")),
-                },
-            );
+        if let Err(e) = engine.collect(req, Box::new(sink)).await {
+            emit_failure(&app, &task_run_id, &account_name, "all", &e);
         }
         if let Some(state) = app.try_state::<AppState>() {
             state.take_run(&task_run_id);

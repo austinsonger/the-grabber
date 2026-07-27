@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
-  CollectionRequestDto,
   ProgressEvent,
   TERMINAL_STATUSES,
   cancelCollection,
-  startCollection,
 } from "../api/collection";
 
+export type RunOutcome = "finished" | "failed" | "cancelled";
+
 interface RunningScreenProps {
-  request: CollectionRequestDto;
-  onFinished: (outcome: "finished" | "failed" | "cancelled") => void;
+  title: string;
+  subtitle: string;
+  /** Kicks off the backend run and resolves to its run id. */
+  start: () => Promise<string>;
+  onFinished: (outcome: RunOutcome) => void;
   onBack: () => void;
 }
 
@@ -19,17 +22,19 @@ const rowKey = (e: ProgressEvent) =>
   `${e.account}::${e.region ?? "-"}::${e.collector}`;
 
 export default function RunningScreen({
-  request,
+  title,
+  subtitle,
+  start,
   onFinished,
   onBack,
 }: RunningScreenProps) {
   const [rows, setRows] = useState<Map<string, ProgressEvent>>(new Map());
   const [log, setLog] = useState<string[]>([]);
   const [runId, setRunId] = useState<string | null>(null);
-  const [outcome, setOutcome] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<RunOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // React StrictMode mounts effects twice in dev; without this the wizard
-  // would kick off two concurrent runs.
+  // React StrictMode mounts effects twice in dev; without this guard the
+  // wizard would kick off two concurrent runs.
   const started = useRef(false);
 
   useEffect(() => {
@@ -37,7 +42,7 @@ export default function RunningScreen({
     started.current = true;
 
     let unlisten: (() => void) | undefined;
-    let cancelled = false;
+    let disposed = false;
 
     (async () => {
       unlisten = await listen<ProgressEvent>("collection:progress", (event) => {
@@ -52,15 +57,15 @@ export default function RunningScreen({
           ].slice(-500),
         );
         if (TERMINAL_STATUSES.includes(payload.status)) {
-          setOutcome(payload.status);
+          setOutcome(payload.status as RunOutcome);
         }
       });
-      if (cancelled) {
+      if (disposed) {
         unlisten?.();
         return;
       }
       try {
-        setRunId(await startCollection(request));
+        setRunId(await start());
       } catch (e) {
         setError(String(e));
         setOutcome("failed");
@@ -68,10 +73,12 @@ export default function RunningScreen({
     })();
 
     return () => {
-      cancelled = true;
+      disposed = true;
       unlisten?.();
     };
-  }, [request]);
+    // Runs once per mount; `start` is a fresh closure on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onCancel = async () => {
     if (!runId) return;
@@ -86,12 +93,8 @@ export default function RunningScreen({
 
   return (
     <div style={{ padding: 24 }}>
-      <h1>Collecting Evidence</h1>
-      <p>
-        {done
-          ? `Run ${outcome}.`
-          : `Running ${request.collectors.length} collectors for ${request.account_name}…`}
-      </p>
+      <h1>{title}</h1>
+      <p>{done ? `Run ${outcome}.` : subtitle}</p>
       {error && <div style={{ color: "red" }}>{error}</div>}
 
       <table style={{ width: "100%", marginTop: 16, textAlign: "left" }}>
@@ -99,7 +102,7 @@ export default function RunningScreen({
           <tr>
             <th>Account</th>
             <th>Region</th>
-            <th>Collector</th>
+            <th>Step</th>
             <th>Status</th>
             <th>Records</th>
           </tr>
@@ -134,13 +137,7 @@ export default function RunningScreen({
         {done ? (
           <>
             <button onClick={onBack}>Back</button>
-            <button
-              onClick={() =>
-                onFinished(outcome as "finished" | "failed" | "cancelled")
-              }
-            >
-              View Results
-            </button>
+            <button onClick={() => onFinished(outcome)}>View Results</button>
           </>
         ) : (
           <button onClick={onCancel} disabled={!runId}>

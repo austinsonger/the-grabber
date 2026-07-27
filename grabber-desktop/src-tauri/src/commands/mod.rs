@@ -6,3 +6,6 @@ pub mod collection;
 pub mod collectors;
 pub mod config;
 pub mod credentials;
+pub mod inventory;
+pub mod poam;
+pub mod stig;
