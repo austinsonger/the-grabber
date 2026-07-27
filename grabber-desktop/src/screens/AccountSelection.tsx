@@ -44,7 +44,7 @@ export default function AccountSelection({ onNext, onBack }: AccountSelectionPro
   return (
     <div style={{ padding: 24 }}>
       <h1>Account Selection</h1>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
       <table style={{ width: "100%", marginTop: 16 }}>
         <thead>
           <tr>

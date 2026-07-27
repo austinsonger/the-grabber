@@ -56,7 +56,7 @@ export default function CollectorSelection({
   return (
     <div style={{ padding: 24 }}>
       <h1>Collector Selection</h1>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}

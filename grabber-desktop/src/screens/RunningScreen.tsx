@@ -94,8 +94,10 @@ export default function RunningScreen({
   return (
     <div style={{ padding: 24 }}>
       <h1>{title}</h1>
-      <p>{done ? `Run ${outcome}.` : subtitle}</p>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      <p className={done ? `status-${outcome}` : undefined}>
+        {done ? `Run ${outcome}.` : subtitle}
+      </p>
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
 
       <table style={{ width: "100%", marginTop: 16, textAlign: "left" }}>
         <thead>
@@ -113,7 +115,7 @@ export default function RunningScreen({
               <td>{r.account}</td>
               <td>{r.region ?? "—"}</td>
               <td>{r.collector}</td>
-              <td>{r.status}</td>
+              <td className={`status-${r.status}`}>{r.status}</td>
               <td>{r.records}</td>
             </tr>
           ))}
@@ -126,7 +128,6 @@ export default function RunningScreen({
           maxHeight: 220,
           overflowY: "auto",
           padding: 12,
-          background: "rgba(0,0,0,0.25)",
           fontSize: 12,
         }}
       >

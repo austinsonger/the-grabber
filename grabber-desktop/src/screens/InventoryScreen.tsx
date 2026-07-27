@@ -50,7 +50,7 @@ export default function InventoryScreen({ onNext, onBack }: InventoryScreenProps
       <h1>Asset Inventory</h1>
       <p>Choose which asset types to inventory. Inventory is a current-state
         snapshot and ignores the evidence date range.</p>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
 
       <div style={{ display: "flex", gap: 12, margin: "12px 0" }}>
         <button onClick={() => setSelected(new Set(types.map((t) => t.key)))}>

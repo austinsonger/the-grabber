@@ -46,7 +46,7 @@ export default function ResultsScreen({ outputDir, onDone }: ResultsScreenProps)
     <div style={{ padding: 24 }}>
       <h1>Results</h1>
       <p>{outputDir}</p>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
 
       <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
         <button onClick={refresh}>Refresh</button>
@@ -86,7 +86,6 @@ export default function ResultsScreen({ outputDir, onDone }: ResultsScreenProps)
               maxHeight: 420,
               overflow: "auto",
               padding: 12,
-              background: "rgba(0,0,0,0.25)",
               fontSize: 12,
             }}
           >

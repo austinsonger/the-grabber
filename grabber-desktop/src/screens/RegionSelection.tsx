@@ -46,7 +46,7 @@ export default function RegionSelection({ accounts, onNext, onBack }: RegionSele
       <p>
         Account: <strong>{primary?.name}</strong>
       </p>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
       {loading && <div>Discovering regions…</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 16 }}>
         {regions.map((r) => (

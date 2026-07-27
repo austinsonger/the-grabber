@@ -92,7 +92,7 @@ export default function StigScreen({ onDone, onBack }: StigScreenProps) {
   return (
     <div style={{ padding: 24 }}>
       <h1>Okta STIG Remediation</h1>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
 
       <div style={{ marginTop: 16, display: "flex", gap: 8, alignItems: "center" }}>
         <select value={credentialId} onChange={(e) => setCredentialId(e.target.value)}>

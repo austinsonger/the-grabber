@@ -58,7 +58,7 @@ export default function CredentialVault() {
   return (
     <div style={{ padding: 24 }}>
       <h1>Credential Vault</h1>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {error && <div style={{ color: "var(--red)" }}>{error}</div>}
       <table style={{ width: "100%", marginTop: 16, marginBottom: 16 }}>
         <thead>
           <tr>
