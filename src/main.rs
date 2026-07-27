@@ -1,30 +1,9 @@
-mod app_config;
-mod audit_log;
-mod aws_loader;
-mod cli;
-mod evidence;
-mod fedramp_coverage;
-mod fedramp_map;
-mod inventory_core;
-mod inventory_orchestrator;
-mod inventory_xlsx;
-mod okta_stig_map;
-mod platform;
-mod poam;
-mod providers;
-mod runner;
-mod signing;
-mod stig_remediation_log;
-mod stig_status;
-mod tui;
-mod zip_bundle;
-
 use anyhow::{Context, Result};
 use clap::Parser;
 
-use crate::cli::Cli;
-use crate::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
-use crate::runner::tui_session::run_tui_session;
+use the_grabber::cli::Cli;
+use the_grabber::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
+use the_grabber::runner::tui_session::run_tui_session;
 
 // ---------------------------------------------------------------------------
 // Main
@@ -47,8 +26,9 @@ async fn async_main() -> Result<()> {
             .signing_key
             .as_deref()
             .context("--signing-key <hex> is required with --verify-manifest")?;
-        let key = signing::SigningKey::from_hex(key_hex)?;
-        let report = signing::verify_manifest(std::path::Path::new(manifest_path), &key)?;
+        let key = the_grabber::signing::SigningKey::from_hex(key_hex)?;
+        let report =
+            the_grabber::signing::verify_manifest(std::path::Path::new(manifest_path), &key)?;
         report.print();
         return Ok(());
     }

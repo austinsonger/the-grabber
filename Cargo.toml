@@ -8,6 +8,10 @@ version = "0.1.0"
 edition = "2021"
 description = "The Grabber — Extensible Security Compliance Evidence Collector"
 
+[lib]
+name = "the_grabber"
+path = "src/lib.rs"
+
 [[bin]]
 name = "grabber"
 path = "src/main.rs"
