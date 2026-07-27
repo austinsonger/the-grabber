@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AccountDto } from "./api/accounts";
 import AccountSelection from "./screens/AccountSelection";
+import CollectorSelection from "./screens/CollectorSelection";
 import CredentialVault from "./screens/CredentialVault";
 import Dashboard from "./screens/Dashboard";
 import DateRangeSelection from "./screens/DateRangeSelection";
@@ -13,7 +14,8 @@ type Screen =
   | "accountSelection"
   | "regionSelection"
   | "featureSelection"
-  | "dateRangeSelection";
+  | "dateRangeSelection"
+  | "collectorSelection";
 
 function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
@@ -57,8 +59,15 @@ function App() {
     case "dateRangeSelection":
       return (
         <DateRangeSelection
-          onNext={() => setScreen("dashboard")}
+          onNext={() => setScreen("collectorSelection")}
           onBack={() => setScreen("featureSelection")}
+        />
+      );
+    case "collectorSelection":
+      return (
+        <CollectorSelection
+          onNext={() => setScreen("dashboard")}
+          onBack={() => setScreen("dateRangeSelection")}
         />
       );
     default:

@@ -43,6 +43,13 @@ pub struct AppConfigDto {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct CollectorMetaDto {
+    pub key: String,
+    pub name: String,
+    pub category: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct IdentityInfoDto {
     pub account: Option<String>,
     pub user_id: Option<String>,
