@@ -238,6 +238,39 @@ When all collectors finish, the **Results** screen shows a success banner, total
 
 
 
+## Desktop App
+
+A cross-platform desktop build of the same engine lives in [`grabber-desktop/`](grabber-desktop)
+(Tauri 2 + React). It wraps the identical collectors, inventory, POA&M, and
+Okta STIG workflows in a windowed wizard, and adds a **credential vault** that
+keeps secrets in the OS keyring (macOS Keychain, Windows Credential Manager,
+Linux Secret Service) with AES-256-GCM-encrypted metadata alongside.
+
+Installers are produced by the `Desktop Release` GitHub Actions workflow
+(`.dmg` on macOS, `.msi` on Windows, `.deb`/`.AppImage` on Linux) and attached
+to the matching GitHub release.
+
+To build it locally:
+
+```bash
+cd grabber-desktop
+npm install
+
+# Development — hot-reloading window
+npm run tauri dev
+
+# Release bundle for the host platform (output: target/release/bundle/)
+npm run tauri build
+```
+
+Linux builds additionally need the WebKitGTK toolchain
+(`libwebkit2gtk-4.1-dev`, `librsvg2-dev`, `patchelf`, `libgtk-3-dev`); macOS
+needs Xcode command line tools; Windows needs the MSVC build tools and WebView2.
+
+The desktop app reads the same `config.toml` account definitions as the CLI and
+TUI, but **stores credentials separately** — see the note in
+[docs/cli-reference.md](docs/cli-reference.md#credential-storage).
+
 ## Non-interactive CLI
 
 ### Evidence collection mode
