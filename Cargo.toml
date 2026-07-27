@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/elastic-rs", "crates/jamf-rs", "crates/github-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/elastic-rs", "crates/jamf-rs", "crates/github-rs", "grabber-desktop/src-tauri"]
 resolver = "2"
 
 [package]

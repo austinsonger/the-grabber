@@ -62,3 +62,4 @@ jamf-config.toml
 
 # GitHub credentials — never commit
 github-config.toml
+grabber-desktop/dist/
