@@ -3,14 +3,21 @@ import { AccountDto } from "./api/accounts";
 import AccountSelection from "./screens/AccountSelection";
 import CredentialVault from "./screens/CredentialVault";
 import Dashboard from "./screens/Dashboard";
+import DateRangeSelection from "./screens/DateRangeSelection";
+import FeatureSelection from "./screens/FeatureSelection";
 import RegionSelection from "./screens/RegionSelection";
 
-type Screen = "dashboard" | "vault" | "accountSelection" | "regionSelection";
+type Screen =
+  | "dashboard"
+  | "vault"
+  | "accountSelection"
+  | "regionSelection"
+  | "featureSelection"
+  | "dateRangeSelection";
 
 function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [selectedAccounts, setSelectedAccounts] = useState<AccountDto[]>([]);
-  const [, setSelectedRegions] = useState<string[]>([]);
 
   switch (screen) {
     case "vault":
@@ -36,11 +43,22 @@ function App() {
       return (
         <RegionSelection
           accounts={selectedAccounts}
-          onNext={(regions) => {
-            setSelectedRegions(regions);
-            setScreen("dashboard");
-          }}
+          onNext={() => setScreen("featureSelection")}
           onBack={() => setScreen("accountSelection")}
+        />
+      );
+    case "featureSelection":
+      return (
+        <FeatureSelection
+          onNext={() => setScreen("dateRangeSelection")}
+          onBack={() => setScreen("regionSelection")}
+        />
+      );
+    case "dateRangeSelection":
+      return (
+        <DateRangeSelection
+          onNext={() => setScreen("dashboard")}
+          onBack={() => setScreen("featureSelection")}
         />
       );
     default:
