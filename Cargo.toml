@@ -18,6 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-credential-types = "1"
 aws-sdk-cloudtrail = "1"
 aws-sdk-backup = "1"
 aws-sdk-rds = "1"

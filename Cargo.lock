@@ -5531,6 +5531,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "aws-config",
+ "aws-credential-types",
  "aws-sdk-accessanalyzer",
  "aws-sdk-account",
  "aws-sdk-acm",
