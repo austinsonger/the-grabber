@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 use the_grabber::engine::{CollectionRequest, ProgressEvent, ProgressSink};
 use uuid::Uuid;
 
@@ -53,7 +53,8 @@ pub async fn start_collection(
 ) -> Result<String, GuiError> {
     let run_id = Uuid::new_v4().to_string();
     let engine = state.engine.clone();
-    let sink = TauriProgressSink::new(app, run_id.clone());
+    let sink = TauriProgressSink::new(app.clone(), run_id.clone());
+    let account_name = request.account_name.clone();
     let req = CollectionRequest {
         run_id: run_id.clone(),
         account_name: request.account_name,
@@ -71,9 +72,58 @@ pub async fn start_collection(
         signing_key: request.signing_key,
     };
 
-    tokio::spawn(async move {
-        let _ = engine.collect(req, Box::new(sink)).await;
+    let task_run_id = run_id.clone();
+    let handle = tokio::spawn(async move {
+        let result = engine.collect(req, Box::new(sink)).await;
+        if let Err(e) = result {
+            let _ = app.emit(
+                "collection:progress",
+                ProgressPayload {
+                    run_id: task_run_id.clone(),
+                    account: account_name,
+                    region: None,
+                    collector: "all".into(),
+                    status: "failed".into(),
+                    records: 0,
+                    message: Some(format!("{e:#}")),
+                },
+            );
+        }
+        if let Some(state) = app.try_state::<AppState>() {
+            state.take_run(&task_run_id);
+        }
     });
 
+    state.register_run(run_id.clone(), handle.abort_handle());
+
     Ok(run_id)
+}
+
+/// Abort an in-flight collection run. Returns `false` when the run already
+/// finished (or was never registered).
+#[tauri::command]
+pub async fn cancel_collection(
+    run_id: String,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<bool, GuiError> {
+    match state.take_run(&run_id) {
+        Some(handle) => {
+            handle.abort();
+            let _ = app.emit(
+                "collection:progress",
+                ProgressPayload {
+                    run_id,
+                    account: String::new(),
+                    region: None,
+                    collector: "all".into(),
+                    status: "cancelled".into(),
+                    records: 0,
+                    message: Some("Collection run cancelled".into()),
+                },
+            );
+            Ok(true)
+        }
+        None => Ok(false),
+    }
 }

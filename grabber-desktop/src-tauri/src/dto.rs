@@ -67,6 +67,15 @@ pub struct CollectionRequestDto {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ArtifactDto {
+    pub name: String,
+    pub path: String,
+    pub extension: String,
+    pub size_bytes: u64,
+    pub modified_epoch_secs: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct IdentityInfoDto {
     pub account: Option<String>,
     pub user_id: Option<String>,

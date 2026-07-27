@@ -83,9 +83,14 @@ export default function OptionsScreen({ onNext, onBack }: OptionsScreenProps) {
           Generate chain-of-custody log
         </label>
       </div>
-      <div style={{ marginTop: 24, display: "flex", gap: 12 }}>
+      <div style={{ marginTop: 24, display: "flex", gap: 12, alignItems: "center" }}>
         <button onClick={onBack}>Back</button>
-        <button onClick={() => onNext(options)}>Next</button>
+        <button onClick={() => onNext(options)} disabled={!options.outputDir.trim()}>
+          Next
+        </button>
+        {!options.outputDir.trim() && (
+          <span style={{ opacity: 0.7 }}>Choose an output directory to continue.</span>
+        )}
       </div>
     </div>
   );
