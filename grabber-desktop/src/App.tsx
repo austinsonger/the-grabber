@@ -2,10 +2,12 @@ import { useState } from "react";
 import { AccountDto } from "./api/accounts";
 import AccountSelection from "./screens/AccountSelection";
 import CollectorSelection from "./screens/CollectorSelection";
+import ConfirmScreen from "./screens/ConfirmScreen";
 import CredentialVault from "./screens/CredentialVault";
 import Dashboard from "./screens/Dashboard";
 import DateRangeSelection from "./screens/DateRangeSelection";
 import FeatureSelection from "./screens/FeatureSelection";
+import OptionsScreen, { RunOptions } from "./screens/OptionsScreen";
 import RegionSelection from "./screens/RegionSelection";
 
 type Screen =
@@ -15,11 +17,14 @@ type Screen =
   | "regionSelection"
   | "featureSelection"
   | "dateRangeSelection"
-  | "collectorSelection";
+  | "collectorSelection"
+  | "options"
+  | "confirm";
 
 function App() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [selectedAccounts, setSelectedAccounts] = useState<AccountDto[]>([]);
+  const [runOptions, setRunOptions] = useState<RunOptions | null>(null);
 
   switch (screen) {
     case "vault":
@@ -66,9 +71,29 @@ function App() {
     case "collectorSelection":
       return (
         <CollectorSelection
-          onNext={() => setScreen("dashboard")}
+          onNext={() => setScreen("options")}
           onBack={() => setScreen("dateRangeSelection")}
         />
+      );
+    case "options":
+      return (
+        <OptionsScreen
+          onNext={(options) => {
+            setRunOptions(options);
+            setScreen("confirm");
+          }}
+          onBack={() => setScreen("collectorSelection")}
+        />
+      );
+    case "confirm":
+      return runOptions ? (
+        <ConfirmScreen
+          options={runOptions}
+          onStart={() => setScreen("dashboard")}
+          onBack={() => setScreen("options")}
+        />
+      ) : (
+        <Dashboard onNavigate={(s) => setScreen(s === "accounts" ? "accountSelection" : "vault")} />
       );
     default:
       return (
