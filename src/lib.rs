@@ -4,6 +4,7 @@ pub mod app_config;
 pub mod audit_log;
 pub mod aws_loader;
 pub mod cli;
+pub mod credentials;
 pub mod evidence;
 pub mod fedramp_coverage;
 pub mod fedramp_map;
