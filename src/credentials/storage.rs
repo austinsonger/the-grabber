@@ -10,7 +10,12 @@ use crate::credentials::{CredentialKind, CredentialSecret};
 const APP_NAME: &str = "the-grabber";
 
 pub trait SecretStorage: Send + Sync {
-    fn store(&self, credential_id: &str, kind: &CredentialKind, secret: &CredentialSecret) -> Result<()>;
+    fn store(
+        &self,
+        credential_id: &str,
+        kind: &CredentialKind,
+        secret: &CredentialSecret,
+    ) -> Result<()>;
     fn load(&self, credential_id: &str, kind: &CredentialKind) -> Result<CredentialSecret>;
     fn delete(&self, credential_id: &str, kind: &CredentialKind) -> Result<()>;
 }
@@ -24,27 +29,43 @@ impl KeyringStorage {
         let base = format!("{APP_NAME}/{credential_id}");
         match kind {
             CredentialKind::AwsAccessKey { .. } => vec![
-                (format!("{base}/aws_secret_access_key"), "AWS Secret Access Key".into()),
-                (format!("{base}/aws_session_token"), "AWS Session Token".into()),
+                (
+                    format!("{base}/aws_secret_access_key"),
+                    "AWS Secret Access Key".into(),
+                ),
+                (
+                    format!("{base}/aws_session_token"),
+                    "AWS Session Token".into(),
+                ),
             ],
-            CredentialKind::ApiToken { .. } => vec![
-                (format!("{base}/token"), "API Token".into()),
-            ],
-            CredentialKind::BasicAuth { .. } => vec![
-                (format!("{base}/password"), "Password".into()),
-            ],
-            CredentialKind::OAuth { .. } => vec![
-                (format!("{base}/client_secret"), "OAuth Client Secret".into()),
-            ],
+            CredentialKind::ApiToken { .. } => vec![(format!("{base}/token"), "API Token".into())],
+            CredentialKind::BasicAuth { .. } => {
+                vec![(format!("{base}/password"), "Password".into())]
+            }
+            CredentialKind::OAuth { .. } => vec![(
+                format!("{base}/client_secret"),
+                "OAuth Client Secret".into(),
+            )],
             _ => vec![],
         }
     }
 }
 
 impl SecretStorage for KeyringStorage {
-    fn store(&self, credential_id: &str, kind: &CredentialKind, secret: &CredentialSecret) -> Result<()> {
+    fn store(
+        &self,
+        credential_id: &str,
+        kind: &CredentialKind,
+        secret: &CredentialSecret,
+    ) -> Result<()> {
         let pairs = match (kind, secret) {
-            (CredentialKind::AwsAccessKey { .. }, CredentialSecret::AwsAccessKeySecret { secret_access_key, session_token }) => {
+            (
+                CredentialKind::AwsAccessKey { .. },
+                CredentialSecret::AwsAccessKeySecret {
+                    secret_access_key,
+                    session_token,
+                },
+            ) => {
                 let mut map = HashMap::new();
                 map.insert("aws_secret_access_key", secret_access_key.as_str());
                 if let Some(t) = session_token {
@@ -59,7 +80,9 @@ impl SecretStorage for KeyringStorage {
                 [("password", password.as_str())].into_iter().collect()
             }
             (CredentialKind::OAuth { .. }, CredentialSecret::OAuth { client_secret }) => {
-                [("client_secret", client_secret.as_str())].into_iter().collect()
+                [("client_secret", client_secret.as_str())]
+                    .into_iter()
+                    .collect()
             }
             (_, CredentialSecret::None) => HashMap::new(),
             _ => anyhow::bail!("Credential kind and secret type mismatch"),
@@ -73,7 +96,8 @@ impl SecretStorage for KeyringStorage {
             let service = format!("{APP_NAME}/{credential_id}/{field}");
             let entry = Entry::new(&service, credential_id)
                 .with_context(|| format!("Failed to open keyring entry for {service}"))?;
-            entry.set_password(value)
+            entry
+                .set_password(value)
                 .with_context(|| format!("Failed to store secret for {service}"))?;
             stored_any = true;
         }
@@ -96,7 +120,9 @@ impl SecretStorage for KeyringStorage {
             let entry = Entry::new(&service, credential_id)
                 .with_context(|| format!("Failed to open keyring entry for {service}"))?;
             match entry.get_password() {
-                Ok(v) => { values.insert(field, v); }
+                Ok(v) => {
+                    values.insert(field, v);
+                }
                 Err(keyring::Error::NoEntry) => {}
                 Err(e) => anyhow::bail!("Keyring read error: {e}"),
             }

@@ -32,8 +32,8 @@ pub struct EncryptedMetadataStore {
 impl EncryptedMetadataStore {
     pub fn open(path: PathBuf) -> Result<Self> {
         let key = Self::load_or_create_key()?;
-        let cipher = Aes256Gcm::new_from_slice(&key)
-            .context("Failed to initialize AES-GCM cipher")?;
+        let cipher =
+            Aes256Gcm::new_from_slice(&key).context("Failed to initialize AES-GCM cipher")?;
         Ok(Self { path, cipher })
     }
 
@@ -41,13 +41,15 @@ impl EncryptedMetadataStore {
         let entry = Entry::new(METADATA_KEY_SERVICE, METADATA_KEY_LABEL)
             .context("Failed to open metadata key keyring entry")?;
         match entry.get_password() {
-            Ok(b64) => STANDARD.decode(b64)
+            Ok(b64) => STANDARD
+                .decode(b64)
                 .context("Metadata key is not valid base64"),
             Err(keyring::Error::NoEntry) => {
                 let mut key = vec![0u8; 32];
                 OsRng.fill_bytes(&mut key);
                 let b64 = STANDARD.encode(&key);
-                entry.set_password(&b64)
+                entry
+                    .set_password(&b64)
                     .context("Failed to store metadata encryption key")?;
                 Ok(key)
             }
@@ -70,19 +72,25 @@ impl EncryptedMetadataStore {
         }
         let (nonce_bytes, ciphertext) = bytes.split_at(12);
         let nonce = Nonce::from_slice(nonce_bytes);
-        let plaintext = self.cipher.decrypt(nonce, ciphertext)
+        let plaintext = self
+            .cipher
+            .decrypt(nonce, ciphertext)
             .map_err(|e| anyhow::anyhow!("Failed to decrypt metadata store: {e:?}"))?;
-        let file: MetadataFile = serde_json::from_slice(&plaintext)
-            .context("Metadata store JSON is invalid")?;
+        let file: MetadataFile =
+            serde_json::from_slice(&plaintext).context("Metadata store JSON is invalid")?;
         Ok(file.entries)
     }
 
     pub fn save(&self, entries: &[CredentialEntry]) -> Result<()> {
-        let file = MetadataFile { version: 1, entries: entries.to_vec() };
-        let plaintext = serde_json::to_vec(&file)
-            .context("Failed to serialize metadata")?;
+        let file = MetadataFile {
+            version: 1,
+            entries: entries.to_vec(),
+        };
+        let plaintext = serde_json::to_vec(&file).context("Failed to serialize metadata")?;
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-        let ciphertext = self.cipher.encrypt(&nonce, plaintext.as_ref())
+        let ciphertext = self
+            .cipher
+            .encrypt(&nonce, plaintext.as_ref())
             .map_err(|e| anyhow::anyhow!("Failed to encrypt metadata: {e:?}"))?;
         let mut bytes = Vec::with_capacity(nonce.len() + ciphertext.len());
         bytes.extend_from_slice(&nonce);

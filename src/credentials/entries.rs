@@ -1,7 +1,5 @@
 //! Credential domain types used by the desktop GUI vault.
 
-use std::collections::HashMap;
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -95,7 +93,9 @@ impl CredentialKind {
 
     fn domain(&self) -> Option<&str> {
         match self {
-            CredentialKind::ApiToken { domain } | CredentialKind::OAuth { domain, .. } => Some(domain),
+            CredentialKind::ApiToken { domain } | CredentialKind::OAuth { domain, .. } => {
+                Some(domain)
+            }
             _ => None,
         }
     }
@@ -132,10 +132,19 @@ impl CredentialKind {
 /// Secret fields for each credential kind. These are the values stored in the OS keyring.
 #[derive(Debug, Clone, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
 pub enum CredentialSecret {
-    AwsAccessKeySecret { secret_access_key: String, session_token: Option<String> },
-    ApiToken { token: String },
-    BasicAuth { password: String },
-    OAuth { client_secret: String },
+    AwsAccessKeySecret {
+        secret_access_key: String,
+        session_token: Option<String>,
+    },
+    ApiToken {
+        token: String,
+    },
+    BasicAuth {
+        password: String,
+    },
+    OAuth {
+        client_secret: String,
+    },
     None,
 }
 
