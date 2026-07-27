@@ -3893,6 +3893,7 @@ dependencies = [
  "the-grabber",
  "thiserror 1.0.69",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
