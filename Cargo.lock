@@ -5603,6 +5603,7 @@ dependencies = [
  "libc",
  "okta-rs",
  "once_cell",
+ "rand 0.8.6",
  "ratatui",
  "serde",
  "serde_json",

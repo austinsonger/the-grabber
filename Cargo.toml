@@ -94,6 +94,7 @@ aes-gcm = "0.10"
 aead = "0.5"
 zeroize = { version = "1", features = ["derive"] }
 base64 = "0.22"
+rand = "0.8"
 
 # Azure — only compiled with `--features azure`
 azure_identity       = { version = "0.20", optional = true }
