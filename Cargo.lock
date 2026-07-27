@@ -3886,6 +3886,8 @@ name = "grabber-desktop"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "aws-sdk-ec2",
+ "aws-sdk-sts",
  "serde",
  "serde_json",
  "tauri",

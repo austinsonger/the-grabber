@@ -141,6 +141,9 @@ pub struct Account {
     /// AWS CLI profile name or SSO role name (must match ~/.aws/config).
     pub profile: Option<String>,
 
+    /// Reference to a credential stored in the vault.
+    pub credential_id: Option<String>,
+
     /// AWS region override (e.g. "us-east-1").
     pub region: Option<String>,
 

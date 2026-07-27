@@ -42,6 +42,13 @@ pub struct AppConfigDto {
     pub defaults: DefaultsDto,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct IdentityInfoDto {
+    pub account: Option<String>,
+    pub user_id: Option<String>,
+    pub arn: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountDto {
     pub name: String,

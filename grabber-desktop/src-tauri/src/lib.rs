@@ -28,6 +28,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             greet,
+            commands::accounts::list_accounts,
+            commands::accounts::test_account,
+            commands::accounts::discover_regions,
             commands::config::load_app_config,
             commands::config::save_app_config,
             commands::credentials::list_credentials,
