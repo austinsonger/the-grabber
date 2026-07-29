@@ -33,7 +33,7 @@
 **Interfaces:**
 - Library crate exposes all existing modules so the binary and the Tauri crate can depend on them.
 
-- [ ] **Step 1: Add `[lib]` to `Cargo.toml`**
+- [x] **Step 1: Add `[lib]` to `Cargo.toml`**
 
 Add above `[[bin]]`:
 
@@ -43,7 +43,7 @@ name = "the_grabber"
 path = "src/lib.rs"
 ```
 
-- [ ] **Step 2: Create `src/lib.rs`**
+- [x] **Step 2: Create `src/lib.rs`**
 
 ```rust
 //! The Grabber library surface shared by the CLI/TUI binary and the desktop GUI.
@@ -72,7 +72,7 @@ pub mod tui;
 pub mod zip_bundle;
 ```
 
-- [ ] **Step 3: Convert `src/main.rs` to use the library crate**
+- [x] **Step 3: Convert `src/main.rs` to use the library crate**
 
 Replace the top module declarations with:
 
@@ -84,7 +84,7 @@ use the_grabber::runner::tui_session::run_tui_session;
 
 Remove all `mod ...;` lines.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 cargo check --workspace
@@ -92,7 +92,7 @@ cargo check --workspace
 
 Expected: clean compile.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Cargo.toml src/lib.rs src/main.rs
@@ -106,7 +106,7 @@ git commit -m "refactor: expose the_grabber as a library for desktop GUI reuse"
 **Files:**
 - Modify: `Cargo.toml` (root package dependencies)
 
-- [ ] **Step 1: Add crates**
+- [x] **Step 1: Add crates**
 
 ```toml
 keyring = { version = "3", features = ["linux-secret-service-rt-tokio-crypto-openssl"] }
@@ -116,13 +116,13 @@ zeroize = { version = "1", features = ["derive"] }
 base64 = "0.22"
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Cargo.toml
@@ -137,7 +137,7 @@ git commit -m "deps: add keyring, aes-gcm, zeroize, base64 for credential vault"
 - Create: `src/credentials/mod.rs`
 - Create: `src/credentials/entries.rs`
 
-- [ ] **Step 1: Create `src/credentials/entries.rs`**
+- [x] **Step 1: Create `src/credentials/entries.rs`**
 
 ```rust
 //! Credential domain types used by the desktop GUI vault.
@@ -291,7 +291,7 @@ pub struct NewCredential {
 }
 ```
 
-- [ ] **Step 2: Create `src/credentials/mod.rs`**
+- [x] **Step 2: Create `src/credentials/mod.rs`**
 
 ```rust
 //! Secure credential vault for the desktop GUI.
@@ -306,13 +306,13 @@ pub use storage::*;
 pub use vault::*;
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/credentials/
@@ -326,7 +326,7 @@ git commit -m "feat(credentials): add credential entry and secret types"
 **Files:**
 - Create: `src/credentials/storage.rs`
 
-- [ ] **Step 1: Implement keyring-backed storage**
+- [x] **Step 1: Implement keyring-backed storage**
 
 ```rust
 //! OS credential-store backends for secrets.
@@ -462,13 +462,13 @@ impl SecretStorage for KeyringStorage {
 }
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/credentials/storage.rs
@@ -483,7 +483,7 @@ git commit -m "feat(credentials): add OS keyring secret storage backend"
 - Create: `src/credentials/metadata_store.rs`
 - Modify: `src/credentials/mod.rs`
 
-- [ ] **Step 1: Implement AES-256-GCM metadata store**
+- [x] **Step 1: Implement AES-256-GCM metadata store**
 
 ```rust
 //! Encrypted JSON store for credential metadata.
@@ -585,20 +585,20 @@ impl EncryptedMetadataStore {
 
 > **Note:** `OsRng` from `aes_gcm::aead` has `next_u32`; if it does not, import `rand::rngs::OsRng` instead and add `rand` to dependencies.
 
-- [ ] **Step 2: Update `src/credentials/mod.rs`**
+- [x] **Step 2: Update `src/credentials/mod.rs`**
 
 ```rust
 pub mod metadata_store;
 pub use metadata_store::*;
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/credentials/
@@ -613,7 +613,7 @@ git commit -m "feat(credentials): add AES-256-GCM encrypted metadata store"
 - Create: `src/credentials/vault.rs`
 - Modify: `src/credentials/mod.rs`
 
-- [ ] **Step 1: Implement vault**
+- [x] **Step 1: Implement vault**
 
 ```rust
 //! High-level credential vault API.
@@ -709,13 +709,13 @@ impl CredentialVault {
 }
 ```
 
-- [ ] **Step 2: Update `src/credentials/mod.rs`**
+- [x] **Step 2: Update `src/credentials/mod.rs`**
 
 ```rust
 pub use vault::*;
 ```
 
-- [ ] **Step 3: Add unit test for vault round-trip**
+- [x] **Step 3: Add unit test for vault round-trip**
 
 Create `src/credentials/vault_test.rs` or add `#[cfg(test)]` at bottom of `vault.rs`:
 
@@ -752,7 +752,7 @@ mod tests {
 
 Add `tempfile` to `[dev-dependencies]` in `Cargo.toml` if not present.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 cargo test --lib credentials::vault::tests::vault_round_trip
@@ -760,7 +760,7 @@ cargo test --lib credentials::vault::tests::vault_round_trip
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/credentials/ Cargo.toml
@@ -775,7 +775,7 @@ git commit -m "feat(credentials): implement CredentialVault CRUD with round-trip
 - Create: `src/credentials/aws_config.rs`
 - Modify: `src/credentials/mod.rs`
 
-- [ ] **Step 1: Implement AWS config builder**
+- [x] **Step 1: Implement AWS config builder**
 
 ```rust
 //! Build an AWS SDK config from a stored credential.
@@ -870,20 +870,20 @@ async fn update_aws_config_sso_profile(
 
 Add helper `secret()` to `CredentialEntry`? Alternatively pass secret in. To keep it simple, update `vault.get` already returns `(entry, secret)`. Use that. So `load_aws_sdk_config` can accept `secret: &CredentialSecret`.
 
-- [ ] **Step 2: Update `src/credentials/mod.rs`**
+- [x] **Step 2: Update `src/credentials/mod.rs`**
 
 ```rust
 pub mod aws_config;
 pub use aws_config::*;
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/credentials/ Cargo.toml
@@ -898,7 +898,7 @@ git commit -m "feat(credentials): build AWS SDK config from vault entries"
 - Create: `src/engine.rs`
 - Modify: `src/lib.rs`
 
-- [ ] **Step 1: Create `src/engine.rs`**
+- [x] **Step 1: Create `src/engine.rs`**
 
 ```rust
 //! High-level engine used by the desktop GUI.
@@ -946,19 +946,19 @@ pub struct ProgressEvent {
 
 Collection/inventory/poam methods will be added in later tasks; this task only establishes the shell and state.
 
-- [ ] **Step 2: Update `src/lib.rs`**
+- [x] **Step 2: Update `src/lib.rs`**
 
 ```rust
 pub mod engine;
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/engine.rs src/lib.rs
@@ -980,7 +980,7 @@ git commit -m "feat(engine): add Engine wrapper for desktop GUI"
 - Create: `grabber-desktop/src/main.tsx`
 - Create: `grabber-desktop/src/App.tsx`
 
-- [ ] **Step 1: Create the Tauri backend crate**
+- [x] **Step 1: Create the Tauri backend crate**
 
 `grabber-desktop/src-tauri/Cargo.toml`:
 
@@ -1047,7 +1047,7 @@ fn main() {
 }
 ```
 
-- [ ] **Step 2: Create frontend skeleton**
+- [x] **Step 2: Create frontend skeleton**
 
 `grabber-desktop/package.json`:
 
@@ -1159,7 +1159,7 @@ function App() {
 export default App;
 ```
 
-- [ ] **Step 3: Update workspace `Cargo.toml`**
+- [x] **Step 3: Update workspace `Cargo.toml`**
 
 Add `grabber-desktop/src-tauri` to workspace members? Tauri crate is in a nested workspace? The root Cargo.toml is workspace. We can either include the Tauri crate as a member or keep it as separate nested workspace. Simpler: add `grabber-desktop/src-tauri` to `workspace.members`.
 
@@ -1167,7 +1167,7 @@ Add `grabber-desktop/src-tauri` to workspace members? Tauri crate is in a nested
 members = [".", "crates/...", "grabber-desktop/src-tauri"]
 ```
 
-- [ ] **Step 4: Verify Tauri dev build**
+- [x] **Step 4: Verify Tauri dev build**
 
 ```bash
 cd grabber-desktop && npm install
@@ -1176,7 +1176,7 @@ npm run tauri dev
 
 Expected: an empty Tauri window opens with the title "The Grabber".
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add grabber-desktop/ Cargo.toml
@@ -1195,7 +1195,7 @@ git commit -m "chore(desktop): scaffold Tauri v2 + React + TypeScript app"
 - Create: `grabber-desktop/src-tauri/src/commands/mod.rs`
 - Modify: `grabber-desktop/src-tauri/src/main.rs`
 
-- [ ] **Step 1: Define DTOs and error type**
+- [x] **Step 1: Define DTOs and error type**
 
 `grabber-desktop/src-tauri/src/error.rs`:
 
@@ -1311,7 +1311,7 @@ impl AppState {
 }
 ```
 
-- [ ] **Step 2: Wire library entry**
+- [x] **Step 2: Wire library entry**
 
 `grabber-desktop/src-tauri/src/lib.rs`:
 
@@ -1363,14 +1363,14 @@ fn main() {
 }
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 cargo check --workspace
 cd grabber-desktop && npm run tauri build -- --debug
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add grabber-desktop/src-tauri/ src/app_config.rs
@@ -1386,7 +1386,7 @@ git commit -m "feat(desktop): add Tauri state, DTOs, and error types"
 - Modify: `grabber-desktop/src-tauri/src/commands/mod.rs`
 - Modify: `grabber-desktop/src-tauri/src/lib.rs`
 
-- [ ] **Step 1: Implement config commands**
+- [x] **Step 1: Implement config commands**
 
 ```rust
 use tauri::State;
@@ -1425,7 +1425,7 @@ pub async fn save_app_config(dto: AppConfigDto, _state: State<'_, AppState>) -> 
 }
 ```
 
-- [ ] **Step 2: Register commands**
+- [x] **Step 2: Register commands**
 
 `grabber-desktop/src-tauri/src/lib.rs`:
 
@@ -1436,7 +1436,7 @@ pub async fn save_app_config(dto: AppConfigDto, _state: State<'_, AppState>) -> 
 ])
 ```
 
-- [ ] **Step 3: Add TypeScript API client**
+- [x] **Step 3: Add TypeScript API client**
 
 `grabber-desktop/src/api/config.ts`:
 
@@ -1467,13 +1467,13 @@ export interface DefaultsDto {
 export const loadAppConfig = () => invoke<AppConfigDto>("load_app_config");
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add grabber-desktop/src-tauri/src/commands/config.rs grabber-desktop/src-tauri/src/commands/mod.rs grabber-desktop/src-tauri/src/lib.rs grabber-desktop/src/api/config.ts
@@ -1489,7 +1489,7 @@ git commit -m "feat(desktop): add load/save config Tauri commands and TS client"
 - Modify: `grabber-desktop/src-tauri/src/commands/mod.rs`
 - Modify: `grabber-desktop/src-tauri/src/lib.rs`
 
-- [ ] **Step 1: Implement credential commands**
+- [x] **Step 1: Implement credential commands**
 
 ```rust
 use tauri::State;
@@ -1588,19 +1588,19 @@ fn parse_credential_dto(dto: &CredentialWriteDto) -> anyhow::Result<(CredentialK
 // delete_credential, get_credential, test_credential, import_aws_profiles follow the same pattern.
 ```
 
-- [ ] **Step 2: Register commands**
+- [x] **Step 2: Register commands**
 
-- [ ] **Step 3: Add TypeScript API client**
+- [x] **Step 3: Add TypeScript API client**
 
 `grabber-desktop/src/api/credentials.ts` with `invoke` wrappers.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add grabber-desktop/src-tauri/src/commands/credentials.rs grabber-desktop/src/api/credentials.ts
@@ -1616,7 +1616,7 @@ git commit -m "feat(desktop): add credential vault Tauri commands and TS client"
 - Create: `grabber-desktop/src/components/CredentialForm.tsx`
 - Modify: `grabber-desktop/src/App.tsx`
 
-- [ ] **Step 1: Build list + add form**
+- [x] **Step 1: Build list + add form**
 
 Representative React component:
 
@@ -1657,11 +1657,11 @@ export default function CredentialVault() {
 }
 ```
 
-- [ ] **Step 2: Verify in UI**
+- [x] **Step 2: Verify in UI**
 
 Run `npm run tauri dev`, add a test credential, refresh, and confirm it appears in the list.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add grabber-desktop/src/screens/CredentialVault.tsx grabber-desktop/src/components/CredentialForm.tsx grabber-desktop/src/App.tsx
@@ -1676,7 +1676,7 @@ git commit -m "feat(desktop): add credential vault screen"
 - Modify: `src/app_config.rs`
 - Create: `grabber-desktop/src-tauri/src/commands/accounts.rs`
 
-- [ ] **Step 1: Add `credential_id` to `Account`**
+- [x] **Step 1: Add `credential_id` to `Account`**
 
 ```rust
 pub struct Account {
@@ -1693,7 +1693,7 @@ pub struct Account {
 
 Update serde defaults and any construction sites (`Default` impls, example config loaders).
 
-- [ ] **Step 2: Add account CRUD commands**
+- [x] **Step 2: Add account CRUD commands**
 
 ```rust
 #[tauri::command]
@@ -1712,13 +1712,13 @@ pub async fn discover_regions(credential_id: String, state: State<'_, AppState>)
 }
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/app_config.rs grabber-desktop/src-tauri/src/commands/accounts.rs
@@ -1733,17 +1733,17 @@ git commit -m "feat(config): add credential_id to Account and account test/disco
 - Create: `grabber-desktop/src/screens/Dashboard.tsx`
 - Modify: `grabber-desktop/src/App.tsx`
 
-- [ ] **Step 1: Implement dashboard**
+- [x] **Step 1: Implement dashboard**
 
 - Recent runs list from GUI state file.
 - Buttons to start each feature.
 - Link to Credential Vault.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run `npm run tauri dev` and confirm navigation works.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add grabber-desktop/src/screens/Dashboard.tsx grabber-desktop/src/App.tsx
@@ -1759,22 +1759,22 @@ git commit -m "feat(desktop): add welcome dashboard"
 - Create: `grabber-desktop/src/screens/RegionSelection.tsx`
 - Modify: `grabber-desktop/src/App.tsx`
 
-- [ ] **Step 1: Implement account selection**
+- [x] **Step 1: Implement account selection**
 
 - Table of accounts with credential status.
 - Multi-select checkboxes.
 - "Add account" modal (creates `[[account]]` block + credential).
 
-- [ ] **Step 2: Implement region selection**
+- [x] **Step 2: Implement region selection**
 
 - Region list with "Discover" button.
 - Global-services note.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Manual UI test: select accounts, discover regions.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add grabber-desktop/src/screens/AccountSelection.tsx grabber-desktop/src/screens/RegionSelection.tsx grabber-desktop/src/App.tsx
@@ -1790,16 +1790,16 @@ git commit -m "feat(desktop): add account and region selection screens"
 - Create: `grabber-desktop/src/screens/DateRangeSelection.tsx`
 - Modify: `grabber-desktop/src/App.tsx`
 
-- [ ] **Step 1: Implement cards and date picker**
+- [x] **Step 1: Implement cards and date picker**
 
 - Four feature cards.
 - Date pickers with quick chips (7d, 30d, 90d, 1y).
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Manual UI test.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add grabber-desktop/src/screens/FeatureSelection.tsx grabber-desktop/src/screens/DateRangeSelection.tsx grabber-desktop/src/App.tsx
@@ -1814,24 +1814,24 @@ git commit -m "feat(desktop): add feature and date range selection"
 - Create: `grabber-desktop/src/screens/CollectorSelection.tsx`
 - Create: `grabber-desktop/src/api/collectors.ts`
 
-- [ ] **Step 1: Add list_collectors command**
+- [x] **Step 1: Add list_collectors command**
 
 ```rust
 #[tauri::command]
 pub async fn list_collectors(provider: String) -> Result<Vec<CollectorMetaDto>, GuiError> { ... }
 ```
 
-- [ ] **Step 2: Build tree/list UI**
+- [x] **Step 2: Build tree/list UI**
 
 - Search box.
 - Category tree (reuse provider menu categories from `src/tui/menus/`).
 - Select all/none.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Manual UI test: list AWS collectors, search, select.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add grabber-desktop/src/screens/CollectorSelection.tsx grabber-desktop/src/api/collectors.ts
@@ -1846,18 +1846,18 @@ git commit -m "feat(desktop): add collector selection screen"
 - Create: `grabber-desktop/src/screens/OptionsScreen.tsx`
 - Create: `grabber-desktop/src/screens/ConfirmScreen.tsx`
 
-- [ ] **Step 1: Build options form**
+- [x] **Step 1: Build options form**
 
 - Output directory picker (Tauri dialog plugin).
 - Zip, sign, run manifest, chain of custody, include raw toggles.
 - Signing key input.
 
-- [ ] **Step 2: Build confirm summary**
+- [x] **Step 2: Build confirm summary**
 
 - Read-only summary of selections.
 - Start button triggers collection.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add grabber-desktop/src/screens/OptionsScreen.tsx grabber-desktop/src/screens/ConfirmScreen.tsx
@@ -1873,7 +1873,7 @@ git commit -m "feat(desktop): add options and confirm screens"
 - Create: `grabber-desktop/src-tauri/src/commands/collection.rs`
 - Modify: `grabber-desktop/src-tauri/src/lib.rs`
 
-- [ ] **Step 1: Add collection method to Engine**
+- [x] **Step 1: Add collection method to Engine**
 
 ```rust
 impl Engine {
@@ -1883,7 +1883,7 @@ impl Engine {
 }
 ```
 
-- [ ] **Step 2: Add start_collection command**
+- [x] **Step 2: Add start_collection command**
 
 ```rust
 #[tauri::command]
@@ -1903,7 +1903,7 @@ pub async fn start_collection(
 }
 ```
 
-- [ ] **Step 3: Add Tauri progress event emitter**
+- [x] **Step 3: Add Tauri progress event emitter**
 
 ```rust
 pub struct TauriProgressSink { app: tauri::AppHandle, run_id: String }
@@ -1914,13 +1914,13 @@ impl ProgressSink for TauriProgressSink {
 }
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 cargo check --workspace
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine.rs grabber-desktop/src-tauri/src/commands/collection.rs
@@ -1936,24 +1936,24 @@ git commit -m "feat(desktop): add async collection engine and progress events"
 - Create: `grabber-desktop/src/screens/ResultsScreen.tsx`
 - Modify: `grabber-desktop/src/App.tsx`
 
-- [ ] **Step 1: Running screen**
+- [x] **Step 1: Running screen**
 
 - Listen to `collection:progress` events via `listen` from `@tauri-apps/api/event`.
 - Live table of account/collector/status/records.
 - Log tail pane.
 - Cancel button.
 
-- [ ] **Step 2: Results screen**
+- [x] **Step 2: Results screen**
 
 - List artifacts from `list_run_artifacts`.
 - Preview CSV/JSON.
 - Open folder, export zip, sign, verify buttons.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 End-to-end test: run a small collector set against a test AWS account.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add grabber-desktop/src/screens/RunningScreen.tsx grabber-desktop/src/screens/ResultsScreen.tsx
@@ -1972,7 +1972,7 @@ git commit -m "feat(desktop): add running and results screens"
 - Create: `grabber-desktop/src/screens/PoamScreen.tsx`
 - Create: `grabber-desktop/src/screens/StigScreen.tsx`
 
-- [ ] **Step 1: Add engine methods**
+- [x] **Step 1: Add engine methods**
 
 ```rust
 impl Engine {
@@ -1982,21 +1982,21 @@ impl Engine {
 }
 ```
 
-- [ ] **Step 2: Add Tauri commands**
+- [x] **Step 2: Add Tauri commands**
 
 `start_inventory`, `start_poam`, `start_stig_remediation`.
 
-- [ ] **Step 3: Add UI screens**
+- [x] **Step 3: Add UI screens**
 
 - Inventory: asset-type checklist.
 - POA&M: year/month/account selectors.
 - STIG: remediation checklist.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run each flow against test data.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine.rs grabber-desktop/src-tauri/src/commands/inventory.rs grabber-desktop/src-tauri/src/commands/poam.rs grabber-desktop/src/screens/InventoryScreen.tsx grabber-desktop/src/screens/PoamScreen.tsx grabber-desktop/src/screens/StigScreen.tsx
@@ -2012,15 +2012,15 @@ git commit -m "feat(desktop): add inventory, POA&M, and STIG screens"
 - Modify: `grabber-desktop/src/App.tsx`
 - Add icon assets to `grabber-desktop/src-tauri/icons/`
 
-- [ ] **Step 1: Port palette from `src/tui/ui/theme.rs`**
+- [x] **Step 1: Port palette from `src/tui/ui/theme.rs`**
 
 CSS custom properties matching `BG_DARK`, `CYAN`, `AMBER`, etc.
 
-- [ ] **Step 2: Apply dark theme globally**
+- [x] **Step 2: Apply dark theme globally**
 
-- [ ] **Step 3: Add logo to welcome screen**
+- [x] **Step 3: Add logo to welcome screen**
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add grabber-desktop/src/styles/theme.css grabber-desktop/src/App.tsx grabber-desktop/src-tauri/icons/
@@ -2036,23 +2036,23 @@ git commit -m "feat(desktop): apply Grabber dark theme and icons"
 - Modify: `README.md`
 - Modify: `docs/cli-reference.md`
 
-- [ ] **Step 1: Add GitHub Actions workflow**
+- [x] **Step 1: Add GitHub Actions workflow**
 
 Build Tauri on macOS/Windows/Linux and upload artifacts to releases.
 
-- [ ] **Step 2: Update README**
+- [x] **Step 2: Update README**
 
 Add "Desktop App" section with install links and basic usage.
 
-- [ ] **Step 3: Update CLI reference**
+- [x] **Step 3: Update CLI reference**
 
 Mention that the desktop app stores credentials separately from CLI/TUI.
 
-- [ ] **Step 4: Verify workflow**
+- [x] **Step 4: Verify workflow**
 
 Push to a test branch and confirm artifacts build.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github/workflows/desktop-release.yml README.md docs/cli-reference.md
@@ -2063,12 +2063,49 @@ git commit -m "ci(desktop): add release workflow and docs"
 
 ## Validation
 
+Run 2026-07-28 on rustc/clippy 1.94.1, node 26.3.0, macOS arm64.
+
 - [ ] Run `cargo test --workspace` — all tests pass.
+  **Blocked by pre-existing failure outside this plan's scope.**
+  `okta-rs::users_test::list_all_users_follows_pagination` hangs indefinitely and is
+  SIGKILLed, aborting the workspace run before it reaches the main crate. Both mocks in
+  `crates/okta-rs/tests/users_test.rs` are registered as `method("GET").and(path("/api/v1/users"))`;
+  wiremock's `path()` ignores the query string, so both match every request and the first
+  one always wins — it returns `link: <…?after=p2>; rel="next"`, so `list_all()` follows
+  `next` forever. Fix is to constrain the mocks with `query_param("after", "p2")` /
+  `query_param_is_missing("after")`. Pre-existing: the file's only commit is `1e84f0e`
+  and this branch touches no files under `crates/`. Tracked separately.
+- [x] `cargo test -p the-grabber` — **75 passed, 0 failed, 1 ignored.** Includes
+  `credentials::vault::tests::vault_round_trip`,
+  `credentials::aws_config::tests::load_aws_config_from_access_key`, and
+  `credentials::aws_config::tests::sso_profile_written_to_aws_config`. The ignored test is
+  the pre-existing `inventory_xlsx::tests::integration_writes_against_real_template`,
+  which needs a real template file.
 - [ ] Run `cargo clippy --workspace -- -D warnings` — no warnings.
-- [ ] Run `cargo fmt --check` — no formatting changes.
-- [ ] Run `cd grabber-desktop && npm run tauri build -- --debug` — produces a debug app bundle.
-- [ ] Manual end-to-end: add an AWS SSO credential, select an account, run the `iam-users` collector, verify CSV/JSON output appears in the results screen.
-- [ ] Manual security check: confirm the OS keyring contains entries under `the-grabber/<uuid>/...` and that no plaintext secrets exist in `~/.config/the-grabber/`.
+  **Fails with 29 errors, all pre-existing and outside this plan's scope.** They sit in
+  `src/poam/`, `src/runner/`, `src/providers/`, `src/inventory_xlsx.rs`, `src/audit_log.rs`,
+  and `src/tui/` — none in `src/credentials/`, `src/engine.rs`, or `grabber-desktop/`. The
+  single hit in a branch-modified file (`src/app_config.rs:70`, `doc_overindented_list_items`)
+  is on a doc comment this branch's diff does not touch. Surfaced by clippy 1.94, which added
+  lints such as `doc_overindented_list_items`. Deliberately left for a separate cleanup so the
+  desktop branch stays reviewable.
+- [x] Run `cargo fmt --check` — no formatting changes. `cargo fmt --all -- --check` exits 0.
+- [x] Run `cd grabber-desktop && npm run tauri build -- --debug` — produces a debug app bundle.
+  Built `target/debug/bundle/macos/The Grabber.app` and
+  `target/debug/bundle/dmg/The Grabber_0.1.0_aarch64.dmg`. Frontend `tsc && vite build`
+  also passes standalone (TypeScript strict, 59 modules).
+- [ ] Manual end-to-end: add an AWS SSO credential, select an account, run the `iam-users`
+  collector, verify CSV/JSON output appears in the results screen.
+  **Not performed** — needs live AWS credentials and an interactive session.
+- [x] Manual security check: confirm the OS keyring contains entries under
+  `the-grabber/<uuid>/...` and that no plaintext secrets exist in the app data directory.
+  **Verified by source inspection**; the runtime keyring check still needs a first app launch
+  (`~/Library/Application Support/com.thegrabber.desktop/` does not exist yet).
+  - `src/credentials/storage.rs:96` — keyring service names are `the-grabber/<uuid>/<field>`.
+  - `src/credentials/metadata_store.rs:96-102` — the only bytes written to disk are
+    `nonce(12) || AES-256-GCM ciphertext`.
+  - `src/credentials/entries.rs:10-17` — `CredentialEntry`, the sole persisted type, holds no
+    secret fields; secrets live only in `CredentialSecret`, which goes to the keyring.
 
 ---
 
