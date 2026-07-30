@@ -9,6 +9,7 @@
 mod apigateway;
 mod compute;
 mod data_services;
+mod log_analytics;
 mod logging;
 mod messaging;
 mod network_fabric;
@@ -39,6 +40,7 @@ use aws_sdk_guardduty::Client as GuardDutyClient;
 use aws_sdk_kinesis::Client as KinesisClient;
 use aws_sdk_kms::Client as KmsClient;
 use aws_sdk_lambda::Client as LambdaClient;
+use aws_sdk_opensearch::Client as OpenSearchClient;
 use aws_sdk_rds::Client as RdsClient;
 use aws_sdk_redshift::Client as RedshiftClient;
 use aws_sdk_route53resolver::Client as Route53ResolverClient;
@@ -56,11 +58,11 @@ use crate::inventory_core::{
     ASSET_KEY_EFS_FILE_SYSTEM, ASSET_KEY_ELASTICACHE_CLUSTER, ASSET_KEY_EVENTBRIDGE,
     ASSET_KEY_FIREHOSE_STREAM, ASSET_KEY_FSX_FILE_SYSTEM, ASSET_KEY_GUARDDUTY_DETECTOR,
     ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION,
-    ASSET_KEY_LOG_DESTINATION, ASSET_KEY_LOG_GROUP, ASSET_KEY_NLB, ASSET_KEY_RDS_DB_INSTANCE,
-    ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_RESOLVER_QUERY_LOG, ASSET_KEY_S3_BUCKET,
-    ASSET_KEY_SECRETSMANAGER_SECRET, ASSET_KEY_SECURITYHUB_HUB, ASSET_KEY_SNS_TOPIC,
-    ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_FLOW_LOG, ASSET_KEY_VPC_NETWORK, ASSET_KEY_WAF_WEBACL,
-    INVENTORY_CSV_HEADERS,
+    ASSET_KEY_LOG_DESTINATION, ASSET_KEY_LOG_GROUP, ASSET_KEY_NLB, ASSET_KEY_OPENSEARCH_DOMAIN,
+    ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_RESOLVER_QUERY_LOG,
+    ASSET_KEY_S3_BUCKET, ASSET_KEY_SECRETSMANAGER_SECRET, ASSET_KEY_SECURITYHUB_HUB,
+    ASSET_KEY_SNS_TOPIC, ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_FLOW_LOG, ASSET_KEY_VPC_NETWORK,
+    ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
 };
 
 // ---------------------------------------------------------------------------
@@ -91,6 +93,7 @@ pub struct InventoryCollector {
     fsx: FsxClient,
     guardduty: GuardDutyClient,
     kinesis: KinesisClient,
+    opensearch: OpenSearchClient,
     redshift: RedshiftClient,
     route53resolver: Route53ResolverClient,
     secretsmanager: SecretsManagerClient,
@@ -126,6 +129,7 @@ impl InventoryCollector {
             fsx: FsxClient::new(config),
             guardduty: GuardDutyClient::new(config),
             kinesis: KinesisClient::new(config),
+            opensearch: OpenSearchClient::new(config),
             redshift: RedshiftClient::new(config),
             route53resolver: Route53ResolverClient::new(config),
             secretsmanager: SecretsManagerClient::new(config),
@@ -248,6 +252,9 @@ impl CsvCollector for InventoryCollector {
                 }
                 ASSET_KEY_RESOLVER_QUERY_LOG => {
                     logging::collect_resolver_query_logs(&self.route53resolver, &region).await
+                }
+                ASSET_KEY_OPENSEARCH_DOMAIN => {
+                    log_analytics::collect_opensearch_domains(&self.opensearch, &region).await
                 }
                 other => {
                     eprintln!("WARN: inventory: unknown asset type key '{other}' — skipped");

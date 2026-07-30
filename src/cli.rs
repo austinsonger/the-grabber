@@ -278,6 +278,10 @@ pub struct Cli {
     #[arg(long = "resolver-query-logs", default_value_t = false)]
     pub inv_resolver_query_logs: bool,
 
+    /// Inventory: include OpenSearch Domains.
+    #[arg(long = "opensearch", default_value_t = false)]
+    pub inv_opensearch: bool,
+
     // ------- POA&M mode -------
     /// Run the POA&M reconciliation workflow (non-interactive).
     /// Requires --poam-year and --poam-month; uses --region for the region.
@@ -494,6 +498,9 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
     }
     if cli.inv_resolver_query_logs {
         selected.push("resolver-query-log".to_string());
+    }
+    if cli.inv_opensearch {
+        selected.push("opensearch-domain".to_string());
     }
 
     let mut seen = std::collections::HashSet::new();
