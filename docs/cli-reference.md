@@ -177,7 +177,7 @@ Queries selected AWS asset types in parallel and writes a **single unified CSV**
 
 ### Asset Type Flags
 
-Select which asset types to collect. If **none** are specified, all 8 types are collected.
+Select which asset types to collect. If **none** are specified, all types are collected.
 
 Individual flags and `--inventory-types` are **additive** — you can combine them freely. Duplicates are removed automatically.
 
@@ -191,6 +191,12 @@ Individual flags and `--inventory-types` are **additive** — you can combine th
 | `--rds` | RDS DB Instances | `rds-db-instance` |
 | `--elasticache` | ElastiCache Clusters | `elasticache-cluster` |
 | `--containers` | Containers (ECR/ECS/EKS) | `container` |
+| `--log-groups` | CloudWatch Logs Log Groups | `log-group` |
+| `--log-destinations` | CloudWatch Logs Destinations | `log-destination` |
+| `--vpc-flow-logs` | VPC Flow Logs | `vpc-flow-log` |
+| `--resolver-query-logs` | Route 53 Resolver Query Log Configs | `resolver-query-log` |
+| `--opensearch` | OpenSearch Domains | `opensearch-domain` |
+| `--msk` | MSK (Kafka) Clusters | `msk-cluster` |
 
 ### `--inventory-types <KEY>[,<KEY>...]`
 
@@ -640,6 +646,12 @@ Used with `--inventory` mode. The individual flags (`--ec2`, `--rds`, etc.) and 
 | `--rds` | `rds-db-instance` | RDS DB instances |
 | `--elasticache` | `elasticache-cluster` | ElastiCache clusters |
 | `--containers` | `container` | Containers (ECR repositories, ECS clusters, EKS clusters) |
+| `--log-groups` | `log-group` | CloudWatch Logs log groups |
+| `--log-destinations` | `log-destination` | CloudWatch Logs cross-account destinations |
+| `--vpc-flow-logs` | `vpc-flow-log` | VPC flow logs (VPC, subnet, and ENI scope) |
+| `--resolver-query-logs` | `resolver-query-log` | Route 53 Resolver DNS query log configs |
+| `--opensearch` | `opensearch-domain` | OpenSearch Service domains |
+| `--msk` | `msk-cluster` | MSK clusters (provisioned + serverless) |
 
 **Output file:** `AWS_Inventory-<timestamp>.csv` — 14-column canonical schema:
 
