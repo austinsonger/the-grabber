@@ -270,6 +270,10 @@ pub struct Cli {
     #[arg(long = "log-destinations", default_value_t = false)]
     pub inv_log_destinations: bool,
 
+    /// Inventory: include VPC Flow Logs.
+    #[arg(long = "vpc-flow-logs", default_value_t = false)]
+    pub inv_vpc_flow_logs: bool,
+
     // ------- POA&M mode -------
     /// Run the POA&M reconciliation workflow (non-interactive).
     /// Requires --poam-year and --poam-month; uses --region for the region.
@@ -480,6 +484,9 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
     }
     if cli.inv_log_destinations {
         selected.push("log-destination".to_string());
+    }
+    if cli.inv_vpc_flow_logs {
+        selected.push("vpc-flow-log".to_string());
     }
 
     let mut seen = std::collections::HashSet::new();

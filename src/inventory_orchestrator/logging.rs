@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::{Context, Result};
 use aws_sdk_cloudwatchlogs::Client as CloudWatchLogsClient;
+use aws_sdk_ec2::Client as Ec2Client;
 
+use super::network_fabric::{ec2_arn, fabric_function};
 use crate::inventory_core::{function_from_tag_map, RowBuilder};
 
 // ---------------------------------------------------------------------------
@@ -234,6 +236,128 @@ pub(super) async fn collect_log_destinations(
                 .sw_vendor("Amazon Web Services")
                 .sw_name_ver("Amazon CloudWatch Logs (cross-account destination)")
                 .function(destination_name)
+                .comments(comments)
+                .build(),
+        );
+    }
+
+    Ok(rows)
+}
+
+// ---------------------------------------------------------------------------
+// VPC Flow Logs — mapping doc §27
+//
+// Flow logs attach to a VPC, a subnet, or a single ENI, and deliver either to
+// CloudWatch Logs or to S3. EC2 returns no ARN for them, so the unique id is
+// synthesised per convention #1 (same as VPC/subnet/IGW/NAT/TGW attachment).
+// ---------------------------------------------------------------------------
+
+/// Converts an SDK `DateTime` to RFC3339, matching the `dt_to_rfc3339` helpers
+/// in `secrets.rs` and `security_services.rs`. Every AWS SDK crate re-exports
+/// the same underlying `aws_smithy_types::DateTime` as
+/// `crate::primitives::DateTime`, so naming the EC2 path here lets one helper
+/// serve both the flow-log and MSK call sites without adding a direct
+/// `aws-smithy-types` dependency — that crate is only a transitive dependency
+/// here and cannot be named in a signature.
+pub(super) fn smithy_dt_to_rfc3339(dt: Option<&aws_sdk_ec2::primitives::DateTime>) -> String {
+    dt.and_then(|d| chrono::DateTime::<chrono::Utc>::from_timestamp(d.secs(), 0))
+        .map(|c| c.to_rfc3339())
+        .unwrap_or_default()
+}
+
+pub(super) async fn collect_vpc_flow_logs(
+    c: &Ec2Client,
+    account_id: &str,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
+    let flow_logs = c
+        .describe_flow_logs()
+        .into_paginator()
+        .items()
+        .send()
+        .try_collect()
+        .await
+        .context("EC2 describe_flow_logs")?;
+
+    let mut rows = Vec::with_capacity(flow_logs.len());
+    for fl in &flow_logs {
+        let Some(flow_log_id) = fl.flow_log_id() else {
+            continue;
+        };
+        let arn = ec2_arn(account_id, region, "vpc-flow-log", flow_log_id);
+
+        let resource_id = fl.resource_id().unwrap_or("").to_string();
+        let traffic_type = fl
+            .traffic_type()
+            .map(|t| t.as_str().to_string())
+            .unwrap_or_default();
+        let log_destination_type = fl
+            .log_destination_type()
+            .map(|t| t.as_str().to_string())
+            .unwrap_or_default();
+        let log_destination = fl.log_destination().unwrap_or("").to_string();
+        let log_group_name = fl.log_group_name().unwrap_or("").to_string();
+        let flow_log_status = fl.flow_log_status().unwrap_or("").to_string();
+        let deliver_logs_status = fl.deliver_logs_status().unwrap_or("").to_string();
+        let deliver_logs_error = fl.deliver_logs_error_message().unwrap_or("").to_string();
+        let max_aggregation_interval = fl
+            .max_aggregation_interval()
+            .map(|i| i.to_string())
+            .unwrap_or_default();
+        // The log format is a space-separated ${field} template; the pipe
+        // separator used between Comments keys can't appear inside it.
+        let log_format = fl.log_format().unwrap_or("").to_string();
+        let (file_format, hive_partitions, per_hour_partition) = match fl.destination_options() {
+            Some(o) => (
+                o.file_format()
+                    .map(|f| f.as_str().to_string())
+                    .unwrap_or_default(),
+                o.hive_compatible_partitions()
+                    .map(|b| b.to_string())
+                    .unwrap_or_default(),
+                o.per_hour_partition()
+                    .map(|b| b.to_string())
+                    .unwrap_or_default(),
+            ),
+            None => (String::new(), String::new(), String::new()),
+        };
+        let deliver_logs_permission_arn =
+            fl.deliver_logs_permission_arn().unwrap_or("").to_string();
+        let creation_time = smithy_dt_to_rfc3339(fl.creation_time());
+
+        // Flow logs attach to VPCs, subnets, and ENIs alike — label which.
+        let vlan_network_id = if resource_id.starts_with("vpc-") {
+            format!("VPC: {resource_id}")
+        } else if resource_id.is_empty() {
+            String::new()
+        } else {
+            format!("Resource: {resource_id}")
+        };
+
+        let comments = format!(
+            "ResourceId: {resource_id} | TrafficType: {traffic_type} | \
+             LogDestinationType: {log_destination_type} | LogDestination: {log_destination} | \
+             LogGroupName: {log_group_name} | FlowLogStatus: {flow_log_status} | \
+             DeliverLogsStatus: {deliver_logs_status} | \
+             DeliverLogsErrorMessage: {deliver_logs_error} | \
+             MaxAggregationInterval: {max_aggregation_interval} | LogFormat: {log_format} | \
+             FileFormat: {file_format} | HiveCompatiblePartitions: {hive_partitions} | \
+             PerHourPartition: {per_hour_partition} | \
+             DeliverLogsPermissionArn: {deliver_logs_permission_arn} | \
+             CreationTime: {creation_time}"
+        );
+
+        rows.push(
+            RowBuilder::new()
+                .unique_id(&arn)
+                .virtual_flag("Yes")
+                .public("No")
+                .location(region)
+                .asset_type("VPC Flow Log")
+                .sw_vendor("Amazon Web Services")
+                .sw_name_ver("Amazon VPC Flow Logs")
+                .vlan_network_id(vlan_network_id)
+                .function(fabric_function(fl.tags()))
                 .comments(comments)
                 .build(),
         );
