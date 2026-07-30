@@ -53,6 +53,7 @@ pub const ASSET_KEY_LOG_DESTINATION: &str = "log-destination";
 pub const ASSET_KEY_VPC_FLOW_LOG: &str = "vpc-flow-log";
 pub const ASSET_KEY_RESOLVER_QUERY_LOG: &str = "resolver-query-log";
 pub const ASSET_KEY_OPENSEARCH_DOMAIN: &str = "opensearch-domain";
+pub const ASSET_KEY_MSK_CLUSTER: &str = "msk-cluster";
 
 pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_KMS_KEY, "KMS Key"),
@@ -96,6 +97,7 @@ pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
         "Route 53 Resolver Query Log Config",
     ),
     (ASSET_KEY_OPENSEARCH_DOMAIN, "OpenSearch Domain"),
+    (ASSET_KEY_MSK_CLUSTER, "MSK Cluster (Kafka)"),
 ];
 
 /// Build a 14-element all-empty row.

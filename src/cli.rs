@@ -282,6 +282,10 @@ pub struct Cli {
     #[arg(long = "opensearch", default_value_t = false)]
     pub inv_opensearch: bool,
 
+    /// Inventory: include MSK (Kafka) Clusters.
+    #[arg(long = "msk", default_value_t = false)]
+    pub inv_msk: bool,
+
     // ------- POA&M mode -------
     /// Run the POA&M reconciliation workflow (non-interactive).
     /// Requires --poam-year and --poam-month; uses --region for the region.
@@ -501,6 +505,9 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
     }
     if cli.inv_opensearch {
         selected.push("opensearch-domain".to_string());
+    }
+    if cli.inv_msk {
+        selected.push("msk-cluster".to_string());
     }
 
     let mut seen = std::collections::HashSet::new();

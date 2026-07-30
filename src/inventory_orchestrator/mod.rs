@@ -37,6 +37,7 @@ use aws_sdk_eventbridge::Client as EventBridgeClient;
 use aws_sdk_firehose::Client as FirehoseClient;
 use aws_sdk_fsx::Client as FsxClient;
 use aws_sdk_guardduty::Client as GuardDutyClient;
+use aws_sdk_kafka::Client as KafkaClient;
 use aws_sdk_kinesis::Client as KinesisClient;
 use aws_sdk_kms::Client as KmsClient;
 use aws_sdk_lambda::Client as LambdaClient;
@@ -58,11 +59,11 @@ use crate::inventory_core::{
     ASSET_KEY_EFS_FILE_SYSTEM, ASSET_KEY_ELASTICACHE_CLUSTER, ASSET_KEY_EVENTBRIDGE,
     ASSET_KEY_FIREHOSE_STREAM, ASSET_KEY_FSX_FILE_SYSTEM, ASSET_KEY_GUARDDUTY_DETECTOR,
     ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION,
-    ASSET_KEY_LOG_DESTINATION, ASSET_KEY_LOG_GROUP, ASSET_KEY_NLB, ASSET_KEY_OPENSEARCH_DOMAIN,
-    ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_RESOLVER_QUERY_LOG,
-    ASSET_KEY_S3_BUCKET, ASSET_KEY_SECRETSMANAGER_SECRET, ASSET_KEY_SECURITYHUB_HUB,
-    ASSET_KEY_SNS_TOPIC, ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_FLOW_LOG, ASSET_KEY_VPC_NETWORK,
-    ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
+    ASSET_KEY_LOG_DESTINATION, ASSET_KEY_LOG_GROUP, ASSET_KEY_MSK_CLUSTER, ASSET_KEY_NLB,
+    ASSET_KEY_OPENSEARCH_DOMAIN, ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER,
+    ASSET_KEY_RESOLVER_QUERY_LOG, ASSET_KEY_S3_BUCKET, ASSET_KEY_SECRETSMANAGER_SECRET,
+    ASSET_KEY_SECURITYHUB_HUB, ASSET_KEY_SNS_TOPIC, ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_FLOW_LOG,
+    ASSET_KEY_VPC_NETWORK, ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
 };
 
 // ---------------------------------------------------------------------------
@@ -92,6 +93,7 @@ pub struct InventoryCollector {
     firehose: FirehoseClient,
     fsx: FsxClient,
     guardduty: GuardDutyClient,
+    kafka: KafkaClient,
     kinesis: KinesisClient,
     opensearch: OpenSearchClient,
     redshift: RedshiftClient,
@@ -128,6 +130,7 @@ impl InventoryCollector {
             firehose: FirehoseClient::new(config),
             fsx: FsxClient::new(config),
             guardduty: GuardDutyClient::new(config),
+            kafka: KafkaClient::new(config),
             kinesis: KinesisClient::new(config),
             opensearch: OpenSearchClient::new(config),
             redshift: RedshiftClient::new(config),
@@ -255,6 +258,9 @@ impl CsvCollector for InventoryCollector {
                 }
                 ASSET_KEY_OPENSEARCH_DOMAIN => {
                     log_analytics::collect_opensearch_domains(&self.opensearch, &region).await
+                }
+                ASSET_KEY_MSK_CLUSTER => {
+                    log_analytics::collect_msk_clusters(&self.kafka, &region).await
                 }
                 other => {
                     eprintln!("WARN: inventory: unknown asset type key '{other}' — skipped");

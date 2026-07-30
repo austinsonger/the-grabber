@@ -1025,6 +1025,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-sdk-kafka"
+version = "1.106.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fefe1c547db324faff1589fce514a848849eb393f8f37a4480e111b7a7a8b44"
+dependencies = [
+ "aws-credential-types",
+ "aws-runtime",
+ "aws-smithy-async",
+ "aws-smithy-http",
+ "aws-smithy-json",
+ "aws-smithy-observability",
+ "aws-smithy-runtime",
+ "aws-smithy-runtime-api",
+ "aws-smithy-types",
+ "aws-types",
+ "bytes",
+ "fastrand 2.3.0",
+ "http 0.2.12",
+ "http 1.4.0",
+ "regex-lite",
+ "tracing",
+]
+
+[[package]]
 name = "aws-sdk-kinesis"
 version = "1.103.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5329,6 +5353,7 @@ dependencies = [
  "aws-sdk-guardduty",
  "aws-sdk-iam",
  "aws-sdk-inspector2",
+ "aws-sdk-kafka",
  "aws-sdk-kinesis",
  "aws-sdk-kms",
  "aws-sdk-lambda",
