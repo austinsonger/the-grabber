@@ -432,6 +432,12 @@ The **Inventory** feature is a separate TUI flow (Welcome → Feature Selection 
 | `rds-db-instance` | RDS DB Instance | `AWS_Inventory` | Includes engine, version, endpoint, subnet group |
 | `elasticache-cluster` | ElastiCache Cluster | `AWS_Inventory` | Includes engine, endpoints, node type |
 | `container` | Container (ECR/ECS/EKS) | `AWS_Inventory` | One row per ECR image digest; cross-references ECS/EKS |
+| `log-group` | CloudWatch Logs Log Group | `AWS_Inventory` | Retention, KMS key, stored bytes, metric/subscription filters; tag + filter enrichment capped at the first 500 groups per region |
+| `log-destination` | CloudWatch Logs Destination | `AWS_Inventory` | Cross-account log destinations; target ARN, role, whether an access policy is attached |
+| `vpc-flow-log` | VPC Flow Log | `AWS_Inventory` | VPC, subnet, and ENI scope; traffic type, CW Logs/S3 destination, delivery status, aggregation interval |
+| `resolver-query-log` | Route 53 Resolver Query Log Config | `AWS_Inventory` | DNS query logging destination plus the associated VPCs |
+| `opensearch-domain` | OpenSearch Domain | `AWS_Inventory` | Cluster config, encryption at rest/in transit, HTTPS + TLS policy, log publishing |
+| `msk-cluster` | MSK Cluster (Kafka) | `AWS_Inventory` | Provisioned and serverless; encryption, client auth mechanisms, broker log destinations |
 
 All selected asset types are queried in parallel. Output is a single CSV with empty strings for columns not applicable to a given asset type. When multiple regions are selected via Options, one file is written per region in a per-region subdirectory.
 
@@ -450,7 +456,7 @@ All selected asset types are queried in parallel. Output is a single CSV with em
 | GitHub collectors | 10 |
 | CrowdStrike collectors | 5 |
 | **Total evidence collectors** | **236** |
-| Asset Inventory asset types (Inventory feature) | 8 |
+| Asset Inventory asset types (Inventory feature) | 33 |
 
 Counts are the number of distinct collector keys registered in each provider's `factory.rs`. AWS split by output type: 4 JSON (time-windowed) + 140 CSV.
 
@@ -459,6 +465,6 @@ Counts are the number of distinct collector keys registered in each provider's `
 Access Analyzer · ACM · API Gateway · Auto Scaling · Backup · CloudFormation ·
 CloudFront · CloudTrail · CloudWatch · CloudWatch Logs · Config · DynamoDB ·
 EBS · EC2 · ECR · ECS · EFS · EKS · ElastiCache · ELB/ALB/NLB · EventBridge ·
-GuardDuty · IAM · Inspector2 · KMS · Lambda · Macie · Organizations ·
-RDS · Route53 · Route53 Resolver · S3 · Secrets Manager · Security Hub ·
-SNS · SSM · VPC · WAF / WAFv2
+GuardDuty · IAM · Inspector2 · KMS · Lambda · Macie · MSK (Kafka) ·
+OpenSearch · Organizations · RDS · Route53 · Route53 Resolver · S3 ·
+Secrets Manager · Security Hub · SNS · SSM · VPC · WAF / WAFv2

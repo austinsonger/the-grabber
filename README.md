@@ -304,8 +304,8 @@ Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`
 | `--inventory` | off | Run the unified inventory workflow (see Inventory below) |
 | `--inventory-all-accounts` | off | With `--inventory`: merge inventory from every configured account into one unified CSV+XLSX (mutually exclusive with `--profile`) |
 | `--skip-inventory-csv` | off | Skip the unified CSV (XLSX still written) |
-| `--inventory-types` | all types | Comma-separated asset-type keys: `kms-key,s3-bucket,lambda-function,ec2-instance,alb,rds-db-instance,elasticache-cluster,container` |
-| `--kms` / `--s3` / `--lambda` / `--ec2` / `--alb` / `--rds` / `--elasticache` / `--containers` | off | Individual inventory asset-type opt-ins; additive with `--inventory-types` |
+| `--inventory-types` | all types | Comma-separated asset-type keys, e.g. `kms-key,s3-bucket,ec2-instance,log-group,vpc-flow-log,opensearch-domain,msk-cluster`. See `INVENTORY_ITEMS` in `src/inventory_core.rs` for all 33 valid keys |
+| `--kms` / `--s3` / `--lambda` / `--ec2` / `--alb` / `--rds` / `--elasticache` / `--containers` … | off | One opt-in flag per asset type (including `--log-groups`, `--log-destinations`, `--vpc-flow-logs`, `--resolver-query-logs`, `--opensearch`, `--msk`); additive with `--inventory-types` |
 | `--poam` | off | Run POA&M reconciliation (requires `--poam-year` and `--poam-month`) |
 | `--poam-year` | — | 4-digit findings year, e.g. `2026` |
 | `--poam-month` | — | Month name, e.g. `January` … `December` |

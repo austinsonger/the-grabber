@@ -1025,6 +1025,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-sdk-kafka"
+version = "1.106.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fefe1c547db324faff1589fce514a848849eb393f8f37a4480e111b7a7a8b44"
+dependencies = [
+ "aws-credential-types",
+ "aws-runtime",
+ "aws-smithy-async",
+ "aws-smithy-http",
+ "aws-smithy-json",
+ "aws-smithy-observability",
+ "aws-smithy-runtime",
+ "aws-smithy-runtime-api",
+ "aws-smithy-types",
+ "aws-types",
+ "bytes",
+ "fastrand 2.3.0",
+ "http 0.2.12",
+ "http 1.4.0",
+ "regex-lite",
+ "tracing",
+]
+
+[[package]]
 name = "aws-sdk-kinesis"
 version = "1.103.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1151,6 +1175,30 @@ name = "aws-sdk-networkfirewall"
 version = "1.108.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acaa357dd767a8b81da9500e0336dcfb697449d4dc21f913c59535de1f550e4e"
+dependencies = [
+ "aws-credential-types",
+ "aws-runtime",
+ "aws-smithy-async",
+ "aws-smithy-http",
+ "aws-smithy-json",
+ "aws-smithy-observability",
+ "aws-smithy-runtime",
+ "aws-smithy-runtime-api",
+ "aws-smithy-types",
+ "aws-types",
+ "bytes",
+ "fastrand 2.3.0",
+ "http 0.2.12",
+ "http 1.4.0",
+ "regex-lite",
+ "tracing",
+]
+
+[[package]]
+name = "aws-sdk-opensearch"
+version = "1.122.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7959cc19bfe6d7cad9c185bc6e8ad6fbbc435fe4443fa6de5ec510707aff3594"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -5320,12 +5368,14 @@ dependencies = [
  "aws-sdk-guardduty",
  "aws-sdk-iam",
  "aws-sdk-inspector2",
+ "aws-sdk-kafka",
  "aws-sdk-kinesis",
  "aws-sdk-kms",
  "aws-sdk-lambda",
  "aws-sdk-licensemanager",
  "aws-sdk-macie2",
  "aws-sdk-networkfirewall",
+ "aws-sdk-opensearch",
  "aws-sdk-organizations",
  "aws-sdk-rds",
  "aws-sdk-redshift",
