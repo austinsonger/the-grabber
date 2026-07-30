@@ -180,3 +180,64 @@ pub(super) async fn collect_log_groups(
 
     Ok(rows)
 }
+
+// ---------------------------------------------------------------------------
+// CloudWatch Logs Destinations — mapping doc §26
+//
+// A destination is the cross-account receiving end of a subscription filter:
+// account A's log group forwards to account B's destination, which fans out to
+// a Kinesis stream or Firehose. Destinations carry no tags and no per-item
+// describe call, so this is a single paginated list.
+// ---------------------------------------------------------------------------
+
+pub(super) async fn collect_log_destinations(
+    c: &CloudWatchLogsClient,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
+    let destinations = c
+        .describe_destinations()
+        .into_paginator()
+        .items()
+        .send()
+        .try_collect()
+        .await
+        .context("CloudWatch Logs describe_destinations")?;
+
+    let mut rows = Vec::with_capacity(destinations.len());
+    for dest in &destinations {
+        let Some(arn) = dest.arn() else {
+            continue;
+        };
+
+        let destination_name = dest.destination_name().unwrap_or("").to_string();
+        let target_arn = dest.target_arn().unwrap_or("").to_string();
+        let role_arn = dest.role_arn().unwrap_or("").to_string();
+        // The policy body is a multi-line JSON document — recording only its
+        // presence keeps the CSV usable. The full policy is already captured by
+        // the evidence-side CloudWatch collectors.
+        let access_policy_present = dest.access_policy().is_some().to_string();
+        let creation_time = millis_to_rfc3339(dest.creation_time());
+
+        let comments = format!(
+            "DestinationName: {destination_name} | TargetArn: {target_arn} | \
+             RoleArn: {role_arn} | AccessPolicyPresent: {access_policy_present} | \
+             CreationTime: {creation_time}"
+        );
+
+        rows.push(
+            RowBuilder::new()
+                .unique_id(arn)
+                .virtual_flag("Yes")
+                .public("No")
+                .location(region)
+                .asset_type("CloudWatch Logs Destination")
+                .sw_vendor("Amazon Web Services")
+                .sw_name_ver("Amazon CloudWatch Logs (cross-account destination)")
+                .function(destination_name)
+                .comments(comments)
+                .build(),
+        );
+    }
+
+    Ok(rows)
+}

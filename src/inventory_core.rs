@@ -49,6 +49,7 @@ pub const ASSET_KEY_GUARDDUTY_DETECTOR: &str = "guardduty-detector";
 pub const ASSET_KEY_SECURITYHUB_HUB: &str = "securityhub-hub";
 pub const ASSET_KEY_WAF_WEBACL: &str = "waf-webacl";
 pub const ASSET_KEY_LOG_GROUP: &str = "log-group";
+pub const ASSET_KEY_LOG_DESTINATION: &str = "log-destination";
 
 pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_KMS_KEY, "KMS Key"),
@@ -85,6 +86,7 @@ pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_SECURITYHUB_HUB, "Security Hub Hub"),
     (ASSET_KEY_WAF_WEBACL, "WAF WebACL"),
     (ASSET_KEY_LOG_GROUP, "CloudWatch Logs Log Group"),
+    (ASSET_KEY_LOG_DESTINATION, "CloudWatch Logs Destination"),
 ];
 
 /// Build a 14-element all-empty row.

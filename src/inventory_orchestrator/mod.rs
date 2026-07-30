@@ -54,10 +54,11 @@ use crate::inventory_core::{
     ASSET_KEY_CONTAINER, ASSET_KEY_DYNAMODB_TABLE, ASSET_KEY_EBS_VOLUME, ASSET_KEY_EC2_INSTANCE,
     ASSET_KEY_EFS_FILE_SYSTEM, ASSET_KEY_ELASTICACHE_CLUSTER, ASSET_KEY_EVENTBRIDGE,
     ASSET_KEY_FIREHOSE_STREAM, ASSET_KEY_FSX_FILE_SYSTEM, ASSET_KEY_GUARDDUTY_DETECTOR,
-    ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION, ASSET_KEY_LOG_GROUP,
-    ASSET_KEY_NLB, ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_S3_BUCKET,
-    ASSET_KEY_SECRETSMANAGER_SECRET, ASSET_KEY_SECURITYHUB_HUB, ASSET_KEY_SNS_TOPIC,
-    ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_NETWORK, ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
+    ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION,
+    ASSET_KEY_LOG_DESTINATION, ASSET_KEY_LOG_GROUP, ASSET_KEY_NLB, ASSET_KEY_RDS_DB_INSTANCE,
+    ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_S3_BUCKET, ASSET_KEY_SECRETSMANAGER_SECRET,
+    ASSET_KEY_SECURITYHUB_HUB, ASSET_KEY_SNS_TOPIC, ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_NETWORK,
+    ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
 };
 
 // ---------------------------------------------------------------------------
@@ -235,6 +236,9 @@ impl CsvCollector for InventoryCollector {
                     security_services::collect_waf_webacls(&self.wafv2, &region).await
                 }
                 ASSET_KEY_LOG_GROUP => logging::collect_log_groups(&self.cwlogs, &region).await,
+                ASSET_KEY_LOG_DESTINATION => {
+                    logging::collect_log_destinations(&self.cwlogs, &region).await
+                }
                 other => {
                     eprintln!("WARN: inventory: unknown asset type key '{other}' — skipped");
                     continue;
