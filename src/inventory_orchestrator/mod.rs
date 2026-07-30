@@ -9,6 +9,7 @@
 mod apigateway;
 mod compute;
 mod data_services;
+mod logging;
 mod messaging;
 mod network_fabric;
 mod secrets;
@@ -21,6 +22,7 @@ use async_trait::async_trait;
 use aws_sdk_apigateway::Client as ApiGatewayV1Client;
 use aws_sdk_apigatewayv2::Client as ApiGatewayV2Client;
 use aws_sdk_cloudtrail::Client as CloudTrailClient;
+use aws_sdk_cloudwatchlogs::Client as CloudWatchLogsClient;
 use aws_sdk_config::Client as ConfigClient;
 use aws_sdk_dynamodb::Client as DynamoDbClient;
 use aws_sdk_ec2::Client as Ec2Client;
@@ -52,8 +54,8 @@ use crate::inventory_core::{
     ASSET_KEY_CONTAINER, ASSET_KEY_DYNAMODB_TABLE, ASSET_KEY_EBS_VOLUME, ASSET_KEY_EC2_INSTANCE,
     ASSET_KEY_EFS_FILE_SYSTEM, ASSET_KEY_ELASTICACHE_CLUSTER, ASSET_KEY_EVENTBRIDGE,
     ASSET_KEY_FIREHOSE_STREAM, ASSET_KEY_FSX_FILE_SYSTEM, ASSET_KEY_GUARDDUTY_DETECTOR,
-    ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION, ASSET_KEY_NLB,
-    ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_S3_BUCKET,
+    ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION, ASSET_KEY_LOG_GROUP,
+    ASSET_KEY_NLB, ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_S3_BUCKET,
     ASSET_KEY_SECRETSMANAGER_SECRET, ASSET_KEY_SECURITYHUB_HUB, ASSET_KEY_SNS_TOPIC,
     ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_NETWORK, ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
 };
@@ -78,6 +80,7 @@ pub struct InventoryCollector {
     apigw_v2: ApiGatewayV2Client,
     cloudtrail: CloudTrailClient,
     config_svc: ConfigClient,
+    cwlogs: CloudWatchLogsClient,
     dynamodb: DynamoDbClient,
     efs: EfsClient,
     eventbridge: EventBridgeClient,
@@ -111,6 +114,7 @@ impl InventoryCollector {
             apigw_v2: ApiGatewayV2Client::new(config),
             cloudtrail: CloudTrailClient::new(config),
             config_svc: ConfigClient::new(config),
+            cwlogs: CloudWatchLogsClient::new(config),
             dynamodb: DynamoDbClient::new(config),
             efs: EfsClient::new(config),
             eventbridge: EventBridgeClient::new(config),
@@ -230,6 +234,7 @@ impl CsvCollector for InventoryCollector {
                 ASSET_KEY_WAF_WEBACL => {
                     security_services::collect_waf_webacls(&self.wafv2, &region).await
                 }
+                ASSET_KEY_LOG_GROUP => logging::collect_log_groups(&self.cwlogs, &region).await,
                 other => {
                     eprintln!("WARN: inventory: unknown asset type key '{other}' — skipped");
                     continue;

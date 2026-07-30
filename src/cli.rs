@@ -262,6 +262,10 @@ pub struct Cli {
     #[arg(long = "waf", default_value_t = false)]
     pub inv_waf: bool,
 
+    /// Inventory: include CloudWatch Logs Log Groups.
+    #[arg(long = "log-groups", default_value_t = false)]
+    pub inv_log_groups: bool,
+
     // ------- POA&M mode -------
     /// Run the POA&M reconciliation workflow (non-interactive).
     /// Requires --poam-year and --poam-month; uses --region for the region.
@@ -466,6 +470,9 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
     }
     if cli.inv_waf {
         selected.push("waf-webacl".to_string());
+    }
+    if cli.inv_log_groups {
+        selected.push("log-group".to_string());
     }
 
     let mut seen = std::collections::HashSet::new();

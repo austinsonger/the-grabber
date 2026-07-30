@@ -48,6 +48,7 @@ pub const ASSET_KEY_CONFIG_RECORDER: &str = "config-recorder";
 pub const ASSET_KEY_GUARDDUTY_DETECTOR: &str = "guardduty-detector";
 pub const ASSET_KEY_SECURITYHUB_HUB: &str = "securityhub-hub";
 pub const ASSET_KEY_WAF_WEBACL: &str = "waf-webacl";
+pub const ASSET_KEY_LOG_GROUP: &str = "log-group";
 
 pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_KMS_KEY, "KMS Key"),
@@ -83,6 +84,7 @@ pub const INVENTORY_ITEMS: &[(&str, &str)] = &[
     (ASSET_KEY_GUARDDUTY_DETECTOR, "GuardDuty Detector"),
     (ASSET_KEY_SECURITYHUB_HUB, "Security Hub Hub"),
     (ASSET_KEY_WAF_WEBACL, "WAF WebACL"),
+    (ASSET_KEY_LOG_GROUP, "CloudWatch Logs Log Group"),
 ];
 
 /// Build a 14-element all-empty row.
@@ -173,6 +175,23 @@ pub fn tag_value<'a>(tags: &'a [(&str, &str)], key: &str) -> Option<&'a str> {
     tags.iter()
         .find(|(k, _)| k.eq_ignore_ascii_case(key))
         .map(|(_, v)| *v)
+}
+
+/// Tag-first `Function`-column derivation for services whose tags come back as
+/// a `HashMap<String, String>` (CloudWatch Logs, MSK) rather than the
+/// `Vec<Tag>` shape the other collectors see. Same key precedence as the
+/// `Vec<Tag>` helpers: Purpose → App → Role → Function, each in Titlecase then
+/// lowercase.
+pub fn function_from_tag_map(tags: &std::collections::HashMap<String, String>) -> String {
+    for key in [
+        "Purpose", "App", "Role", "Function", "purpose", "app", "role",
+    ] {
+        match tags.get(key) {
+            Some(v) if !v.is_empty() => return v.clone(),
+            _ => {}
+        }
+    }
+    String::new()
 }
 
 /// Normalize an S3 bucket region — empty constraint means us-east-1.
