@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use aws_sdk_cloudwatchlogs::Client as CloudWatchLogsClient;
 use aws_sdk_ec2::Client as Ec2Client;
+use aws_sdk_route53resolver::types::Filter as ResolverFilter;
+use aws_sdk_route53resolver::Client as Route53ResolverClient;
 
 use super::network_fabric::{ec2_arn, fabric_function};
 use crate::inventory_core::{function_from_tag_map, RowBuilder};
@@ -358,6 +360,115 @@ pub(super) async fn collect_vpc_flow_logs(
                 .sw_name_ver("Amazon VPC Flow Logs")
                 .vlan_network_id(vlan_network_id)
                 .function(fabric_function(fl.tags()))
+                .comments(comments)
+                .build(),
+        );
+    }
+
+    Ok(rows)
+}
+
+// ---------------------------------------------------------------------------
+// Route 53 Resolver Query Log Configs — mapping doc §28
+//
+// A query log config is the DNS-query logging pipeline: one config, N VPC
+// associations, one destination (CloudWatch Logs group, S3 bucket, or Firehose
+// stream). Configs shared into this account (ShareStatus SHARED_WITH_ME) are
+// kept — they are in force on this account's VPCs and so are in scope.
+// ---------------------------------------------------------------------------
+
+/// Soft-failing list of VPC (or other resource) ids associated with one query
+/// log config. `association_count` on the config tells us how many there are
+/// but not which — only this call does.
+async fn resolver_query_log_associations(
+    c: &Route53ResolverClient,
+    config_id: &str,
+) -> Vec<String> {
+    let filter = ResolverFilter::builder()
+        .name("ResolverQueryLogConfigId")
+        .values(config_id)
+        .build();
+
+    match c
+        .list_resolver_query_log_config_associations()
+        .filters(filter)
+        .into_paginator()
+        .items()
+        .send()
+        .try_collect()
+        .await
+    {
+        Ok(associations) => associations
+            .iter()
+            .filter_map(|a| a.resource_id().map(|s| s.to_string()))
+            .collect(),
+        Err(e) => {
+            eprintln!(
+                "route53resolver list_resolver_query_log_config_associations failed for \
+                 {config_id}: {e}"
+            );
+            Vec::new()
+        }
+    }
+}
+
+pub(super) async fn collect_resolver_query_logs(
+    c: &Route53ResolverClient,
+    region: &str,
+) -> Result<Vec<Vec<String>>> {
+    let configs = c
+        .list_resolver_query_log_configs()
+        .into_paginator()
+        .items()
+        .send()
+        .try_collect()
+        .await
+        .context("Route53Resolver list_resolver_query_log_configs")?;
+
+    let mut rows = Vec::with_capacity(configs.len());
+    for config in &configs {
+        let Some(arn) = config.arn() else {
+            continue;
+        };
+
+        let name = config.name().unwrap_or("").to_string();
+        let status = config
+            .status()
+            .map(|s| s.as_str().to_string())
+            .unwrap_or_default();
+        let share_status = config
+            .share_status()
+            .map(|s| s.as_str().to_string())
+            .unwrap_or_default();
+        let owner_id = config.owner_id().unwrap_or("").to_string();
+        let destination_arn = config.destination_arn().unwrap_or("").to_string();
+        let association_count = config.association_count().to_string();
+        let creation_time = config.creation_time().unwrap_or("").to_string();
+
+        let associated = match config.id() {
+            Some(id) => resolver_query_log_associations(c, id).await,
+            None => Vec::new(),
+        };
+        let associated_resources = associated.join(", ");
+
+        let comments = format!(
+            "Name: {name} | Status: {status} | ShareStatus: {share_status} | \
+             OwnerId: {owner_id} | DestinationArn: {destination_arn} | \
+             AssociationCount: {association_count} | \
+             AssociatedResources: {associated_resources} | CreationTime: {creation_time}"
+        );
+
+        rows.push(
+            RowBuilder::new()
+                .unique_id(arn)
+                .virtual_flag("Yes")
+                .public("No")
+                .location(region)
+                .asset_type("Route 53 Resolver Query Log Config")
+                .sw_vendor("Amazon Web Services")
+                .sw_name_ver("Amazon Route 53 Resolver Query Logging")
+                .vlan_network_id(associated_resources)
+                .function(name)
                 .comments(comments)
                 .build(),
         );

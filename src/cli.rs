@@ -274,6 +274,10 @@ pub struct Cli {
     #[arg(long = "vpc-flow-logs", default_value_t = false)]
     pub inv_vpc_flow_logs: bool,
 
+    /// Inventory: include Route 53 Resolver Query Log Configs.
+    #[arg(long = "resolver-query-logs", default_value_t = false)]
+    pub inv_resolver_query_logs: bool,
+
     // ------- POA&M mode -------
     /// Run the POA&M reconciliation workflow (non-interactive).
     /// Requires --poam-year and --poam-month; uses --region for the region.
@@ -487,6 +491,9 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
     }
     if cli.inv_vpc_flow_logs {
         selected.push("vpc-flow-log".to_string());
+    }
+    if cli.inv_resolver_query_logs {
+        selected.push("resolver-query-log".to_string());
     }
 
     let mut seen = std::collections::HashSet::new();
