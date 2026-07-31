@@ -1,8 +1,11 @@
 use anyhow::Context;
+use serde::Serialize;
 use tauri::State;
 use uuid::Uuid;
 
-use the_grabber::credentials::{CredentialKind, CredentialSecret, NewCredential};
+use the_grabber::credentials::{
+    detect_aws_profiles as scan_aws_profiles, CredentialKind, CredentialSecret, NewCredential,
+};
 use the_grabber::providers::CloudProvider;
 
 use crate::dto::{CredentialMetaDto, CredentialWriteDto};
@@ -76,6 +79,89 @@ pub async fn delete_credential(id: String, state: State<'_, AppState>) -> Result
         .delete(uuid)
         .map_err(|e| GuiError::Credential(e.to_string()))?;
     Ok(())
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DetectedAwsProfileDto {
+    pub name: String,
+    pub region: Option<String>,
+    pub kind: String,
+    pub sources: Vec<String>,
+    /// True when a vault credential already references this profile name.
+    pub imported: bool,
+}
+
+#[tauri::command]
+pub async fn detect_aws_profiles(
+    state: State<'_, AppState>,
+) -> Result<Vec<DetectedAwsProfileDto>, GuiError> {
+    let profiles = scan_aws_profiles().map_err(|e| GuiError::Credential(e.to_string()))?;
+    let existing = state
+        .engine
+        .vault
+        .list()
+        .map_err(|e| GuiError::Credential(e.to_string()))?;
+    Ok(profiles
+        .into_iter()
+        .map(|p| {
+            let imported = existing
+                .iter()
+                .any(|m| m.profile_name.as_deref() == Some(p.name.as_str()));
+            DetectedAwsProfileDto {
+                name: p.name,
+                region: p.region,
+                kind: p.kind,
+                sources: p.sources,
+                imported,
+            }
+        })
+        .collect())
+}
+
+#[tauri::command]
+pub async fn import_aws_profiles(
+    names: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<CredentialMetaDto>, GuiError> {
+    let existing = state
+        .engine
+        .vault
+        .list()
+        .map_err(|e| GuiError::Credential(e.to_string()))?;
+    let mut created = Vec::new();
+    for name in names {
+        if name.is_empty() {
+            continue;
+        }
+        if existing
+            .iter()
+            .any(|m| m.profile_name.as_deref() == Some(name.as_str()))
+        {
+            continue;
+        }
+        let meta = state
+            .engine
+            .vault
+            .create(NewCredential {
+                name: name.clone(),
+                provider: CloudProvider::Aws,
+                kind: CredentialKind::AwsProfileReference { profile_name: name },
+                secret: CredentialSecret::None,
+            })
+            .map_err(|e| GuiError::Credential(e.to_string()))?;
+        created.push(CredentialMetaDto {
+            id: meta.id.to_string(),
+            name: meta.name,
+            provider: meta.provider.to_string(),
+            kind: meta.kind_tag,
+            domain: meta.domain,
+            host: meta.host,
+            access_key_id: meta.access_key_id,
+            account_id: meta.account_id,
+            profile_name: meta.profile_name,
+        });
+    }
+    Ok(created)
 }
 
 fn parse_credential_dto(

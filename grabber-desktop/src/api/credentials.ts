@@ -41,3 +41,17 @@ export const createCredential = (dto: CredentialWriteDto) =>
 
 export const deleteCredential = (id: string) =>
   invoke<void>("delete_credential", { id });
+
+export interface DetectedAwsProfileDto {
+  name: string;
+  region?: string;
+  kind: string;
+  sources: string[];
+  imported: boolean;
+}
+
+export const detectAwsProfiles = () =>
+  invoke<DetectedAwsProfileDto[]>("detect_aws_profiles");
+
+export const importAwsProfiles = (names: string[]) =>
+  invoke<CredentialMetaDto[]>("import_aws_profiles", { names });

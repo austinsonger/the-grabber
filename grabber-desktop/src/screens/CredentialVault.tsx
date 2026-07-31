@@ -5,6 +5,9 @@ import {
   CredentialMetaDto,
   CredentialWriteDto,
   deleteCredential,
+  detectAwsProfiles,
+  DetectedAwsProfileDto,
+  importAwsProfiles,
   listCredentials,
 } from "../api/credentials";
 
@@ -16,6 +19,7 @@ const EMPTY_FORM: CredentialWriteDto = {
 
 export default function CredentialVault() {
   const [creds, setCreds] = useState<CredentialMetaDto[]>([]);
+  const [detected, setDetected] = useState<DetectedAwsProfileDto[]>([]);
   const [form, setForm] = useState<CredentialWriteDto>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +28,7 @@ export default function CredentialVault() {
       setError(null);
       const result = await listCredentials();
       setCreds(result);
+      setDetected(await detectAwsProfiles());
     } catch (e) {
       setError(String(e));
     }
@@ -39,6 +44,16 @@ export default function CredentialVault() {
       setError(null);
       await createCredential(form);
       setForm(EMPTY_FORM);
+      await refresh();
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  const onImport = async (names: string[]) => {
+    try {
+      setError(null);
+      await importAwsProfiles(names);
       await refresh();
     } catch (err) {
       setError(String(err));
@@ -85,6 +100,49 @@ export default function CredentialVault() {
           ))}
         </tbody>
       </table>
+
+      {detected.some((p) => !p.imported) && (
+        <>
+          <h2>Detected AWS Profiles (~/.aws)</h2>
+          <p style={{ opacity: 0.7 }}>
+            Profiles found in your AWS config/credentials files. Importing adds a
+            reference — secrets stay in ~/.aws and are never copied.
+          </p>
+          <table style={{ width: "100%", marginBottom: 16 }}>
+            <thead>
+              <tr>
+                <th>Profile</th>
+                <th>Type</th>
+                <th>Region</th>
+                <th>Found in</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {detected
+                .filter((p) => !p.imported)
+                .map((p) => (
+                  <tr key={p.name}>
+                    <td>{p.name}</td>
+                    <td>{p.kind}</td>
+                    <td>{p.region || "—"}</td>
+                    <td>{p.sources.join(", ")}</td>
+                    <td>
+                      <button onClick={() => onImport([p.name])}>Import</button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+          <button
+            onClick={() =>
+              onImport(detected.filter((p) => !p.imported).map((p) => p.name))
+            }
+          >
+            Import all
+          </button>
+        </>
+      )}
 
       <h2>Add Credential</h2>
       <form onSubmit={onSubmit} style={{ maxWidth: 400 }}>
