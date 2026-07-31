@@ -9,7 +9,7 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub async fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, GuiError> {
-    Ok(state
+    let mut accounts: Vec<AccountDto> = state
         .config
         .account
         .iter()
@@ -22,7 +22,40 @@ pub async fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>
             region: a.region.clone().unwrap_or_default(),
             output_dir: a.output_dir.clone(),
         })
-        .collect())
+        .collect();
+
+    // Vault credentials (e.g. imported ~/.aws profiles) that no config.toml
+    // account references yet are offered as standalone accounts — collection
+    // resolves them by credential_id, so no config entry is required.
+    let metas = state
+        .engine
+        .vault
+        .list()
+        .map_err(|e| GuiError::Credential(e.to_string()))?;
+    for meta in metas {
+        if meta.provider != the_grabber::providers::CloudProvider::Aws {
+            continue;
+        }
+        let id = meta.id.to_string();
+        let already_referenced = state.config.account.iter().any(|a| {
+            a.credential_id.as_deref() == Some(id.as_str())
+                || (meta.profile_name.is_some() && a.profile == meta.profile_name)
+        });
+        if already_referenced || accounts.iter().any(|a| a.name == meta.name) {
+            continue;
+        }
+        accounts.push(AccountDto {
+            name: meta.name,
+            provider: meta.provider.to_string(),
+            account_id: meta.account_id,
+            credential_id: Some(id),
+            profile: meta.profile_name,
+            region: String::new(),
+            output_dir: None,
+        });
+    }
+
+    Ok(accounts)
 }
 
 #[tauri::command]
