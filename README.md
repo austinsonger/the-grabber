@@ -319,6 +319,31 @@ Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`
 3. `--collectors` accepts keys across every enabled provider (AWS/Okta/Jira/Tenable/GitHub); the maintained key list lives in `evidence-list.md`.
 4. `--inventory` writes the unified `AWS_Inventory-<timestamp>.csv` plus the FedRAMP-templated `.xlsx` when `assets/Inventory.xlsx` is present. `RUN-MANIFEST` and `CHAIN-OF-CUSTODY` files are opt-in via their `--write-*` flags in collectors mode only.
 
+### Non-AWS provider CLI modes
+
+Okta, Tenable, Elastic Security, and GitHub run headlessly via their own mode
+flags. One provider per invocation. Full detail in the
+[CLI Reference](docs/cli-reference.md#provider-modes).
+
+| Flag | Default | Description |
+|---|---|---|
+| `--okta` / `--tenable` / `--elastic` / `--github` | off | Run that provider's collectors non-interactively. Mutually exclusive. |
+| `--<provider>-account <NAME>` | all | Narrow a multi-account config to the `[[account]]` with this `name`. |
+| `--<provider>-collectors <KEY>[,<KEY>…]` | all | Collector keys to run; additive with the individual flags below. |
+| `--okta-users` / `--okta-groups` / `--tenable-assets` / `--elastic-alerts` / `--github-repos` … | off | One opt-in flag per collector, named after its key (50 total across the four providers). |
+| `--tenable-scan-ids` / `--tenable-was-scan-ids` | all scans | Scope Tenable collection to specific scans (replaces the TUI scan picker). |
+
+Credentials come from `--<provider>-*` flags, then environment variables, then
+the sibling `*-config.toml` files; blank values at any level are treated as
+absent. Accounts missing credentials are skipped with a warning and the run
+continues. With no window flag, provider modes default to the last 30 days.
+
+```bash
+grabber --okta --okta-users --okta-groups --lookback 90d
+grabber --github --github-audit-log --start-date 2026-07-01 --end-date 2026-07-31
+grabber --elastic --lookback 30d -o ./evidence-output --zip
+```
+
 ---
 
 ## Output Files

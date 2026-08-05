@@ -13,16 +13,17 @@
 4. [Time Window Flags](#time-window-flags)
 5. [Collectors Mode](#collectors-mode)
 6. [Inventory Mode](#inventory-mode)
-7. [POA&M Mode](#poam-mode)
-8. [Signing & Verification](#signing--verification)
-9. [Output & Packaging](#output--packaging)
-10. [S3 CloudTrail Flags](#s3-cloudtrail-flags)
-11. [Multi-Region Flags](#multi-region-flags)
-12. [Audit Artifact Opt-Ins](#audit-artifact-opt-ins)
-13. [Collector Keys Reference](#collector-keys-reference)
-14. [Inventory Asset Types](#inventory-asset-types)
-15. [Config File Defaults](#config-file-defaults)
-16. [Exit Behavior](#exit-behavior)
+7. [Provider Modes](#provider-modes)
+8. [POA&M Mode](#poam-mode)
+9. [Signing & Verification](#signing--verification)
+10. [Output & Packaging](#output--packaging)
+11. [S3 CloudTrail Flags](#s3-cloudtrail-flags)
+12. [Multi-Region Flags](#multi-region-flags)
+13. [Audit Artifact Opt-Ins](#audit-artifact-opt-ins)
+14. [Collector Keys Reference](#collector-keys-reference)
+15. [Inventory Asset Types](#inventory-asset-types)
+16. [Config File Defaults](#config-file-defaults)
+17. [Exit Behavior](#exit-behavior)
 
 ---
 
@@ -241,6 +242,114 @@ The lookback window is attached to the run for audit-trail consistency with TUI 
 
 ---
 
+## Provider Modes
+
+Okta, Tenable, Elastic Security, and GitHub each have a mode flag that runs that
+provider's collectors headlessly. The four are mutually exclusive — run one
+provider per invocation. They cannot be combined with `--inventory`, `--poam`,
+`--collectors`, `--all-regions`, or `--regions`.
+
+| Provider | Mode flag | Collectors | Key list flag |
+|---|---|---|---|
+| Okta | `--okta` | 25 | `--okta-collectors` |
+| Tenable | `--tenable` | 5 | `--tenable-collectors` |
+| Elastic Security | `--elastic` | 10 | `--elastic-collectors` |
+| GitHub | `--github` | 10 | `--github-collectors` |
+
+### Selecting collectors
+
+Every collector has an opt-in boolean flag named after its key
+(`--okta-users`, `--tenable-assets`, `--elastic-alerts`,
+`--github-audit-log`, …). Individual flags and the `--<provider>-collectors`
+key list are **additive**, exactly like the inventory asset-type flags. Passing
+neither runs every collector for that provider. Unknown keys are rejected with
+the valid list.
+
+```bash
+# Every Okta collector, last 30 days (the default window)
+grabber --okta
+
+# Two collectors via individual flags
+grabber --okta --okta-users --okta-groups
+
+# The same two via the key list
+grabber --okta --okta-collectors okta-users,okta-groups
+
+# Mixed — results in okta-users, okta-groups, okta-apps
+grabber --okta --okta-collectors okta-users,okta-groups --okta-apps
+```
+
+### Credentials
+
+Precedence is **CLI flag → environment variable → `config.toml`**, and a blank
+or whitespace-only value at any level is treated as absent and falls through
+to the next source — this matters because the shipped `*-config.example.toml`
+files ship empty placeholders like `okta_api_token = ""`. Accounts come from
+the merged config (`config.toml` plus `okta-config.toml`,
+`tenable-config.toml`, `elastic-config.toml`, `github-config.toml`); with no
+config file at all, the CLI flags or env vars alone are enough to run.
+`--<provider>-account <name>` narrows a multi-account config to one entry.
+Accounts missing credentials print a `✗` line and are skipped; the run
+continues against the rest, and only fails outright when no account is
+usable.
+
+| Provider | Flags | Environment variables |
+|---|---|---|
+| Okta | `--okta-domain`, `--okta-api-token` | `OKTA_DOMAIN`, `OKTA_API_TOKEN` |
+| Tenable | `--tenable-url`, `--tenable-access-key`, `--tenable-secret-key` | `TENABLE_ACCESS_KEY`, `TENABLE_SECRET_KEY` |
+| Elastic | `--elastic-kibana-url`, `--elastic-es-url`, `--elastic-api-key` | `ELASTIC_KIBANA_URL`, `ELASTIC_ES_URL`, `ELASTIC_API_KEY` |
+| GitHub | `--github-org`, `--github-token`, `--github-base-url` | `GITHUB_ORG`, `GITHUB_TOKEN`, `GITHUB_BASE_URL` |
+
+`--tenable-url` defaults to `https://cloud.tenable.com`; `--github-base-url`
+defaults to `https://api.github.com` (set it — or `GITHUB_BASE_URL` — for
+GitHub Enterprise Server; both the config and no-config credential paths
+honor it).
+
+### Time window
+
+Provider modes accept `--lookback` or `--start-date`/`--end-date`. **With no
+window flag they default to the last 30 days** and print a notice on stderr,
+because time-windowed collectors (Okta System Log, GitHub Audit Log, Elastic
+Alerts) would otherwise export their full retained history.
+
+```bash
+grabber --okta --okta-system-log --lookback 90d
+grabber --github --github-audit-log --start-date 2026-07-01 --end-date 2026-07-31
+```
+
+### Tenable scan selection
+
+`--tenable-scan-ids` (numeric) and `--tenable-was-scan-ids` (string config IDs)
+replace the TUI's scan-selection screen. Both default to empty, meaning "all
+scans" — which is correct for `tenable-vulns`, whose export API is keyed on scan
+UUIDs and ignores numeric IDs entirely.
+
+```bash
+grabber --tenable --tenable-was --tenable-was-scan-ids 8d1f...,9a2c...
+```
+
+### Okta STIG
+
+The read-only DISA STIG evaluation is a normal collector:
+`--okta-stig-compliance` writes the full check-by-check CSV. STIG
+**remediation** — which writes changes to the live tenant — stays in the TUI
+behind its interactive confirmation screen and has no CLI flag.
+
+### Output, packaging, and audit artifacts
+
+Files land in `{output}/{account name}/{YYYY}/{MM-MMM}/`, matching the TUI.
+`--output` wins; otherwise the account's `output_dir` from config is used as-is.
+`--zip`, `--sign`, `--signing-key`, and `--write-run-manifest` all work.
+`--write-chain-of-custody` does not — the custody record is keyed on an AWS
+caller identity — and warns rather than failing.
+
+```bash
+# Full Okta evidence run, zipped and signed
+grabber --okta --lookback 90d -o ./evidence-output --zip --sign --write-run-manifest
+```
+
+---
+
 ## POA&M Mode
 
 Triggered by `--poam`. Reconciles Inspector2 findings from the evidence directory against a FedRAMP POA&M Excel workbook.
@@ -442,7 +551,7 @@ grabber --inventory --ec2 --rds --skip-inventory-csv
 
 ## Collector Keys Reference
 
-All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `tenable-*`, `elastic-*`, `github-*`) — see the provider sections in the main [README](../README.md) for the canonical lists. Non-AWS providers (Okta, Jira, Tenable, Elastic, GitHub) are TUI-only today; `--collectors` only affects the AWS headless CLI path.
+All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `tenable-*`, `elastic-*`, `github-*`) — see the provider sections in the main [README](../README.md) for the canonical lists. `--collectors` only affects the AWS headless CLI path; Okta, Tenable, Elastic, and GitHub have their own mode flags and per-collector flags (see [Provider Modes](#provider-modes)). Jira remains TUI-only.
 
 ### App Layer & DNS
 
