@@ -316,7 +316,7 @@ Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`
 
 1. Any of `--start-date`, `--lookback`, `--inventory`, `--poam`, or `--verify-manifest` bypasses the TUI.
 2. `--verify-manifest` is a standalone verification path and requires `--signing-key`.
-3. `--collectors` accepts keys across every enabled provider (AWS/Okta/Jira/Tenable/GitHub); the maintained key list lives in `evidence-list.md`.
+3. `--collectors` selects AWS collector keys only; the maintained key list lives in `evidence-list.md`. Okta, Tenable, Elastic, and GitHub are selected with their own `--<provider>-collectors` flag and per-collector flags under that provider's mode flag (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes) below); Jira remains TUI-only.
 4. `--inventory` writes the unified `AWS_Inventory-<timestamp>.csv` plus the FedRAMP-templated `.xlsx` when `assets/Inventory.xlsx` is present. `RUN-MANIFEST` and `CHAIN-OF-CUSTODY` files are opt-in via their `--write-*` flags in collectors mode only.
 
 ### Non-AWS provider CLI modes
@@ -929,7 +929,7 @@ Create a token at **Settings → Developer settings → Personal access tokens**
 | `github-secret-scanning-alerts` | CSV | Leaked-secret alerts, time-windowed by `created_at` |
 | `github-code-scanning-alerts` | CSV | Static-analysis (e.g. CodeQL) findings, time-windowed by `created_at` |
 
-`github-audit-log`, `github-dependabot-alerts`, `github-secret-scanning-alerts`, and `github-code-scanning-alerts` are opt-in by default in the TUI (they depend on a GitHub plan/feature the org may not have) — pass them explicitly via `--collectors` or enable them in the TUI's collector-selection screen.
+`github-audit-log`, `github-dependabot-alerts`, `github-secret-scanning-alerts`, and `github-code-scanning-alerts` are opt-in by default (they depend on a GitHub plan/feature the org may not have) — enable them in the TUI's collector-selection screen, or pass them explicitly via `--github-collectors` / their individual `--github-*` flags under `--github` on the CLI (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes)).
 
 ---
 

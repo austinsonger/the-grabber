@@ -127,7 +127,7 @@ Inclusive end of the collection window. Required when `--start-date` is provided
 
 Triggered by `--start-date` or `--lookback`.
 
-Runs up to 144 AWS collectors (plus 24 Okta, 28 Jira, and 5 Tenable collectors when those providers are configured) that query the corresponding service APIs and write time-windowed or current-state evidence to CSV and JSON files.
+Runs up to 144 AWS collectors that query the corresponding service APIs and write time-windowed or current-state evidence to CSV and JSON files. This path is AWS-only — `--collectors` does not reach Okta, Tenable, Elastic, or GitHub. Those four providers have their own mode flags and collector selection; see [Provider Modes](#provider-modes). Jira remains TUI-only.
 
 ### Selecting Collectors
 
