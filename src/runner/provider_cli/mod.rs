@@ -10,6 +10,7 @@
 //! Output layout matches the TUI: `{base}/{account name}/{YYYY}/{MM-MMM}/`.
 
 mod elastic;
+mod github;
 mod okta;
 mod tenable;
 
@@ -84,7 +85,7 @@ pub async fn run_provider_cli(cli: &Cli) -> Result<()> {
         return elastic::run(cli).await;
     }
     if cli.github.github_enabled {
-        anyhow::bail!("--github is not wired up yet");
+        return github::run(cli).await;
     }
 
     Ok(())

@@ -16,11 +16,6 @@
 //! `src/tui/menus/<provider>.rs`. Adding a collector means adding it in three
 //! places: the provider's `factory.rs`, that provider's TUI menu, and here.
 //!
-//! Nothing in `src/runner/` calls `resolve_collectors()` or reads the
-//! `*_COLLECTOR_KEYS` tables yet — that dispatch wiring lands in a later task
-//! in this plan. Until then the module-level allow below keeps clippy clean.
-#![allow(dead_code)]
-
 use std::collections::HashSet;
 
 use anyhow::Result;
