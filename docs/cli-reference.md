@@ -29,12 +29,13 @@
 
 ## Modes
 
-The tool operates in one of four mutually-exclusive modes:
+The tool operates in one of five mutually-exclusive modes:
 
 | Mode | Trigger Flag | Purpose |
 |------|-------------|---------|
 | **TUI** | *(no flags)* | Interactive wizard — accounts, dates, collectors, options |
-| **Collectors** | `--start-date` or `--lookback` | Time-windowed evidence collection (CSV + JSON) |
+| **Collectors** | `--start-date` or `--lookback` | Time-windowed AWS evidence collection (CSV + JSON) |
+| **Provider** | `--okta`, `--tenable`, `--elastic`, `--github` | Headless evidence collection for one non-AWS provider — see [Provider Modes](#provider-modes) |
 | **Inventory** | `--inventory` | Current-state asset inventory (unified CSV) |
 | **POA&M** | `--poam` | POA&M workbook reconciliation against Inspector findings |
 | **Verify** | `--verify-manifest` | Verify a previously-signed evidence manifest |
@@ -127,7 +128,7 @@ Inclusive end of the collection window. Required when `--start-date` is provided
 
 Triggered by `--start-date` or `--lookback`.
 
-Runs up to 144 AWS collectors that query the corresponding service APIs and write time-windowed or current-state evidence to CSV and JSON files. This path is AWS-only — `--collectors` does not reach Okta, Tenable, Elastic, or GitHub. Those four providers have their own mode flags and collector selection; see [Provider Modes](#provider-modes). Jira remains TUI-only.
+Runs up to 144 AWS collectors that query the corresponding service APIs and write time-windowed or current-state evidence to CSV and JSON files. This path is AWS-only — `--collectors` does not reach Okta, Tenable, Elastic, or GitHub. Those four providers have their own mode flags and collector selection; see [Provider Modes](#provider-modes). Jira and Jamf remain TUI-only.
 
 ### Selecting Collectors
 
@@ -265,6 +266,19 @@ key list are **additive**, exactly like the inventory asset-type flags. Passing
 neither runs every collector for that provider. Unknown keys are rejected with
 the valid list.
 
+Two deliberate differences from the TUI:
+
+- **An empty selection means "all", including the collectors the TUI starts
+  with deselected.** The TUI's collector screens open with 5/5 Tenable, 7/25
+  Okta and 4/10 GitHub collectors unchecked (the GitHub Dependabot, secret
+  scanning, and code scanning alert collectors among them, because they need
+  extra token scopes). A bare `grabber --github` runs all 10 anyway. Name the
+  collectors you want if you need the TUI's narrower default.
+- **`[account.collectors]` config overrides are not consulted.** The
+  `enable` / `disable` / `enable_extra` precedence described in the
+  [README](../README.md) applies to the AWS collector registry only. Provider
+  modes take their selection entirely from the CLI flags.
+
 ```bash
 # Every Okta collector, last 30 days (the default window)
 grabber --okta
@@ -288,10 +302,21 @@ files ship empty placeholders like `okta_api_token = ""`. Accounts come from
 the merged config (`config.toml` plus `okta-config.toml`,
 `tenable-config.toml`, `elastic-config.toml`, `github-config.toml`); with no
 config file at all, the CLI flags or env vars alone are enough to run.
-`--<provider>-account <name>` narrows a multi-account config to one entry.
-Accounts missing credentials print a `✗` line and are skipped; the run
-continues against the rest, and only fails outright when no account is
-usable.
+`--<provider>-account <name>` narrows a multi-account config to one entry; a
+name that matches no `[[account]]` is an error listing the known names, not a
+silent fall-through to env credentials. Accounts missing credentials, or whose
+client cannot be built (a token containing a newline, say), print a `✗` line
+and are skipped; the run continues against the rest, and only fails outright
+when no account is usable.
+
+A credential override flag applies to **every** account in the run, so it is
+rejected when more than one account matched — otherwise each account would
+collect the same tenant and the evidence would carry several account names.
+Narrow the run with `--<provider>-account` first:
+
+```bash
+grabber --okta --okta-account Prod --okta-domain https://prod.okta.com --okta-api-token "$PROD"
+```
 
 | Provider | Flags | Environment variables |
 |---|---|---|
@@ -337,10 +362,29 @@ behind its interactive confirmation screen and has no CLI flag.
 
 ### Output, packaging, and audit artifacts
 
-Files land in `{output}/{account name}/{YYYY}/{MM-MMM}/`, matching the TUI.
-`--output` wins; otherwise the account's `output_dir` from config is used as-is.
-`--zip`, `--sign`, `--signing-key`, and `--write-run-manifest` all work.
-`--write-chain-of-custody` does not — the custody record is keyed on an AWS
+Where files land depends on whether `--output` was passed:
+
+- **With `--output <dir>`** the account name is appended, giving
+  `{output}/{account name}/{YYYY}/{MM-MMM}/` — this is the layout that matches
+  the AWS TUI, and it gives every account its own subdirectory.
+- **Without `--output`** the account's `output_dir` from config is used
+  **as-is** — no account name is appended, because that value already names the
+  provider (`./evidence-output/okta`). The `{YYYY}/{MM-MMM}` date hierarchy is
+  still appended. With neither, files land under `./{account name}/`.
+
+Because the shipped `*-config.example.toml` files hardcode one directory per
+provider, copying an `[[account]]` block to add a second tenant puts both in
+the same directory. Evidence CSV/JSON files are account-prefixed and survive,
+but the per-run artifacts (`RUN-MANIFEST-*.json`, `fedramp-coverage-actual.csv`)
+have fixed names and the last account to finish overwrites the earlier ones.
+The run prints a `WARN:` naming the accounts and the shared path when it detects
+this; pass `--output` to give each account its own subdirectory.
+
+`--zip`, `--sign`, `--signing-key`, and `--write-run-manifest` all work. The
+run manifest is per-account, written into that account's own directory. The zip
+bundle and the signing manifest/key are written **once per run**, into the
+current directory, covering every account's output under a single signing key.
+`--write-chain-of-custody` does not work — the custody record is keyed on an AWS
 caller identity — and warns rather than failing.
 
 ```bash
@@ -551,7 +595,7 @@ grabber --inventory --ec2 --rds --skip-inventory-csv
 
 ## Collector Keys Reference
 
-All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `tenable-*`, `elastic-*`, `github-*`) — see the provider sections in the main [README](../README.md) for the canonical lists. `--collectors` only affects the AWS headless CLI path; Okta, Tenable, Elastic, and GitHub have their own mode flags and per-collector flags (see [Provider Modes](#provider-modes)). Jira remains TUI-only.
+All 144 AWS collector keys are organized by category below. Pass any combination to `--collectors`. Non-AWS keys are namespaced with their provider prefix (`okta-*`, `jira-*`, `jamf-*`, `tenable-*`, `elastic-*`, `github-*`) — see the provider sections in the main [README](../README.md) for the canonical lists. `--collectors` only affects the AWS headless CLI path; Okta, Tenable, Elastic, and GitHub have their own mode flags and per-collector flags (see [Provider Modes](#provider-modes)). Jira and Jamf remain TUI-only.
 
 ### App Layer & DNS
 

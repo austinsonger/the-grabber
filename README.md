@@ -314,9 +314,9 @@ Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`
 
 ### CLI mode notes
 
-1. Any of `--start-date`, `--lookback`, `--inventory`, `--poam`, or `--verify-manifest` bypasses the TUI.
+1. Any of `--start-date`, `--lookback`, `--inventory`, `--poam`, `--verify-manifest`, `--okta`, `--tenable`, `--elastic`, or `--github` bypasses the TUI.
 2. `--verify-manifest` is a standalone verification path and requires `--signing-key`.
-3. `--collectors` selects AWS collector keys only; the maintained key list lives in `evidence-list.md`. Okta, Tenable, Elastic, and GitHub are selected with their own `--<provider>-collectors` flag and per-collector flags under that provider's mode flag (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes) below); Jira remains TUI-only.
+3. `--collectors` selects AWS collector keys only; the maintained key list lives in `evidence-list.md`. Okta, Tenable, Elastic, and GitHub are selected with their own `--<provider>-collectors` flag and per-collector flags under that provider's mode flag (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes) below); Jira and Jamf remain TUI-only.
 4. `--inventory` writes the unified `AWS_Inventory-<timestamp>.csv` plus the FedRAMP-templated `.xlsx` when `assets/Inventory.xlsx` is present. `RUN-MANIFEST` and `CHAIN-OF-CUSTODY` files are opt-in via their `--write-*` flags in collectors mode only.
 
 ### Non-AWS provider CLI modes
@@ -335,8 +335,19 @@ flags. One provider per invocation. Full detail in the
 
 Credentials come from `--<provider>-*` flags, then environment variables, then
 the sibling `*-config.toml` files; blank values at any level are treated as
-absent. Accounts missing credentials are skipped with a warning and the run
-continues. With no window flag, provider modes default to the last 30 days.
+absent. Accounts missing credentials, or whose client cannot be built, are
+skipped with a warning and the run continues. A credential override flag is
+rejected when more than one account matched — narrow the run with
+`--<provider>-account` first, or every account would collect the same tenant.
+An unmatched `--<provider>-account` name is an error listing the known names.
+With no window flag, provider modes default to the last 30 days.
+
+Two behaviors differ from the TUI. **Passing no collector flags runs every
+collector for that provider**, including the ones the TUI starts with
+deselected (5/5 Tenable, 7/25 Okta, 4/10 GitHub) — name the collectors you want
+if you need the narrower set. And **`[account.collectors]` `enable` /
+`disable` / `enable_extra` overrides are not consulted** on this path; they
+apply to the AWS collector registry only.
 
 ```bash
 grabber --okta --okta-users --okta-groups --lookback 90d
@@ -929,7 +940,7 @@ Create a token at **Settings → Developer settings → Personal access tokens**
 | `github-secret-scanning-alerts` | CSV | Leaked-secret alerts, time-windowed by `created_at` |
 | `github-code-scanning-alerts` | CSV | Static-analysis (e.g. CodeQL) findings, time-windowed by `created_at` |
 
-`github-audit-log`, `github-dependabot-alerts`, `github-secret-scanning-alerts`, and `github-code-scanning-alerts` are opt-in by default (they depend on a GitHub plan/feature the org may not have) — enable them in the TUI's collector-selection screen, or pass them explicitly via `--github-collectors` / their individual `--github-*` flags under `--github` on the CLI (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes)).
+`github-audit-log`, `github-dependabot-alerts`, `github-secret-scanning-alerts`, and `github-code-scanning-alerts` depend on a GitHub plan/feature the org may not have, so **the TUI starts with them deselected** — check them on the collector-selection screen to include them. The CLI does *not* treat them as opt-in: a bare `grabber --github` runs all 10 GitHub collectors, because an empty selection means "all". To get the TUI's narrower default on the CLI, name the collectors you want via `--github-collectors` or the individual `--github-*` flags (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes)).
 
 ---
 
