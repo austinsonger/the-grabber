@@ -9,6 +9,8 @@
 //!
 //! Output layout matches the TUI: `{base}/{account name}/{YYYY}/{MM-MMM}/`.
 
+mod okta;
+
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -72,7 +74,7 @@ pub async fn run_provider_cli(cli: &Cli) -> Result<()> {
     }
 
     if cli.okta.okta_enabled {
-        anyhow::bail!("--okta is not wired up yet");
+        return okta::run(cli).await;
     }
     if cli.tenable.tenable_enabled {
         anyhow::bail!("--tenable is not wired up yet");
@@ -91,7 +93,6 @@ pub async fn run_provider_cli(cli: &Cli) -> Result<()> {
 /// `*-config.toml` files), optionally narrowed to one by `name`.
 /// Returns an empty vec when no config file exists — callers fall back to
 /// CLI-flag/env credentials in that case.
-#[allow(dead_code)]
 pub(crate) fn accounts_for(provider: CloudProvider, name: Option<&str>) -> Vec<Account> {
     let Some(cfg) = app_config::load_config() else {
         return Vec::new();
@@ -109,7 +110,6 @@ pub(crate) fn accounts_for(provider: CloudProvider, name: Option<&str>) -> Vec<A
 /// Build the collection window from `--lookback` or `--start-date`/`--end-date`.
 /// Defaults to the last [`DEFAULT_PROVIDER_LOOKBACK_DAYS`] days and says so on
 /// stderr, so a bare `grabber --okta` never silently exports full history.
-#[allow(dead_code)]
 pub(crate) fn resolve_window(cli: &Cli) -> Result<CollectParams> {
     let today = Utc::now().date_naive();
 
@@ -157,7 +157,6 @@ pub(crate) fn resolve_window(cli: &Cli) -> Result<CollectParams> {
 /// own `output_dir` is used as-is (it already names the provider, e.g.
 /// `./evidence-output/okta`). With neither, files land under `./{name}/`.
 /// The `{YYYY}/{MM-MMM}` date hierarchy is appended in every case.
-#[allow(dead_code)]
 pub(crate) fn provider_output_dir(
     cli: &Cli,
     name: &str,
@@ -179,7 +178,6 @@ pub(crate) fn provider_output_dir(
 /// Chain-of-custody is intentionally skipped — `CustodyEntry` is built around
 /// an `AwsIdentity` (account id, caller ARN, user id) that has no meaning for
 /// these providers. `--write-chain-of-custody` warns instead of failing.
-#[allow(dead_code)]
 pub(crate) fn finish_provider_run(
     cli: &Cli,
     timestamp: &str,
