@@ -2,6 +2,7 @@ mod app_config;
 mod audit_log;
 mod aws_loader;
 mod cli;
+mod cli_providers;
 mod evidence;
 mod fedramp_coverage;
 mod fedramp_map;
