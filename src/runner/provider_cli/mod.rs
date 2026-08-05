@@ -26,7 +26,6 @@ use crate::runner::output::date_path_suffix;
 /// Days of history used when a provider run specifies no window flags.
 /// Okta, GitHub, and Elastic all have time-windowed collectors (system log,
 /// audit log, alerts) that would otherwise export their full retained history.
-#[allow(dead_code)]
 const DEFAULT_PROVIDER_LOOKBACK_DAYS: i64 = 30;
 
 /// True when exactly one non-AWS provider mode flag was passed.

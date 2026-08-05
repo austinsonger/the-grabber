@@ -1,12 +1,13 @@
 //! `--okta`: headless Okta evidence collection.
 
 use anyhow::Result;
-use chrono::Utc;
 
 use crate::cli::Cli;
 
 #[cfg(feature = "okta")]
 pub(super) async fn run(cli: &Cli) -> Result<()> {
+    use chrono::Utc;
+
     use crate::providers::CloudProvider;
     use crate::providers::ProviderFactory as _;
     use crate::runner::collect_ops::{
@@ -53,12 +54,16 @@ pub(super) async fn run(cli: &Cli) -> Result<()> {
                 .okta
                 .okta_domain
                 .clone()
-                .or_else(|| acct.okta_domain_resolved());
+                .filter(|s| !s.trim().is_empty())
+                .or_else(|| acct.okta_domain_resolved())
+                .filter(|s| !s.trim().is_empty());
             let token = cli
                 .okta
                 .okta_api_token
                 .clone()
-                .or_else(|| acct.okta_api_token_resolved());
+                .filter(|s| !s.trim().is_empty())
+                .or_else(|| acct.okta_api_token_resolved())
+                .filter(|s| !s.trim().is_empty());
             match (domain, token) {
                 (Some(d), Some(t)) => {
                     targets.push((acct.name.clone(), d, t, acct.output_dir.clone()))
