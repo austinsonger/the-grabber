@@ -25,6 +25,7 @@ use clap::Parser;
 
 use crate::cli::Cli;
 use crate::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
+use crate::runner::provider_cli::{provider_mode_selected, run_provider_cli};
 use crate::runner::tui_session::run_tui_session;
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,10 @@ async fn async_main() -> Result<()> {
         let report = signing::verify_manifest(std::path::Path::new(manifest_path), &key)?;
         report.print();
         return Ok(());
+    }
+
+    if provider_mode_selected(&cli) {
+        return run_provider_cli(&cli).await;
     }
 
     if cli.inventory {
