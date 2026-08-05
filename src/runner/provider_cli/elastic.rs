@@ -6,13 +6,12 @@ use crate::cli::Cli;
 
 #[cfg(feature = "elastic")]
 pub(super) async fn run(cli: &Cli) -> Result<()> {
+    use std::path::PathBuf;
+
     use chrono::Utc;
 
     use crate::providers::CloudProvider;
     use crate::providers::ProviderFactory as _;
-    use crate::runner::collect_ops::{
-        run_csv_collectors, run_json_collectors, run_json_inv_collectors,
-    };
 
     let selected = cli.elastic.resolve_collectors()?;
     let params = super::resolve_window(cli)?;
@@ -24,34 +23,17 @@ pub(super) async fn run(cli: &Cli) -> Result<()> {
     let accounts = super::accounts_for(
         CloudProvider::Elastic,
         cli.elastic.elastic_account.as_deref(),
-    );
+    )?;
     if accounts.is_empty() {
         let name = cli
             .elastic
             .elastic_account
             .clone()
             .unwrap_or_else(|| "Elastic".to_string());
-        let kibana_url = cli
-            .elastic
-            .elastic_kibana_url
-            .clone()
-            .filter(|s| !s.trim().is_empty())
-            .or_else(|| std::env::var("ELASTIC_KIBANA_URL").ok())
-            .filter(|s| !s.trim().is_empty());
-        let es_url = cli
-            .elastic
-            .elastic_es_url
-            .clone()
-            .filter(|s| !s.trim().is_empty())
-            .or_else(|| std::env::var("ELASTIC_ES_URL").ok())
-            .filter(|s| !s.trim().is_empty());
-        let api_key = cli
-            .elastic
-            .elastic_api_key
-            .clone()
-            .filter(|s| !s.trim().is_empty())
-            .or_else(|| std::env::var("ELASTIC_API_KEY").ok())
-            .filter(|s| !s.trim().is_empty());
+        let kibana_url =
+            super::flag_or_env(cli.elastic.elastic_kibana_url.clone(), "ELASTIC_KIBANA_URL");
+        let es_url = super::flag_or_env(cli.elastic.elastic_es_url.clone(), "ELASTIC_ES_URL");
+        let api_key = super::flag_or_env(cli.elastic.elastic_api_key.clone(), "ELASTIC_API_KEY");
         match (kibana_url, es_url, api_key) {
             (Some(k), Some(e), Some(a)) => targets.push((name, k, e, a, None)),
             _ => anyhow::bail!(
@@ -61,6 +43,18 @@ pub(super) async fn run(cli: &Cli) -> Result<()> {
             ),
         }
     } else {
+        let mut overrides: Vec<&str> = Vec::new();
+        if cli.elastic.elastic_kibana_url.is_some() {
+            overrides.push("--elastic-kibana-url");
+        }
+        if cli.elastic.elastic_es_url.is_some() {
+            overrides.push("--elastic-es-url");
+        }
+        if cli.elastic.elastic_api_key.is_some() {
+            overrides.push("--elastic-api-key");
+        }
+        super::guard_credential_overrides("elastic", &overrides, accounts.len())?;
+
         for acct in &accounts {
             let kibana_url = cli
                 .elastic
@@ -107,44 +101,53 @@ pub(super) async fn run(cli: &Cli) -> Result<()> {
     }
 
     let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
-    let dates = Some((params.start_time.timestamp(), params.end_time.timestamp()));
 
-    for (name, kibana_url, es_url, api_key, account_output_dir) in targets {
+    let dir_keys: Vec<(&str, Option<&str>)> = targets
+        .iter()
+        .map(|(name, _, _, _, dir)| (name.as_str(), dir.as_deref()))
+        .collect();
+    super::warn_shared_output_dirs(cli, &dir_keys);
+
+    let mut output_dirs: Vec<PathBuf> = Vec::new();
+    for (name, kibana_url, es_url, api_key, account_output_dir) in &targets {
         eprintln!("=== Elastic '{}' → {} ===", name, kibana_url);
 
-        let client = elastic_rs::ElasticClient::new(&kibana_url, &es_url, &api_key)
-            .map_err(|e| anyhow::anyhow!("Elastic '{name}' — client build failed: {e}"))?;
+        let client = match elastic_rs::ElasticClient::new(kibana_url, es_url, api_key) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("  ✗ Elastic '{name}' — client build failed: {e}");
+                continue;
+            }
+        };
 
         let factory = crate::providers::elastic::factory::ElasticProviderFactory::new(
             client,
             name.clone(),
             selected.clone(),
         );
-        let csv_cols = factory.csv_collectors();
-        let json_inv_cols = factory.json_collectors();
-        let evidence_cols = factory.evidence_collectors();
-        if csv_cols.is_empty() && json_inv_cols.is_empty() && evidence_cols.is_empty() {
-            anyhow::bail!("No Elastic collectors matched the selected keys.");
-        }
 
-        let output_dir = super::provider_output_dir(cli, &name, account_output_dir.as_deref());
-        eprintln!("  Output: {}", output_dir.display());
-
-        let mut outcomes = Vec::new();
-        outcomes.extend(
-            run_json_collectors(&evidence_cols, &params, "", &output_dir, &timestamp).await?,
+        output_dirs.push(
+            super::run_account_collectors(
+                cli,
+                "Elastic",
+                name,
+                name,
+                account_output_dir.as_deref(),
+                &params,
+                &timestamp,
+                factory.csv_collectors(),
+                factory.json_collectors(),
+                factory.evidence_collectors(),
+            )
+            .await?,
         );
-        outcomes.extend(
-            run_json_inv_collectors(&json_inv_cols, &name, "", &output_dir, &timestamp).await?,
-        );
-        outcomes.extend(
-            run_csv_collectors(&csv_cols, &name, "", &output_dir, dates, &timestamp).await?,
-        );
-
-        super::finish_provider_run(cli, &timestamp, &name, &params, outcomes, &output_dir)?;
     }
 
-    Ok(())
+    if output_dirs.is_empty() {
+        anyhow::bail!("No Elastic account was collected — every account failed to build a client.");
+    }
+
+    super::finish_provider_run(cli, &timestamp, &output_dirs)
 }
 
 #[cfg(not(feature = "elastic"))]
