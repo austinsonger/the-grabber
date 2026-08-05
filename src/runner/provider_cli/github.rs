@@ -47,6 +47,8 @@ pub(super) async fn run(cli: &Cli) -> Result<()> {
             .github_base_url
             .clone()
             .filter(|s| !s.trim().is_empty())
+            .or_else(|| std::env::var("GITHUB_BASE_URL").ok())
+            .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(|| "https://api.github.com".to_string());
         match (org, token) {
             (Some(o), Some(t)) => targets.push((name, o, t, base_url, None)),
