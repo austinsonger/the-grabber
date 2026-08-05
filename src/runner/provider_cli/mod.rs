@@ -10,6 +10,7 @@
 //! Output layout matches the TUI: `{base}/{account name}/{YYYY}/{MM-MMM}/`.
 
 mod okta;
+mod tenable;
 
 use std::path::{Path, PathBuf};
 
@@ -76,7 +77,7 @@ pub async fn run_provider_cli(cli: &Cli) -> Result<()> {
         return okta::run(cli).await;
     }
     if cli.tenable.tenable_enabled {
-        anyhow::bail!("--tenable is not wired up yet");
+        return tenable::run(cli).await;
     }
     if cli.elastic.elastic_enabled {
         anyhow::bail!("--elastic is not wired up yet");
