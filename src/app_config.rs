@@ -55,6 +55,16 @@ pub struct Defaults {
     /// A per-run signing key is generated and written to SIGNING-<ts>.key.
     pub sign: Option<bool>,
 
+    /// Default S3 bucket for Inspector SBOM exports (`inspector-sbom` collector).
+    pub sbom_bucket: Option<String>,
+
+    /// Default KMS key ARN used to encrypt Inspector SBOM exports.
+    pub sbom_kms_key: Option<String>,
+
+    /// Optional key prefix inside `sbom_bucket`. Inspector appends
+    /// `<FORMAT>_outputs_<report-id>/…` beneath whatever prefix is given.
+    pub sbom_key_prefix: Option<String>,
+
     /// Global collector enable/disable rules.
     #[serde(default)]
     pub collectors: CollectorConfig,
@@ -250,6 +260,18 @@ pub struct Account {
     pub jamf_client_secret: Option<String>,
 
     // ------------------------------------------------------------------
+    // Inspector SBOM export (AWS)
+    // ------------------------------------------------------------------
+    /// Per-account override for the Inspector SBOM export bucket.
+    pub sbom_bucket: Option<String>,
+
+    /// Per-account override for the Inspector SBOM export KMS key ARN.
+    pub sbom_kms_key: Option<String>,
+
+    /// Per-account override for the Inspector SBOM export key prefix.
+    pub sbom_key_prefix: Option<String>,
+
+    // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
     /// Per-account collector overrides (enable_extra / disable).
@@ -389,6 +411,32 @@ impl Account {
         std::env::var("JAMF_CLIENT_SECRET")
             .ok()
             .or_else(|| self.jamf_client_secret.clone())
+    }
+
+    /// Resolve the Inspector SBOM export bucket: env var, then per-account
+    /// TOML, then `[defaults]`.
+    pub fn sbom_bucket_resolved(&self, defaults: &Defaults) -> Option<String> {
+        std::env::var("GRABBER_SBOM_BUCKET")
+            .ok()
+            .or_else(|| self.sbom_bucket.clone())
+            .or_else(|| defaults.sbom_bucket.clone())
+    }
+
+    /// Resolve the Inspector SBOM export KMS key ARN: env var, then
+    /// per-account TOML, then `[defaults]`.
+    pub fn sbom_kms_key_resolved(&self, defaults: &Defaults) -> Option<String> {
+        std::env::var("GRABBER_SBOM_KMS_KEY")
+            .ok()
+            .or_else(|| self.sbom_kms_key.clone())
+            .or_else(|| defaults.sbom_kms_key.clone())
+    }
+
+    /// Resolve the Inspector SBOM export key prefix: per-account TOML, then
+    /// `[defaults]`. No env override — the prefix is layout, not a secret.
+    pub fn sbom_key_prefix_resolved(&self, defaults: &Defaults) -> Option<String> {
+        self.sbom_key_prefix
+            .clone()
+            .or_else(|| defaults.sbom_key_prefix.clone())
     }
 }
 
