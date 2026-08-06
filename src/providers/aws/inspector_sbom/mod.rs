@@ -8,6 +8,14 @@ use aws_sdk_s3::Client as S3Client;
 
 use crate::evidence::CsvCollector;
 
+mod export_keys;
+mod repo_picker;
+
+pub use export_keys::{
+    belongs_to_report, format_stem, parse_export_key, sanitize_repo_name, ExportedSbom,
+};
+pub use repo_picker::{exported_newest_first, newest_exported, EcrImage};
+
 const POLL_INTERVAL_SECS: u64 = 10;
 const MAX_POLL_ATTEMPTS: u32 = 60;
 
