@@ -99,8 +99,8 @@ pub struct App {
     /// Populated by the async driver when entering SbomRepoDiscovery.
     pub sbom_repo_list: Vec<crate::providers::aws::ecr_repos::EcrRepoSummary>,
     pub sbom_repo_cursor: usize,
-    /// Indices into the *visible* (search-filtered) view committed by Space.
-    /// Stored as indices into `sbom_repo_list`.
+    /// Repositories checked with Space, stored as indices into the full
+    /// `sbom_repo_list` (never into the search-filtered view).
     pub sbom_repo_selected: HashSet<usize>,
     pub sbom_repo_search: TextInput,
     /// Repository names committed on SbomRepoSelection → SetOptions.
@@ -748,6 +748,21 @@ mod tests {
         assert_eq!(app.screen, Screen::SbomDestination);
         app.prev_screen();
         assert_eq!(app.screen, Screen::SelectCollectors);
+    }
+
+    #[test]
+    fn next_screen_walks_destination_through_discovery_to_the_picker() {
+        // handle_sbom_destination assigns Screen::SbomRepoDiscovery directly and
+        // sbom_flow_navigation_round_trips jumps to the picker, so these two
+        // next_screen arms need explicit coverage of their own.
+        let mut app = make_app();
+        app.screen = Screen::SbomDestination;
+
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SbomRepoDiscovery);
+
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SbomRepoSelection);
     }
 
     #[test]

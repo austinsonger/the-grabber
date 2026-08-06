@@ -272,3 +272,220 @@ pub(super) fn draw_sbom_repo_selection(f: &mut Frame, area: Rect, app: &App) {
         &mut state,
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+
+    use crate::providers::aws::ecr_repos::EcrRepoSummary;
+    use crate::tui::state::Screen;
+    use crate::tui::App;
+
+    /// Terminal sizes the wizard is expected to survive. The narrow one matters
+    /// most: these screens index fixed layout slots (`chunks[3 + idx]`,
+    /// `chunks[6]`, `chunks[4]`), which is exactly what a short/narrow terminal
+    /// stresses.
+    const WIDE: (u16, u16) = (120, 40);
+    const NORMAL: (u16, u16) = (80, 24);
+    const NARROW: (u16, u16) = (40, 12);
+
+    /// Render the whole frame — `ui::draw`, not the individual draw functions —
+    /// so the `Screen` dispatch, step indicator and footer hints are exercised
+    /// too, then flatten the buffer to one line of text per terminal row.
+    fn render(app: &App, (width, height): (u16, u16)) -> String {
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("test terminal");
+        terminal
+            .draw(|f| crate::tui::ui::draw(f, app))
+            .expect("draw must not fail");
+
+        let buffer = terminal.backend().buffer().clone();
+        let mut out = String::new();
+        for y in 0..buffer.area.height {
+            for x in 0..buffer.area.width {
+                out.push_str(buffer[(x, y)].symbol());
+            }
+            out.push('\n');
+        }
+        out
+    }
+
+    fn sbom_app() -> App {
+        let mut app = App::new(vec![]);
+        let idx = app
+            .collector_items
+            .iter()
+            .position(|(k, _, _)| *k == "inspector-sbom")
+            .expect("inspector-sbom is in the AWS menu");
+        app.collector_selected.insert(idx);
+        assert!(app.sbom_selected());
+        app.sbom_repo_list = ["alpha", "beta"]
+            .iter()
+            .map(|n| EcrRepoSummary {
+                name: (*n).to_string(),
+                uri: format!("1.dkr.ecr.us-east-1.amazonaws.com/{n}"),
+            })
+            .collect();
+        app
+    }
+
+    #[test]
+    fn all_three_screens_render_their_titles() {
+        let mut app = sbom_app();
+        let cases = [
+            (Screen::SbomDestination, "Inspector SBOM Export Destination"),
+            (Screen::SbomRepoDiscovery, "Discovering ECR repositories…"),
+            (
+                Screen::SbomRepoSelection,
+                "Select ECR Repositories for SBOM Export",
+            ),
+        ];
+
+        for (screen, title) in cases {
+            for size in [WIDE, NORMAL] {
+                app.screen = screen.clone();
+                let text = render(&app, size);
+                assert!(
+                    text.contains(title),
+                    "{screen:?} at {size:?} should render {title:?}, got:\n{text}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn destination_screen_renders_all_three_input_fields() {
+        let mut app = sbom_app();
+        app.screen = Screen::SbomDestination;
+        let text = render(&app, WIDE);
+
+        for label in [
+            "S3 Bucket (required)",
+            "KMS Key ARN (required)",
+            "Key Prefix (optional)",
+        ] {
+            assert!(text.contains(label), "missing {label:?} in:\n{text}");
+        }
+        // Footer hints come from get_hints, i.e. the frame wiring.
+        assert!(text.contains("Discover Repos"), "missing hint in:\n{text}");
+    }
+
+    #[test]
+    fn narrow_terminal_degrades_without_panicking() {
+        let mut app = sbom_app();
+        for screen in [
+            Screen::SbomDestination,
+            Screen::SbomRepoDiscovery,
+            Screen::SbomRepoSelection,
+        ] {
+            app.screen = screen.clone();
+            let text = render(&app, NARROW);
+            // The body may be squeezed out entirely at 12 rows, but the frame
+            // must still render rather than panic on a zero-height slot.
+            assert!(
+                text.contains("THE GRABBER"),
+                "{screen:?} lost its frame at {NARROW:?}:\n{text}"
+            );
+            assert_eq!(
+                text.lines().count(),
+                NARROW.1 as usize,
+                "{screen:?} should fill every row"
+            );
+        }
+
+        // The discovery screen is short enough to keep its message even here.
+        app.screen = Screen::SbomRepoDiscovery;
+        assert!(render(&app, NARROW).contains("Discovering ECR repositories…"));
+    }
+
+    #[test]
+    fn picker_renders_repositories_with_their_checkbox_state() {
+        let mut app = sbom_app();
+        app.screen = Screen::SbomRepoSelection;
+        app.sbom_repo_selected.insert(1); // beta
+
+        let text = render(&app, WIDE);
+        assert!(text.contains("[ ] alpha"), "alpha unchecked in:\n{text}");
+        assert!(text.contains("[✓] beta"), "beta checked in:\n{text}");
+        assert!(text.contains("1 selected"), "count in:\n{text}");
+        assert!(
+            text.contains("1.dkr.ecr.us-east-1.amazonaws.com/beta"),
+            "repository URI in:\n{text}"
+        );
+    }
+
+    #[test]
+    fn picker_renders_the_discovery_error_in_place_of_the_list() {
+        let mut app = sbom_app();
+        app.screen = Screen::SbomRepoSelection;
+        app.sbom_repo_list.clear();
+        app.sbom_discovery_error = Some("ecr:DescribeRepositories denied".to_string());
+
+        let text = render(&app, WIDE);
+        assert!(
+            text.contains("ecr:DescribeRepositories denied"),
+            "discovery error in:\n{text}"
+        );
+        assert!(
+            !text.contains("No ECR repositories found"),
+            "error must win over the empty state in:\n{text}"
+        );
+    }
+
+    #[test]
+    fn picker_distinguishes_no_repositories_from_no_filter_matches() {
+        let mut app = sbom_app();
+        app.screen = Screen::SbomRepoSelection;
+
+        app.sbom_repo_list.clear();
+        assert!(render(&app, WIDE).contains("No ECR repositories found in this account/region."));
+
+        app = sbom_app();
+        app.screen = Screen::SbomRepoSelection;
+        app.sbom_repo_search = crate::tui::state::TextInput::new("zzz");
+        assert!(render(&app, WIDE).contains("No repositories match the filter."));
+    }
+
+    #[test]
+    fn step_indicator_uses_the_sbom_arrays_only_when_sbom_is_selected() {
+        let mut with_sbom = sbom_app();
+        with_sbom.screen = Screen::SbomDestination;
+        let text = render(&with_sbom, WIDE);
+        assert!(text.contains("SBOM Dest"), "SBOM step label in:\n{text}");
+        assert!(text.contains("Repos"), "Repos step label in:\n{text}");
+
+        let mut without_sbom = App::new(vec![]);
+        without_sbom.screen = Screen::SbomDestination;
+        assert!(!without_sbom.sbom_selected());
+        let text = render(&without_sbom, WIDE);
+        assert!(
+            !text.contains("SBOM Dest"),
+            "non-SBOM runs must keep the short step array:\n{text}"
+        );
+    }
+
+    #[test]
+    fn set_options_step_number_shifts_by_two_when_sbom_is_selected() {
+        // Whether the account or legacy array is in play depends on the
+        // config.toml present on the machine, so derive the expectation.
+        let mut with_sbom = sbom_app();
+        with_sbom.screen = Screen::SetOptions;
+        let expected = if with_sbom.has_accounts() {
+            "Step 7 of 9"
+        } else {
+            "Step 8 of 10"
+        };
+        let text = render(&with_sbom, WIDE);
+        assert!(text.contains(expected), "expected {expected:?} in:\n{text}");
+
+        let mut without_sbom = App::new(vec![]);
+        without_sbom.screen = Screen::SetOptions;
+        let expected = if without_sbom.has_accounts() {
+            "Step 5 of 7"
+        } else {
+            "Step 6 of 8"
+        };
+        let text = render(&without_sbom, WIDE);
+        assert!(text.contains(expected), "expected {expected:?} in:\n{text}");
+    }
+}
