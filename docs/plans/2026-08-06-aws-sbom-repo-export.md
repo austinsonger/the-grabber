@@ -11,7 +11,8 @@
 ## Global Constraints
 
 - Work on `main`. Do **not** create a feature branch.
-- `cargo clippy -- -D warnings` and `cargo fmt` must be clean before every commit.
+- **Verification gate per task** (revised 2026-08-06 after measuring the repo): `cargo fmt` clean, `cargo build` clean, `cargo test` clean, and **zero clippy warnings in the files the task modified**. Repo-wide `cargo clippy -- -D warnings` currently reports ~50 pre-existing warnings on rust 1.94 (`too_many_arguments`, `ptr_arg`, `type_complexity`, `dead_code`, doc formatting) in files this feature does not own — notably `src/runner/tui_runners.rs` and `src/runner/tui_session.rs`. Do **not** fix that debt as part of this plan, and do not treat it as a task failure. Check your own files with `cargo clippy --message-format=short 2>&1 | grep '<your file>'`.
+- **Transient dead code is expected.** Definitions land before their callers (config keys in Task 1 are first read in Tasks 5 and 8; helpers in Tasks 2/4/6 gain callers in Tasks 3/5/7/8). Note unused-until-wired items in your report; do **not** add `#[allow(dead_code)]`. Task 8's verification confirms every one has acquired a real caller.
 - No `unwrap()` / `expect()` in production code. Use `anyhow::Result` / `anyhow::Context`, `anyhow::bail!` for early exits.
 - Imports grouped std → external crates → `crate::*`, blank line between groups.
 - **Unit tests are required for every unit of logic that can be tested without AWS credentials.** Follow the repository's existing convention: an in-file `#[cfg(test)] mod tests { use super::*; … }` block, and `App::new(vec![])` as the TUI test harness (see `src/tui/app/mod.rs:418` and `src/tui/events.rs:806`). Code that only orchestrates AWS SDK calls (`ecr_repos::list_repositories`, the collector's `list_exported` / `list_ecr_images` / `download_object`) is exempt — there is no mocking layer in this codebase, and adding one is out of scope. Verification for every task is `cargo fmt`, `cargo clippy -- -D warnings`, `cargo test`, and the stated manual check.
@@ -1180,12 +1181,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sbom_format_parsing() {
-        let fmt: SbomReportFormat = "cyclonedx14".into();
-        assert_eq!(fmt.as_str(), "cyclonedx14");
+    fn sbom_format_as_str_yields_the_aws_wire_values() {
+        // The SDK's as_str() returns the API's wire values, NOT the lowercase
+        // spellings the CLI accepts. The old `sbom_format_parsing` test asserted
+        // the opposite and was encoding a bug — see parse_sbom_format in Task 5.
+        assert_eq!(SbomReportFormat::Cyclonedx14.as_str(), "CYCLONEDX_1_4");
+        assert_eq!(SbomReportFormat::Spdx23.as_str(), "SPDX_2_3");
+    }
 
-        let fmt2: SbomReportFormat = "spdx23".into();
-        assert_eq!(fmt2.as_str(), "spdx23");
+    #[test]
+    fn a_lowercase_format_string_does_not_parse_into_a_known_variant() {
+        // Guards the bug this plan fixes: `"cyclonedx14".into()` silently yields
+        // an Unknown variant that AWS rejects, which is why the CLI must map the
+        // user-facing spelling explicitly instead of using From<&str>.
+        let bogus: SbomReportFormat = "cyclonedx14".into();
+        assert_ne!(bogus, SbomReportFormat::Cyclonedx14);
     }
 
     #[test]
@@ -1246,7 +1256,9 @@ mod tests {
 }
 ```
 
-Note: this replaces the `sbom_format_parsing` test that existed in the pre-refactor file — Step 1's rewrite dropped it, and it is restored here.
+Note: this deliberately does **not** restore the pre-refactor file's `sbom_format_parsing` test. That test asserted `SbomReportFormat::from("cyclonedx14").as_str() == "cyclonedx14"`, which only passes because an unrecognised string becomes an `Unknown` variant that echoes itself back. It documented a bug rather than a requirement. The two format tests above replace it, and Task 5 fixes the CLI path that bug affects.
+
+Also note: `format_stem` in `export_keys.rs` matches on the enum variant (`SbomReportFormat::Spdx23 => "spdx", _ => "cyclonedx"`), not on `as_str()`. Keep it that way — matching `as_str()` against `"spdx23"` can never succeed.
 
 - [ ] **Step 4: Verify**
 
@@ -1414,7 +1426,7 @@ In `src/runner/cli_runners.rs`, replace the whole `if selected.iter().any(|n| n 
             bucket: cli.sbom_bucket.clone().unwrap_or_default(),
             key_prefix: cli.sbom_key_prefix.clone(),
             kms_key_arn: cli.sbom_kms_key.clone().unwrap_or_default(),
-            format: cli.sbom_format.as_str().into(),
+            format: parse_sbom_format(&cli.sbom_format)?,
             repositories,
         };
         let sbom_out = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
@@ -1424,9 +1436,9 @@ In `src/runner/cli_runners.rs`, replace the whole `if selected.iter().any(|n| n 
 
 If `anyhow::Context` is not already in scope in `cli_runners.rs`, add `Context` to its existing `use anyhow::{…};` line.
 
-- [ ] **Step 3: Add the `parse_sbom_repos` helper and its tests**
+- [ ] **Step 3: Add the `parse_sbom_repos` and `parse_sbom_format` helpers and their tests**
 
-Still in `src/runner/cli_runners.rs`, add the helper at module level (outside any function):
+Still in `src/runner/cli_runners.rs`, add both helpers at module level (outside any function):
 
 ```rust
 /// Split a `--sbom-repos` value into repository names, trimming whitespace and
@@ -1438,7 +1450,29 @@ fn parse_sbom_repos(list: &str) -> Vec<String> {
         .filter(|s| !s.is_empty())
         .collect()
 }
+
+/// Map the user-facing `--sbom-format` spelling onto the SDK enum.
+///
+/// This must NOT use `SbomReportFormat::from(&str)`: that only recognises the
+/// AWS wire values (`CYCLONEDX_1_4`, `SPDX_2_3`) and turns anything else into an
+/// `Unknown` variant, which the Inspector API then rejects. The previous code
+/// (`cli.sbom_format.as_str().into()`) had exactly that bug, so
+/// `--sbom-format cyclonedx14` — the documented default — produced an invalid
+/// request.
+fn parse_sbom_format(value: &str) -> Result<aws_sdk_inspector2::types::SbomReportFormat> {
+    use aws_sdk_inspector2::types::SbomReportFormat;
+
+    match value.trim().to_lowercase().as_str() {
+        "cyclonedx14" | "cyclonedx_1_4" | "cyclonedx" => Ok(SbomReportFormat::Cyclonedx14),
+        "spdx23" | "spdx_2_3" | "spdx" => Ok(SbomReportFormat::Spdx23),
+        other => anyhow::bail!(
+            "unsupported --sbom-format '{other}': expected 'cyclonedx14' or 'spdx23'"
+        ),
+    }
+}
 ```
+
+This is a genuine bug fix, not a refactor — keep the doc comment explaining why, so nobody reintroduces `.into()`.
 
 Then append the test module to the same file (or add these tests to its existing `#[cfg(test)] mod tests` block if one is already present):
 
@@ -1484,6 +1518,51 @@ mod tests {
     fn single_name_needs_no_comma() {
         assert_eq!(parse_sbom_repos("solo"), vec!["solo"]);
     }
+
+    #[test]
+    fn parses_the_documented_format_spellings() {
+        use aws_sdk_inspector2::types::SbomReportFormat;
+
+        assert_eq!(
+            parse_sbom_format("cyclonedx14").expect("cyclonedx14 is valid"),
+            SbomReportFormat::Cyclonedx14
+        );
+        assert_eq!(
+            parse_sbom_format("spdx23").expect("spdx23 is valid"),
+            SbomReportFormat::Spdx23
+        );
+    }
+
+    #[test]
+    fn format_parsing_is_case_and_whitespace_tolerant() {
+        use aws_sdk_inspector2::types::SbomReportFormat;
+
+        assert_eq!(
+            parse_sbom_format("  CycloneDX14 ").expect("valid"),
+            SbomReportFormat::Cyclonedx14
+        );
+        assert_eq!(
+            parse_sbom_format("SPDX_2_3").expect("valid"),
+            SbomReportFormat::Spdx23
+        );
+    }
+
+    #[test]
+    fn format_parsing_rejects_unknown_values_instead_of_producing_unknown_variant() {
+        // The bug this replaces: `"nonsense".into()` yielded Unknown("nonsense")
+        // and failed only later, as an opaque AWS ValidationException.
+        let err = parse_sbom_format("nonsense").expect_err("must be rejected");
+        let msg = format!("{err}");
+        assert!(msg.contains("nonsense"), "error should name the bad value: {msg}");
+        assert!(msg.contains("cyclonedx14"), "error should list valid values: {msg}");
+    }
+
+    #[test]
+    fn the_cli_default_format_parses() {
+        // --sbom-format's clap default_value is "cyclonedx14"; if that stops
+        // parsing, every default SBOM run breaks.
+        assert!(parse_sbom_format("cyclonedx14").is_ok());
+    }
 }
 ```
 
@@ -1493,10 +1572,17 @@ Run:
 ```bash
 cargo fmt
 cargo clippy -- -D warnings
-cargo test parse_sbom_repos
+cargo test cli_runners
 cargo run -- --help 2>&1 | grep -A 1 "sbom"
 ```
-Expected: clippy clean; the six `parse_sbom_repos` tests pass; `--sbom-bucket`, `--sbom-kms-key`, `--sbom-format`, `--sbom-key-prefix`, `--sbom-repos`, `--sbom-all-repos` all listed.
+Expected: clippy clean on touched files; all ten tests in the new module pass (six `parse_sbom_repos`, four `parse_sbom_format`); `--sbom-bucket`, `--sbom-kms-key`, `--sbom-format`, `--sbom-key-prefix`, `--sbom-repos`, `--sbom-all-repos` all listed.
+
+Also confirm the format fix end-to-end — a bad value must fail fast with a clear message rather than reaching AWS:
+```bash
+cargo run -- --lookback 1 --collectors inspector-sbom \
+    --sbom-bucket b --sbom-kms-key k --sbom-format nonsense 2>&1 | tail -3
+```
+Expected: an error naming `nonsense` and listing the valid spellings.
 
 Then confirm the mutual-exclusion guard fires without touching AWS:
 ```bash
