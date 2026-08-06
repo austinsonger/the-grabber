@@ -30,7 +30,7 @@ pub struct AppConfig {
 }
 
 /// Global default values for the TUI wizard.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 pub struct Defaults {
     /// Prefer profiles whose name contains this substring when
     /// pre-selecting a default profile (legacy flow).

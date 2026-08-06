@@ -297,6 +297,25 @@ impl App {
             .collect()
     }
 
+    /// True when the user selected the `inspector-sbom` collector.
+    pub fn sbom_selected(&self) -> bool {
+        self.selected_collectors()
+            .iter()
+            .any(|k| k == "inspector-sbom")
+    }
+
+    /// Indices into `sbom_repo_list` matching the current search box,
+    /// in list order. An empty search shows everything.
+    pub fn visible_sbom_repos(&self) -> Vec<usize> {
+        let needle = self.sbom_repo_search.value.trim().to_lowercase();
+        self.sbom_repo_list
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| needle.is_empty() || r.name.to_lowercase().contains(&needle))
+            .map(|(i, _)| i)
+            .collect()
+    }
+
     /// True if TOML accounts are configured (multi-account flow).
     pub fn has_accounts(&self) -> bool {
         !self.accounts.is_empty()
