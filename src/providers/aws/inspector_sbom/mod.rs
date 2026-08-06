@@ -209,8 +209,16 @@ impl CsvCollector for InspectorSbomCollector {
             return Ok(rows);
         }
 
-        let (exported, report_id_fallback) =
-            self.list_exported(&bucket, &prefix, &report_id).await?;
+        let (exported, widened_listing, report_id_mismatch) =
+            match self.list_exported(&bucket, &prefix, &report_id).await {
+                Ok(v) => v,
+                Err(e) => {
+                    let msg = format!("{e:#}");
+                    eprintln!("  WARN: S3 listing failed while resolving exported SBOMs: {msg}");
+                    rows.push(export_row("(export)", &report_id, "FAILED", &fmt, &msg));
+                    return Ok(rows);
+                }
+            };
         if exported.is_empty() {
             rows.push(export_row(
                 "(export)",
@@ -260,9 +268,17 @@ impl CsvCollector for InspectorSbomCollector {
                     self.config.repositories.len()
                 ));
             }
-            if report_id_fallback {
+            if widened_listing {
                 notes.push(
-                    "report-id match failed; SBOMs may include objects from an earlier export under this prefix"
+                    "S3 listing had to widen beyond this export's own output segment \
+                     (no parseable SBOM keys found there)"
+                        .to_string(),
+                );
+            }
+            if report_id_mismatch {
+                notes.push(
+                    "no key carried this export's report id; SBOMs may include objects \
+                     from an earlier export under this prefix"
                         .to_string(),
                 );
             }
@@ -429,6 +445,27 @@ fn resolve_targets(repositories: &[String], exported_repos: &[String]) -> Vec<St
         .collect()
 }
 
+/// The S3 prefix an SBOM export writes its own objects under:
+/// `<key_prefix>/<format_wire>_outputs_<report_id>/`, or just
+/// `<format_wire>_outputs_<report_id>/` when `key_prefix` is empty.
+///
+/// Trims a trailing `/` off `key_prefix` first. `sbom_key_prefix` is a plain
+/// user-supplied config value that is never normalized, and the value used
+/// here is whatever AWS echoes back from the export's `s3_destination`. A
+/// prefix ending in `/` is an entirely ordinary way to write one, and without
+/// trimming it would produce a doubled `//` that, as a literal S3 prefix,
+/// matches nothing — silently missing this export's own segment every time.
+/// Free function rather than inline logic so it is testable without an SDK
+/// client.
+fn scoped_list_prefix(key_prefix: &str, format_wire: &str, report_id: &str) -> String {
+    let trimmed = key_prefix.trim_end_matches('/');
+    if trimmed.is_empty() {
+        format!("{format_wire}_outputs_{report_id}/")
+    } else {
+        format!("{trimmed}/{format_wire}_outputs_{report_id}/")
+    }
+}
+
 impl InspectorSbomCollector {
     async fn poll_sbom_export(
         &self,
@@ -501,35 +538,35 @@ impl InspectorSbomCollector {
     }
 
     /// Every ECR container-image SBOM this export produced, parsed out of its
-    /// S3 object keys, plus whether recovering them required widening beyond
-    /// this export's own output segment (a signal the caller surfaces in the
-    /// CSV, since it means the returned SBOMs might include objects left over
-    /// from an earlier export under the same prefix).
+    /// S3 object keys, plus two independent signals the caller surfaces in
+    /// the CSV:
+    /// - `widened_listing`: the narrow per-export segment (see
+    ///   `scoped_list_prefix`) had no parseable SBOM key, so the listing had
+    ///   to widen to the whole configured `prefix`. Provenance-neutral — it
+    ///   only affects how much was scanned, not which objects came back.
+    /// - `report_id_mismatch`: no key, from whichever listing was used,
+    ///   carried this export's report id, so the caller widened further to
+    ///   "every SBOM key under the prefix". This one *is* a provenance
+    ///   warning: those objects may be leftovers from an earlier export.
     ///
     /// Lists under `<prefix>/<FORMAT>_outputs_<report_id>/` first — the exact
     /// segment this export writes to — rather than scanning everything under
     /// the user-configured `prefix`, which on a large shared evidence bucket
-    /// can burn the whole per-collector time budget. Only falls back to the
-    /// broader `prefix` scan (as before) when that narrower listing turns up
-    /// no parseable SBOM keys.
+    /// can burn the whole per-collector time budget.
     async fn list_exported(
         &self,
         bucket: &str,
         prefix: &str,
         report_id: &str,
-    ) -> Result<(Vec<ExportedSbom>, bool)> {
+    ) -> Result<(Vec<ExportedSbom>, bool, bool)> {
         let fmt = self.config.format.as_str();
-        let scoped_prefix = if prefix.is_empty() {
-            format!("{fmt}_outputs_{report_id}/")
-        } else {
-            format!("{prefix}/{fmt}_outputs_{report_id}/")
-        };
+        let scoped_prefix = scoped_list_prefix(prefix, fmt, report_id);
 
         let mut keys = self.list_s3_keys(bucket, &scoped_prefix).await?;
-        let mut fell_back = false;
+        let mut widened_listing = false;
 
         if !keys.iter().any(|k| parse_export_key(k).is_some()) {
-            fell_back = true;
+            widened_listing = true;
             eprintln!(
                 "  WARN: no parseable ECR SBOM keys under '{scoped_prefix}'; \
                  falling back to listing every key under '{prefix}'"
@@ -542,8 +579,9 @@ impl InspectorSbomCollector {
             .filter(|k| belongs_to_report(k, report_id))
             .collect();
 
+        let mut report_id_mismatch = false;
         let scoped: Vec<&String> = if this_report.is_empty() {
-            fell_back = true;
+            report_id_mismatch = true;
             eprintln!(
                 "  WARN: no keys under '{prefix}' carry report id {report_id}; \
                  falling back to every SBOM key under the prefix"
@@ -557,7 +595,7 @@ impl InspectorSbomCollector {
             .into_iter()
             .filter_map(|k| parse_export_key(k))
             .collect();
-        Ok((exported, fell_back))
+        Ok((exported, widened_listing, report_id_mismatch))
     }
 
     /// Every image currently in `repository`, reduced to digest/pushed-at/tags.
@@ -758,6 +796,38 @@ mod tests {
             resolve_targets(&repos, &exported),
             vec!["webapp".to_string(), "api".to_string()],
             "a duplicated repository name must not produce a second, false 'no SBOM' row"
+        );
+    }
+
+    #[test]
+    fn scoped_list_prefix_with_no_key_prefix_has_no_leading_slash() {
+        assert_eq!(
+            scoped_list_prefix("", "CYCLONEDX_1_4", "r-1"),
+            "CYCLONEDX_1_4_outputs_r-1/"
+        );
+    }
+
+    #[test]
+    fn scoped_list_prefix_joins_a_plain_prefix_with_one_slash() {
+        assert_eq!(
+            scoped_list_prefix("evidence", "CYCLONEDX_1_4", "r-1"),
+            "evidence/CYCLONEDX_1_4_outputs_r-1/"
+        );
+    }
+
+    #[test]
+    fn scoped_list_prefix_trims_one_trailing_slash() {
+        assert_eq!(
+            scoped_list_prefix("evidence/", "CYCLONEDX_1_4", "r-1"),
+            "evidence/CYCLONEDX_1_4_outputs_r-1/"
+        );
+    }
+
+    #[test]
+    fn scoped_list_prefix_trims_two_trailing_slashes() {
+        assert_eq!(
+            scoped_list_prefix("evidence//", "CYCLONEDX_1_4", "r-1"),
+            "evidence/CYCLONEDX_1_4_outputs_r-1/"
         );
     }
 
