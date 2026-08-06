@@ -22,12 +22,26 @@ pub use export_keys::{
 pub use repo_picker::{exported_newest_first, newest_exported, EcrImage};
 
 const POLL_INTERVAL_SECS: u64 = 10;
-const MAX_POLL_ATTEMPTS: u32 = 60;
+/// 42 attempts * 10s = 420s (7 min). Deliberately kept well below the runner's
+/// 600s per-collector timeout (`Duration::from_secs(600)` in
+/// `src/runner/multi_account.rs`) so that listing the export's S3 keys and
+/// downloading SBOMs afterward still have a budget, and so a genuinely stuck
+/// export is reported as this collector's own TIMEOUT row instead of being
+/// silently killed by the runner before that row is ever written.
+const MAX_POLL_ATTEMPTS: u32 = 42;
 
 /// Cap on the number of per-image SBOMs downloaded into `raw/` for a single
 /// repository, newest first. Anything beyond the cap is reported in the CSV
 /// `Notes` column rather than dropped silently.
 const MAX_RAW_PER_REPO: usize = 25;
+
+/// AWS caps `ResourceFilterCriteria`'s string-filter arrays (including
+/// `ecr_repository_name`) at 10 entries; the SDK performs no client-side
+/// check, so sending more would fail with an opaque `ValidationException`.
+/// When the caller selects more than this, `resource_filter` falls back to an
+/// unscoped (account-wide) export instead — still correct, since results are
+/// narrowed to the selected repositories locally, just larger than necessary.
+const MAX_FILTER_REPOSITORIES: usize = 10;
 
 #[derive(Clone, Debug)]
 pub struct InspectorSbomConfig {
@@ -132,12 +146,14 @@ impl CsvCollector for InspectorSbomCollector {
             Ok(r) => r,
             Err(e) => {
                 let msg = format!("{e:#}");
-                if msg.contains("AccessDeniedException") {
-                    eprintln!("  WARN: Inspector create_sbom_export (access denied): {msg}");
-                    rows.push(export_row("(export)", "", "ACCESS_DENIED", &fmt, &msg));
-                    return Ok(rows);
-                }
-                return Err(e).context("Inspector create_sbom_export failed");
+                let status = if msg.contains("AccessDeniedException") {
+                    "ACCESS_DENIED"
+                } else {
+                    "FAILED"
+                };
+                eprintln!("  WARN: Inspector create_sbom_export ({status}): {msg}");
+                rows.push(export_row("(export)", "", status, &fmt, &msg));
+                return Ok(rows);
             }
         };
 
@@ -193,7 +209,8 @@ impl CsvCollector for InspectorSbomCollector {
             return Ok(rows);
         }
 
-        let exported = self.list_exported(&bucket, &prefix, &report_id).await?;
+        let (exported, report_id_fallback) =
+            self.list_exported(&bucket, &prefix, &report_id).await?;
         if exported.is_empty() {
             rows.push(export_row(
                 "(export)",
@@ -215,13 +232,11 @@ impl CsvCollector for InspectorSbomCollector {
                 .push(item);
         }
 
-        // Report on the repositories the user asked for. When unscoped, report
-        // on everything the export produced.
-        let targets: Vec<String> = if self.config.repositories.is_empty() {
-            by_repo.keys().cloned().collect()
-        } else {
-            self.config.repositories.clone()
-        };
+        // Report on the repositories the user asked for (deduped, order
+        // preserved). When unscoped, report on everything the export produced.
+        let exported_repos: Vec<String> = by_repo.keys().cloned().collect();
+        let targets = resolve_targets(&self.config.repositories, &exported_repos);
+        let filter_overflow = self.config.repositories.len() > MAX_FILTER_REPOSITORIES;
 
         let region_label = if region.is_empty() {
             "unknown-region"
@@ -237,6 +252,20 @@ impl CsvCollector for InspectorSbomCollector {
         for repo in targets {
             let items = by_repo.remove(&repo).unwrap_or_default();
             let mut notes: Vec<String> = Vec::new();
+
+            if filter_overflow {
+                notes.push(format!(
+                    "export was not repository-scoped: {} repositories exceeds the {MAX_FILTER_REPOSITORIES}-filter limit, \
+                     so the whole account was exported and results were filtered locally",
+                    self.config.repositories.len()
+                ));
+            }
+            if report_id_fallback {
+                notes.push(
+                    "report-id match failed; SBOMs may include objects from an earlier export under this prefix"
+                        .to_string(),
+                );
+            }
 
             if items.is_empty() {
                 notes.push(
@@ -361,10 +390,12 @@ impl CsvCollector for InspectorSbomCollector {
     }
 }
 
-/// Scope the export to `repositories`. `None` means unscoped (whole account).
+/// Scope the export to `repositories`. `None` means unscoped (whole account) —
+/// either because none were selected, or because more than
+/// `MAX_FILTER_REPOSITORIES` were, which AWS's filter array cannot express.
 /// Free function rather than a method so it is testable without an SDK client.
 fn resource_filter(repositories: &[String]) -> Result<Option<ResourceFilterCriteria>> {
-    if repositories.is_empty() {
+    if repositories.is_empty() || repositories.len() > MAX_FILTER_REPOSITORIES {
         return Ok(None);
     }
     let mut builder = ResourceFilterCriteria::builder();
@@ -377,6 +408,25 @@ fn resource_filter(repositories: &[String]) -> Result<Option<ResourceFilterCrite
         builder = builder.ecr_repository_name(filter);
     }
     Ok(Some(builder.build()))
+}
+
+/// Repository names to report a row for: the user's explicit selection,
+/// deduplicated while preserving first-seen order (a repeated name would
+/// otherwise consume the export's entry on its first occurrence, making every
+/// later duplicate falsely report "no SBOM for this repository"); or, when
+/// unscoped, every repository the export actually produced.
+/// Free function rather than inline logic so it is testable without an SDK
+/// client.
+fn resolve_targets(repositories: &[String], exported_repos: &[String]) -> Vec<String> {
+    if repositories.is_empty() {
+        return exported_repos.to_vec();
+    }
+    let mut seen: HashSet<String> = HashSet::new();
+    repositories
+        .iter()
+        .filter(|r| seen.insert((*r).clone()))
+        .cloned()
+        .collect()
 }
 
 impl InspectorSbomCollector {
@@ -419,15 +469,10 @@ impl InspectorSbomCollector {
         anyhow::bail!("SBOM export polling loop exited unexpectedly")
     }
 
-    /// Every ECR container-image SBOM this export produced, parsed out of the
-    /// S3 object keys under `prefix`.
-    async fn list_exported(
-        &self,
-        bucket: &str,
-        prefix: &str,
-        report_id: &str,
-    ) -> Result<Vec<ExportedSbom>> {
-        let mut all_keys: Vec<String> = Vec::new();
+    /// Every key in `bucket` under `prefix` (empty means the whole bucket),
+    /// paginated to completion.
+    async fn list_s3_keys(&self, bucket: &str, prefix: &str) -> Result<Vec<String>> {
+        let mut keys: Vec<String> = Vec::new();
         let mut continuation: Option<String> = None;
 
         loop {
@@ -442,7 +487,7 @@ impl InspectorSbomCollector {
 
             for obj in resp.contents() {
                 if let Some(k) = obj.key() {
-                    all_keys.push(k.to_string());
+                    keys.push(k.to_string());
                 }
             }
 
@@ -452,25 +497,67 @@ impl InspectorSbomCollector {
             }
         }
 
-        let this_report: Vec<&String> = all_keys
+        Ok(keys)
+    }
+
+    /// Every ECR container-image SBOM this export produced, parsed out of its
+    /// S3 object keys, plus whether recovering them required widening beyond
+    /// this export's own output segment (a signal the caller surfaces in the
+    /// CSV, since it means the returned SBOMs might include objects left over
+    /// from an earlier export under the same prefix).
+    ///
+    /// Lists under `<prefix>/<FORMAT>_outputs_<report_id>/` first — the exact
+    /// segment this export writes to — rather than scanning everything under
+    /// the user-configured `prefix`, which on a large shared evidence bucket
+    /// can burn the whole per-collector time budget. Only falls back to the
+    /// broader `prefix` scan (as before) when that narrower listing turns up
+    /// no parseable SBOM keys.
+    async fn list_exported(
+        &self,
+        bucket: &str,
+        prefix: &str,
+        report_id: &str,
+    ) -> Result<(Vec<ExportedSbom>, bool)> {
+        let fmt = self.config.format.as_str();
+        let scoped_prefix = if prefix.is_empty() {
+            format!("{fmt}_outputs_{report_id}/")
+        } else {
+            format!("{prefix}/{fmt}_outputs_{report_id}/")
+        };
+
+        let mut keys = self.list_s3_keys(bucket, &scoped_prefix).await?;
+        let mut fell_back = false;
+
+        if !keys.iter().any(|k| parse_export_key(k).is_some()) {
+            fell_back = true;
+            eprintln!(
+                "  WARN: no parseable ECR SBOM keys under '{scoped_prefix}'; \
+                 falling back to listing every key under '{prefix}'"
+            );
+            keys = self.list_s3_keys(bucket, prefix).await?;
+        }
+
+        let this_report: Vec<&String> = keys
             .iter()
             .filter(|k| belongs_to_report(k, report_id))
             .collect();
 
         let scoped: Vec<&String> = if this_report.is_empty() {
+            fell_back = true;
             eprintln!(
                 "  WARN: no keys under '{prefix}' carry report id {report_id}; \
                  falling back to every SBOM key under the prefix"
             );
-            all_keys.iter().collect()
+            keys.iter().collect()
         } else {
             this_report
         };
 
-        Ok(scoped
+        let exported = scoped
             .into_iter()
             .filter_map(|k| parse_export_key(k))
-            .collect())
+            .collect();
+        Ok((exported, fell_back))
     }
 
     /// Every image currently in `repository`, reduced to digest/pushed-at/tags.
@@ -626,6 +713,52 @@ mod tests {
         // Only the repository dimension is constrained.
         assert!(filter.resource_id().is_empty());
         assert!(filter.ecr_image_tags().is_empty());
+    }
+
+    #[test]
+    fn exactly_the_filter_limit_still_builds_a_scoped_filter() {
+        let repos: Vec<String> = (0..MAX_FILTER_REPOSITORIES)
+            .map(|i| format!("repo-{i}"))
+            .collect();
+        let filter = resource_filter(&repos).expect("filter builds");
+        assert!(
+            filter.is_some(),
+            "exactly {MAX_FILTER_REPOSITORIES} repositories must still be scoped"
+        );
+    }
+
+    #[test]
+    fn one_over_the_filter_limit_falls_back_to_unscoped() {
+        let repos: Vec<String> = (0..=MAX_FILTER_REPOSITORIES)
+            .map(|i| format!("repo-{i}"))
+            .collect();
+        let filter = resource_filter(&repos).expect("empty list is not an error");
+        assert!(
+            filter.is_none(),
+            "{} repositories exceeds the {MAX_FILTER_REPOSITORIES}-filter limit and must fall back to unscoped",
+            repos.len()
+        );
+    }
+
+    #[test]
+    fn resolve_targets_returns_every_exported_repo_when_unscoped() {
+        let exported = vec!["a".to_string(), "b".to_string()];
+        assert_eq!(resolve_targets(&[], &exported), exported);
+    }
+
+    #[test]
+    fn resolve_targets_dedupes_a_repeated_selection_preserving_first_seen_order() {
+        let repos = vec![
+            "webapp".to_string(),
+            "api".to_string(),
+            "webapp".to_string(),
+        ];
+        let exported = vec!["webapp".to_string(), "api".to_string()];
+        assert_eq!(
+            resolve_targets(&repos, &exported),
+            vec!["webapp".to_string(), "api".to_string()],
+            "a duplicated repository name must not produce a second, false 'no SBOM' row"
+        );
     }
 
     #[test]
