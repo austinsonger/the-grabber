@@ -536,7 +536,7 @@ cargo fmt
 cargo clippy -- -D warnings
 cargo test inspector_sbom
 ```
-Expected: clippy clean; all 14 tests in the two new modules pass. If `parses_a_real_export_key` fails, the line-continuation backslashes in `REAL_KEY` were mangled — the constant must contain no literal newlines or spaces.
+Expected: build clean; all 15 tests in the two new modules pass (8 in `export_keys`, 7 in `repo_picker`). If `parses_a_real_export_key` fails, the line-continuation backslashes in `REAL_KEY` were mangled — the constant must contain no literal newlines or spaces.
 
 - [ ] **Step 8: Commit**
 
@@ -1146,7 +1146,40 @@ fn format_epoch(secs: i64) -> String {
 }
 ```
 
-- [ ] **Step 2: Fix the factory's now-incomplete struct literals**
+- [ ] **Step 2: Harden the export-key anchor against a colliding key prefix**
+
+Task 2's `parse_export_key` anchors on the first occurrence of `"repository_"`. The S3 key begins with the user-supplied `--sbom-key-prefix`, so a prefix that itself contains `repository_` (e.g. `sbom_key_prefix = "repository_backups"`) would anchor in the prefix and misparse every key into a wrong repository or a silent `None`. The ARN segment is always `:repository_`, so anchoring on that is unambiguous.
+
+In `src/providers/aws/inspector_sbom/export_keys.rs`, change the anchor line inside `parse_export_key` from:
+
+```rust
+    let after_marker = key.split_once("repository_")?.1;
+```
+
+to:
+
+```rust
+    // Anchor on the ARN's `:repository_` segment, not a bare `repository_`:
+    // the key begins with a user-supplied prefix that could contain the latter.
+    let after_marker = key.split_once(":repository_")?.1;
+```
+
+Update the doc comment above `parse_export_key` if it names the old marker. Then add this test to that file's existing `#[cfg(test)] mod tests` block:
+
+```rust
+    #[test]
+    fn a_key_prefix_containing_repository_does_not_confuse_the_anchor() {
+        let key = "repository_backups/CYCLONEDX_1_4_outputs_r/\
+arn:aws:ecr:us-east-1:1:repository_real-app_sha256:aa11_CYCLONEDX_1_4.json";
+        let parsed = parse_export_key(key).expect("should anchor on the ARN segment");
+        assert_eq!(parsed.repository, "real-app");
+        assert_eq!(parsed.digest, "sha256:aa11");
+    }
+```
+
+Check the existing tests still pass unchanged — the previously added cases all contain `:repository_`, except any that were written with a bare `repository_` at the very start of the string. If `rejects_non_ecr_and_malformed_keys` or another case used a bare `repository_...` with no leading colon, prefix those literals with `arn:aws:ecr:us-east-1:1` so they still exercise the intended branch rather than failing at the anchor. Do not weaken an assertion to make it pass.
+
+- [ ] **Step 3: Fix the factory's now-incomplete struct literals**
 
 `src/providers/aws/factory.rs` constructs `InspectorSbomConfig` twice (around lines 403–424) and will not compile without the new `repositories` field. In the `if has("inspector-sbom")` block, change the `Some((c, o))` arm's literal to:
 
@@ -1171,7 +1204,7 @@ and the `None` arm's literal to:
 
 (The `Some` arm can now clone wholesale because `InspectorSbomConfig` derives `Clone`.)
 
-- [ ] **Step 3: Add tests for the free functions**
+- [ ] **Step 4: Add tests for the free functions**
 
 Append to `src/providers/aws/inspector_sbom/mod.rs`:
 
@@ -1260,22 +1293,23 @@ Note: this deliberately does **not** restore the pre-refactor file's `sbom_forma
 
 Also note: `format_stem` in `export_keys.rs` matches on the enum variant (`SbomReportFormat::Spdx23 => "spdx", _ => "cyclonedx"`), not on `as_str()`. Keep it that way — matching `as_str()` against `"spdx23"` can never succeed.
 
-- [ ] **Step 4: Verify**
+- [ ] **Step 5: Verify**
 
 Run:
 ```bash
 cargo fmt
-cargo clippy -- -D warnings
+cargo build
 cargo test inspector_sbom
+cargo clippy --message-format=short 2>&1 | grep inspector_sbom
 ```
-Expected: clippy clean; the six tests above plus Task 2's fourteen all pass.
+Expected: build clean; every test in the module passes (Task 2's fifteen, plus the new prefix-collision test, plus the seven added here); no clippy warnings naming an `inspector_sbom` file.
 
 The two row-shape tests are the guard that matters most here: `headers()` and the row builders must stay the same length, or every downstream CSV is silently misaligned. If either fails with a length mismatch, fix the row builder — not the assertion.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/providers/aws/inspector_sbom/mod.rs src/providers/aws/factory.rs
+git add src/providers/aws/inspector_sbom/ src/providers/aws/factory.rs
 git commit -m "feat(sbom): scope Inspector export by ECR repository and resolve one SBOM per repo"
 ```
 
