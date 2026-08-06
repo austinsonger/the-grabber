@@ -14,7 +14,7 @@
 - `cargo clippy -- -D warnings` and `cargo fmt` must be clean before every commit.
 - No `unwrap()` / `expect()` in production code. Use `anyhow::Result` / `anyhow::Context`, `anyhow::bail!` for early exits.
 - Imports grouped std → external crates → `crate::*`, blank line between groups.
-- **No new test files or test steps.** Verification for every task is `cargo fmt`, `cargo clippy -- -D warnings`, and the stated manual check. (This deviates from the skill's default TDD structure at the repository owner's standing instruction.)
+- **Unit tests are required for every unit of logic that can be tested without AWS credentials.** Follow the repository's existing convention: an in-file `#[cfg(test)] mod tests { use super::*; … }` block, and `App::new(vec![])` as the TUI test harness (see `src/tui/app/mod.rs:418` and `src/tui/events.rs:806`). Code that only orchestrates AWS SDK calls (`ecr_repos::list_repositories`, the collector's `list_exported` / `list_ecr_images` / `download_object`) is exempt — there is no mocking layer in this codebase, and adding one is out of scope. Verification for every task is `cargo fmt`, `cargo clippy -- -D warnings`, `cargo test`, and the stated manual check.
 - `inspector-sbom` must become **opt-in** in the TUI. It is currently absent from `hardcoded_optins` in `App::new` (`src/tui/app/mod.rs:202`), so it is pre-selected today; leaving it that way would push every AWS run through the two new wizard screens. Task 7 Step 1 fixes this.
 - Per-repository raw download cap: **25** images, newest first. Anything beyond the cap must be reported in the CSV `Notes` column — never dropped silently.
 - Local output layout, relative to the run's output directory:
@@ -356,20 +356,192 @@ pub use export_keys::{
 pub use repo_picker::{exported_newest_first, newest_exported, EcrImage};
 ```
 
-- [ ] **Step 5: Verify**
+- [ ] **Step 5: Add tests for `export_keys.rs`**
+
+Append to `src/providers/aws/inspector_sbom/export_keys.rs`. The `REAL_KEY` constant is a verbatim key from a real export — do not alter it.
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const REAL_KEY: &str = "CYCLONEDX_1_4_outputs_75fe89e2-aad1-4a7e-8240-44d70e687eeb/\
+account=187940674018/resource=AWS_ECR_CONTAINER_IMAGE/\
+arn:aws:ecr:us-east-1:187940674018:repository_webapp-legacyassets_\
+sha256:1ffd88db3d0754bceaa663a63a789c6b57bce154af36c8a2f7210bfaed943660_CYCLONEDX_1_4.json";
+
+    #[test]
+    fn parses_a_real_export_key() {
+        let parsed = parse_export_key(REAL_KEY).expect("real key should parse");
+        assert_eq!(parsed.repository, "webapp-legacyassets");
+        assert_eq!(
+            parsed.digest,
+            "sha256:1ffd88db3d0754bceaa663a63a789c6b57bce154af36c8a2f7210bfaed943660"
+        );
+        assert_eq!(parsed.key, REAL_KEY);
+    }
+
+    #[test]
+    fn parses_repository_names_containing_underscores() {
+        let key = "p/CYCLONEDX_1_4_outputs_r/arn:aws:ecr:us-east-1:1:repository_my_app_name_\
+sha256:abc123_CYCLONEDX_1_4.json";
+        let parsed = parse_export_key(key).expect("underscored repo should parse");
+        assert_eq!(parsed.repository, "my_app_name");
+        assert_eq!(parsed.digest, "sha256:abc123");
+    }
+
+    #[test]
+    fn parses_namespaced_repository_names() {
+        // ECR allows `/` in repository names; the parser must not treat it as
+        // a key separator.
+        let key = "CYCLONEDX_1_4_outputs_r/arn:aws:ecr:us-east-1:1:repository_team/service_\
+sha256:def456_CYCLONEDX_1_4.json";
+        let parsed = parse_export_key(key).expect("namespaced repo should parse");
+        assert_eq!(parsed.repository, "team/service");
+        assert_eq!(parsed.digest, "sha256:def456");
+    }
+
+    #[test]
+    fn parses_spdx_keys() {
+        let key = "arn:aws:ecr:us-east-1:1:repository_app_sha256:aa11_SPDX_2_3.json";
+        let parsed = parse_export_key(key).expect("spdx key should parse");
+        assert_eq!(parsed.repository, "app");
+        assert_eq!(parsed.digest, "sha256:aa11");
+    }
+
+    #[test]
+    fn rejects_non_ecr_and_malformed_keys() {
+        // Lambda resources carry no `repository_` marker.
+        assert!(parse_export_key(
+            "CYCLONEDX_1_4_outputs_r/resource=AWS_LAMBDA_FUNCTION/arn:aws:lambda:x:1:function_f.json"
+        )
+        .is_none());
+        // No digest segment.
+        assert!(parse_export_key("repository_app_CYCLONEDX_1_4.json").is_none());
+        // Empty repository name.
+        assert!(parse_export_key("repository__sha256:aa11_CYCLONEDX_1_4.json").is_none());
+        // Non-hex digest.
+        assert!(parse_export_key("repository_app_sha256:zzzz_CYCLONEDX_1_4.json").is_none());
+        // Digest not terminated by `_`.
+        assert!(parse_export_key("repository_app_sha256:aa11").is_none());
+    }
+
+    #[test]
+    fn belongs_to_report_matches_only_its_own_report() {
+        assert!(belongs_to_report(
+            REAL_KEY,
+            "75fe89e2-aad1-4a7e-8240-44d70e687eeb"
+        ));
+        assert!(!belongs_to_report(REAL_KEY, "00000000-0000-0000-0000-000000000000"));
+        // A report id appearing outside the `_outputs_<id>/` segment must not match.
+        assert!(!belongs_to_report("prefix-abc/arn:...json", "abc"));
+    }
+
+    #[test]
+    fn sanitizes_namespaced_repository_names() {
+        assert_eq!(sanitize_repo_name("team/service"), "team_service");
+        assert_eq!(sanitize_repo_name("plain"), "plain");
+    }
+
+    #[test]
+    fn format_stem_maps_both_formats() {
+        assert_eq!(format_stem(&SbomReportFormat::Cyclonedx14), "cyclonedx");
+        assert_eq!(format_stem(&SbomReportFormat::Spdx23), "spdx");
+    }
+}
+```
+
+- [ ] **Step 6: Add tests for `repo_picker.rs`**
+
+Append to `src/providers/aws/inspector_sbom/repo_picker.rs`:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn img(digest: &str, pushed: i64) -> EcrImage {
+        EcrImage {
+            digest: digest.to_string(),
+            pushed_at_secs: pushed,
+            tags: vec![],
+        }
+    }
+
+    fn set(digests: &[&str]) -> HashSet<String> {
+        digests.iter().map(|d| d.to_string()).collect()
+    }
+
+    #[test]
+    fn picks_the_newest_image_that_was_actually_exported() {
+        // The regression this whole feature exists for: the newest image in
+        // ECR (`newest`) was never scanned, so it is absent from the export.
+        let images = vec![img("newest", 300), img("middle", 200), img("oldest", 100)];
+        let exported = set(&["middle", "oldest"]);
+
+        let chosen = newest_exported(&images, &exported).expect("middle should be chosen");
+        assert_eq!(chosen.digest, "middle");
+    }
+
+    #[test]
+    fn returns_none_when_no_exported_digest_is_still_in_ecr() {
+        let images = vec![img("a", 100)];
+        assert!(newest_exported(&images, &set(&["gone"])).is_none());
+    }
+
+    #[test]
+    fn returns_none_for_an_empty_export() {
+        let images = vec![img("a", 100)];
+        assert!(newest_exported(&images, &HashSet::new()).is_none());
+    }
+
+    #[test]
+    fn images_without_a_push_timestamp_lose_to_timestamped_ones() {
+        let images = vec![img("undated", 0), img("dated", 50)];
+        let chosen = newest_exported(&images, &set(&["undated", "dated"])).expect("a pick");
+        assert_eq!(chosen.digest, "dated");
+    }
+
+    #[test]
+    fn orders_exported_digests_newest_first() {
+        let images = vec![img("a", 100), img("b", 300), img("c", 200)];
+        let ordered = exported_newest_first(&images, &set(&["a", "b", "c"]));
+        assert_eq!(ordered, vec!["b", "c", "a"]);
+    }
+
+    #[test]
+    fn orphaned_digests_sort_last_and_deterministically() {
+        // `zz` and `yy` were exported but are no longer in ECR. They must come
+        // after every live image, in a stable order across runs.
+        let images = vec![img("live-old", 100), img("live-new", 200)];
+        let ordered = exported_newest_first(&images, &set(&["live-old", "live-new", "zz", "yy"]));
+        assert_eq!(ordered, vec!["live-new", "live-old", "yy", "zz"]);
+    }
+
+    #[test]
+    fn ignores_live_images_that_were_not_exported() {
+        let images = vec![img("exported", 100), img("not-exported", 200)];
+        let ordered = exported_newest_first(&images, &set(&["exported"]));
+        assert_eq!(ordered, vec!["exported"]);
+    }
+}
+```
+
+- [ ] **Step 7: Verify**
 
 Run:
 ```bash
 cargo fmt
 cargo clippy -- -D warnings
+cargo test inspector_sbom
 ```
-Expected: clean. (`mod.rs` does not yet call the new helpers; the `pub use` re-exports keep them from tripping `dead_code`.)
+Expected: clippy clean; all 14 tests in the two new modules pass. If `parses_a_real_export_key` fails, the line-continuation backslashes in `REAL_KEY` were mangled — the constant must contain no literal newlines or spaces.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/providers/aws/inspector_sbom/
-git commit -m "refactor(sbom): split inspector_sbom into a module with key-parsing and image-picking helpers"
+git commit -m "refactor(sbom): split inspector_sbom into a module with tested key-parsing and image-picking helpers"
 ```
 
 ---
@@ -517,7 +689,7 @@ impl CsvCollector for InspectorSbomCollector {
             .create_sbom_export()
             .report_format(self.config.format.clone())
             .s3_destination(destination);
-        if let Some(filter) = self.resource_filter()? {
+        if let Some(filter) = resource_filter(&self.config.repositories)? {
             req = req.resource_filter_criteria(filter);
         }
 
@@ -754,24 +926,25 @@ impl CsvCollector for InspectorSbomCollector {
     }
 }
 
-impl InspectorSbomCollector {
-    /// Scope the export to the selected repositories. `None` means unscoped.
-    fn resource_filter(&self) -> Result<Option<ResourceFilterCriteria>> {
-        if self.config.repositories.is_empty() {
-            return Ok(None);
-        }
-        let mut builder = ResourceFilterCriteria::builder();
-        for repo in &self.config.repositories {
-            let filter = ResourceStringFilter::builder()
-                .comparison(ResourceStringComparison::Equals)
-                .value(repo.clone())
-                .build()
-                .with_context(|| format!("building SBOM repository filter for {repo}"))?;
-            builder = builder.ecr_repository_name(filter);
-        }
-        Ok(Some(builder.build()))
+/// Scope the export to `repositories`. `None` means unscoped (whole account).
+/// Free function rather than a method so it is testable without an SDK client.
+fn resource_filter(repositories: &[String]) -> Result<Option<ResourceFilterCriteria>> {
+    if repositories.is_empty() {
+        return Ok(None);
     }
+    let mut builder = ResourceFilterCriteria::builder();
+    for repo in repositories {
+        let filter = ResourceStringFilter::builder()
+            .comparison(ResourceStringComparison::Equals)
+            .value(repo.clone())
+            .build()
+            .with_context(|| format!("building SBOM repository filter for {repo}"))?;
+        builder = builder.ecr_repository_name(filter);
+    }
+    Ok(Some(builder.build()))
+}
 
+impl InspectorSbomCollector {
     async fn poll_sbom_export(
         &self,
         report_id: &str,
@@ -997,16 +1170,97 @@ and the `None` arm's literal to:
 
 (The `Some` arm can now clone wholesale because `InspectorSbomConfig` derives `Clone`.)
 
-- [ ] **Step 3: Verify**
+- [ ] **Step 3: Add tests for the free functions**
+
+Append to `src/providers/aws/inspector_sbom/mod.rs`:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sbom_format_parsing() {
+        let fmt: SbomReportFormat = "cyclonedx14".into();
+        assert_eq!(fmt.as_str(), "cyclonedx14");
+
+        let fmt2: SbomReportFormat = "spdx23".into();
+        assert_eq!(fmt2.as_str(), "spdx23");
+    }
+
+    #[test]
+    fn no_repositories_means_an_unscoped_export() {
+        let filter = resource_filter(&[]).expect("empty list is not an error");
+        assert!(
+            filter.is_none(),
+            "an empty repository list must leave the export account-wide"
+        );
+    }
+
+    #[test]
+    fn repositories_become_equals_filters() {
+        let repos = vec!["webapp-base".to_string(), "team/service".to_string()];
+        let filter = resource_filter(&repos)
+            .expect("filter builds")
+            .expect("filter is present");
+
+        let names = filter.ecr_repository_name();
+        assert_eq!(names.len(), 2);
+        assert_eq!(names[0].value(), "webapp-base");
+        assert_eq!(names[1].value(), "team/service");
+        for f in names {
+            assert_eq!(*f.comparison(), ResourceStringComparison::Equals);
+        }
+        // Only the repository dimension is constrained.
+        assert!(filter.resource_id().is_empty());
+        assert!(filter.ecr_image_tags().is_empty());
+    }
+
+    #[test]
+    fn export_row_has_one_cell_per_header() {
+        let row = export_row("(export)", "r-1", "SKIPPED", "cyclonedx14", "why");
+        assert_eq!(row.len(), 11, "export_row must match the header count");
+        assert_eq!(row[0], "(export)");
+        assert_eq!(row[2], "SKIPPED");
+        assert_eq!(row[10], "why");
+    }
+
+    #[test]
+    fn repo_row_has_one_cell_per_header_and_joins_notes() {
+        let notes = vec!["first".to_string(), "second".to_string()];
+        let row = repo_row(
+            "app", "r-1", "Succeeded", "cyclonedx14", "sha256:aa", "latest", "2026-08-05T00:00:00+00:00",
+            3, 2, "/tmp/app.cyclonedx.json", &notes,
+        );
+        assert_eq!(row.len(), 11, "repo_row must match the header count");
+        assert_eq!(row[7], "3");
+        assert_eq!(row[8], "2");
+        assert_eq!(row[10], "first; second");
+    }
+
+    #[test]
+    fn format_epoch_renders_rfc3339_and_tolerates_zero() {
+        assert_eq!(format_epoch(0), "1970-01-01T00:00:00+00:00");
+        assert!(format_epoch(1_754_412_938).starts_with("2025-08-05T"));
+    }
+}
+```
+
+Note: this replaces the `sbom_format_parsing` test that existed in the pre-refactor file — Step 1's rewrite dropped it, and it is restored here.
+
+- [ ] **Step 4: Verify**
 
 Run:
 ```bash
 cargo fmt
 cargo clippy -- -D warnings
+cargo test inspector_sbom
 ```
-Expected: clean.
+Expected: clippy clean; the six tests above plus Task 2's fourteen all pass.
 
-- [ ] **Step 4: Commit**
+The two row-shape tests are the guard that matters most here: `headers()` and the row builders must stay the same length, or every downstream CSV is silently misaligned. If either fails with a length mismatch, fix the row builder — not the assertion.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/providers/aws/inspector_sbom/mod.rs src/providers/aws/factory.rs
@@ -1133,11 +1387,7 @@ In `src/runner/cli_runners.rs`, replace the whole `if selected.iter().any(|n| n 
         }
 
         let repositories: Vec<String> = if let Some(ref list) = cli.sbom_repos {
-            let names: Vec<String> = list
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
+            let names = parse_sbom_repos(list);
             if names.is_empty() {
                 anyhow::bail!("--sbom-repos was given but contained no repository names");
             }
@@ -1174,15 +1424,79 @@ In `src/runner/cli_runners.rs`, replace the whole `if selected.iter().any(|n| n 
 
 If `anyhow::Context` is not already in scope in `cli_runners.rs`, add `Context` to its existing `use anyhow::{…};` line.
 
-- [ ] **Step 3: Verify**
+- [ ] **Step 3: Add the `parse_sbom_repos` helper and its tests**
+
+Still in `src/runner/cli_runners.rs`, add the helper at module level (outside any function):
+
+```rust
+/// Split a `--sbom-repos` value into repository names, trimming whitespace and
+/// dropping empty entries. An all-empty input yields an empty Vec, which the
+/// caller rejects.
+fn parse_sbom_repos(list: &str) -> Vec<String> {
+    list.split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+```
+
+Then append the test module to the same file (or add these tests to its existing `#[cfg(test)] mod tests` block if one is already present):
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn splits_a_plain_comma_list() {
+        assert_eq!(
+            parse_sbom_repos("webapp-base,websocket-server"),
+            vec!["webapp-base", "websocket-server"]
+        );
+    }
+
+    #[test]
+    fn trims_whitespace_around_names() {
+        assert_eq!(
+            parse_sbom_repos(" webapp-base , websocket-server "),
+            vec!["webapp-base", "websocket-server"]
+        );
+    }
+
+    #[test]
+    fn drops_empty_entries_from_trailing_and_doubled_commas() {
+        assert_eq!(parse_sbom_repos("a,,b,"), vec!["a", "b"]);
+    }
+
+    #[test]
+    fn preserves_namespaced_repository_names() {
+        assert_eq!(parse_sbom_repos("team/service,other"), vec!["team/service", "other"]);
+    }
+
+    #[test]
+    fn all_empty_input_yields_nothing_so_the_caller_can_reject_it() {
+        assert!(parse_sbom_repos("").is_empty());
+        assert!(parse_sbom_repos("  ").is_empty());
+        assert!(parse_sbom_repos(", ,").is_empty());
+    }
+
+    #[test]
+    fn single_name_needs_no_comma() {
+        assert_eq!(parse_sbom_repos("solo"), vec!["solo"]);
+    }
+}
+```
+
+- [ ] **Step 4: Verify**
 
 Run:
 ```bash
 cargo fmt
 cargo clippy -- -D warnings
+cargo test parse_sbom_repos
 cargo run -- --help 2>&1 | grep -A 1 "sbom"
 ```
-Expected: `--sbom-bucket`, `--sbom-kms-key`, `--sbom-format`, `--sbom-key-prefix`, `--sbom-repos`, `--sbom-all-repos` all listed.
+Expected: clippy clean; the six `parse_sbom_repos` tests pass; `--sbom-bucket`, `--sbom-kms-key`, `--sbom-format`, `--sbom-key-prefix`, `--sbom-repos`, `--sbom-all-repos` all listed.
 
 Then confirm the mutual-exclusion guard fires without touching AWS:
 ```bash
@@ -1191,7 +1505,7 @@ cargo run -- --lookback 1 --collectors inspector-sbom \
 ```
 Expected: an error containing `--sbom-repos and --sbom-all-repos are mutually exclusive`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/cli.rs src/runner/cli_runners.rs
@@ -2084,14 +2398,297 @@ In `src/tui/mod.rs`, in `pub fn run(mut app: App)`, extend the terminal-exit con
     }
 ```
 
-- [ ] **Step 9: Verify the whole task**
+- [ ] **Step 9: Add tests for the new state, navigation, and key handling**
+
+Append to the existing `#[cfg(test)] mod tests` block in `src/tui/events.rs` (harness convention: `App::new(vec![])`, as at `src/tui/events.rs:806`):
+
+```rust
+    fn make_sbom_app() -> App {
+        use crate::providers::aws::ecr_repos::EcrRepoSummary;
+        let mut app = App::new(vec![]);
+        app.sbom_repo_list = ["alpha", "beta", "gamma"]
+            .iter()
+            .map(|n| EcrRepoSummary {
+                name: (*n).to_string(),
+                uri: format!("1.dkr.ecr.us-east-1.amazonaws.com/{n}"),
+            })
+            .collect();
+        app.screen = Screen::SbomRepoSelection;
+        app
+    }
+
+    #[test]
+    fn sbom_destination_requires_a_bucket_before_discovery() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input.clear();
+        app.sbom_kms_input.clear();
+
+        assert!(matches!(
+            handle_sbom_destination(&mut app, KeyCode::Enter),
+            Action::Continue
+        ));
+        assert_eq!(app.screen, Screen::SbomDestination, "must not advance");
+        assert!(app.error_msg.is_some(), "an error banner must be shown");
+    }
+
+    #[test]
+    fn sbom_destination_requires_a_kms_key_before_discovery() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input = crate::tui::state::TextInput::new("my-bucket");
+        app.sbom_kms_input.clear();
+
+        assert!(matches!(
+            handle_sbom_destination(&mut app, KeyCode::Enter),
+            Action::Continue
+        ));
+        assert_eq!(app.screen, Screen::SbomDestination);
+        assert!(app.error_msg.is_some());
+    }
+
+    #[test]
+    fn sbom_destination_advances_to_discovery_when_both_fields_are_set() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input = crate::tui::state::TextInput::new("my-bucket");
+        app.sbom_kms_input = crate::tui::state::TextInput::new("arn:aws:kms:us-east-1:1:key/abc");
+
+        assert!(matches!(
+            handle_sbom_destination(&mut app, KeyCode::Enter),
+            Action::SbomDiscoverRepos
+        ));
+        assert_eq!(app.screen, Screen::SbomRepoDiscovery);
+        assert!(app.error_msg.is_none());
+    }
+
+    #[test]
+    fn sbom_destination_typing_lands_in_the_focused_field() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input.clear();
+        app.sbom_kms_input.clear();
+        app.sbom_prefix_input.clear();
+
+        app.sbom_dest_field = 0;
+        handle_sbom_destination(&mut app, KeyCode::Char('b'));
+        assert_eq!(app.sbom_bucket_input.value, "b");
+
+        handle_sbom_destination(&mut app, KeyCode::Down);
+        assert_eq!(app.sbom_dest_field, 1);
+        handle_sbom_destination(&mut app, KeyCode::Char('k'));
+        assert_eq!(app.sbom_kms_input.value, "k");
+        assert_eq!(app.sbom_bucket_input.value, "b", "bucket must be untouched");
+    }
+
+    #[test]
+    fn sbom_dest_field_clamps_at_both_ends() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_dest_field = 0;
+        handle_sbom_destination(&mut app, KeyCode::Up);
+        assert_eq!(app.sbom_dest_field, 0);
+
+        app.sbom_dest_field = 2;
+        handle_sbom_destination(&mut app, KeyCode::Down);
+        assert_eq!(app.sbom_dest_field, 2);
+    }
+
+    #[test]
+    fn space_toggles_the_repository_under_the_cursor() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Char(' '));
+        assert!(app.sbom_repo_selected.contains(&0));
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Char(' '));
+        assert!(app.sbom_repo_selected.is_empty(), "space must toggle off");
+    }
+
+    #[test]
+    fn a_selects_all_visible_and_d_clears() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('a'));
+        assert_eq!(app.sbom_repo_selected.len(), 3);
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('d'));
+        assert!(app.sbom_repo_selected.is_empty());
+    }
+
+    #[test]
+    fn a_selects_only_the_filtered_subset() {
+        let mut app = make_sbom_app();
+        app.sbom_repo_search = crate::tui::state::TextInput::new("bet");
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('a'));
+
+        assert_eq!(app.sbom_repo_selected.len(), 1);
+        assert!(app.sbom_repo_selected.contains(&1), "only `beta` is visible");
+    }
+
+    #[test]
+    fn cursor_clamps_within_the_visible_list() {
+        let mut app = make_sbom_app();
+        for _ in 0..10 {
+            handle_sbom_repo_selection(&mut app, KeyCode::Down);
+        }
+        assert_eq!(app.sbom_repo_cursor, 2, "3 repos means max cursor 2");
+
+        for _ in 0..10 {
+            handle_sbom_repo_selection(&mut app, KeyCode::Up);
+        }
+        assert_eq!(app.sbom_repo_cursor, 0);
+    }
+
+    #[test]
+    fn typing_filters_and_resets_the_cursor() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Down);
+        assert_eq!(app.sbom_repo_cursor, 1);
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('g'));
+        assert_eq!(app.sbom_repo_search.value, "g");
+        assert_eq!(app.sbom_repo_cursor, 0, "cursor resets on filter change");
+        assert_eq!(app.visible_sbom_repos(), vec![2], "only `gamma` matches");
+    }
+
+    #[test]
+    fn enter_with_nothing_selected_is_refused() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Enter);
+
+        assert_eq!(app.screen, Screen::SbomRepoSelection, "must not advance");
+        assert!(app.error_msg.is_some());
+        assert!(app.selected_sbom_repos.is_empty());
+    }
+
+    #[test]
+    fn enter_commits_selected_names_sorted_and_advances() {
+        let mut app = make_sbom_app();
+        app.sbom_repo_selected.insert(2);
+        app.sbom_repo_selected.insert(0);
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Enter);
+
+        assert_eq!(app.screen, Screen::SetOptions);
+        assert_eq!(app.selected_sbom_repos, vec!["alpha", "gamma"]);
+    }
+```
+
+Then append to the existing `#[cfg(test)] mod tests` block in `src/tui/app/mod.rs`:
+
+```rust
+    #[test]
+    fn sbom_is_not_selected_by_default() {
+        let app = make_app();
+        assert!(
+            !app.sbom_selected(),
+            "inspector-sbom must be opt-in, or every AWS run gains two wizard screens"
+        );
+    }
+
+    #[test]
+    fn sbom_selected_follows_the_collector_selection() {
+        let mut app = make_app();
+        let idx = app
+            .collector_items
+            .iter()
+            .position(|(k, _, _)| *k == "inspector-sbom")
+            .expect("inspector-sbom is in the AWS menu");
+
+        app.collector_selected.insert(idx);
+        assert!(app.sbom_selected());
+    }
+
+    #[test]
+    fn visible_sbom_repos_filters_case_insensitively() {
+        use crate::providers::aws::ecr_repos::EcrRepoSummary;
+        let mut app = make_app();
+        app.sbom_repo_list = ["Alpha", "beta"]
+            .iter()
+            .map(|n| EcrRepoSummary {
+                name: (*n).to_string(),
+                uri: String::new(),
+            })
+            .collect();
+
+        assert_eq!(app.visible_sbom_repos(), vec![0, 1], "empty filter shows all");
+
+        app.sbom_repo_search = crate::tui::state::TextInput::new("ALPHA");
+        assert_eq!(app.visible_sbom_repos(), vec![0]);
+
+        app.sbom_repo_search = crate::tui::state::TextInput::new("zzz");
+        assert!(app.visible_sbom_repos().is_empty());
+    }
+
+    #[test]
+    fn sbom_flow_navigation_round_trips() {
+        let mut app = make_app();
+        let idx = app
+            .collector_items
+            .iter()
+            .position(|(k, _, _)| *k == "inspector-sbom")
+            .expect("inspector-sbom is in the AWS menu");
+        app.collector_selected.insert(idx);
+        app.screen = Screen::SelectCollectors;
+
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SbomDestination);
+
+        app.screen = Screen::SbomRepoSelection;
+        app.sbom_repo_selected.insert(0);
+        app.sbom_repo_list = vec![crate::providers::aws::ecr_repos::EcrRepoSummary {
+            name: "only".to_string(),
+            uri: String::new(),
+        }];
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SetOptions);
+
+        // Back out of SetOptions returns to the picker, not the collector list.
+        app.prev_screen();
+        assert_eq!(app.screen, Screen::SbomRepoSelection);
+        app.prev_screen();
+        assert_eq!(app.screen, Screen::SbomDestination);
+        app.prev_screen();
+        assert_eq!(app.screen, Screen::SelectCollectors);
+    }
+
+    #[test]
+    fn without_sbom_selected_collectors_goes_straight_to_options() {
+        let mut app = make_app();
+        app.screen = Screen::SelectCollectors;
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SetOptions);
+    }
+
+    #[test]
+    fn reset_clears_sbom_selection_state() {
+        let mut app = make_app();
+        app.sbom_repo_selected.insert(0);
+        app.selected_sbom_repos = vec!["x".to_string()];
+        app.sbom_discovery_error = Some("boom".to_string());
+        app.sbom_repo_cursor = 2;
+
+        app.reset();
+
+        assert!(app.sbom_repo_selected.is_empty());
+        assert!(app.selected_sbom_repos.is_empty());
+        assert!(app.sbom_discovery_error.is_none());
+        assert_eq!(app.sbom_repo_cursor, 0);
+    }
+```
+
+`Screen` and `KeyCode` are already in scope in both test modules via `use super::*;`. If `Screen` is not, add `use crate::tui::state::Screen;` to the test module. `Screen` derives `PartialEq`, so `assert_eq!` on it compiles; add `Debug` to its derive list if the assertion fails to compile for want of it (it already derives `Debug`).
+
+- [ ] **Step 10: Verify the whole task**
 
 Run:
 ```bash
 cargo fmt
 cargo clippy -- -D warnings
+cargo test
 ```
-Expected: clean. (This is the first point in this task where a clean build is expected.)
+Expected: clippy clean; all tests pass, including the 19 added here. (This is the first point in this task where a clean build is expected.)
+
+`sbom_is_not_selected_by_default` is the regression guard for Step 1's `hardcoded_optins` change — if it fails, `"inspector-sbom"` was not added to that array.
 
 Then confirm the wizard is navigable end-to-end. Launch the TUI, pick Collectors → AWS → an account → dates, search `sbom` in the collector picker, select **Inspector2 SBOM Export**, and press Enter:
 
@@ -2100,7 +2697,7 @@ cargo run
 ```
 Expected: the "Inspector SBOM Export Destination" screen appears with the step indicator reading `SBOM Dest` (step 5 of 9 with accounts configured). Pressing Enter with an empty bucket shows the red banner "An S3 bucket is required for the SBOM export". Filling both required fields and pressing Enter shows "Discovering ECR repositories…" and then the picker (empty until Task 8 populates it — that is expected at this point). Esc from the picker returns to the destination screen; Esc again returns to the collector picker. Quit with Esc/`q`.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 11: Commit**
 
 ```bash
 git add src/tui/
