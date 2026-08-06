@@ -346,6 +346,21 @@ pub struct Cli {
     #[arg(long, default_value = "cyclonedx14")]
     pub sbom_format: String,
 
+    /// Key prefix inside `--sbom-bucket`. Inspector appends
+    /// `<FORMAT>_outputs_<report-id>/…` beneath this prefix.
+    #[arg(long)]
+    pub sbom_key_prefix: Option<String>,
+
+    /// Comma-separated ECR repository names to export SBOMs for
+    /// (e.g. `webapp-base,websocket-server`). Mutually exclusive with
+    /// `--sbom-all-repos`.
+    #[arg(long)]
+    pub sbom_repos: Option<String>,
+
+    /// Export SBOMs for every ECR repository discovered in the region.
+    #[arg(long, default_value_t = false)]
+    pub sbom_all_repos: bool,
+
     // ------- Non-AWS provider modes -------
     #[command(flatten)]
     pub okta: OktaFlags,
