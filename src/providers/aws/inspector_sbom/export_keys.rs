@@ -34,7 +34,9 @@ pub fn parse_export_key(key: &str) -> Option<ExportedSbom> {
     // Search the whole key rather than only its last path segment: ECR
     // repository names may contain `/` (e.g. `team/service`), which would
     // otherwise be mistaken for a key separator.
-    let after_marker = key.split_once("repository_")?.1;
+    // Anchor on the ARN's `:repository_` segment, not a bare `repository_`:
+    // the key begins with a user-supplied prefix that could contain the latter.
+    let after_marker = key.split_once(":repository_")?.1;
 
     // `:` is not legal in an ECR repository name, so the first `_sha256:`
     // is always the repository/digest boundary even when the repository name
@@ -122,13 +124,21 @@ sha256:def456_CYCLONEDX_1_4.json";
         )
         .is_none());
         // No digest segment.
-        assert!(parse_export_key("repository_app_CYCLONEDX_1_4.json").is_none());
+        assert!(
+            parse_export_key("arn:aws:ecr:us-east-1:1:repository_app_CYCLONEDX_1_4.json").is_none()
+        );
         // Empty repository name.
-        assert!(parse_export_key("repository__sha256:aa11_CYCLONEDX_1_4.json").is_none());
+        assert!(parse_export_key(
+            "arn:aws:ecr:us-east-1:1:repository__sha256:aa11_CYCLONEDX_1_4.json"
+        )
+        .is_none());
         // Non-hex digest.
-        assert!(parse_export_key("repository_app_sha256:zzzz_CYCLONEDX_1_4.json").is_none());
+        assert!(parse_export_key(
+            "arn:aws:ecr:us-east-1:1:repository_app_sha256:zzzz_CYCLONEDX_1_4.json"
+        )
+        .is_none());
         // Digest not terminated by `_`.
-        assert!(parse_export_key("repository_app_sha256:aa11").is_none());
+        assert!(parse_export_key("arn:aws:ecr:us-east-1:1:repository_app_sha256:aa11").is_none());
     }
 
     #[test]
@@ -143,6 +153,15 @@ sha256:def456_CYCLONEDX_1_4.json";
         ));
         // A report id appearing outside the `_outputs_<id>/` segment must not match.
         assert!(!belongs_to_report("prefix-abc/arn:...json", "abc"));
+    }
+
+    #[test]
+    fn a_key_prefix_containing_repository_does_not_confuse_the_anchor() {
+        let key = "repository_backups/CYCLONEDX_1_4_outputs_r/\
+arn:aws:ecr:us-east-1:1:repository_real-app_sha256:aa11_CYCLONEDX_1_4.json";
+        let parsed = parse_export_key(key).expect("should anchor on the ARN segment");
+        assert_eq!(parsed.repository, "real-app");
+        assert_eq!(parsed.digest, "sha256:aa11");
     }
 
     #[test]

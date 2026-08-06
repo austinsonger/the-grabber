@@ -344,6 +344,7 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
             key_prefix: None,
             kms_key_arn: cli.sbom_kms_key.clone().unwrap_or_default(),
             format: cli.sbom_format.as_str().into(),
+            repositories: Vec::new(),
         };
         let sbom_out = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
         factory = factory.with_sbom_config(sbom_cfg, Some(sbom_out));
