@@ -137,6 +137,62 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
             continue;
         }
 
+        if app.screen == crate::tui::Screen::SbomRepoDiscovery {
+            let mut terminal = setup_terminal()?;
+            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+            // Discover from the first selected AWS account. The chosen
+            // repository names then apply to every account/region in the run.
+            let target = app
+                .selected_account_indices()
+                .into_iter()
+                .filter_map(|i| app.accounts.get(i))
+                .find(|a| a.provider == crate::providers::CloudProvider::Aws)
+                .map(|a| {
+                    (
+                        a.profile.clone().unwrap_or_default(),
+                        a.region.clone().unwrap_or_else(|| app.selected_region()),
+                    )
+                })
+                .unwrap_or_else(|| {
+                    (
+                        app.profiles
+                            .get(app.profile_cursor)
+                            .cloned()
+                            .unwrap_or_default(),
+                        app.selected_region(),
+                    )
+                });
+
+            let (profile, region) = target;
+            let mut loader =
+                aws_config::defaults(BehaviorVersion::latest()).region(Region::new(region.clone()));
+            if !profile.is_empty() && profile != "default" {
+                loader = loader.profile_name(&profile);
+            }
+            let discovery_config = loader.load().await;
+
+            match crate::providers::aws::ecr_repos::list_repositories(&discovery_config).await {
+                Ok(repos) => {
+                    app.sbom_repo_list = repos;
+                    app.sbom_repo_cursor = 0;
+                    app.sbom_repo_selected.clear();
+                    app.sbom_repo_search.clear();
+                    app.sbom_discovery_error = None;
+                }
+                Err(e) => {
+                    app.sbom_repo_list.clear();
+                    app.sbom_discovery_error = Some(format!(
+                        "ECR discovery failed for profile '{profile}' in {region}: {e:#}"
+                    ));
+                }
+            }
+
+            app.screen = crate::tui::Screen::SbomRepoSelection;
+            restore_terminal(&mut terminal)?;
+            continue;
+        }
+
         if app.screen == crate::tui::Screen::StigRemediationScanning {
             let mut terminal = setup_terminal()?;
             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
@@ -382,6 +438,25 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
             let total_accounts = account_runs.len();
             // Capture inventory asset type selection before entering the prep loop.
             let inventory_types = app.selected_inventory_types();
+            // Capture the Inspector SBOM export settings before the prep loop.
+            let sbom_run_config: Option<
+                crate::providers::aws::inspector_sbom::InspectorSbomConfig,
+            > = if app.sbom_selected() {
+                let prefix = app.sbom_prefix_input.value.trim().to_string();
+                Some(crate::providers::aws::inspector_sbom::InspectorSbomConfig {
+                    bucket: app.sbom_bucket_input.value.trim().to_string(),
+                    key_prefix: if prefix.is_empty() {
+                        None
+                    } else {
+                        Some(prefix)
+                    },
+                    kms_key_arn: app.sbom_kms_input.value.trim().to_string(),
+                    format: aws_sdk_inspector2::types::SbomReportFormat::Cyclonedx14,
+                    repositories: app.selected_sbom_repos.clone(),
+                })
+            } else {
+                None
+            };
 
             // Redirect stderr to a log file BEFORE entering TUI so that any
             // AWS SDK warnings don't corrupt the alternate screen.
@@ -512,6 +587,12 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     ));
                     terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
                 }
+                // Per-account output base. Bound here (rather than inside the
+                // regional block) so both the regional and the single-region
+                // collector builds below can route SBOM output under this
+                // account's own directory.
+                let out_base = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
+
                 // ── Build regional collectors from whatever list we now have ─────────
                 if !discovered_regions.is_empty() {
                     app.prep_log.push(format!(
@@ -519,7 +600,6 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         discovered_regions.len()
                     ));
                     terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
-                    let out_base = output_path.clone().unwrap_or_else(|| PathBuf::from("."));
 
                     if is_inventory {
                         // Inventory mode: one InventoryCollector per region, all rows merged
@@ -623,10 +703,17 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                                 .load()
                                 .await;
                             let rdir = out_base.join(region_name).join(date_path_suffix());
+                            // Bound before the push: `rdir` is moved into the
+                            // tuple below, so the SBOM output dir is cloned first.
+                            let region_sbom = sbom_run_config.clone().map(|c| (c, rdir.clone()));
                             regional_collectors.push((
                                 region_name.clone(),
                                 rdir,
-                                collector_registry::build_csv_collectors(&regional_csv_keys, &rcfg),
+                                collector_registry::build_csv_collectors_with_sbom(
+                                    &regional_csv_keys,
+                                    &rcfg,
+                                    region_sbom,
+                                ),
                                 collector_registry::build_json_inv_collectors(
                                     &regional_inv_keys,
                                     &rcfg,
@@ -666,7 +753,11 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                         Vec::new()
                     }
                 } else {
-                    collector_registry::build_csv_collectors(&names_ref, &work_config)
+                    collector_registry::build_csv_collectors_with_sbom(
+                        &names_ref,
+                        &work_config,
+                        sbom_run_config.clone().map(|c| (c, out_base.clone())),
+                    )
                 };
 
                 let mut display_names: Vec<String> = json_collectors
