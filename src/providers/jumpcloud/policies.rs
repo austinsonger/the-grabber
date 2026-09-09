@@ -31,18 +31,13 @@ impl JsonCollector for JumpCloudPoliciesCollector {
     ) -> Result<Vec<serde_json::Value>> {
         let policies = match self.client.policies().list_all().await {
             Ok(p) => p,
-            Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => {
-                return Ok(vec![])
-            }
+            Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => return Ok(vec![]),
             Err(e) => return Err(e.into()),
         };
 
         let records = policies
             .into_iter()
-            .map(|policy| {
-                serde_json::to_value(&policy)
-                    .unwrap_or(serde_json::Value::Null)
-            })
+            .map(|policy| serde_json::to_value(&policy).unwrap_or(serde_json::Value::Null))
             .collect();
 
         Ok(records)

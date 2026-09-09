@@ -2,15 +2,19 @@
 //!
 //! `run_standard_cli` is AWS-only: it builds an `AwsProviderFactory` and
 //! nothing else. This module is its counterpart for Okta, Tenable, Elastic,
-//! and GitHub — resolve accounts from the merged config (or from CLI/env
-//! credentials when there is no config), build the provider client, hand the
-//! selected keys to that provider's `ProviderFactory`, and drive the resulting
-//! collectors through the same `collect_ops` runners the AWS path uses.
+//! GitHub, Jira, Jamf, and JumpCloud — resolve accounts from the merged config
+//! (or from CLI/env credentials when there is no config), build the provider
+//! client, hand the selected keys to that provider's `ProviderFactory`, and
+//! drive the resulting collectors through the same `collect_ops` runners the
+//! AWS path uses.
 //!
 //! Output layout matches the TUI: `{base}/{account name}/{YYYY}/{MM-MMM}/`.
 
 mod elastic;
 mod github;
+mod jamf;
+mod jira;
+mod jumpcloud;
 mod okta;
 mod tenable;
 
@@ -41,15 +45,22 @@ pub fn provider_mode_selected(cli: &Cli) -> bool {
         || cli.tenable.tenable_enabled
         || cli.elastic.elastic_enabled
         || cli.github.github_enabled
+        || cli.jira.jira_enabled
+        || cli.jamf.jamf_enabled
+        || cli.jumpcloud.jumpcloud_enabled
 }
 
-/// Entry point for `--okta` / `--tenable` / `--elastic` / `--github`.
+/// Entry point for `--okta` / `--tenable` / `--elastic` / `--github` /
+/// `--jira` / `--jamf` / `--jumpcloud`.
 pub async fn run_provider_cli(cli: &Cli) -> Result<()> {
     let modes = [
         (cli.okta.okta_enabled, "--okta"),
         (cli.tenable.tenable_enabled, "--tenable"),
         (cli.elastic.elastic_enabled, "--elastic"),
         (cli.github.github_enabled, "--github"),
+        (cli.jira.jira_enabled, "--jira"),
+        (cli.jamf.jamf_enabled, "--jamf"),
+        (cli.jumpcloud.jumpcloud_enabled, "--jumpcloud"),
     ];
     let active: Vec<&str> = modes
         .iter()
@@ -113,6 +124,15 @@ pub async fn run_provider_cli(cli: &Cli) -> Result<()> {
     }
     if cli.github.github_enabled {
         return github::run(cli).await;
+    }
+    if cli.jira.jira_enabled {
+        return jira::run(cli).await;
+    }
+    if cli.jamf.jamf_enabled {
+        return jamf::run(cli).await;
+    }
+    if cli.jumpcloud.jumpcloud_enabled {
+        return jumpcloud::run(cli).await;
     }
 
     Ok(())
@@ -283,7 +303,7 @@ pub(crate) fn provider_output_dir(
     base.join(date_path_suffix())
 }
 
-/// The per-account tail shared by all four provider runners: run the three
+/// The per-account tail shared by all seven provider runners: run the three
 /// `collect_ops` runners over one account's collectors and write that account's
 /// run manifest. Returns the output directory it used so the caller can
 /// accumulate the run's directories for the once-per-run zip/signing pass.

@@ -9,7 +9,10 @@ impl<'a> SystemGroupsApi<'a> {
         self.0.list_v2_cursor("/api/v2/systemgroups").await
     }
 
-    pub async fn list_members(&self, group_id: &str) -> Result<Vec<SystemGroupMember>, JumpCloudError> {
+    pub async fn list_members(
+        &self,
+        group_id: &str,
+    ) -> Result<Vec<SystemGroupMember>, JumpCloudError> {
         let path = format!("/api/v2/systemgroups/{group_id}/members");
         self.0.list_v2_cursor(&path).await
     }

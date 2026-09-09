@@ -37,14 +37,12 @@ impl JsonCollector for JumpCloudPasswordPolicyCollector {
     ) -> Result<Vec<serde_json::Value>> {
         // Device-scoped: fetch policies and filter for password templates
         let device_policies = match self.client.policies().list_all().await {
-            Ok(policies) => {
-                policies
-                    .into_iter()
-                    .filter(|p| {
-                        is_password_template(&p.template.kind, p.template.template_type.as_deref())
-                    })
-                    .collect::<Vec<_>>()
-            }
+            Ok(policies) => policies
+                .into_iter()
+                .filter(|p| {
+                    is_password_template(&p.template.kind, p.template.template_type.as_deref())
+                })
+                .collect::<Vec<_>>(),
             Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => {
                 vec![]
             }
@@ -74,13 +72,12 @@ impl JsonCollector for JumpCloudPasswordPolicyCollector {
         } else {
             // Fetch specific organization by ID
             match self.client.organizations().get(&self.org_id).await {
-                Ok(org) => {
-                    org.settings
-                        .as_ref()
-                        .and_then(|s| s.get("passwordPolicy"))
-                        .cloned()
-                        .unwrap_or(serde_json::Value::Null)
-                }
+                Ok(org) => org
+                    .settings
+                    .as_ref()
+                    .and_then(|s| s.get("passwordPolicy"))
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null),
                 Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => {
                     serde_json::Value::Null
                 }

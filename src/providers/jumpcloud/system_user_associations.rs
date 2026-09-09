@@ -29,9 +29,7 @@ impl JsonCollector for JumpCloudSystemUserAssociationsCollector {
     ) -> Result<Vec<serde_json::Value>> {
         let systems = match self.client.systems().list_all().await {
             Ok(s) => s,
-            Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => {
-                return Ok(vec![])
-            }
+            Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => return Ok(vec![]),
             Err(e) => return Err(e.into()),
         };
         let ids: Vec<(String, String)> = systems
@@ -41,14 +39,10 @@ impl JsonCollector for JumpCloudSystemUserAssociationsCollector {
 
         let client = self.client.clone();
         let results = client
-            .fan_out(
-                ids.iter().map(|(id, _)| id.clone()).collect(),
-                8,
-                |id| {
-                    let c = client.clone();
-                    async move { c.systems().list_users(&id).await }
-                },
-            )
+            .fan_out(ids.iter().map(|(id, _)| id.clone()).collect(), 8, |id| {
+                let c = client.clone();
+                async move { c.systems().list_users(&id).await }
+            })
             .await;
 
         let mut out = Vec::new();

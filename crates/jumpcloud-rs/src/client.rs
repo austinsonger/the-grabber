@@ -25,7 +25,11 @@ pub struct JumpCloudClient {
 
 impl JumpCloudClient {
     /// Build a client for a JumpCloud base URL (usually `https://console.jumpcloud.com`).
-    pub fn new(base_url: &str, api_key: &str, org_id: Option<&str>) -> Result<Self, JumpCloudError> {
+    pub fn new(
+        base_url: &str,
+        api_key: &str,
+        org_id: Option<&str>,
+    ) -> Result<Self, JumpCloudError> {
         let trimmed = base_url.trim().trim_end_matches('/');
         if trimmed.is_empty() {
             return Err(JumpCloudError::InvalidBaseUrl(base_url.to_string()));
@@ -175,12 +179,7 @@ impl JumpCloudClient {
         let url = self.url(path);
         let owned_body = serde_json::to_vec(body)?;
         let resp = self
-            .send_with_retry(|| {
-                self.http
-                    .post(&url)
-                    .body(owned_body.clone())
-                    .send()
-            })
+            .send_with_retry(|| self.http.post(&url).body(owned_body.clone()).send())
             .await?;
         let resp = Self::expect_ok(resp).await?;
         let value: T = resp.json().await?;

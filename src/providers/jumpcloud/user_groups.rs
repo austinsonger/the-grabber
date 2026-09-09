@@ -44,9 +44,7 @@ impl CsvCollector for JumpCloudUserGroupsCollector {
                     g.name,
                     g.kind,
                     g.description.unwrap_or_default(),
-                    g.member_query
-                        .map(|v| v.to_string())
-                        .unwrap_or_default(),
+                    g.member_query.map(|v| v.to_string()).unwrap_or_default(),
                 ]
             })
             .collect();
@@ -78,9 +76,7 @@ impl JsonCollector for JumpCloudUserGroupMembersCollector {
     ) -> Result<Vec<serde_json::Value>> {
         let groups = match self.client.user_groups().list_all().await {
             Ok(g) => g,
-            Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => {
-                return Ok(vec![])
-            }
+            Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => return Ok(vec![]),
             Err(e) => return Err(e.into()),
         };
         let ids: Vec<(String, String)> = groups
@@ -90,14 +86,10 @@ impl JsonCollector for JumpCloudUserGroupMembersCollector {
 
         let client = self.client.clone();
         let results = client
-            .fan_out(
-                ids.iter().map(|(id, _)| id.clone()).collect(),
-                8,
-                |id| {
-                    let c = client.clone();
-                    async move { c.user_groups().list_members(&id).await }
-                },
-            )
+            .fan_out(ids.iter().map(|(id, _)| id.clone()).collect(), 8, |id| {
+                let c = client.clone();
+                async move { c.user_groups().list_members(&id).await }
+            })
             .await;
 
         let mut out = Vec::new();

@@ -16,13 +16,7 @@ impl JumpCloudSessionPolicyCollector {
 }
 
 fn is_session_template(name: &str, kind: &str, template_type: Option<&str>) -> bool {
-    let hay = format!(
-        "{} {} {}",
-        name,
-        kind,
-        template_type.unwrap_or("")
-    )
-    .to_ascii_lowercase();
+    let hay = format!("{} {} {}", name, kind, template_type.unwrap_or("")).to_ascii_lowercase();
     hay.contains("session")
         || hay.contains("mfa")
         || hay.contains("lockout")
@@ -47,18 +41,16 @@ impl JsonCollector for JumpCloudSessionPolicyCollector {
     ) -> Result<Vec<serde_json::Value>> {
         // Device-scoped: fetch policies and filter for session templates
         let session_policies = match self.client.policies().list_all().await {
-            Ok(policies) => {
-                policies
-                    .into_iter()
-                    .filter(|p| {
-                        is_session_template(
-                            &p.template.name,
-                            &p.template.kind,
-                            p.template.template_type.as_deref(),
-                        )
-                    })
-                    .collect::<Vec<_>>()
-            }
+            Ok(policies) => policies
+                .into_iter()
+                .filter(|p| {
+                    is_session_template(
+                        &p.template.name,
+                        &p.template.kind,
+                        p.template.template_type.as_deref(),
+                    )
+                })
+                .collect::<Vec<_>>(),
             Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => {
                 vec![]
             }
@@ -87,12 +79,11 @@ impl JsonCollector for JumpCloudSessionPolicyCollector {
         } else {
             // Fetch specific organization by ID
             match self.client.organizations().get(&self.org_id).await {
-                Ok(org) => {
-                    org.settings
-                        .as_ref()
-                        .cloned()
-                        .unwrap_or(serde_json::Value::Null)
-                }
+                Ok(org) => org
+                    .settings
+                    .as_ref()
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null),
                 Err(jumpcloud_rs::JumpCloudError::Api { status: 404, .. }) => {
                     serde_json::Value::Null
                 }
