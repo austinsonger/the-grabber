@@ -95,7 +95,7 @@ fn resolve_keys(
 }
 
 /// Okta headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Okta")]
 pub struct OktaFlags {
     /// Run the Okta evidence workflow non-interactively.
@@ -275,7 +275,7 @@ pub const TENABLE_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// Tenable headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Tenable")]
 pub struct TenableFlags {
     /// Run the Tenable evidence workflow non-interactively.
@@ -369,7 +369,7 @@ pub const ELASTIC_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// Elastic Security headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Elastic Security")]
 pub struct ElasticFlags {
     /// Run the Elastic Security evidence workflow non-interactively.
@@ -478,7 +478,7 @@ pub const GITHUB_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// GitHub headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "GitHub")]
 pub struct GithubFlags {
     /// Run the GitHub evidence workflow non-interactively.
@@ -611,7 +611,7 @@ pub const JIRA_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// Jira headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Jira")]
 pub struct JiraFlags {
     /// Run the Jira evidence workflow non-interactively.
@@ -837,7 +837,7 @@ pub const JAMF_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// Jamf headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Jamf")]
 pub struct JamfFlags {
     /// Run the Jamf evidence workflow non-interactively.
@@ -958,7 +958,7 @@ pub const JUMPCLOUD_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// JumpCloud headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "JumpCloud")]
 pub struct JumpcloudFlags {
     /// Run the JumpCloud evidence workflow non-interactively.

@@ -4,6 +4,7 @@ pub mod app_config;
 pub mod audit_log;
 pub mod aws_loader;
 pub mod cli;
+pub mod cli_providers;
 pub mod credentials;
 pub mod engine;
 pub mod evidence;

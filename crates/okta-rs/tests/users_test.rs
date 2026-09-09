@@ -1,5 +1,5 @@
 use okta_rs::OktaClient;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param, query_param_is_missing};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -9,6 +9,7 @@ async fn list_all_users_follows_pagination() {
 
     Mock::given(method("GET"))
         .and(path("/api/v1/users"))
+        .and(query_param_is_missing("after"))
         .respond_with(
             ResponseTemplate::new(200)
                 .insert_header("link", format!("<{}>; rel=\"next\"", page2_url).as_str())
@@ -27,6 +28,7 @@ async fn list_all_users_follows_pagination() {
 
     Mock::given(method("GET"))
         .and(path("/api/v1/users"))
+        .and(query_param("after", "p2"))
         // wiremock matches by path + query separately; use a second mock on the after=p2 page
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([
             {
