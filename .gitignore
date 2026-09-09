@@ -65,3 +65,6 @@ jamf-config.toml
 
 # GitHub credentials — never commit
 github-config.toml
+
+# JumpCloud credentials — never commit
+jumpcloud-config.toml

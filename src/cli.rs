@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use chrono::NaiveDate;
 use clap::Parser;
 
+use crate::cli_providers::{ElasticFlags, GithubFlags, OktaFlags, TenableFlags};
 use crate::inventory_core::INVENTORY_ITEMS;
 
 #[derive(Parser)]
@@ -344,6 +345,34 @@ pub struct Cli {
     /// SBOM report format: cyclonedx14 or spdx23.
     #[arg(long, default_value = "cyclonedx14")]
     pub sbom_format: String,
+
+    /// Key prefix inside `--sbom-bucket`. Inspector appends
+    /// `<FORMAT>_outputs_<report-id>/…` beneath this prefix.
+    #[arg(long)]
+    pub sbom_key_prefix: Option<String>,
+
+    /// Comma-separated ECR repository names to export SBOMs for
+    /// (e.g. `webapp-base,websocket-server`). Mutually exclusive with
+    /// `--sbom-all-repos`.
+    #[arg(long)]
+    pub sbom_repos: Option<String>,
+
+    /// Export SBOMs for every ECR repository discovered in the region.
+    #[arg(long, default_value_t = false)]
+    pub sbom_all_repos: bool,
+
+    // ------- Non-AWS provider modes -------
+    #[command(flatten)]
+    pub okta: OktaFlags,
+
+    #[command(flatten)]
+    pub tenable: TenableFlags,
+
+    #[command(flatten)]
+    pub elastic: ElasticFlags,
+
+    #[command(flatten)]
+    pub github: GithubFlags,
 }
 
 /// Parse a lookback string like "30", "30d", "12weeks", "3m", "1year" into a

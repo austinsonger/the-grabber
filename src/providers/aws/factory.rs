@@ -402,21 +402,14 @@ impl ProviderFactory for AwsProviderFactory {
         }
         if has("inspector-sbom") {
             let (sbom_cfg, sbom_out) = match self.sbom.as_ref() {
-                Some((c, o)) => (
-                    InspectorSbomConfig {
-                        bucket: c.bucket.clone(),
-                        key_prefix: c.key_prefix.clone(),
-                        kms_key_arn: c.kms_key_arn.clone(),
-                        format: c.format.clone(),
-                    },
-                    o.clone(),
-                ),
+                Some((c, o)) => (c.clone(), o.clone()),
                 None => (
                     InspectorSbomConfig {
                         bucket: String::new(),
                         key_prefix: None,
                         kms_key_arn: String::new(),
                         format: aws_sdk_inspector2::types::SbomReportFormat::Cyclonedx14,
+                        repositories: Vec::new(),
                     },
                     None,
                 ),

@@ -440,6 +440,8 @@ JumpCloud credentials come from `jumpcloud-config.toml` (or `JUMPCLOUD_API_KEY` 
 
 The Jamf Pro server URL and OAuth client credentials come from `jamf-config.toml` (or `JAMF_BASE_URL` / `JAMF_CLIENT_ID` / `JAMF_CLIENT_SECRET`). Jamf is a TUI/config-driven provider today (like Okta/Jira/Elastic) — run the interactive wizard to select a Jamf account and these collector keys.
 
+---
+
 ## Useful local commands
 
 ### Show generated help

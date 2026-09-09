@@ -3771,6 +3771,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "jumpcloud-rs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "futures",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5410,6 +5426,7 @@ dependencies = [
  "jamf-rs",
  "jira-rs",
  "jsonschema",
+ "jumpcloud-rs",
  "libc",
  "okta-rs",
  "once_cell",

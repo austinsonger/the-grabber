@@ -92,6 +92,7 @@ pub fn run(mut app: App) -> Result<Option<App>> {
 
     if app.screen == Screen::Running
         || app.screen == Screen::Results
+        || app.screen == Screen::SbomRepoDiscovery
         || app.screen == Screen::StigRemediationScanning
         || app.screen == Screen::StigRemediationApplying
     {

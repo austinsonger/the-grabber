@@ -1,5 +1,6 @@
 use crate::evidence::{CsvCollector, EvidenceCollector, JsonCollector};
 use crate::providers::aws::factory::AwsProviderFactory;
+use crate::providers::aws::inspector_sbom::InspectorSbomConfig;
 use crate::providers::ProviderFactory;
 
 pub struct CollectorRegistry {
@@ -53,13 +54,27 @@ pub fn build_csv_collectors(
     names: &[&str],
     config: &aws_config::SdkConfig,
 ) -> Vec<Box<dyn CsvCollector>> {
-    AwsProviderFactory::new(
+    build_csv_collectors_with_sbom(names, config, None)
+}
+
+/// Same as [`build_csv_collectors`], but lets the caller supply the Inspector
+/// SBOM export destination + repository scope. Used by the TUI path, where
+/// those values come from the wizard rather than CLI flags.
+pub fn build_csv_collectors_with_sbom(
+    names: &[&str],
+    config: &aws_config::SdkConfig,
+    sbom: Option<(InspectorSbomConfig, std::path::PathBuf)>,
+) -> Vec<Box<dyn CsvCollector>> {
+    let mut factory = AwsProviderFactory::new(
         config.clone(),
         String::new(),
         String::new(),
         names.iter().map(|s| s.to_string()).collect(),
-    )
-    .csv_collectors()
+    );
+    if let Some((cfg, out)) = sbom {
+        factory = factory.with_sbom_config(cfg, Some(out));
+    }
+    factory.csv_collectors()
 }
 
 pub fn build_json_inv_collectors(

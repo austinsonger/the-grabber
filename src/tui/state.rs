@@ -108,6 +108,12 @@ pub enum Screen {
     ScanSelection, // Tenable-only: pick which scans to include
     /// Jira-only: pick which projects to scope Issues collection to.
     JiraProjectSelection,
+    /// AWS-only: S3 bucket / KMS key / prefix for the Inspector SBOM export.
+    SbomDestination,
+    /// AWS-only: listing ECR repositories (async work; no key handling).
+    SbomRepoDiscovery,
+    /// AWS-only: pick which discovered repositories need SBOMs.
+    SbomRepoSelection,
     SetOptions,
     Confirm,
     /// Shown while building AWS SDK clients before collection starts.

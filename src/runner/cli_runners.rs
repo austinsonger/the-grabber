@@ -339,11 +339,38 @@ pub async fn run_standard_cli(cli: &Cli) -> Result<()> {
         selected.clone(),
     );
     if selected.iter().any(|n| n == "inspector-sbom") {
+        if cli.sbom_all_repos && cli.sbom_repos.is_some() {
+            anyhow::bail!("--sbom-repos and --sbom-all-repos are mutually exclusive");
+        }
+
+        let repositories: Vec<String> = if let Some(ref list) = cli.sbom_repos {
+            let names = parse_sbom_repos(list);
+            if names.is_empty() {
+                anyhow::bail!("--sbom-repos was given but contained no repository names");
+            }
+            names
+        } else if cli.sbom_all_repos {
+            let discovered = crate::providers::aws::ecr_repos::list_repositories(&config)
+                .await
+                .context("discovering ECR repositories for --sbom-all-repos")?;
+            if discovered.is_empty() {
+                anyhow::bail!("--sbom-all-repos found no ECR repositories in this account/region");
+            }
+            eprintln!(
+                "  --sbom-all-repos: exporting SBOMs for {} repositories",
+                discovered.len()
+            );
+            discovered.into_iter().map(|r| r.name).collect()
+        } else {
+            Vec::new()
+        };
+
         let sbom_cfg = crate::providers::aws::inspector_sbom::InspectorSbomConfig {
             bucket: cli.sbom_bucket.clone().unwrap_or_default(),
-            key_prefix: None,
+            key_prefix: cli.sbom_key_prefix.clone(),
             kms_key_arn: cli.sbom_kms_key.clone().unwrap_or_default(),
-            format: cli.sbom_format.as_str().into(),
+            format: parse_sbom_format(&cli.sbom_format)?,
+            repositories,
         };
         let sbom_out = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
         factory = factory.with_sbom_config(sbom_cfg, Some(sbom_out));
@@ -707,4 +734,131 @@ async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Split a `--sbom-repos` value into repository names, trimming whitespace and
+/// dropping empty entries. An all-empty input yields an empty Vec, which the
+/// caller rejects.
+fn parse_sbom_repos(list: &str) -> Vec<String> {
+    list.split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
+/// Map the user-facing `--sbom-format` spelling onto the SDK enum.
+///
+/// This must NOT use `SbomReportFormat::from(&str)`: that only recognises the
+/// AWS wire values (`CYCLONEDX_1_4`, `SPDX_2_3`) and turns anything else into an
+/// `Unknown` variant, which the Inspector API then rejects. The previous code
+/// (`cli.sbom_format.as_str().into()`) had exactly that bug, so
+/// `--sbom-format cyclonedx14` — the documented default — produced an invalid
+/// request.
+fn parse_sbom_format(value: &str) -> Result<aws_sdk_inspector2::types::SbomReportFormat> {
+    use aws_sdk_inspector2::types::SbomReportFormat;
+
+    match value.trim().to_lowercase().as_str() {
+        "cyclonedx14" | "cyclonedx_1_4" | "cyclonedx" => Ok(SbomReportFormat::Cyclonedx14),
+        "spdx23" | "spdx_2_3" | "spdx" => Ok(SbomReportFormat::Spdx23),
+        other => {
+            anyhow::bail!("unsupported --sbom-format '{other}': expected 'cyclonedx14' or 'spdx23'")
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn splits_a_plain_comma_list() {
+        assert_eq!(
+            parse_sbom_repos("webapp-base,websocket-server"),
+            vec!["webapp-base", "websocket-server"]
+        );
+    }
+
+    #[test]
+    fn trims_whitespace_around_names() {
+        assert_eq!(
+            parse_sbom_repos(" webapp-base , websocket-server "),
+            vec!["webapp-base", "websocket-server"]
+        );
+    }
+
+    #[test]
+    fn drops_empty_entries_from_trailing_and_doubled_commas() {
+        assert_eq!(parse_sbom_repos("a,,b,"), vec!["a", "b"]);
+    }
+
+    #[test]
+    fn preserves_namespaced_repository_names() {
+        assert_eq!(
+            parse_sbom_repos("team/service,other"),
+            vec!["team/service", "other"]
+        );
+    }
+
+    #[test]
+    fn all_empty_input_yields_nothing_so_the_caller_can_reject_it() {
+        assert!(parse_sbom_repos("").is_empty());
+        assert!(parse_sbom_repos("  ").is_empty());
+        assert!(parse_sbom_repos(", ,").is_empty());
+    }
+
+    #[test]
+    fn single_name_needs_no_comma() {
+        assert_eq!(parse_sbom_repos("solo"), vec!["solo"]);
+    }
+
+    #[test]
+    fn parses_the_documented_format_spellings() {
+        use aws_sdk_inspector2::types::SbomReportFormat;
+
+        assert_eq!(
+            parse_sbom_format("cyclonedx14").expect("cyclonedx14 is valid"),
+            SbomReportFormat::Cyclonedx14
+        );
+        assert_eq!(
+            parse_sbom_format("spdx23").expect("spdx23 is valid"),
+            SbomReportFormat::Spdx23
+        );
+    }
+
+    #[test]
+    fn format_parsing_is_case_and_whitespace_tolerant() {
+        use aws_sdk_inspector2::types::SbomReportFormat;
+
+        assert_eq!(
+            parse_sbom_format("  CycloneDX14 ").expect("valid"),
+            SbomReportFormat::Cyclonedx14
+        );
+        assert_eq!(
+            parse_sbom_format("SPDX_2_3").expect("valid"),
+            SbomReportFormat::Spdx23
+        );
+    }
+
+    #[test]
+    fn format_parsing_rejects_unknown_values_instead_of_producing_unknown_variant() {
+        // The bug this replaces: `"nonsense".into()` yielded Unknown("nonsense")
+        // and failed only later, as an opaque AWS ValidationException.
+        let err = parse_sbom_format("nonsense").expect_err("must be rejected");
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("nonsense"),
+            "error should name the bad value: {msg}"
+        );
+        assert!(
+            msg.contains("cyclonedx14"),
+            "error should list valid values: {msg}"
+        );
+    }
+
+    #[test]
+    fn the_cli_default_format_parses() {
+        // --sbom-format's clap default_value is "cyclonedx14"; if that stops
+        // parsing, every default SBOM run breaks.
+        assert!(parse_sbom_format("cyclonedx14").is_ok());
+    }
 }

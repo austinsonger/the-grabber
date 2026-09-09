@@ -198,4 +198,7 @@ pub enum EvidenceSource {
     TenableCompliance,
     // Okta
     OktaSystemLog,
+    // JumpCloud
+    JumpCloudDirectoryInsights,
+    JumpCloudDirectoryAlerts,
 }

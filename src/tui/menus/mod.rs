@@ -8,6 +8,7 @@ pub mod elastic;
 pub mod github;
 pub mod jamf;
 pub mod jira;
+pub mod jumpcloud;
 pub mod okta;
 pub mod tenable;
 
@@ -57,6 +58,10 @@ pub const PROVIDER_MENUS: &[ProviderMenu] = &[
     ProviderMenu {
         provider: CloudProvider::Github,
         categories: github::GITHUB_CATEGORIES,
+    },
+    ProviderMenu {
+        provider: CloudProvider::JumpCloud,
+        categories: jumpcloud::JUMPCLOUD_CATEGORIES,
     },
 ];
 

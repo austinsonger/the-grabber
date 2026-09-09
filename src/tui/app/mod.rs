@@ -85,6 +85,31 @@ pub struct App {
     pub jira_project_selected: HashSet<usize>,
     pub selected_jira_project_keys: Vec<String>,
 
+    // ── Inspector SBOM export (AWS) ───────────────────────────────────────────
+    /// S3 bucket the Inspector SBOM export writes to. Pre-filled from
+    /// `[defaults] sbom_bucket` / the first selected account.
+    pub sbom_bucket_input: TextInput,
+    /// KMS key ARN used to encrypt the export.
+    pub sbom_kms_input: TextInput,
+    /// Optional key prefix inside the bucket.
+    pub sbom_prefix_input: TextInput,
+    /// Focused field on SbomDestination: 0=bucket 1=kms 2=prefix.
+    pub sbom_dest_field: usize,
+    /// ECR repositories discovered from the first selected AWS account.
+    /// Populated by the async driver when entering SbomRepoDiscovery.
+    pub sbom_repo_list: Vec<crate::providers::aws::ecr_repos::EcrRepoSummary>,
+    pub sbom_repo_cursor: usize,
+    /// Repositories checked with Space, stored as indices into the full
+    /// `sbom_repo_list` (never into the search-filtered view).
+    pub sbom_repo_selected: HashSet<usize>,
+    pub sbom_repo_search: TextInput,
+    /// Repository names committed on SbomRepoSelection → SetOptions.
+    pub selected_sbom_repos: Vec<String>,
+    /// Set by the async driver if repository discovery itself fails.
+    pub sbom_discovery_error: Option<String>,
+    /// `[defaults]` from config.toml, kept for per-account value resolution.
+    pub config_defaults: app_config::Defaults,
+
     // ── STIG remediation wizard (Okta) ─────────────────────────────────────────
     /// Indices into `accounts` that are Okta accounts, computed when
     /// FeatureSelection → StigRemediationAccount.
@@ -206,6 +231,7 @@ impl App {
             "macie",
             "inspector",
             "inspector-config",
+            "inspector-sbom",
             "org-config",
             "tenable-vulns",
             "tenable-was",
@@ -363,6 +389,27 @@ impl App {
             jira_project_cursor: 0,
             jira_project_selected: HashSet::new(),
             selected_jira_project_keys: Vec::new(),
+            sbom_bucket_input: TextInput::new(
+                config.defaults.sbom_bucket.as_deref().unwrap_or_default(),
+            ),
+            sbom_kms_input: TextInput::new(
+                config.defaults.sbom_kms_key.as_deref().unwrap_or_default(),
+            ),
+            sbom_prefix_input: TextInput::new(
+                config
+                    .defaults
+                    .sbom_key_prefix
+                    .as_deref()
+                    .unwrap_or_default(),
+            ),
+            sbom_dest_field: 0,
+            sbom_repo_list: Vec::new(),
+            sbom_repo_cursor: 0,
+            sbom_repo_selected: HashSet::new(),
+            sbom_repo_search: TextInput::new(""),
+            selected_sbom_repos: Vec::new(),
+            sbom_discovery_error: None,
+            config_defaults: config.defaults.clone(),
             stig_account_list: Vec::new(),
             stig_account_cursor: 0,
             stig_selected_account_idx: None,
@@ -645,5 +692,123 @@ mod tests {
         app.screen = crate::tui::Screen::SelectAccount;
         app.prev_screen();
         assert_eq!(app.screen, crate::tui::Screen::ProviderSelection);
+    }
+
+    #[test]
+    fn sbom_is_not_selected_by_default() {
+        let app = make_app();
+        assert!(
+            !app.sbom_selected(),
+            "inspector-sbom must be opt-in, or every AWS run gains two wizard screens"
+        );
+    }
+
+    #[test]
+    fn sbom_selected_follows_the_collector_selection() {
+        let mut app = make_app();
+        let idx = app
+            .collector_items
+            .iter()
+            .position(|(k, _, _)| *k == "inspector-sbom")
+            .expect("inspector-sbom is in the AWS menu");
+
+        app.collector_selected.insert(idx);
+        assert!(app.sbom_selected());
+    }
+
+    #[test]
+    fn visible_sbom_repos_filters_case_insensitively() {
+        use crate::providers::aws::ecr_repos::EcrRepoSummary;
+        let mut app = make_app();
+        app.sbom_repo_list = ["Alpha", "beta"]
+            .iter()
+            .map(|n| EcrRepoSummary {
+                name: (*n).to_string(),
+                uri: String::new(),
+            })
+            .collect();
+
+        assert_eq!(
+            app.visible_sbom_repos(),
+            vec![0, 1],
+            "empty filter shows all"
+        );
+
+        app.sbom_repo_search = crate::tui::state::TextInput::new("ALPHA");
+        assert_eq!(app.visible_sbom_repos(), vec![0]);
+
+        app.sbom_repo_search = crate::tui::state::TextInput::new("zzz");
+        assert!(app.visible_sbom_repos().is_empty());
+    }
+
+    #[test]
+    fn sbom_flow_navigation_round_trips() {
+        let mut app = make_app();
+        let idx = app
+            .collector_items
+            .iter()
+            .position(|(k, _, _)| *k == "inspector-sbom")
+            .expect("inspector-sbom is in the AWS menu");
+        app.collector_selected.insert(idx);
+        app.screen = Screen::SelectCollectors;
+
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SbomDestination);
+
+        app.screen = Screen::SbomRepoSelection;
+        app.sbom_repo_selected.insert(0);
+        app.sbom_repo_list = vec![crate::providers::aws::ecr_repos::EcrRepoSummary {
+            name: "only".to_string(),
+            uri: String::new(),
+        }];
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SetOptions);
+
+        // Back out of SetOptions returns to the picker, not the collector list.
+        app.prev_screen();
+        assert_eq!(app.screen, Screen::SbomRepoSelection);
+        app.prev_screen();
+        assert_eq!(app.screen, Screen::SbomDestination);
+        app.prev_screen();
+        assert_eq!(app.screen, Screen::SelectCollectors);
+    }
+
+    #[test]
+    fn next_screen_walks_destination_through_discovery_to_the_picker() {
+        // handle_sbom_destination assigns Screen::SbomRepoDiscovery directly and
+        // sbom_flow_navigation_round_trips jumps to the picker, so these two
+        // next_screen arms need explicit coverage of their own.
+        let mut app = make_app();
+        app.screen = Screen::SbomDestination;
+
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SbomRepoDiscovery);
+
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SbomRepoSelection);
+    }
+
+    #[test]
+    fn without_sbom_selected_collectors_goes_straight_to_options() {
+        let mut app = make_app();
+        app.screen = Screen::SelectCollectors;
+        app.next_screen();
+        assert_eq!(app.screen, Screen::SetOptions);
+    }
+
+    #[test]
+    fn reset_clears_sbom_selection_state() {
+        let mut app = make_app();
+        app.sbom_repo_selected.insert(0);
+        app.selected_sbom_repos = vec!["x".to_string()];
+        app.sbom_discovery_error = Some("boom".to_string());
+        app.sbom_repo_cursor = 2;
+
+        app.reset();
+
+        assert!(app.sbom_repo_selected.is_empty());
+        assert!(app.selected_sbom_repos.is_empty());
+        assert!(app.sbom_discovery_error.is_none());
+        assert_eq!(app.sbom_repo_cursor, 0);
     }
 }
