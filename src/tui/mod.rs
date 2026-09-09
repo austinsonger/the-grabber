@@ -2,6 +2,7 @@ pub mod app;
 pub mod collector_data;
 pub mod events;
 pub mod menus;
+#[cfg(feature = "tenable")]
 pub mod scan;
 pub mod state;
 pub mod ui;

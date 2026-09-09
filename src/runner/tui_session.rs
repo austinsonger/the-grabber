@@ -193,6 +193,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
             continue;
         }
 
+        #[cfg(feature = "okta")]
         if app.screen == crate::tui::Screen::StigRemediationScanning {
             let mut terminal = setup_terminal()?;
             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
@@ -232,6 +233,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
             continue;
         }
 
+        #[cfg(feature = "okta")]
         if app.screen == crate::tui::Screen::StigRemediationApplying {
             let mut terminal = setup_terminal()?;
             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;

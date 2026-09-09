@@ -15,6 +15,7 @@ mod poam_screens;
 mod results;
 mod running;
 mod sbom_screens;
+#[cfg(feature = "tenable")]
 mod scan_selection;
 mod setup;
 mod stig_remediation;
@@ -145,7 +146,10 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::Inventory => setup::draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => collectors::draw_collectors(f, content, app),
         Screen::TenableEndpoint => setup::draw_tenable_endpoint(f, content, app),
-        Screen::ScanSelection => scan_selection::draw_scan_selection(f, content, app),
+        Screen::ScanSelection => {
+            #[cfg(feature = "tenable")]
+            scan_selection::draw_scan_selection(f, content, app);
+        }
         Screen::JiraProjectSelection => {
             jira_project_selection::draw_jira_project_selection(f, content, app)
         }
