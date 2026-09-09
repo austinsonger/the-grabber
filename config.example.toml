@@ -17,6 +17,14 @@ output_dir             = "./evidence-output"
 start_date_offset_days = 90      # start date = today minus N days
 include_raw            = false
 
+# Inspector SBOM export destination (used by the `inspector-sbom` collector).
+# Inspector writes the export into this bucket; grabber then downloads the
+# SBOM for the newest scanned image of each repository you select.
+# Override per account with the same keys inside an [[account]] block.
+# sbom_bucket     = "my-sbom-exports"
+# sbom_kms_key    = "arn:aws:kms:us-east-1:123456789012:key/abc-123"
+# sbom_key_prefix = "grabber"
+
 # Collectors disabled by default (opt-in / require special permissions).
 [defaults.collectors]
 disable = [

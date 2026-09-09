@@ -84,20 +84,22 @@ Collector keys are maintained in `evidence-list.md`. Use that file as the refere
 
 The dedicated **Inventory** feature is the unified asset inventory workflow, and it is now exposed through the CLI with `--inventory`.
 
-Its selectable asset types are exactly:
+There are 33 selectable asset types. `INVENTORY_ITEMS` in `src/inventory_core.rs` is the
+canonical list — it drives the TUI picker, the `--inventory-types` validator, and the
+individual type flags alike, so it can never disagree with the binary. `evidence-list.md`
+carries the same list with per-type notes.
 
-1. `kms-key` — KMS Key
-2. `s3-bucket` — S3 Bucket
-3. `lambda-function` — Lambda Function
-4. `ec2-instance` — EC2 Instance
-5. `alb` — Application Load Balancer (ALB)
-6. `rds-db-instance` — RDS DB Instance
-7. `elasticache-cluster` — ElastiCache Cluster
-8. `container` — Container (ECR/ECS/EKS)
+The core compute/storage types are `kms-key`, `s3-bucket`, `lambda-function`,
+`ec2-instance`, `alb`, `nlb`, `rds-db-instance`, `elasticache-cluster`, and `container`.
+Beyond those, the catalog covers network fabric (`vpc-network`), messaging
+(`sns-topic`, `sqs-queue`, `kinesis-stream`, `firehose-stream`, `eventbridge`), security
+services (`cloudtrail-trail`, `config-recorder`, `guardduty-detector`, `securityhub-hub`,
+`waf-webacl`), and logging services (`log-group`, `log-destination`, `vpc-flow-log`,
+`resolver-query-log`, `opensearch-domain`, `msk-cluster`).
 
 That inventory flow produces a unified `AWS_Inventory-<timestamp>.csv` and, when the template exists, an Excel workbook based on `assets/Inventory.xlsx`.
 
-Use `--inventory` to run the unified inventory mode. When no type flags are provided, all eight asset types above are collected. Restrict the run with either individual type flags (`--kms`, `--s3`, `--lambda`, `--ec2`, `--alb`, `--rds`, `--elasticache`, `--containers`) or a comma-separated `--inventory-types` list — both are additive.
+Use `--inventory` to run the unified inventory mode. When no type flags are provided, all asset types are collected. Restrict the run with either individual type flags (`--kms`, `--s3`, `--lambda`, `--ec2`, `--alb`, `--rds`, `--elasticache`, `--containers`) or a comma-separated `--inventory-types` list — both are additive.
 
 ### Collect all inventory asset types
 
@@ -428,6 +430,8 @@ JumpCloud credentials come from `jumpcloud-config.toml` (or `JUMPCLOUD_API_KEY` 
 ```
 
 The Jamf Pro server URL and OAuth client credentials come from `jamf-config.toml` (or `JAMF_BASE_URL` / `JAMF_CLIENT_ID` / `JAMF_CLIENT_SECRET`). Jamf is a TUI/config-driven provider today (like Okta/Jira/Elastic) — run the interactive wizard to select a Jamf account and these collector keys.
+
+---
 
 ## Useful local commands
 

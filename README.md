@@ -337,8 +337,8 @@ Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`
 | `--inventory` | off | Run the unified inventory workflow (see Inventory below) |
 | `--inventory-all-accounts` | off | With `--inventory`: merge inventory from every configured account into one unified CSV+XLSX (mutually exclusive with `--profile`) |
 | `--skip-inventory-csv` | off | Skip the unified CSV (XLSX still written) |
-| `--inventory-types` | all types | Comma-separated asset-type keys: `kms-key,s3-bucket,lambda-function,ec2-instance,alb,rds-db-instance,elasticache-cluster,container` |
-| `--kms` / `--s3` / `--lambda` / `--ec2` / `--alb` / `--rds` / `--elasticache` / `--containers` | off | Individual inventory asset-type opt-ins; additive with `--inventory-types` |
+| `--inventory-types` | all types | Comma-separated asset-type keys, e.g. `kms-key,s3-bucket,ec2-instance,log-group,vpc-flow-log,opensearch-domain,msk-cluster`. See `INVENTORY_ITEMS` in `src/inventory_core.rs` for all 33 valid keys |
+| `--kms` / `--s3` / `--lambda` / `--ec2` / `--alb` / `--rds` / `--elasticache` / `--containers` … | off | One opt-in flag per asset type (including `--log-groups`, `--log-destinations`, `--vpc-flow-logs`, `--resolver-query-logs`, `--opensearch`, `--msk`); additive with `--inventory-types` |
 | `--poam` | off | Run POA&M reconciliation (requires `--poam-year` and `--poam-month`) |
 | `--poam-year` | — | 4-digit findings year, e.g. `2026` |
 | `--poam-month` | — | Month name, e.g. `January` … `December` |
@@ -347,10 +347,46 @@ Non-interactive mode is enabled by providing any of `--start-date`, `--lookback`
 
 ### CLI mode notes
 
-1. Any of `--start-date`, `--lookback`, `--inventory`, `--poam`, or `--verify-manifest` bypasses the TUI.
+1. Any of `--start-date`, `--lookback`, `--inventory`, `--poam`, `--verify-manifest`, `--okta`, `--tenable`, `--elastic`, or `--github` bypasses the TUI.
 2. `--verify-manifest` is a standalone verification path and requires `--signing-key`.
-3. `--collectors` accepts keys across every enabled provider (AWS/Okta/Jira/Tenable/GitHub); the maintained key list lives in `evidence-list.md`.
+3. `--collectors` selects AWS collector keys only; the maintained key list lives in `evidence-list.md`. Okta, Tenable, Elastic, and GitHub are selected with their own `--<provider>-collectors` flag and per-collector flags under that provider's mode flag (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes) below); Jira and Jamf remain TUI-only.
 4. `--inventory` writes the unified `AWS_Inventory-<timestamp>.csv` plus the FedRAMP-templated `.xlsx` when `assets/Inventory.xlsx` is present. `RUN-MANIFEST` and `CHAIN-OF-CUSTODY` files are opt-in via their `--write-*` flags in collectors mode only.
+
+### Non-AWS provider CLI modes
+
+Okta, Tenable, Elastic Security, and GitHub run headlessly via their own mode
+flags. One provider per invocation. Full detail in the
+[CLI Reference](docs/cli-reference.md#provider-modes).
+
+| Flag | Default | Description |
+|---|---|---|
+| `--okta` / `--tenable` / `--elastic` / `--github` | off | Run that provider's collectors non-interactively. Mutually exclusive. |
+| `--<provider>-account <NAME>` | all | Narrow a multi-account config to the `[[account]]` with this `name`. |
+| `--<provider>-collectors <KEY>[,<KEY>…]` | all | Collector keys to run; additive with the individual flags below. |
+| `--okta-users` / `--okta-groups` / `--tenable-assets` / `--elastic-alerts` / `--github-repos` … | off | One opt-in flag per collector, named after its key (50 total across the four providers). |
+| `--tenable-scan-ids` / `--tenable-was-scan-ids` | all scans | Scope Tenable collection to specific scans (replaces the TUI scan picker). |
+
+Credentials come from `--<provider>-*` flags, then environment variables, then
+the sibling `*-config.toml` files; blank values at any level are treated as
+absent. Accounts missing credentials, or whose client cannot be built, are
+skipped with a warning and the run continues. A credential override flag is
+rejected when more than one account matched — narrow the run with
+`--<provider>-account` first, or every account would collect the same tenant.
+An unmatched `--<provider>-account` name is an error listing the known names.
+With no window flag, provider modes default to the last 30 days.
+
+Two behaviors differ from the TUI. **Passing no collector flags runs every
+collector for that provider**, including the ones the TUI starts with
+deselected (5/5 Tenable, 7/25 Okta, 4/10 GitHub) — name the collectors you want
+if you need the narrower set. And **`[account.collectors]` `enable` /
+`disable` / `enable_extra` overrides are not consulted** on this path; they
+apply to the AWS collector registry only.
+
+```bash
+grabber --okta --okta-users --okta-groups --lookback 90d
+grabber --github --github-audit-log --start-date 2026-07-01 --end-date 2026-07-31
+grabber --elastic --lookback 30d -o ./evidence-output --zip
+```
 
 ---
 
@@ -937,7 +973,7 @@ Create a token at **Settings → Developer settings → Personal access tokens**
 | `github-secret-scanning-alerts` | CSV | Leaked-secret alerts, time-windowed by `created_at` |
 | `github-code-scanning-alerts` | CSV | Static-analysis (e.g. CodeQL) findings, time-windowed by `created_at` |
 
-`github-audit-log`, `github-dependabot-alerts`, `github-secret-scanning-alerts`, and `github-code-scanning-alerts` are opt-in by default in the TUI (they depend on a GitHub plan/feature the org may not have) — pass them explicitly via `--collectors` or enable them in the TUI's collector-selection screen.
+`github-audit-log`, `github-dependabot-alerts`, `github-secret-scanning-alerts`, and `github-code-scanning-alerts` depend on a GitHub plan/feature the org may not have, so **the TUI starts with them deselected** — check them on the collector-selection screen to include them. The CLI does *not* treat them as opt-in: a bare `grabber --github` runs all 10 GitHub collectors, because an empty selection means "all". To get the TUI's narrower default on the CLI, name the collectors you want via `--github-collectors` or the individual `--github-*` flags (see [Non-AWS provider CLI modes](#non-aws-provider-cli-modes)).
 
 ---
 
@@ -1137,7 +1173,7 @@ Both providers are compiled behind opt-in Cargo features (`--features azure`, `-
 
 Prebuilt `grabber` binaries for Linux (x86_64) and macOS (Intel + Apple Silicon) are published as GitHub Releases — no need to `cargo build` from source in every downstream CI pipeline.
 
-**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`, `github`, `jamf`) — no `azure`/`gcp`.
+**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`, `jumpcloud`, `github`, `jamf`) — no `azure`/`gcp`.
 
 **Using the binary from another repo's GitHub Action:**
 

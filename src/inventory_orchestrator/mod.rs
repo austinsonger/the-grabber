@@ -9,6 +9,8 @@
 mod apigateway;
 mod compute;
 mod data_services;
+mod log_analytics;
+mod logging;
 mod messaging;
 mod network_fabric;
 mod secrets;
@@ -21,6 +23,7 @@ use async_trait::async_trait;
 use aws_sdk_apigateway::Client as ApiGatewayV1Client;
 use aws_sdk_apigatewayv2::Client as ApiGatewayV2Client;
 use aws_sdk_cloudtrail::Client as CloudTrailClient;
+use aws_sdk_cloudwatchlogs::Client as CloudWatchLogsClient;
 use aws_sdk_config::Client as ConfigClient;
 use aws_sdk_dynamodb::Client as DynamoDbClient;
 use aws_sdk_ec2::Client as Ec2Client;
@@ -34,11 +37,14 @@ use aws_sdk_eventbridge::Client as EventBridgeClient;
 use aws_sdk_firehose::Client as FirehoseClient;
 use aws_sdk_fsx::Client as FsxClient;
 use aws_sdk_guardduty::Client as GuardDutyClient;
+use aws_sdk_kafka::Client as KafkaClient;
 use aws_sdk_kinesis::Client as KinesisClient;
 use aws_sdk_kms::Client as KmsClient;
 use aws_sdk_lambda::Client as LambdaClient;
+use aws_sdk_opensearch::Client as OpenSearchClient;
 use aws_sdk_rds::Client as RdsClient;
 use aws_sdk_redshift::Client as RedshiftClient;
+use aws_sdk_route53resolver::Client as Route53ResolverClient;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_secretsmanager::Client as SecretsManagerClient;
 use aws_sdk_securityhub::Client as SecurityHubClient;
@@ -52,10 +58,12 @@ use crate::inventory_core::{
     ASSET_KEY_CONTAINER, ASSET_KEY_DYNAMODB_TABLE, ASSET_KEY_EBS_VOLUME, ASSET_KEY_EC2_INSTANCE,
     ASSET_KEY_EFS_FILE_SYSTEM, ASSET_KEY_ELASTICACHE_CLUSTER, ASSET_KEY_EVENTBRIDGE,
     ASSET_KEY_FIREHOSE_STREAM, ASSET_KEY_FSX_FILE_SYSTEM, ASSET_KEY_GUARDDUTY_DETECTOR,
-    ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION, ASSET_KEY_NLB,
-    ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER, ASSET_KEY_S3_BUCKET,
-    ASSET_KEY_SECRETSMANAGER_SECRET, ASSET_KEY_SECURITYHUB_HUB, ASSET_KEY_SNS_TOPIC,
-    ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_NETWORK, ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
+    ASSET_KEY_KINESIS_STREAM, ASSET_KEY_KMS_KEY, ASSET_KEY_LAMBDA_FUNCTION,
+    ASSET_KEY_LOG_DESTINATION, ASSET_KEY_LOG_GROUP, ASSET_KEY_MSK_CLUSTER, ASSET_KEY_NLB,
+    ASSET_KEY_OPENSEARCH_DOMAIN, ASSET_KEY_RDS_DB_INSTANCE, ASSET_KEY_REDSHIFT_CLUSTER,
+    ASSET_KEY_RESOLVER_QUERY_LOG, ASSET_KEY_S3_BUCKET, ASSET_KEY_SECRETSMANAGER_SECRET,
+    ASSET_KEY_SECURITYHUB_HUB, ASSET_KEY_SNS_TOPIC, ASSET_KEY_SQS_QUEUE, ASSET_KEY_VPC_FLOW_LOG,
+    ASSET_KEY_VPC_NETWORK, ASSET_KEY_WAF_WEBACL, INVENTORY_CSV_HEADERS,
 };
 
 // ---------------------------------------------------------------------------
@@ -78,14 +86,18 @@ pub struct InventoryCollector {
     apigw_v2: ApiGatewayV2Client,
     cloudtrail: CloudTrailClient,
     config_svc: ConfigClient,
+    cwlogs: CloudWatchLogsClient,
     dynamodb: DynamoDbClient,
     efs: EfsClient,
     eventbridge: EventBridgeClient,
     firehose: FirehoseClient,
     fsx: FsxClient,
     guardduty: GuardDutyClient,
+    kafka: KafkaClient,
     kinesis: KinesisClient,
+    opensearch: OpenSearchClient,
     redshift: RedshiftClient,
+    route53resolver: Route53ResolverClient,
     secretsmanager: SecretsManagerClient,
     securityhub: SecurityHubClient,
     sns: SnsClient,
@@ -111,14 +123,18 @@ impl InventoryCollector {
             apigw_v2: ApiGatewayV2Client::new(config),
             cloudtrail: CloudTrailClient::new(config),
             config_svc: ConfigClient::new(config),
+            cwlogs: CloudWatchLogsClient::new(config),
             dynamodb: DynamoDbClient::new(config),
             efs: EfsClient::new(config),
             eventbridge: EventBridgeClient::new(config),
             firehose: FirehoseClient::new(config),
             fsx: FsxClient::new(config),
             guardduty: GuardDutyClient::new(config),
+            kafka: KafkaClient::new(config),
             kinesis: KinesisClient::new(config),
+            opensearch: OpenSearchClient::new(config),
             redshift: RedshiftClient::new(config),
+            route53resolver: Route53ResolverClient::new(config),
             secretsmanager: SecretsManagerClient::new(config),
             securityhub: SecurityHubClient::new(config),
             sns: SnsClient::new(config),
@@ -229,6 +245,22 @@ impl CsvCollector for InventoryCollector {
                 }
                 ASSET_KEY_WAF_WEBACL => {
                     security_services::collect_waf_webacls(&self.wafv2, &region).await
+                }
+                ASSET_KEY_LOG_GROUP => logging::collect_log_groups(&self.cwlogs, &region).await,
+                ASSET_KEY_LOG_DESTINATION => {
+                    logging::collect_log_destinations(&self.cwlogs, &region).await
+                }
+                ASSET_KEY_VPC_FLOW_LOG => {
+                    logging::collect_vpc_flow_logs(&self.ec2, account_id, &region).await
+                }
+                ASSET_KEY_RESOLVER_QUERY_LOG => {
+                    logging::collect_resolver_query_logs(&self.route53resolver, &region).await
+                }
+                ASSET_KEY_OPENSEARCH_DOMAIN => {
+                    log_analytics::collect_opensearch_domains(&self.opensearch, &region).await
+                }
+                ASSET_KEY_MSK_CLUSTER => {
+                    log_analytics::collect_msk_clusters(&self.kafka, &region).await
                 }
                 other => {
                     eprintln!("WARN: inventory: unknown asset type key '{other}' — skipped");

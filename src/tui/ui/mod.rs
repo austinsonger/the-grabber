@@ -14,6 +14,8 @@ mod options;
 mod poam_screens;
 mod results;
 mod running;
+mod sbom_screens;
+#[cfg(feature = "tenable")]
 mod scan_selection;
 mod setup;
 mod stig_remediation;
@@ -23,7 +25,8 @@ mod widgets;
 use self::frame::{
     draw_footer, draw_header, draw_separator, draw_step_indicator, get_hints, screen_to_step,
     STEPS_INV_ACCOUNTS, STEPS_INV_LEGACY, STEPS_POAM, STEPS_POAM_NO_ACCOUNTS,
-    STEPS_PROVIDER_ACCOUNTS, STEPS_PROVIDER_LEGACY, STEPS_STIG_REMEDIATION, STEPS_TENABLE,
+    STEPS_PROVIDER_ACCOUNTS, STEPS_PROVIDER_ACCOUNTS_SBOM, STEPS_PROVIDER_LEGACY,
+    STEPS_PROVIDER_LEGACY_SBOM, STEPS_STIG_REMEDIATION, STEPS_TENABLE,
 };
 use self::theme::{BG_DARK, BG_MAIN, CYAN_DIM};
 use self::widgets::draw_error_banner;
@@ -76,6 +79,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         app.has_accounts(),
         &app.selected_feature,
         app.selected_provider,
+        app.sbom_selected(),
     );
     let steps = match app.selected_feature {
         Feature::Collectors => {
@@ -83,7 +87,13 @@ pub fn draw(f: &mut Frame, app: &App) {
             if app.selected_provider == CloudProvider::Tenable {
                 STEPS_TENABLE
             } else if app.has_accounts() {
-                STEPS_PROVIDER_ACCOUNTS
+                if app.sbom_selected() {
+                    STEPS_PROVIDER_ACCOUNTS_SBOM
+                } else {
+                    STEPS_PROVIDER_ACCOUNTS
+                }
+            } else if app.sbom_selected() {
+                STEPS_PROVIDER_LEGACY_SBOM
             } else {
                 STEPS_PROVIDER_LEGACY
             }
@@ -136,10 +146,16 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::Inventory => setup::draw_inventory_selection(f, content, app),
         Screen::SelectCollectors => collectors::draw_collectors(f, content, app),
         Screen::TenableEndpoint => setup::draw_tenable_endpoint(f, content, app),
-        Screen::ScanSelection => scan_selection::draw_scan_selection(f, content, app),
+        Screen::ScanSelection => {
+            #[cfg(feature = "tenable")]
+            scan_selection::draw_scan_selection(f, content, app);
+        }
         Screen::JiraProjectSelection => {
             jira_project_selection::draw_jira_project_selection(f, content, app)
         }
+        Screen::SbomDestination => sbom_screens::draw_sbom_destination(f, content, app),
+        Screen::SbomRepoDiscovery => sbom_screens::draw_sbom_repo_discovery(f, content, app),
+        Screen::SbomRepoSelection => sbom_screens::draw_sbom_repo_selection(f, content, app),
 
         Screen::SetOptions => options::draw_options(f, content, app),
         Screen::Confirm => confirm::draw_confirm(f, content, app),

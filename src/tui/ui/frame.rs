@@ -38,6 +38,33 @@ pub(super) const STEPS_PROVIDER_LEGACY: &[&str] = &[
 
 // Feature::Collectors — Tenable (skips account screen, skips profile/region)
 pub(super) const STEPS_TENABLE: &[&str] = &["Provider", "Collectors", "Scans", "Confirm", "Run"];
+
+// Feature::Collectors — AWS with the inspector-sbom collector selected
+pub(super) const STEPS_PROVIDER_ACCOUNTS_SBOM: &[&str] = &[
+    "Provider",
+    "Account",
+    "Dates",
+    "Collectors",
+    "SBOM Dest",
+    "Repos",
+    "Options",
+    "Confirm",
+    "Run",
+];
+
+pub(super) const STEPS_PROVIDER_LEGACY_SBOM: &[&str] = &[
+    "Provider",
+    "Profile",
+    "Region",
+    "Dates",
+    "Collectors",
+    "SBOM Dest",
+    "Repos",
+    "Options",
+    "Confirm",
+    "Run",
+];
+
 pub(super) const STEPS_INV_ACCOUNTS: &[&str] =
     &["Account", "Dates", "Inventory", "Options", "Confirm", "Run"];
 pub(super) const STEPS_INV_LEGACY: &[&str] = &[
@@ -62,6 +89,7 @@ pub(super) fn screen_to_step(
     has_accounts: bool,
     feature: &Feature,
     selected_provider: crate::providers::CloudProvider,
+    sbom_selected: bool,
 ) -> Option<usize> {
     match feature {
         Feature::Collectors => {
@@ -80,9 +108,11 @@ pub(super) fn screen_to_step(
                     Screen::SelectAccount => Some(1),
                     Screen::SetDates => Some(2),
                     Screen::SelectCollectors => Some(3),
-                    Screen::SetOptions => Some(4),
-                    Screen::Confirm => Some(5),
-                    Screen::Running => Some(6),
+                    Screen::SbomDestination => Some(4),
+                    Screen::SbomRepoDiscovery | Screen::SbomRepoSelection => Some(5),
+                    Screen::SetOptions => Some(if sbom_selected { 6 } else { 4 }),
+                    Screen::Confirm => Some(if sbom_selected { 7 } else { 5 }),
+                    Screen::Running => Some(if sbom_selected { 8 } else { 6 }),
                     Screen::ScanSelection => None,
                     _ => None,
                 }
@@ -93,9 +123,11 @@ pub(super) fn screen_to_step(
                     Screen::SelectRegion => Some(2),
                     Screen::SetDates => Some(3),
                     Screen::SelectCollectors => Some(4),
-                    Screen::SetOptions => Some(5),
-                    Screen::Confirm => Some(6),
-                    Screen::Running => Some(7),
+                    Screen::SbomDestination => Some(5),
+                    Screen::SbomRepoDiscovery | Screen::SbomRepoSelection => Some(6),
+                    Screen::SetOptions => Some(if sbom_selected { 7 } else { 5 }),
+                    Screen::Confirm => Some(if sbom_selected { 8 } else { 6 }),
+                    Screen::Running => Some(if sbom_selected { 9 } else { 7 }),
                     Screen::ScanSelection => None,
                     _ => None,
                 }
@@ -387,6 +419,20 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::JiraProjectSelection => vec![
             ("↑↓", "Navigate"),
             ("␣", "Toggle"),
+            ("⏎", "Confirm"),
+            ("Esc", "Back"),
+        ],
+        Screen::SbomDestination => vec![
+            ("↑↓", "Switch Field"),
+            ("⏎", "Discover Repos"),
+            ("Esc", "Back"),
+        ],
+        Screen::SbomRepoDiscovery => vec![],
+        Screen::SbomRepoSelection => vec![
+            ("↑↓", "Navigate"),
+            ("␣", "Toggle"),
+            ("a", "All"),
+            ("d", "None"),
             ("⏎", "Confirm"),
             ("Esc", "Back"),
         ],

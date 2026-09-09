@@ -55,6 +55,16 @@ pub struct Defaults {
     /// A per-run signing key is generated and written to SIGNING-<ts>.key.
     pub sign: Option<bool>,
 
+    /// Default S3 bucket for Inspector SBOM exports (`inspector-sbom` collector).
+    pub sbom_bucket: Option<String>,
+
+    /// Default KMS key ARN used to encrypt Inspector SBOM exports.
+    pub sbom_kms_key: Option<String>,
+
+    /// Optional key prefix inside `sbom_bucket`. Inspector appends
+    /// `<FORMAT>_outputs_<report-id>/…` beneath whatever prefix is given.
+    pub sbom_key_prefix: Option<String>,
+
     /// Global collector enable/disable rules.
     #[serde(default)]
     pub collectors: CollectorConfig,
@@ -253,6 +263,32 @@ pub struct Account {
     pub jamf_client_secret: Option<String>,
 
     // ------------------------------------------------------------------
+    // Inspector SBOM export (AWS)
+    // ------------------------------------------------------------------
+    /// Per-account override for the Inspector SBOM export bucket.
+    pub sbom_bucket: Option<String>,
+
+    /// Per-account override for the Inspector SBOM export KMS key ARN.
+    pub sbom_kms_key: Option<String>,
+
+    /// Per-account override for the Inspector SBOM export key prefix.
+    pub sbom_key_prefix: Option<String>,
+
+    // ------------------------------------------------------------------
+    // JumpCloud fields
+    // ------------------------------------------------------------------
+    /// Optional JumpCloud API base URL. Defaults to `https://console.jumpcloud.com`.
+    pub jumpcloud_base_url: Option<String>,
+
+    /// JumpCloud API key.
+    /// Can also be supplied via `JUMPCLOUD_API_KEY` env var (env wins over TOML).
+    pub jumpcloud_api_key: Option<String>,
+
+    /// Optional JumpCloud org id, required for MTP/MSP orgs. Sent as `x-org-id`.
+    /// Can also be supplied via `JUMPCLOUD_ORG_ID` env var (env wins over TOML).
+    pub jumpcloud_org_id: Option<String>,
+
+    // ------------------------------------------------------------------
     // Collector filtering (all providers)
     // ------------------------------------------------------------------
     /// Per-account collector overrides (enable_extra / disable).
@@ -393,6 +429,55 @@ impl Account {
             .ok()
             .or_else(|| self.jamf_client_secret.clone())
     }
+
+    /// Resolve the Inspector SBOM export bucket: env var, then per-account
+    /// TOML, then `[defaults]`.
+    pub fn sbom_bucket_resolved(&self, defaults: &Defaults) -> Option<String> {
+        std::env::var("GRABBER_SBOM_BUCKET")
+            .ok()
+            .or_else(|| self.sbom_bucket.clone())
+            .or_else(|| defaults.sbom_bucket.clone())
+    }
+
+    /// Resolve the Inspector SBOM export KMS key ARN: env var, then
+    /// per-account TOML, then `[defaults]`.
+    pub fn sbom_kms_key_resolved(&self, defaults: &Defaults) -> Option<String> {
+        std::env::var("GRABBER_SBOM_KMS_KEY")
+            .ok()
+            .or_else(|| self.sbom_kms_key.clone())
+            .or_else(|| defaults.sbom_kms_key.clone())
+    }
+
+    /// Resolve the Inspector SBOM export key prefix: per-account TOML, then
+    /// `[defaults]`. No env override — the prefix is layout, not a secret.
+    pub fn sbom_key_prefix_resolved(&self, defaults: &Defaults) -> Option<String> {
+        self.sbom_key_prefix
+            .clone()
+            .or_else(|| defaults.sbom_key_prefix.clone())
+    }
+
+    /// Resolve JumpCloud API key: env var takes precedence over TOML.
+    pub fn jumpcloud_api_key_resolved(&self) -> Option<String> {
+        std::env::var("JUMPCLOUD_API_KEY")
+            .ok()
+            .or_else(|| self.jumpcloud_api_key.clone())
+    }
+
+    /// Resolve JumpCloud org id: env var takes precedence over TOML.
+    pub fn jumpcloud_org_id_resolved(&self) -> Option<String> {
+        std::env::var("JUMPCLOUD_ORG_ID")
+            .ok()
+            .or_else(|| self.jumpcloud_org_id.clone())
+    }
+
+    /// Resolve JumpCloud base URL, defaulting to the JumpCloud Console host.
+    pub fn jumpcloud_base_url_resolved(&self) -> String {
+        self.jumpcloud_base_url
+            .clone()
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "https://console.jumpcloud.com".to_string())
+    }
 }
 
 /// Best-effort load of config, checking in order:
@@ -400,8 +485,9 @@ impl Account {
 ///   2. `~/.config/evidence/config.toml`  (user-global)
 ///
 /// After loading the primary config, `./tenable-config.toml`, `./okta-config.toml`,
-/// `./jira-config.toml`, `./elastic-config.toml`, `./jamf-config.toml`, and
-/// `./github-config.toml` are merged in (accounts only) if those files exist.
+/// `./jira-config.toml`, `./elastic-config.toml`, `./jamf-config.toml`,
+/// `./github-config.toml`, and `./jumpcloud-config.toml` are merged in (accounts
+/// only) if those files exist.
 pub fn load_config() -> Option<AppConfig> {
     let mut cfg: AppConfig = {
         let local = PathBuf::from("config.toml");
@@ -478,6 +564,16 @@ pub fn load_config() -> Option<AppConfig> {
         if let Ok(contents) = fs::read_to_string(&github_path) {
             if let Ok(github_cfg) = toml::from_str::<AppConfig>(&contents) {
                 cfg.account.extend(github_cfg.account);
+            }
+        }
+    }
+
+    // Merge jumpcloud-config.toml accounts if present
+    let jc_path = PathBuf::from("jumpcloud-config.toml");
+    if jc_path.exists() {
+        if let Ok(contents) = fs::read_to_string(&jc_path) {
+            if let Ok(jc_cfg) = toml::from_str::<AppConfig>(&contents) {
+                cfg.account.extend(jc_cfg.account);
             }
         }
     }

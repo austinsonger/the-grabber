@@ -2,6 +2,7 @@ pub mod app;
 pub mod collector_data;
 pub mod events;
 pub mod menus;
+#[cfg(feature = "tenable")]
 pub mod scan;
 pub mod state;
 pub mod ui;
@@ -92,6 +93,7 @@ pub fn run(mut app: App) -> Result<Option<App>> {
 
     if app.screen == Screen::Running
         || app.screen == Screen::Results
+        || app.screen == Screen::SbomRepoDiscovery
         || app.screen == Screen::StigRemediationScanning
         || app.screen == Screen::StigRemediationApplying
     {

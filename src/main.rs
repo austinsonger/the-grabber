@@ -3,6 +3,7 @@ use clap::Parser;
 
 use the_grabber::cli::Cli;
 use the_grabber::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
+use the_grabber::runner::provider_cli::{provider_mode_selected, run_provider_cli};
 use the_grabber::runner::tui_session::run_tui_session;
 
 // ---------------------------------------------------------------------------
@@ -31,6 +32,10 @@ async fn async_main() -> Result<()> {
             the_grabber::signing::verify_manifest(std::path::Path::new(manifest_path), &key)?;
         report.print();
         return Ok(());
+    }
+
+    if provider_mode_selected(&cli) {
+        return run_provider_cli(&cli).await;
     }
 
     if cli.inventory {

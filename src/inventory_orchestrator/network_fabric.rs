@@ -706,14 +706,14 @@ async fn collect_transit_gateway_attachments(
 // ---------------------------------------------------------------------------
 
 /// Synthesised ARN for EC2 sub-resources that don't return one.
-fn ec2_arn(account_id: &str, region: &str, resource_type: &str, id: &str) -> String {
+pub(super) fn ec2_arn(account_id: &str, region: &str, resource_type: &str, id: &str) -> String {
     format!("arn:aws:ec2:{region}:{account_id}:{resource_type}/{id}")
 }
 
 /// Network-fabric Function fallback: Purpose/App/Role/Function tag (any case)
 /// → Tags.Name → empty. Fabric resources rarely carry purpose tags but
 /// operators consistently set Name.
-fn fabric_function(tags: &[aws_sdk_ec2::types::Tag]) -> String {
+pub(super) fn fabric_function(tags: &[aws_sdk_ec2::types::Tag]) -> String {
     let purpose = tags
         .iter()
         .find(|t| {

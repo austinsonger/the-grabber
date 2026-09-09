@@ -4,6 +4,9 @@ use anyhow::{Context, Result};
 use chrono::NaiveDate;
 use clap::Parser;
 
+use crate::cli_providers::{
+    ElasticFlags, GithubFlags, JamfFlags, JiraFlags, JumpcloudFlags, OktaFlags, TenableFlags,
+};
 use crate::inventory_core::INVENTORY_ITEMS;
 
 #[derive(Parser, Default)]
@@ -262,6 +265,30 @@ pub struct Cli {
     #[arg(long = "waf", default_value_t = false)]
     pub inv_waf: bool,
 
+    /// Inventory: include CloudWatch Logs Log Groups.
+    #[arg(long = "log-groups", default_value_t = false)]
+    pub inv_log_groups: bool,
+
+    /// Inventory: include CloudWatch Logs cross-account Destinations.
+    #[arg(long = "log-destinations", default_value_t = false)]
+    pub inv_log_destinations: bool,
+
+    /// Inventory: include VPC Flow Logs.
+    #[arg(long = "vpc-flow-logs", default_value_t = false)]
+    pub inv_vpc_flow_logs: bool,
+
+    /// Inventory: include Route 53 Resolver Query Log Configs.
+    #[arg(long = "resolver-query-logs", default_value_t = false)]
+    pub inv_resolver_query_logs: bool,
+
+    /// Inventory: include OpenSearch Domains.
+    #[arg(long = "opensearch", default_value_t = false)]
+    pub inv_opensearch: bool,
+
+    /// Inventory: include MSK (Kafka) Clusters.
+    #[arg(long = "msk", default_value_t = false)]
+    pub inv_msk: bool,
+
     // ------- POA&M mode -------
     /// Run the POA&M reconciliation workflow (non-interactive).
     /// Requires --poam-year and --poam-month; uses --region for the region.
@@ -320,6 +347,43 @@ pub struct Cli {
     /// SBOM report format: cyclonedx14 or spdx23.
     #[arg(long, default_value = "cyclonedx14")]
     pub sbom_format: String,
+
+    /// Key prefix inside `--sbom-bucket`. Inspector appends
+    /// `<FORMAT>_outputs_<report-id>/…` beneath this prefix.
+    #[arg(long)]
+    pub sbom_key_prefix: Option<String>,
+
+    /// Comma-separated ECR repository names to export SBOMs for
+    /// (e.g. `webapp-base,websocket-server`). Mutually exclusive with
+    /// `--sbom-all-repos`.
+    #[arg(long)]
+    pub sbom_repos: Option<String>,
+
+    /// Export SBOMs for every ECR repository discovered in the region.
+    #[arg(long, default_value_t = false)]
+    pub sbom_all_repos: bool,
+
+    // ------- Non-AWS provider modes -------
+    #[command(flatten)]
+    pub okta: OktaFlags,
+
+    #[command(flatten)]
+    pub tenable: TenableFlags,
+
+    #[command(flatten)]
+    pub elastic: ElasticFlags,
+
+    #[command(flatten)]
+    pub github: GithubFlags,
+
+    #[command(flatten)]
+    pub jira: JiraFlags,
+
+    #[command(flatten)]
+    pub jamf: JamfFlags,
+
+    #[command(flatten)]
+    pub jumpcloud: JumpcloudFlags,
 }
 
 /// Parse a lookback string like "30", "30d", "12weeks", "3m", "1year" into a
@@ -466,6 +530,24 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
     }
     if cli.inv_waf {
         selected.push("waf-webacl".to_string());
+    }
+    if cli.inv_log_groups {
+        selected.push("log-group".to_string());
+    }
+    if cli.inv_log_destinations {
+        selected.push("log-destination".to_string());
+    }
+    if cli.inv_vpc_flow_logs {
+        selected.push("vpc-flow-log".to_string());
+    }
+    if cli.inv_resolver_query_logs {
+        selected.push("resolver-query-log".to_string());
+    }
+    if cli.inv_opensearch {
+        selected.push("opensearch-domain".to_string());
+    }
+    if cli.inv_msk {
+        selected.push("msk-cluster".to_string());
     }
 
     let mut seen = std::collections::HashSet::new();

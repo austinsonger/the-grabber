@@ -24,6 +24,9 @@ pub mod jamf;
 #[cfg(feature = "github")]
 pub mod github;
 
+#[cfg(feature = "jumpcloud")]
+pub mod jumpcloud;
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -48,6 +51,7 @@ pub enum CloudProvider {
     Elastic,
     Jamf,
     Github,
+    JumpCloud,
 }
 
 impl fmt::Display for CloudProvider {
@@ -62,6 +66,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Elastic => write!(f, "Elastic"),
             CloudProvider::Jamf => write!(f, "Jamf"),
             CloudProvider::Github => write!(f, "GitHub"),
+            CloudProvider::JumpCloud => write!(f, "JumpCloud"),
         }
     }
 }
@@ -108,6 +113,8 @@ impl CloudProvider {
         v.push(CloudProvider::Jamf);
         #[cfg(feature = "github")]
         v.push(CloudProvider::Github);
+        #[cfg(feature = "jumpcloud")]
+        v.push(CloudProvider::JumpCloud);
         v
     }
 
@@ -125,6 +132,7 @@ impl CloudProvider {
             CloudProvider::Elastic => "Elastic Security",
             CloudProvider::Jamf => "Jamf",
             CloudProvider::Github => "GitHub",
+            CloudProvider::JumpCloud => "JumpCloud",
         }
     }
 
@@ -149,6 +157,9 @@ impl CloudProvider {
             }
             CloudProvider::Github => {
                 "Collect org members, teams, repos, branch protection, audit log, and security alerts"
+            }
+            CloudProvider::JumpCloud => {
+                "Collect users, groups, applications, MFA factors, policies, admin roles, and device inventory from JumpCloud"
             }
         }
     }

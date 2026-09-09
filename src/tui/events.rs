@@ -14,6 +14,7 @@ enum Action {
     NewCollection,
     StigScan,
     StigApply,
+    SbomDiscoverRepos,
 }
 
 pub(crate) fn event_loop(
@@ -39,6 +40,7 @@ pub(crate) fn event_loop(
                     Action::StartCollection => return Ok(()),
                     Action::StigScan => return Ok(()),
                     Action::StigApply => return Ok(()),
+                    Action::SbomDiscoverRepos => return Ok(()),
                     Action::NewCollection => {
                         app.reset();
                     }
@@ -72,6 +74,9 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::SelectCollectors => handle_select_collectors(app, key),
         Screen::ScanSelection => handle_scan_selection(app, key),
         Screen::JiraProjectSelection => handle_jira_project_selection(app, key),
+        Screen::SbomDestination => return handle_sbom_destination(app, key),
+        Screen::SbomRepoDiscovery => {}
+        Screen::SbomRepoSelection => handle_sbom_repo_selection(app, key),
         Screen::Inventory => handle_inventory(app, key),
         Screen::SetOptions => handle_set_options(app, key),
         Screen::Confirm => return handle_confirm(app, key),
@@ -900,6 +905,178 @@ mod tests {
         ));
         assert_eq!(app.result_scroll, 0);
     }
+
+    fn make_sbom_app() -> App {
+        use crate::providers::aws::ecr_repos::EcrRepoSummary;
+        let mut app = App::new(vec![]);
+        app.sbom_repo_list = ["alpha", "beta", "gamma"]
+            .iter()
+            .map(|n| EcrRepoSummary {
+                name: (*n).to_string(),
+                uri: format!("1.dkr.ecr.us-east-1.amazonaws.com/{n}"),
+            })
+            .collect();
+        app.screen = Screen::SbomRepoSelection;
+        app
+    }
+
+    #[test]
+    fn sbom_destination_requires_a_bucket_before_discovery() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input.clear();
+        app.sbom_kms_input.clear();
+
+        assert!(matches!(
+            handle_sbom_destination(&mut app, KeyCode::Enter),
+            Action::Continue
+        ));
+        assert_eq!(app.screen, Screen::SbomDestination, "must not advance");
+        assert!(app.error_msg.is_some(), "an error banner must be shown");
+    }
+
+    #[test]
+    fn sbom_destination_requires_a_kms_key_before_discovery() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input = crate::tui::state::TextInput::new("my-bucket");
+        app.sbom_kms_input.clear();
+
+        assert!(matches!(
+            handle_sbom_destination(&mut app, KeyCode::Enter),
+            Action::Continue
+        ));
+        assert_eq!(app.screen, Screen::SbomDestination);
+        assert!(app.error_msg.is_some());
+    }
+
+    #[test]
+    fn sbom_destination_advances_to_discovery_when_both_fields_are_set() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input = crate::tui::state::TextInput::new("my-bucket");
+        app.sbom_kms_input = crate::tui::state::TextInput::new("arn:aws:kms:us-east-1:1:key/abc");
+
+        assert!(matches!(
+            handle_sbom_destination(&mut app, KeyCode::Enter),
+            Action::SbomDiscoverRepos
+        ));
+        assert_eq!(app.screen, Screen::SbomRepoDiscovery);
+        assert!(app.error_msg.is_none());
+    }
+
+    #[test]
+    fn sbom_destination_typing_lands_in_the_focused_field() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_bucket_input.clear();
+        app.sbom_kms_input.clear();
+        app.sbom_prefix_input.clear();
+
+        app.sbom_dest_field = 0;
+        handle_sbom_destination(&mut app, KeyCode::Char('b'));
+        assert_eq!(app.sbom_bucket_input.value, "b");
+
+        handle_sbom_destination(&mut app, KeyCode::Down);
+        assert_eq!(app.sbom_dest_field, 1);
+        handle_sbom_destination(&mut app, KeyCode::Char('k'));
+        assert_eq!(app.sbom_kms_input.value, "k");
+        assert_eq!(app.sbom_bucket_input.value, "b", "bucket must be untouched");
+    }
+
+    #[test]
+    fn sbom_dest_field_clamps_at_both_ends() {
+        let mut app = App::new(vec![]);
+        app.screen = Screen::SbomDestination;
+        app.sbom_dest_field = 0;
+        handle_sbom_destination(&mut app, KeyCode::Up);
+        assert_eq!(app.sbom_dest_field, 0);
+
+        app.sbom_dest_field = 2;
+        handle_sbom_destination(&mut app, KeyCode::Down);
+        assert_eq!(app.sbom_dest_field, 2);
+    }
+
+    #[test]
+    fn space_toggles_the_repository_under_the_cursor() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Char(' '));
+        assert!(app.sbom_repo_selected.contains(&0));
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Char(' '));
+        assert!(app.sbom_repo_selected.is_empty(), "space must toggle off");
+    }
+
+    #[test]
+    fn a_selects_all_visible_and_d_clears() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('a'));
+        assert_eq!(app.sbom_repo_selected.len(), 3);
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('d'));
+        assert!(app.sbom_repo_selected.is_empty());
+    }
+
+    #[test]
+    fn a_selects_only_the_filtered_subset() {
+        let mut app = make_sbom_app();
+        app.sbom_repo_search = crate::tui::state::TextInput::new("bet");
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('a'));
+
+        assert_eq!(app.sbom_repo_selected.len(), 1);
+        assert!(
+            app.sbom_repo_selected.contains(&1),
+            "only `beta` is visible"
+        );
+    }
+
+    #[test]
+    fn cursor_clamps_within_the_visible_list() {
+        let mut app = make_sbom_app();
+        for _ in 0..10 {
+            handle_sbom_repo_selection(&mut app, KeyCode::Down);
+        }
+        assert_eq!(app.sbom_repo_cursor, 2, "3 repos means max cursor 2");
+
+        for _ in 0..10 {
+            handle_sbom_repo_selection(&mut app, KeyCode::Up);
+        }
+        assert_eq!(app.sbom_repo_cursor, 0);
+    }
+
+    #[test]
+    fn typing_filters_and_resets_the_cursor() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Down);
+        assert_eq!(app.sbom_repo_cursor, 1);
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Char('g'));
+        assert_eq!(app.sbom_repo_search.value, "g");
+        assert_eq!(app.sbom_repo_cursor, 0, "cursor resets on filter change");
+        assert_eq!(app.visible_sbom_repos(), vec![2], "only `gamma` matches");
+    }
+
+    #[test]
+    fn enter_with_nothing_selected_is_refused() {
+        let mut app = make_sbom_app();
+        handle_sbom_repo_selection(&mut app, KeyCode::Enter);
+
+        assert_eq!(app.screen, Screen::SbomRepoSelection, "must not advance");
+        assert!(app.error_msg.is_some());
+        assert!(app.selected_sbom_repos.is_empty());
+    }
+
+    #[test]
+    fn enter_commits_selected_names_sorted_and_advances() {
+        let mut app = make_sbom_app();
+        app.sbom_repo_selected.insert(2);
+        app.sbom_repo_selected.insert(0);
+
+        handle_sbom_repo_selection(&mut app, KeyCode::Enter);
+
+        assert_eq!(app.screen, Screen::SetOptions);
+        assert_eq!(app.selected_sbom_repos, vec!["alpha", "gamma"]);
+    }
 }
 
 fn handle_scan_selection(app: &mut App, key: KeyCode) {
@@ -981,6 +1158,96 @@ fn handle_jira_project_selection(app: &mut App, key: KeyCode) {
                 .map(|p| p.key.clone())
                 .collect();
             app.next_screen();
+        }
+        KeyCode::Esc => app.prev_screen(),
+        _ => {}
+    }
+}
+
+fn handle_sbom_destination(app: &mut App, key: KeyCode) -> Action {
+    let field = match app.sbom_dest_field {
+        0 => &mut app.sbom_bucket_input,
+        1 => &mut app.sbom_kms_input,
+        _ => &mut app.sbom_prefix_input,
+    };
+
+    match key {
+        KeyCode::Char(c) => field.insert(c),
+        KeyCode::Backspace => field.backspace(),
+        KeyCode::Left => field.move_left(),
+        KeyCode::Right => field.move_right(),
+        KeyCode::Up => {
+            if app.sbom_dest_field > 0 {
+                app.sbom_dest_field -= 1;
+            }
+        }
+        KeyCode::Down | KeyCode::Tab => {
+            if app.sbom_dest_field < 2 {
+                app.sbom_dest_field += 1;
+            }
+        }
+        KeyCode::Enter => {
+            if app.sbom_bucket_input.value.trim().is_empty() {
+                app.error_msg = Some("An S3 bucket is required for the SBOM export".into());
+                return Action::Continue;
+            }
+            if app.sbom_kms_input.value.trim().is_empty() {
+                app.error_msg = Some("A KMS key ARN is required for the SBOM export".into());
+                return Action::Continue;
+            }
+            app.error_msg = None;
+            app.sbom_discovery_error = None;
+            app.screen = Screen::SbomRepoDiscovery;
+            return Action::SbomDiscoverRepos;
+        }
+        KeyCode::Esc => app.prev_screen(),
+        _ => {}
+    }
+
+    Action::Continue
+}
+
+fn handle_sbom_repo_selection(app: &mut App, key: KeyCode) {
+    let visible = app.visible_sbom_repos();
+
+    match key {
+        KeyCode::Up => {
+            if app.sbom_repo_cursor > 0 {
+                app.sbom_repo_cursor -= 1;
+            }
+        }
+        KeyCode::Down => {
+            if app.sbom_repo_cursor + 1 < visible.len() {
+                app.sbom_repo_cursor += 1;
+            }
+        }
+        KeyCode::Char(' ') => {
+            if let Some(&idx) = visible.get(app.sbom_repo_cursor) {
+                if app.sbom_repo_selected.contains(&idx) {
+                    app.sbom_repo_selected.remove(&idx);
+                } else {
+                    app.sbom_repo_selected.insert(idx);
+                }
+            }
+        }
+        KeyCode::Char('a') => {
+            for idx in visible {
+                app.sbom_repo_selected.insert(idx);
+            }
+        }
+        KeyCode::Char('d') => app.sbom_repo_selected.clear(),
+        KeyCode::Backspace => {
+            app.sbom_repo_search.backspace();
+            app.sbom_repo_cursor = 0;
+        }
+        KeyCode::Char(c) => {
+            app.sbom_repo_search.insert(c);
+            app.sbom_repo_cursor = 0;
+        }
+        KeyCode::Enter => {
+            if app.validate_current() {
+                app.next_screen();
+            }
         }
         KeyCode::Esc => app.prev_screen(),
         _ => {}

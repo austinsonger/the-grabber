@@ -5,5 +5,6 @@ pub mod failure_classifier;
 pub mod multi_account;
 pub mod multi_region_cli;
 pub mod output;
+pub mod provider_cli;
 pub mod tui_runners;
 pub mod tui_session;

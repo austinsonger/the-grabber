@@ -59,11 +59,29 @@ impl App {
                         .any(|k| k == "jira-issues")
                 {
                     Screen::JiraProjectSelection
+                } else if self.selected_provider == CloudProvider::Aws && self.sbom_selected() {
+                    self.prefill_sbom_destination();
+                    Screen::SbomDestination
                 } else {
                     Screen::SetOptions
                 }
             }
             Screen::JiraProjectSelection => Screen::SetOptions,
+            Screen::SbomDestination => Screen::SbomRepoDiscovery,
+            Screen::SbomRepoDiscovery => Screen::SbomRepoSelection,
+            Screen::SbomRepoSelection => {
+                self.selected_sbom_repos = {
+                    let mut names: Vec<String> = self
+                        .sbom_repo_selected
+                        .iter()
+                        .filter_map(|&i| self.sbom_repo_list.get(i))
+                        .map(|r| r.name.clone())
+                        .collect();
+                    names.sort();
+                    names
+                };
+                Screen::SetOptions
+            }
             Screen::ScanSelection => {
                 #[cfg(feature = "tenable")]
                 {
@@ -111,6 +129,7 @@ impl App {
                     || self.selected_provider == CloudProvider::Elastic
                     || self.selected_provider == CloudProvider::Jamf
                     || self.selected_provider == CloudProvider::Github
+                    || self.selected_provider == CloudProvider::JumpCloud
                 {
                     self.auto_select_provider_accounts();
                     self.clamp_collector_cursors();
@@ -182,6 +201,7 @@ impl App {
                     || self.selected_provider == CloudProvider::Elastic
                     || self.selected_provider == CloudProvider::Jamf
                     || self.selected_provider == CloudProvider::Github
+                    || self.selected_provider == CloudProvider::JumpCloud
                 {
                     Screen::ProviderSelection
                 } else {
@@ -191,8 +211,17 @@ impl App {
             Screen::TenableEndpoint => Screen::ProviderSelection,
             Screen::ScanSelection => Screen::SelectCollectors,
             Screen::JiraProjectSelection => Screen::SelectCollectors,
+            Screen::SbomDestination => Screen::SelectCollectors,
+            Screen::SbomRepoDiscovery => Screen::SbomDestination,
+            Screen::SbomRepoSelection => Screen::SbomDestination,
             Screen::SetOptions => match self.selected_feature {
-                Feature::Collectors => Screen::SelectCollectors,
+                Feature::Collectors => {
+                    if self.selected_provider == CloudProvider::Aws && self.sbom_selected() {
+                        Screen::SbomRepoSelection
+                    } else {
+                        Screen::SelectCollectors
+                    }
+                }
                 Feature::Inventory => Screen::Inventory,
                 Feature::Poam => Screen::PoamMonth,
                 Feature::StigRemediation => Screen::StigRemediationAccount,
@@ -320,6 +349,19 @@ impl App {
                         return false;
                     }
                 }
+                #[cfg(feature = "jumpcloud")]
+                if self.selected_provider == CloudProvider::JumpCloud {
+                    let has_jumpcloud = self
+                        .accounts
+                        .iter()
+                        .any(|a| a.provider == CloudProvider::JumpCloud);
+                    if !has_jumpcloud {
+                        self.error_msg = Some(
+                            "No JumpCloud accounts configured in jumpcloud-config.toml".into(),
+                        );
+                        return false;
+                    }
+                }
                 true
             }
             Screen::Inventory => {
@@ -363,6 +405,15 @@ impl App {
                 }
                 true
             }
+            Screen::SbomRepoSelection => {
+                if self.sbom_repo_selected.is_empty() {
+                    self.error_msg = Some(
+                        "Select at least one repository (Space to toggle, 'a' for all)".into(),
+                    );
+                    return false;
+                }
+                true
+            }
             _ => true,
         }
     }
@@ -400,6 +451,13 @@ impl App {
         self.scan_filter = crate::tui::state::ScanTimeFilter::default();
         self.selected_scan_ids.clear();
         self.selected_was_scan_ids.clear();
+        self.sbom_dest_field = 0;
+        self.sbom_repo_cursor = 0;
+        self.sbom_repo_selected.clear();
+        self.sbom_repo_search.clear();
+        self.sbom_repo_list.clear();
+        self.selected_sbom_repos.clear();
+        self.sbom_discovery_error = None;
         // scan_list intentionally preserved (pre-fetched once per session)
         self.poam_summary = None;
         self.selected_feature = Feature::Collectors;
@@ -416,6 +474,36 @@ impl App {
         self.stig_scan_error = None;
         self.stig_log_path = None;
         // Preserve options_selected_regions so the user's choices carry over.
+    }
+
+    /// Pre-fill the SBOM destination fields from the first selected AWS
+    /// account, falling back to whatever `[defaults]` already put there.
+    pub fn prefill_sbom_destination(&mut self) {
+        let defaults = self.config_defaults.clone();
+        let acct = self
+            .selected_account_indices()
+            .into_iter()
+            .filter_map(|i| self.accounts.get(i))
+            .find(|a| a.provider == CloudProvider::Aws)
+            .cloned();
+
+        if let Some(acct) = acct {
+            if let Some(b) = acct.sbom_bucket_resolved(&defaults) {
+                if !b.is_empty() {
+                    self.sbom_bucket_input = crate::tui::state::TextInput::new(&b);
+                }
+            }
+            if let Some(k) = acct.sbom_kms_key_resolved(&defaults) {
+                if !k.is_empty() {
+                    self.sbom_kms_input = crate::tui::state::TextInput::new(&k);
+                }
+            }
+            if let Some(p) = acct.sbom_key_prefix_resolved(&defaults) {
+                if !p.is_empty() {
+                    self.sbom_prefix_input = crate::tui::state::TextInput::new(&p);
+                }
+            }
+        }
     }
 
     /// Drain any pending progress messages from the background task.
