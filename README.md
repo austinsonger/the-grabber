@@ -1140,7 +1140,7 @@ Both providers are compiled behind opt-in Cargo features (`--features azure`, `-
 
 Prebuilt `grabber` binaries for Linux (x86_64) and macOS (Intel + Apple Silicon) are published as GitHub Releases — no need to `cargo build` from source in every downstream CI pipeline.
 
-**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`, `github`, `jamf`) — no `azure`/`gcp`.
+**Cutting a release (maintainers):** go to the **Actions** tab → **Release** workflow → **Run workflow**, enter a version (e.g. `v1.1.0`), and run it. This builds all three platform binaries and publishes them as release `v1.1.0` with a `.tar.gz` per platform attached. Releases are built with the default Cargo feature set (`tenable`, `okta`, `jira`, `elastic`, `jumpcloud`, `github`, `jamf`) — no `azure`/`gcp`.
 
 **Using the binary from another repo's GitHub Action:**
 

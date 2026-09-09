@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/elastic-rs", "crates/jamf-rs", "crates/github-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/elastic-rs", "crates/jumpcloud-rs", "crates/jamf-rs", "crates/github-rs"]
 resolver = "2"
 
 [package]
@@ -105,6 +105,9 @@ okta-rs = { path = "crates/okta-rs", optional = true }
 # Jira — only compiled with `--features jira`
 jira-rs = { path = "crates/jira-rs", optional = true }
 
+# JumpCloud — only compiled with `--features jumpcloud`
+jumpcloud-rs = { path = "crates/jumpcloud-rs", optional = true }
+
 # Elastic — only compiled with `--features elastic`
 elastic-rs = { path = "crates/elastic-rs", optional = true }
 
@@ -115,13 +118,14 @@ jamf-rs = { path = "crates/jamf-rs", optional = true }
 github-rs = { path = "crates/github-rs", optional = true }
 
 [features]
-default = ["tenable", "okta", "jira", "elastic", "jamf", "github"]
+default = ["tenable", "okta", "jira", "elastic", "jumpcloud", "jamf", "github"]
 azure   = ["dep:azure_identity", "dep:azure_mgmt_monitor", "dep:azure_mgmt_resources"]
 gcp     = ["dep:google-cloud-auth"]
 tenable = ["dep:tenable-rs"]
 okta    = ["dep:okta-rs"]
 jira    = ["dep:jira-rs"]
 elastic = ["dep:elastic-rs"]
+jumpcloud = ["dep:jumpcloud-rs"]
 jamf    = ["dep:jamf-rs"]
 github  = ["dep:github-rs"]
 
