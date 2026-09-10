@@ -1,0 +1,20 @@
+# JumpCloud credentials — keep this file out of version control
+# Add to .gitignore: jumpcloud-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: JUMPCLOUD_API_KEY, JUMPCLOUD_ORG_ID.
+
+[[account]]
+name             = "Acme JumpCloud"
+provider         = "jumpcloud"
+description      = "Acme production JumpCloud org"
+output_dir       = "./evidence-output/jumpcloud"
+
+# Optional — defaults to https://console.jumpcloud.com
+# jumpcloud_base_url = "https://console.jumpcloud.com"
+
+jumpcloud_api_key = ""
+
+# Only required for Multi-Tenant Portal (MSP) API keys.
+# Single-org API keys should omit this.
+# jumpcloud_org_id = ""

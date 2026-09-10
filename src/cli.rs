@@ -4,10 +4,12 @@ use anyhow::{Context, Result};
 use chrono::NaiveDate;
 use clap::Parser;
 
-use crate::cli_providers::{ElasticFlags, GithubFlags, OktaFlags, TenableFlags};
+use crate::cli_providers::{
+    ElasticFlags, GithubFlags, JamfFlags, JiraFlags, JumpcloudFlags, OktaFlags, TenableFlags,
+};
 use crate::inventory_core::INVENTORY_ITEMS;
 
-#[derive(Parser)]
+#[derive(Parser, Default)]
 #[command(
     name = "evidence",
     about = "Collect AWS compliance evidence — run with no args for interactive TUI"
@@ -373,6 +375,15 @@ pub struct Cli {
 
     #[command(flatten)]
     pub github: GithubFlags,
+
+    #[command(flatten)]
+    pub jira: JiraFlags,
+
+    #[command(flatten)]
+    pub jamf: JamfFlags,
+
+    #[command(flatten)]
+    pub jumpcloud: JumpcloudFlags,
 }
 
 /// Parse a lookback string like "30", "30d", "12weeks", "3m", "1year" into a

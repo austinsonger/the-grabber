@@ -1,5 +1,5 @@
 [workspace]
-members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/crowdstrike-rs", "crates/elastic-rs", "crates/jumpcloud-rs", "crates/jamf-rs", "crates/github-rs"]
+members  = [".", "crates/tenable-rs", "crates/okta-rs", "crates/jira-rs", "crates/crowdstrike-rs", "crates/elastic-rs", "crates/jumpcloud-rs", "crates/jamf-rs", "crates/github-rs", "grabber-desktop/src-tauri"]
 resolver = "2"
 
 [package]
@@ -8,12 +8,17 @@ version = "0.1.0"
 edition = "2021"
 description = "The Grabber — Extensible Security Compliance Evidence Collector"
 
+[lib]
+name = "the_grabber"
+path = "src/lib.rs"
+
 [[bin]]
 name = "grabber"
 path = "src/main.rs"
 
 [dependencies]
 aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-credential-types = "1"
 aws-sdk-cloudtrail = "1"
 aws-sdk-backup = "1"
 aws-sdk-rds = "1"
@@ -87,6 +92,12 @@ crossterm = "0.28"
 dirs-next = "2"
 libc = "0.2"
 calamine = "0.26"
+keyring = { version = "3", features = ["sync-secret-service", "tokio", "crypto-openssl"] }
+aes-gcm = "0.10"
+aead = "0.5"
+zeroize = { version = "1", features = ["derive"] }
+base64 = "0.22"
+rand = "0.8"
 
 # Azure — only compiled with `--features azure`
 azure_identity       = { version = "0.20", optional = true }

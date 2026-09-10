@@ -65,6 +65,7 @@ jamf-config.toml
 
 # GitHub credentials — never commit
 github-config.toml
+grabber-desktop/dist/
 
 # JumpCloud credentials — never commit
 jumpcloud-config.toml

@@ -1,0 +1,56 @@
+pub mod commands;
+pub mod dto;
+pub mod error;
+pub mod state;
+
+use std::sync::Arc;
+
+use tauri::Manager;
+
+use the_grabber::app_config::load_config;
+use the_grabber::engine::Engine;
+
+use crate::state::AppState;
+
+#[tauri::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            let data_dir = app.path().app_data_dir()?;
+            let config = load_config().unwrap_or_default();
+            let engine = Arc::new(Engine::new(config.clone(), data_dir)?);
+            app.manage(AppState::new(engine, config));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            commands::accounts::list_accounts,
+            commands::accounts::test_account,
+            commands::accounts::discover_regions,
+            commands::artifacts::list_run_artifacts,
+            commands::artifacts::read_artifact_preview,
+            commands::artifacts::open_output_dir,
+            commands::collection::start_collection,
+            commands::collection::cancel_collection,
+            commands::collectors::list_collectors,
+            commands::config::load_app_config,
+            commands::config::save_app_config,
+            commands::credentials::list_credentials,
+            commands::credentials::create_credential,
+            commands::credentials::delete_credential,
+            commands::credentials::detect_aws_profiles,
+            commands::credentials::import_aws_profiles,
+            commands::inventory::list_inventory_types,
+            commands::inventory::start_inventory,
+            commands::poam::start_poam,
+            commands::stig::stig_scan,
+            commands::stig::start_stig_remediation,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running Tauri application");
+}

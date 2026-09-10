@@ -76,6 +76,25 @@ impl fmt::Display for CloudProvider {
     }
 }
 
+impl TryFrom<&str> for CloudProvider {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_ascii_lowercase().as_str() {
+            "aws" => Ok(CloudProvider::Aws),
+            "azure" => Ok(CloudProvider::Azure),
+            "gcp" => Ok(CloudProvider::Gcp),
+            "tenable" => Ok(CloudProvider::Tenable),
+            "okta" => Ok(CloudProvider::Okta),
+            "jira" => Ok(CloudProvider::Jira),
+            "elastic" => Ok(CloudProvider::Elastic),
+            "jamf" => Ok(CloudProvider::Jamf),
+            "github" => Ok(CloudProvider::Github),
+            other => anyhow::bail!("Unknown cloud provider: {other}"),
+        }
+    }
+}
+
 impl CloudProvider {
     /// Every provider compiled into this build, in canonical UI order.
     /// Single source of truth for the Provider Selection screen — both

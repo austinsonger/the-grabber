@@ -4,7 +4,8 @@
 //! into [`crate::cli::Cli`]: a mode flag (`--okta`), credential overrides, a
 //! comma-separated `--<provider>-collectors` key list, and one opt-in boolean
 //! per collector. The individual flags and the key list are additive; an empty
-//! selection means "every collector for this provider".
+//! selection means "every collector for this provider". Providers covered:
+//! Okta, Tenable, Elastic, GitHub, Jira, Jamf, and JumpCloud.
 //!
 //! Field names are provider-prefixed on purpose. clap derives an argument's
 //! internal ID from the field name, so four flattened structs each with a field
@@ -94,7 +95,7 @@ fn resolve_keys(
 }
 
 /// Okta headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Okta")]
 pub struct OktaFlags {
     /// Run the Okta evidence workflow non-interactively.
@@ -274,7 +275,7 @@ pub const TENABLE_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// Tenable headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Tenable")]
 pub struct TenableFlags {
     /// Run the Tenable evidence workflow non-interactively.
@@ -368,7 +369,7 @@ pub const ELASTIC_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// Elastic Security headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "Elastic Security")]
 pub struct ElasticFlags {
     /// Run the Elastic Security evidence workflow non-interactively.
@@ -477,7 +478,7 @@ pub const GITHUB_COLLECTOR_KEYS: &[&str] = &[
 ];
 
 /// GitHub headless-CLI flags.
-#[derive(Args, Debug)]
+#[derive(Args, Debug, Default)]
 #[command(next_help_heading = "GitHub")]
 pub struct GithubFlags {
     /// Run the GitHub evidence workflow non-interactively.
@@ -573,6 +574,529 @@ impl GithubFlags {
             self.github_collectors.as_ref(),
             &toggles,
             GITHUB_COLLECTOR_KEYS,
+        )
+    }
+}
+
+/// Every Jira collector key, in TUI menu order (`src/tui/menus/jira.rs`).
+pub const JIRA_COLLECTOR_KEYS: &[&str] = &[
+    "jira-projects",
+    "jira-issues",
+    "jira-offboarding-sla",
+    "jira-ir-external",
+    "jira-sanctions-isso",
+    "jira-transfer-notify",
+    "jira-remote-access-approvals",
+    "jira-external-system-approvals",
+    "jira-remote-maint",
+    "jira-special-protection",
+    "jira-change-retention",
+    "jira-cp-update",
+    "jira-cp-test-poam",
+    "jira-baseline-exceptions",
+    "jira-allowlist-review",
+    "jira-patch-test",
+    "jira-sw-license",
+    "jira-ir-cp",
+    "jira-ir-lessons",
+    "jira-ir-severity",
+    "jira-dr-test",
+    "jira-malware-fp",
+    "jira-public-content",
+    "jira-logging-coordination",
+    "jira-audit-posture",
+    "jira-isa-annual",
+    "jira-fw-exception",
+    "jira-data-reassignment",
+];
+
+/// Jira headless-CLI flags.
+#[derive(Args, Debug, Default)]
+#[command(next_help_heading = "Jira")]
+pub struct JiraFlags {
+    /// Run the Jira evidence workflow non-interactively.
+    /// Reads accounts from jira-config.toml / config.toml, or falls back to
+    /// --jira-domain / --jira-email / --jira-api-token (or the JIRA_* env vars).
+    #[arg(long = "jira", default_value_t = false)]
+    pub jira_enabled: bool,
+
+    /// Limit the run to the [[account]] with this `name` (case-insensitive).
+    #[arg(long)]
+    pub jira_account: Option<String>,
+
+    /// Jira tenant base URL, e.g. https://acme.atlassian.net.
+    /// Overrides config.toml and JIRA_DOMAIN.
+    #[arg(long)]
+    pub jira_domain: Option<String>,
+
+    /// Jira account email (Basic-auth username). Overrides config.toml and
+    /// JIRA_EMAIL.
+    #[arg(long)]
+    pub jira_email: Option<String>,
+
+    /// Jira API token. Overrides config.toml and JIRA_API_TOKEN.
+    #[arg(long)]
+    pub jira_api_token: Option<String>,
+
+    /// Collector keys to run (comma-separated). Additive with the individual
+    /// --jira-* collector flags. Omit both to run all 28 Jira collectors.
+    #[arg(long, value_delimiter = ',')]
+    pub jira_collectors: Option<Vec<String>>,
+
+    /// Jira: collect Projects.
+    #[arg(long, default_value_t = false)]
+    pub jira_projects: bool,
+
+    /// Jira: collect Issues.
+    #[arg(long, default_value_t = false)]
+    pub jira_issues: bool,
+
+    /// Jira: collect Offboarding SLA.
+    #[arg(long, default_value_t = false)]
+    pub jira_offboarding_sla: bool,
+
+    /// Jira: collect IR: External Reporting SLA.
+    #[arg(long, default_value_t = false)]
+    pub jira_ir_external: bool,
+
+    /// Jira: collect Sanctions ISSO Notify.
+    #[arg(long, default_value_t = false)]
+    pub jira_sanctions_isso: bool,
+
+    /// Jira: collect Transfer Notifications.
+    #[arg(long, default_value_t = false)]
+    pub jira_transfer_notify: bool,
+
+    /// Jira: collect Remote Access Approvals.
+    #[arg(long, default_value_t = false)]
+    pub jira_remote_access_approvals: bool,
+
+    /// Jira: collect External System Approvals.
+    #[arg(long, default_value_t = false)]
+    pub jira_external_system_approvals: bool,
+
+    /// Jira: collect Remote Maintenance.
+    #[arg(long, default_value_t = false)]
+    pub jira_remote_maint: bool,
+
+    /// Jira: collect Special Protection.
+    #[arg(long, default_value_t = false)]
+    pub jira_special_protection: bool,
+
+    /// Jira: collect Change Retention.
+    #[arg(long, default_value_t = false)]
+    pub jira_change_retention: bool,
+
+    /// Jira: collect CP Update Trigger.
+    #[arg(long, default_value_t = false)]
+    pub jira_cp_update: bool,
+
+    /// Jira: collect CP Test POAM.
+    #[arg(long, default_value_t = false)]
+    pub jira_cp_test_poam: bool,
+
+    /// Jira: collect Baseline Exceptions.
+    #[arg(long, default_value_t = false)]
+    pub jira_baseline_exceptions: bool,
+
+    /// Jira: collect Allowlist Review.
+    #[arg(long, default_value_t = false)]
+    pub jira_allowlist_review: bool,
+
+    /// Jira: collect Patch Test Records.
+    #[arg(long, default_value_t = false)]
+    pub jira_patch_test: bool,
+
+    /// Jira: collect SW License Review.
+    #[arg(long, default_value_t = false)]
+    pub jira_sw_license: bool,
+
+    /// Jira: collect IR: CP Coordination.
+    #[arg(long, default_value_t = false)]
+    pub jira_ir_cp: bool,
+
+    /// Jira: collect IR: Lessons Learned.
+    #[arg(long, default_value_t = false)]
+    pub jira_ir_lessons: bool,
+
+    /// Jira: collect IR: Severity vs Rigor.
+    #[arg(long, default_value_t = false)]
+    pub jira_ir_severity: bool,
+
+    /// Jira: collect DR Test Results.
+    #[arg(long, default_value_t = false)]
+    pub jira_dr_test: bool,
+
+    /// Jira: collect Malware False Positive.
+    #[arg(long, default_value_t = false)]
+    pub jira_malware_fp: bool,
+
+    /// Jira: collect Public Content Review.
+    #[arg(long, default_value_t = false)]
+    pub jira_public_content: bool,
+
+    /// Jira: collect Logging Coordination.
+    #[arg(long, default_value_t = false)]
+    pub jira_logging_coordination: bool,
+
+    /// Jira: collect Audit Posture Change.
+    #[arg(long, default_value_t = false)]
+    pub jira_audit_posture: bool,
+
+    /// Jira: collect ISA Annual Review.
+    #[arg(long, default_value_t = false)]
+    pub jira_isa_annual: bool,
+
+    /// Jira: collect Firewall Exception.
+    #[arg(long, default_value_t = false)]
+    pub jira_fw_exception: bool,
+
+    /// Jira: collect Data Reassignment.
+    #[arg(long, default_value_t = false)]
+    pub jira_data_reassignment: bool,
+
+    /// Comma-separated Jira project keys to scope the issues collector to
+    /// (e.g. "SEC,CMP"). Omit to cover every project.
+    #[arg(long)]
+    pub jira_project_keys: Option<String>,
+}
+
+impl JiraFlags {
+    /// Collector keys for this run. Empty selection = every Jira collector.
+    pub fn resolve_collectors(&self) -> Result<Vec<String>> {
+        let toggles = [
+            (self.jira_projects, "jira-projects"),
+            (self.jira_issues, "jira-issues"),
+            (self.jira_offboarding_sla, "jira-offboarding-sla"),
+            (self.jira_ir_external, "jira-ir-external"),
+            (self.jira_sanctions_isso, "jira-sanctions-isso"),
+            (self.jira_transfer_notify, "jira-transfer-notify"),
+            (
+                self.jira_remote_access_approvals,
+                "jira-remote-access-approvals",
+            ),
+            (
+                self.jira_external_system_approvals,
+                "jira-external-system-approvals",
+            ),
+            (self.jira_remote_maint, "jira-remote-maint"),
+            (self.jira_special_protection, "jira-special-protection"),
+            (self.jira_change_retention, "jira-change-retention"),
+            (self.jira_cp_update, "jira-cp-update"),
+            (self.jira_cp_test_poam, "jira-cp-test-poam"),
+            (self.jira_baseline_exceptions, "jira-baseline-exceptions"),
+            (self.jira_allowlist_review, "jira-allowlist-review"),
+            (self.jira_patch_test, "jira-patch-test"),
+            (self.jira_sw_license, "jira-sw-license"),
+            (self.jira_ir_cp, "jira-ir-cp"),
+            (self.jira_ir_lessons, "jira-ir-lessons"),
+            (self.jira_ir_severity, "jira-ir-severity"),
+            (self.jira_dr_test, "jira-dr-test"),
+            (self.jira_malware_fp, "jira-malware-fp"),
+            (self.jira_public_content, "jira-public-content"),
+            (self.jira_logging_coordination, "jira-logging-coordination"),
+            (self.jira_audit_posture, "jira-audit-posture"),
+            (self.jira_isa_annual, "jira-isa-annual"),
+            (self.jira_fw_exception, "jira-fw-exception"),
+            (self.jira_data_reassignment, "jira-data-reassignment"),
+        ];
+        resolve_keys(
+            "jira",
+            self.jira_collectors.as_ref(),
+            &toggles,
+            JIRA_COLLECTOR_KEYS,
+        )
+    }
+
+    /// Jira project keys for this run: the comma-separated `--jira-project-keys`
+    /// list, trimmed, with empty entries dropped. Empty vec = all projects.
+    pub fn resolve_project_keys(&self) -> Vec<String> {
+        self.jira_project_keys
+            .as_deref()
+            .map(|s| {
+                s.split(',')
+                    .map(|k| k.trim().to_string())
+                    .filter(|k| !k.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+}
+
+/// Every Jamf collector key, in TUI menu order (`src/tui/menus/jamf.rs`).
+pub const JAMF_COLLECTOR_KEYS: &[&str] = &[
+    "jamf-computers",
+    "jamf-mobile-devices",
+    "jamf-computer-groups",
+    "jamf-mobile-device-groups",
+    "jamf-computer-config-profiles",
+    "jamf-mobile-config-profiles",
+    "jamf-policies",
+    "jamf-patch-titles",
+    "jamf-patch-compliance",
+];
+
+/// Jamf headless-CLI flags.
+#[derive(Args, Debug, Default)]
+#[command(next_help_heading = "Jamf")]
+pub struct JamfFlags {
+    /// Run the Jamf evidence workflow non-interactively.
+    /// Reads accounts from jamf-config.toml / config.toml, or falls back to
+    /// --jamf-base-url / --jamf-client-id / --jamf-client-secret (or the
+    /// JAMF_* env vars).
+    #[arg(long = "jamf", default_value_t = false)]
+    pub jamf_enabled: bool,
+
+    /// Limit the run to the [[account]] with this `name` (case-insensitive).
+    #[arg(long)]
+    pub jamf_account: Option<String>,
+
+    /// Jamf Pro server base URL, e.g. https://acme.jamfcloud.com.
+    /// Overrides config.toml and JAMF_BASE_URL.
+    #[arg(long)]
+    pub jamf_base_url: Option<String>,
+
+    /// Jamf Pro API OAuth2 client ID. Overrides config.toml and JAMF_CLIENT_ID.
+    #[arg(long)]
+    pub jamf_client_id: Option<String>,
+
+    /// Jamf Pro API OAuth2 client secret.
+    /// Overrides config.toml and JAMF_CLIENT_SECRET.
+    #[arg(long)]
+    pub jamf_client_secret: Option<String>,
+
+    /// Collector keys to run (comma-separated). Additive with the individual
+    /// --jamf-* collector flags. Omit both to run all 9 Jamf collectors.
+    #[arg(long, value_delimiter = ',')]
+    pub jamf_collectors: Option<Vec<String>>,
+
+    /// Jamf: collect Computers.
+    #[arg(long, default_value_t = false)]
+    pub jamf_computers: bool,
+
+    /// Jamf: collect Mobile Devices.
+    #[arg(long, default_value_t = false)]
+    pub jamf_mobile_devices: bool,
+
+    /// Jamf: collect Computer Groups.
+    #[arg(long, default_value_t = false)]
+    pub jamf_computer_groups: bool,
+
+    /// Jamf: collect Mobile Device Groups.
+    #[arg(long, default_value_t = false)]
+    pub jamf_mobile_device_groups: bool,
+
+    /// Jamf: collect Computer Config Profiles.
+    #[arg(long, default_value_t = false)]
+    pub jamf_computer_config_profiles: bool,
+
+    /// Jamf: collect Mobile Config Profiles.
+    #[arg(long, default_value_t = false)]
+    pub jamf_mobile_config_profiles: bool,
+
+    /// Jamf: collect Policies.
+    #[arg(long, default_value_t = false)]
+    pub jamf_policies: bool,
+
+    /// Jamf: collect Patch Titles.
+    #[arg(long, default_value_t = false)]
+    pub jamf_patch_titles: bool,
+
+    /// Jamf: collect Patch Compliance.
+    #[arg(long, default_value_t = false)]
+    pub jamf_patch_compliance: bool,
+}
+
+impl JamfFlags {
+    /// Collector keys for this run. Empty selection = every Jamf collector.
+    pub fn resolve_collectors(&self) -> Result<Vec<String>> {
+        let toggles = [
+            (self.jamf_computers, "jamf-computers"),
+            (self.jamf_mobile_devices, "jamf-mobile-devices"),
+            (self.jamf_computer_groups, "jamf-computer-groups"),
+            (self.jamf_mobile_device_groups, "jamf-mobile-device-groups"),
+            (
+                self.jamf_computer_config_profiles,
+                "jamf-computer-config-profiles",
+            ),
+            (
+                self.jamf_mobile_config_profiles,
+                "jamf-mobile-config-profiles",
+            ),
+            (self.jamf_policies, "jamf-policies"),
+            (self.jamf_patch_titles, "jamf-patch-titles"),
+            (self.jamf_patch_compliance, "jamf-patch-compliance"),
+        ];
+        resolve_keys(
+            "jamf",
+            self.jamf_collectors.as_ref(),
+            &toggles,
+            JAMF_COLLECTOR_KEYS,
+        )
+    }
+}
+
+/// Every JumpCloud collector key, in TUI menu order
+/// (`src/tui/menus/jumpcloud.rs`).
+pub const JUMPCLOUD_COLLECTOR_KEYS: &[&str] = &[
+    "jumpcloud-users",
+    "jumpcloud-user-groups",
+    "jumpcloud-user-group-members",
+    "jumpcloud-mfa-factors",
+    "jumpcloud-admin-roles",
+    "jumpcloud-disabled-users",
+    "jumpcloud-applications",
+    "jumpcloud-policies",
+    "jumpcloud-password-policy",
+    "jumpcloud-session-policy",
+    "jumpcloud-directory-insights",
+    "jumpcloud-directory-alerts",
+    "jumpcloud-systems",
+    "jumpcloud-system-groups",
+    "jumpcloud-system-group-members",
+    "jumpcloud-system-user-associations",
+];
+
+/// JumpCloud headless-CLI flags.
+#[derive(Args, Debug, Default)]
+#[command(next_help_heading = "JumpCloud")]
+pub struct JumpcloudFlags {
+    /// Run the JumpCloud evidence workflow non-interactively.
+    /// Reads accounts from jumpcloud-config.toml / config.toml, or falls back
+    /// to --jumpcloud-api-key (or JUMPCLOUD_API_KEY).
+    #[arg(long = "jumpcloud", default_value_t = false)]
+    pub jumpcloud_enabled: bool,
+
+    /// Limit the run to the [[account]] with this `name` (case-insensitive).
+    #[arg(long)]
+    pub jumpcloud_account: Option<String>,
+
+    /// JumpCloud API base URL. Defaults to https://console.jumpcloud.com.
+    /// Overrides config.toml and JUMPCLOUD_BASE_URL.
+    #[arg(long)]
+    pub jumpcloud_base_url: Option<String>,
+
+    /// JumpCloud API key. Overrides config.toml and JUMPCLOUD_API_KEY.
+    #[arg(long)]
+    pub jumpcloud_api_key: Option<String>,
+
+    /// JumpCloud org id (required for MTP/MSP orgs, sent as x-org-id).
+    /// Overrides config.toml and JUMPCLOUD_ORG_ID.
+    #[arg(long)]
+    pub jumpcloud_org_id: Option<String>,
+
+    /// Collector keys to run (comma-separated). Additive with the individual
+    /// --jumpcloud-* collector flags. Omit both to run all 16 JumpCloud
+    /// collectors.
+    #[arg(long, value_delimiter = ',')]
+    pub jumpcloud_collectors: Option<Vec<String>>,
+
+    /// JumpCloud: collect Users.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_users: bool,
+
+    /// JumpCloud: collect User Groups.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_user_groups: bool,
+
+    /// JumpCloud: collect User Group Members.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_user_group_members: bool,
+
+    /// JumpCloud: collect MFA Factors.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_mfa_factors: bool,
+
+    /// JumpCloud: collect Admin Roles.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_admin_roles: bool,
+
+    /// JumpCloud: collect Disabled Users.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_disabled_users: bool,
+
+    /// JumpCloud: collect Applications.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_applications: bool,
+
+    /// JumpCloud: collect Policies.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_policies: bool,
+
+    /// JumpCloud: collect Password Policy.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_password_policy: bool,
+
+    /// JumpCloud: collect Session Policy.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_session_policy: bool,
+
+    /// JumpCloud: collect Directory Insights events.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_directory_insights: bool,
+
+    /// JumpCloud: collect Directory Alerts.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_directory_alerts: bool,
+
+    /// JumpCloud: collect Systems.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_systems: bool,
+
+    /// JumpCloud: collect System Groups.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_system_groups: bool,
+
+    /// JumpCloud: collect System Group Members.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_system_group_members: bool,
+
+    /// JumpCloud: collect System-User Associations.
+    #[arg(long, default_value_t = false)]
+    pub jumpcloud_system_user_associations: bool,
+}
+
+impl JumpcloudFlags {
+    /// Collector keys for this run. Empty selection = every JumpCloud collector.
+    pub fn resolve_collectors(&self) -> Result<Vec<String>> {
+        let toggles = [
+            (self.jumpcloud_users, "jumpcloud-users"),
+            (self.jumpcloud_user_groups, "jumpcloud-user-groups"),
+            (
+                self.jumpcloud_user_group_members,
+                "jumpcloud-user-group-members",
+            ),
+            (self.jumpcloud_mfa_factors, "jumpcloud-mfa-factors"),
+            (self.jumpcloud_admin_roles, "jumpcloud-admin-roles"),
+            (self.jumpcloud_disabled_users, "jumpcloud-disabled-users"),
+            (self.jumpcloud_applications, "jumpcloud-applications"),
+            (self.jumpcloud_policies, "jumpcloud-policies"),
+            (self.jumpcloud_password_policy, "jumpcloud-password-policy"),
+            (self.jumpcloud_session_policy, "jumpcloud-session-policy"),
+            (
+                self.jumpcloud_directory_insights,
+                "jumpcloud-directory-insights",
+            ),
+            (
+                self.jumpcloud_directory_alerts,
+                "jumpcloud-directory-alerts",
+            ),
+            (self.jumpcloud_systems, "jumpcloud-systems"),
+            (self.jumpcloud_system_groups, "jumpcloud-system-groups"),
+            (
+                self.jumpcloud_system_group_members,
+                "jumpcloud-system-group-members",
+            ),
+            (
+                self.jumpcloud_system_user_associations,
+                "jumpcloud-system-user-associations",
+            ),
+        ];
+        resolve_keys(
+            "jumpcloud",
+            self.jumpcloud_collectors.as_ref(),
+            &toggles,
+            JUMPCLOUD_COLLECTOR_KEYS,
         )
     }
 }

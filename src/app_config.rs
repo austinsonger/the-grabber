@@ -11,7 +11,7 @@ use crate::providers::CloudProvider;
 /// global defaults, and per-account collector overrides.
 /// If the file is missing or invalid, the application falls back to
 /// built-in defaults.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 pub struct AppConfig {
     /// Global defaults applied when not overridden by an account.
     #[serde(default)]
@@ -150,6 +150,9 @@ pub struct Account {
 
     /// AWS CLI profile name or SSO role name (must match ~/.aws/config).
     pub profile: Option<String>,
+
+    /// Reference to a credential stored in the vault.
+    pub credential_id: Option<String>,
 
     /// AWS region override (e.g. "us-east-1").
     pub region: Option<String>,

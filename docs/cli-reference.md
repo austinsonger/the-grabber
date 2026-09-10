@@ -23,7 +23,8 @@
 14. [Collector Keys Reference](#collector-keys-reference)
 15. [Inventory Asset Types](#inventory-asset-types)
 16. [Config File Defaults](#config-file-defaults)
-17. [Exit Behavior](#exit-behavior)
+17. [Credential Storage](#credential-storage)
+18. [Exit Behavior](#exit-behavior)
 
 ---
 
@@ -854,6 +855,33 @@ disable = ["s3", "macie", "inspector", "inspector-config", "scp", "org-config"]
 **Per-account overrides** in `[[account]]` blocks support the same `collectors.enable`, `collectors.disable`, and `collectors.enable_extra` keys and take precedence over `[defaults.collectors]`.
 
 CLI `--collectors` always takes final precedence over both config defaults and account overrides.
+
+---
+
+## Credential Storage
+
+The CLI and TUI read credentials from the environment and from the provider
+config files, exactly as documented above:
+
+| Provider | Where the CLI/TUI reads credentials from |
+|----------|------------------------------------------|
+| AWS | `AWS_PROFILE` / the standard credential chain (`~/.aws/config`, `~/.aws/credentials`, env vars, instance role) |
+| Okta | `okta_domain` + `okta_api_token` in `okta-config.toml` (or the referenced env var) |
+| Jira | `jira-config.toml` |
+| Tenable | `tenable-config.toml` |
+
+**The desktop app does not use any of these.** It stores each credential's
+secret in the OS keyring (macOS Keychain, Windows Credential Manager, Linux
+Secret Service) and its non-secret metadata in an AES-256-GCM-encrypted store
+under the app's data directory. Credentials added in the desktop Credential
+Vault are therefore invisible to `grabber` on the command line, and API tokens
+in your `*-config.toml` files are invisible to the desktop app — each one has to
+be entered in the tool you intend to run.
+
+What *is* shared is `config.toml`: both read the same `[[account]]` blocks and
+`[defaults]`. In the desktop app an account is linked to a vault credential by
+its `credential_id` field; accounts without one can be selected in the wizard
+but cannot start a run.
 
 ---
 
