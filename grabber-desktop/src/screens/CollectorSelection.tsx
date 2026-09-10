@@ -1,3 +1,4 @@
+import { errorMessage } from "../api/errors";
 import { useEffect, useMemo, useState } from "react";
 import { CollectorMetaDto, listCollectors } from "../api/collectors";
 
@@ -23,7 +24,7 @@ export default function CollectorSelection({
         setCollectors(data);
         setSelected(new Set(data.map((c) => c.key)));
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorMessage(e)));
   }, [provider]);
 
   const categories = useMemo(() => {

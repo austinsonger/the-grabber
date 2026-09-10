@@ -1,3 +1,4 @@
+import { errorMessage } from "../api/errors";
 import { useEffect, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { CredentialMetaDto, listCredentials } from "../api/credentials";
@@ -27,7 +28,7 @@ export default function StigScreen({ onDone, onBack }: StigScreenProps) {
   useEffect(() => {
     listCredentials()
       .then((all) => setCredentials(all.filter((c) => c.provider === "okta")))
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorMessage(e)));
   }, []);
 
   const tenantName = useMemo(
@@ -49,7 +50,7 @@ export default function StigScreen({ onDone, onBack }: StigScreenProps) {
       setFindings(results);
       setSelected(new Set());
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(null);
     }
@@ -71,7 +72,7 @@ export default function StigScreen({ onDone, onBack }: StigScreenProps) {
       setFindings(await stigScan(credentialId));
       setSelected(new Set());
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     } finally {
       setBusy(null);
     }
