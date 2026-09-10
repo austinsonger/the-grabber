@@ -1,3 +1,4 @@
+import { errorMessage } from "../api/errors";
 import { useEffect, useState } from "react";
 import {
   ArtifactDto,
@@ -29,7 +30,7 @@ export default function ResultsScreen({ outputDir, onDone }: ResultsScreenProps)
         setArtifacts(data);
         setError(null);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorMessage(e)));
   };
 
   useEffect(refresh, [outputDir]);
@@ -39,7 +40,7 @@ export default function ResultsScreen({ outputDir, onDone }: ResultsScreenProps)
     setPreview("Loading…");
     readArtifactPreview(artifact.path)
       .then(setPreview)
-      .catch((e) => setPreview(String(e)));
+      .catch((e) => setPreview(errorMessage(e)));
   };
 
   return (
@@ -51,7 +52,7 @@ export default function ResultsScreen({ outputDir, onDone }: ResultsScreenProps)
       <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
         <button onClick={refresh}>Refresh</button>
         <button
-          onClick={() => openOutputDir(outputDir).catch((e) => setError(String(e)))}
+          onClick={() => openOutputDir(outputDir).catch((e) => setError(errorMessage(e)))}
         >
           Open Folder
         </button>

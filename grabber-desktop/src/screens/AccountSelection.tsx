@@ -1,3 +1,4 @@
+import { errorMessage } from "../api/errors";
 import { useEffect, useState } from "react";
 import { AccountDto, listAccounts } from "../api/accounts";
 
@@ -19,7 +20,7 @@ export default function AccountSelection({ onNext, onBack }: AccountSelectionPro
           setSelected(new Set([data[0].name]));
         }
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorMessage(e)));
   }, []);
 
   const toggle = (name: string) => {

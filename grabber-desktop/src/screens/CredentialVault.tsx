@@ -1,3 +1,4 @@
+import { errorMessage } from "../api/errors";
 import { useEffect, useState } from "react";
 import CredentialForm from "../components/CredentialForm";
 import {
@@ -30,7 +31,7 @@ export default function CredentialVault() {
       setCreds(result);
       setDetected(await detectAwsProfiles());
     } catch (e) {
-      setError(String(e));
+      setError(errorMessage(e));
     }
   };
 

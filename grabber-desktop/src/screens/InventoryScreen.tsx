@@ -1,3 +1,4 @@
+import { errorMessage } from "../api/errors";
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { InventoryTypeDto, listInventoryTypes } from "../api/inventory";
@@ -33,7 +34,7 @@ export default function InventoryScreen({ onNext, onBack }: InventoryScreenProps
         setTypes(data);
         setSelected(new Set(data.map((t) => t.key)));
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errorMessage(e)));
   }, []);
 
   const toggle = (key: string) => {

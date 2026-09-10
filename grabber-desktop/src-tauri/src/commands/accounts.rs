@@ -27,11 +27,12 @@ pub async fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>
     // Vault credentials (e.g. imported ~/.aws profiles) that no config.toml
     // account references yet are offered as standalone accounts — collection
     // resolves them by credential_id, so no config entry is required.
-    let metas = state
-        .engine
-        .vault
-        .list()
-        .map_err(|e| GuiError::Credential(e.to_string()))?;
+    // An unreadable vault (e.g. orphaned encrypted store) must not hide the
+    // config-defined accounts, so the failure is logged and treated as empty.
+    let metas = state.engine.vault.list().unwrap_or_else(|e| {
+        eprintln!("credential vault unavailable, skipping vault accounts: {e:#}");
+        Vec::new()
+    });
     for meta in metas {
         if meta.provider != the_grabber::providers::CloudProvider::Aws {
             continue;
