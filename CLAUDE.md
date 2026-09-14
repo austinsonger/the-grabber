@@ -94,3 +94,21 @@ Evidence runs can optionally emit (all opt-in via CLI flags or config): `RUN-MAN
 ## Planning docs
 
 Feature plans live in `docs/plans/`, named `YYYY-MM-DD-<slug>.md`. These capture intent only — do not start implementing from one without explicit confirmation.
+
+## Changelog
+
+`CHANGELOG.md` ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format) must be updated **in the same change** as the code it describes — never as a follow-up commit. Add entries under `## [Unreleased]` in the appropriate section (`Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Security`), creating the section if it isn't there.
+
+Write an entry whenever a change is visible outside the codebase:
+
+- a new, renamed, or removed CLI flag, TUI screen, or config key
+- a new collector, provider, or inventory asset type
+- a change to an output artifact's name, shape, or contents
+- a bug fix an operator could have noticed — **always**, when the bug produced wrong or misleading evidence rather than an obvious failure
+- a change to credential, authentication, or account-selection behavior
+
+Skip it for changes with no outward effect: internal refactors, test-only work, comment and formatting passes, dependency bumps that change nothing observable.
+
+Entries are for operators, not maintainers. Lead with what changed for the person running the tool; add *why* when the reason isn't obvious from the change. For a bug that silently produced bad evidence, say what the wrong output looked like — someone reading later needs to recognise whether their past runs were affected. Never put real account IDs, ARNs, profile names, or org identifiers in an entry; use placeholders like `123456789012`.
+
+Leave the version number alone. Entries stay under `## [Unreleased]` until a release is cut.

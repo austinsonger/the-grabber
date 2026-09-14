@@ -17,7 +17,19 @@ use crate::runner::multi_account::GLOBAL_COLLECTOR_KEYS;
 use crate::runner::multi_region_cli::run_multi_region_standard;
 use crate::runner::output::write_inventory_outputs;
 
+/// One AWS account to inventory, resolved from either config.toml `[[account]]`
+/// entries or `--accounts` profile patterns.
+struct InventoryTarget {
+    profile: String,
+    region: String,
+    /// Label used in progress output before STS resolves the real account ID.
+    display: String,
+}
+
 pub async fn run_inventory_cli(cli: &Cli) -> Result<()> {
+    if cli.accounts.is_some() {
+        return run_inventory_cli_profiles(cli).await;
+    }
     if cli.inventory_all_accounts {
         return run_inventory_cli_all_accounts(cli).await;
     }
@@ -113,42 +125,7 @@ pub async fn run_inventory_cli(cli: &Cli) -> Result<()> {
         inventory_rows.extend(rows);
     }
 
-    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
-    let written_files = write_inventory_outputs(
-        &output_dir,
-        &timestamp,
-        &inventory_rows,
-        cli.skip_inventory_csv,
-    )?;
-
-    if cli.zip && !written_files.is_empty() {
-        let zip_name = format!("Evidence-{}.zip", timestamp);
-        let zip_path = PathBuf::from(&zip_name);
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        match crate::zip_bundle::bundle_files(&written_files, &cwd, &zip_path) {
-            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
-            Err(e) => eprintln!("Zip bundle failed: {e}"),
-        }
-    }
-
-    if cli.sign && !written_files.is_empty() {
-        let key = match &cli.signing_key {
-            Some(hex) => crate::signing::SigningKey::from_hex(hex)?,
-            None => crate::signing::SigningKey::generate()?,
-        };
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        match crate::signing::sign_files(&written_files, &timestamp, &key, &cwd) {
-            Ok((manifest_path, key_path)) => {
-                eprintln!("Signing manifest: {}", manifest_path.display());
-                eprintln!(
-                    "Signing key file: {} (move to secure storage)",
-                    key_path.display()
-                );
-                eprintln!("Signing key (hex): {}", key.to_hex());
-            }
-            Err(e) => eprintln!("Signing failed: {e}"),
-        }
-    }
+    finalize_inventory_outputs(cli, &output_dir, &inventory_rows)?;
 
     Ok(())
 }
@@ -572,57 +549,157 @@ async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
         );
     }
 
+    let targets: Vec<InventoryTarget> = aws_accounts
+        .iter()
+        .map(|acct| InventoryTarget {
+            profile: acct.profile.as_deref().unwrap_or("").to_string(),
+            region: acct
+                .region
+                .as_deref()
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or(&cli.region)
+                .to_string(),
+            display: acct
+                .account_id
+                .as_deref()
+                .filter(|s| !s.is_empty())
+                .unwrap_or(&acct.name)
+                .to_string(),
+        })
+        .collect();
+
     let inventory_types = crate::cli::resolve_inventory_types(cli);
     eprintln!("Inventory asset types: {}", inventory_types.join(", "));
 
-    let inventory_dates: Option<(i64, i64)> = if let Some(ref lb) = cli.lookback {
-        let today = chrono::Utc::now().date_naive();
-        let start = crate::cli::parse_lookback(lb)?;
-        let start_ts = start
-            .and_hms_opt(0, 0, 0)
-            .expect("valid midnight time")
-            .and_utc()
-            .timestamp();
-        let end_ts = today
-            .and_hms_opt(23, 59, 59)
-            .expect("valid end-of-day time")
-            .and_utc()
-            .timestamp();
-        eprintln!("Lookback window: {} → {} ({})", start, today, lb);
-        Some((start_ts, end_ts))
-    } else {
-        None
-    };
-
+    let inventory_dates = resolve_inventory_dates(cli)?;
     let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
-    let mut inventory_rows: Vec<Vec<String>> = Vec::new();
-    let mut authenticated_accounts: Vec<String> = Vec::new();
-    let mut skipped_accounts: Vec<String> = Vec::new();
+    let inventory_rows =
+        collect_inventory_across_targets(cli, &targets, &inventory_types, inventory_dates).await;
 
-    for (idx, acct) in aws_accounts.iter().enumerate() {
-        let profile = acct.profile.as_deref().unwrap_or("");
-        let account_region = acct
-            .region
-            .as_deref()
-            .filter(|s| !s.trim().is_empty())
-            .unwrap_or(&cli.region);
-        let display = acct
-            .account_id
-            .as_deref()
-            .filter(|s| !s.is_empty())
-            .unwrap_or(&acct.name);
+    finalize_inventory_outputs(cli, &output_dir, &inventory_rows)?;
+
+    Ok(())
+}
+
+/// Write the merged inventory rows, then apply the opt-in `--zip` and `--sign`
+/// steps. Shared by all three inventory entry points so they cannot drift.
+///
+/// Bundling and signing report failures without failing the run: the evidence
+/// files are already on disk at that point, and losing them to a zip error
+/// would be worse than shipping them unbundled.
+fn finalize_inventory_outputs(
+    cli: &Cli,
+    output_dir: &PathBuf,
+    inventory_rows: &[Vec<String>],
+) -> Result<()> {
+    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let written_files = write_inventory_outputs(
+        output_dir,
+        &timestamp,
+        inventory_rows,
+        cli.skip_inventory_csv,
+    )?;
+
+    if written_files.is_empty() {
+        return Ok(());
+    }
+
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+
+    if cli.zip {
+        let zip_name = format!("Evidence-{}.zip", timestamp);
+        match crate::zip_bundle::bundle_files(&written_files, &cwd, &PathBuf::from(&zip_name)) {
+            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
+            Err(e) => eprintln!("Zip bundle failed: {e}"),
+        }
+    }
+
+    if cli.sign {
+        let key = match &cli.signing_key {
+            Some(hex) => crate::signing::SigningKey::from_hex(hex)?,
+            None => crate::signing::SigningKey::generate()?,
+        };
+        match crate::signing::sign_files(&written_files, &timestamp, &key, &cwd) {
+            Ok((manifest_path, key_path)) => {
+                eprintln!("Signing manifest: {}", manifest_path.display());
+                eprintln!(
+                    "Signing key file: {} (move to secure storage)",
+                    key_path.display()
+                );
+                eprintln!("Signing key (hex): {}", key.to_hex());
+            }
+            Err(e) => eprintln!("Signing failed: {e}"),
+        }
+    }
+
+    Ok(())
+}
+
+/// Translate `--lookback` into the (start, end) unix timestamps the inventory
+/// collectors take, or `None` when no window was requested.
+fn resolve_inventory_dates(cli: &Cli) -> Result<Option<(i64, i64)>> {
+    let Some(ref lb) = cli.lookback else {
+        return Ok(None);
+    };
+    let today = chrono::Utc::now().date_naive();
+    let start = crate::cli::parse_lookback(lb)?;
+    let start_ts = start
+        .and_hms_opt(0, 0, 0)
+        .expect("valid midnight time")
+        .and_utc()
+        .timestamp();
+    let end_ts = today
+        .and_hms_opt(23, 59, 59)
+        .expect("valid end-of-day time")
+        .and_utc()
+        .timestamp();
+    eprintln!("Lookback window: {} → {} ({})", start, today, lb);
+    Ok(Some((start_ts, end_ts)))
+}
+
+/// Inventory every target in turn and merge the rows into one set, the way the
+/// TUI's multi-account inventory does.
+///
+/// A target whose AWS identity will not resolve is reported and skipped rather
+/// than failing the run, so one expired SSO session does not cost the whole
+/// collection. Targets are deduplicated by the account ID STS reports: two
+/// profiles can be different roles into the same account (e.g. `fed:OpsAdmin-X`
+/// and `corp:OpsAdmin-X`), and collecting both would duplicate every row in the
+/// evidence output.
+async fn collect_inventory_across_targets(
+    cli: &Cli,
+    targets: &[InventoryTarget],
+    inventory_types: &[String],
+    inventory_dates: Option<(i64, i64)>,
+) -> Vec<Vec<String>> {
+    let mut inventory_rows: Vec<Vec<String>> = Vec::new();
+    let mut authenticated: Vec<String> = Vec::new();
+    let mut skipped: Vec<String> = Vec::new();
+    let mut seen_account_ids: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+
+    for (idx, target) in targets.iter().enumerate() {
+        let profile = target.profile.as_str();
+        let account_region = target.region.as_str();
 
         eprintln!(
             "=== Account {}/{}: {} (profile={}, region={}) ===",
             idx + 1,
-            aws_accounts.len(),
-            display,
+            targets.len(),
+            target.display,
             profile,
             account_region,
         );
 
+        // No ambient fallback: in a multi-account run it would file the shell
+        // account's assets under this profile's name.
         let (probe_config, work_config, using_ambient_credentials) =
-            crate::aws_loader::load_cli_probe_and_work_configs(account_region, Some(profile)).await;
+            crate::aws_loader::load_cli_probe_and_work_configs_opts(
+                account_region,
+                Some(profile),
+                false,
+            )
+            .await;
 
         let identity = crate::audit_log::resolve_aws_identity(&probe_config).await;
         if identity.is_none() {
@@ -631,11 +708,25 @@ async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
                  Re-authenticate (e.g. `aws sso login --profile {}`) and rerun.",
                 profile, profile
             );
-            skipped_accounts.push(format!("{} (profile={})", display, profile));
+            skipped.push(format!("{} (profile={})", target.display, profile));
             continue;
         }
         let account_id = crate::aws_loader::print_cli_identity(&identity);
-        authenticated_accounts.push(account_id.clone());
+
+        if let Some(first_profile) = seen_account_ids.get(&account_id) {
+            eprintln!(
+                "  WARN: profile '{}' resolves to account {}, already collected via profile '{}' \
+                 — skipping to avoid duplicate inventory rows.",
+                profile, account_id, first_profile
+            );
+            skipped.push(format!(
+                "{} (profile={}, duplicate of {})",
+                target.display, profile, first_profile
+            ));
+            continue;
+        }
+        seen_account_ids.insert(account_id.clone(), profile.to_string());
+        authenticated.push(account_id.clone());
 
         let target_regions: Vec<String> = if let Some(explicit) = cli.regions.as_ref() {
             explicit.clone()
@@ -665,7 +756,7 @@ async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
                 };
                 crate::aws_loader::load_cli_config(region_name, region_profile).await
             };
-            let collector = InventoryCollector::new(&region_work_config, inventory_types.clone());
+            let collector = InventoryCollector::new(&region_work_config, inventory_types.to_vec());
             eprintln!("  Collecting inventory from {}...", region_name);
             match collector
                 .collect_rows(&account_id, region_name, inventory_dates)
@@ -684,54 +775,104 @@ async fn run_inventory_cli_all_accounts(cli: &Cli) -> Result<()> {
 
     eprintln!(
         "=== All accounts done. {}/{} authenticated, {} skipped. {} total inventory rows. ===",
-        authenticated_accounts.len(),
-        aws_accounts.len(),
-        skipped_accounts.len(),
+        authenticated.len(),
+        targets.len(),
+        skipped.len(),
         inventory_rows.len()
     );
-    if !authenticated_accounts.is_empty() {
-        eprintln!("    Included: {}", authenticated_accounts.join(", "));
+    if !authenticated.is_empty() {
+        eprintln!("    Included: {}", authenticated.join(", "));
     }
-    if !skipped_accounts.is_empty() {
-        eprintln!("    Skipped:  {}", skipped_accounts.join(", "));
-    }
-
-    let timestamp = Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
-    let written_files = write_inventory_outputs(
-        &output_dir,
-        &timestamp,
-        &inventory_rows,
-        cli.skip_inventory_csv,
-    )?;
-
-    if cli.zip && !written_files.is_empty() {
-        let zip_name = format!("Evidence-{}.zip", timestamp);
-        let zip_path = PathBuf::from(&zip_name);
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        match crate::zip_bundle::bundle_files(&written_files, &cwd, &zip_path) {
-            Ok(()) => eprintln!("Zip bundle written: {}", zip_name),
-            Err(e) => eprintln!("Zip bundle failed: {e}"),
-        }
+    if !skipped.is_empty() {
+        eprintln!("    Skipped:  {}", skipped.join(", "));
     }
 
-    if cli.sign && !written_files.is_empty() {
-        let key = match &cli.signing_key {
-            Some(hex) => crate::signing::SigningKey::from_hex(hex)?,
-            None => crate::signing::SigningKey::generate()?,
-        };
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        match crate::signing::sign_files(&written_files, &timestamp, &key, &cwd) {
-            Ok((manifest_path, key_path)) => {
-                eprintln!("Signing manifest: {}", manifest_path.display());
-                eprintln!(
-                    "Signing key file: {} (move to secure storage)",
-                    key_path.display()
-                );
-                eprintln!("Signing key (hex): {}", key.to_hex());
+    inventory_rows
+}
+
+/// `--inventory --accounts <patterns>`: inventory every AWS profile on this
+/// machine matching the patterns, merged into one CSV/XLSX.
+///
+/// Unlike `--inventory-all-accounts` this reads no config.toml — the account set
+/// comes from `~/.aws/config` and `~/.aws/credentials`, so it tracks whatever
+/// profiles the operator actually has.
+async fn run_inventory_cli_profiles(cli: &Cli) -> Result<()> {
+    if cli.collectors.is_some() {
+        anyhow::bail!("--collectors cannot be used with --inventory");
+    }
+    if cli.start_date.is_some() || cli.end_date.is_some() {
+        anyhow::bail!(
+            "--start-date and --end-date are not used with --inventory; \
+             use --lookback to set the collection window (e.g. --lookback 90d)"
+        );
+    }
+    if cli.filter.is_some() {
+        anyhow::bail!("--filter is not supported with --inventory");
+    }
+    if cli.include_raw {
+        anyhow::bail!("--include-raw is not supported with --inventory");
+    }
+    if cli.s3_bucket.is_some()
+        || !cli.s3_prefix.is_empty()
+        || cli.s3_profile.is_some()
+        || cli.s3_accounts.is_some()
+        || cli.s3_regions.is_some()
+    {
+        anyhow::bail!("S3 CloudTrail flags are not supported with --inventory");
+    }
+
+    let patterns = cli
+        .accounts
+        .as_ref()
+        .expect("run_inventory_cli_profiles is only reached when --accounts is set");
+
+    let detected = crate::credentials::aws_profiles::detect_aws_profiles()
+        .context("--accounts: failed to read AWS profiles from ~/.aws")?;
+    let available: Vec<String> = detected.iter().map(|p| p.name.clone()).collect();
+    let selected = crate::cli::resolve_account_profiles(patterns, &available)?;
+
+    // Each profile's own `region` setting wins; --region is the fallback.
+    // --regions / --all-regions still override per-account, as elsewhere.
+    let targets: Vec<InventoryTarget> = selected
+        .iter()
+        .map(|name| {
+            let region = detected
+                .iter()
+                .find(|p| &p.name == name)
+                .and_then(|p| p.region.clone())
+                .filter(|r| !r.trim().is_empty())
+                .unwrap_or_else(|| cli.region.clone());
+            InventoryTarget {
+                profile: name.clone(),
+                region,
+                display: name.clone(),
             }
-            Err(e) => eprintln!("Signing failed: {e}"),
-        }
+        })
+        .collect();
+
+    eprintln!(
+        "Matched {} AWS profile(s) from {}:",
+        targets.len(),
+        patterns.join(", ")
+    );
+    for target in &targets {
+        eprintln!("  {} (region={})", target.profile, target.region);
     }
+
+    if cli.accounts_dry_run {
+        eprintln!("\n--accounts-dry-run: no AWS calls made, exiting.");
+        return Ok(());
+    }
+
+    let inventory_types = crate::cli::resolve_inventory_types(cli);
+    eprintln!("Inventory asset types: {}", inventory_types.join(", "));
+
+    let inventory_dates = resolve_inventory_dates(cli)?;
+    let output_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+    let inventory_rows =
+        collect_inventory_across_targets(cli, &targets, &inventory_types, inventory_dates).await;
+
+    finalize_inventory_outputs(cli, &output_dir, &inventory_rows)?;
 
     Ok(())
 }

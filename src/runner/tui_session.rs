@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use aws_config::{BehaviorVersion, Region};
 use chrono::NaiveDate;
 use tokio::sync::mpsc;
 
@@ -165,12 +164,9 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 });
 
             let (profile, region) = target;
-            let mut loader =
-                aws_config::defaults(BehaviorVersion::latest()).region(Region::new(region.clone()));
-            if !profile.is_empty() && profile != "default" {
-                loader = loader.profile_name(&profile);
-            }
-            let discovery_config = loader.load().await;
+            let discovery_config = crate::aws_loader::cli_config_loader(&region, Some(&profile))
+                .load()
+                .await;
 
             match crate::providers::aws::ecr_repos::list_repositories(&discovery_config).await {
                 Ok(repos) => {
@@ -369,12 +365,9 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 // Legacy single-account path (no TOML accounts or "Other" chosen).
                 let profile = app.selected_profile().to_string();
                 let region = app.selected_region();
-                let mut loader = aws_config::defaults(BehaviorVersion::latest())
-                    .region(Region::new(region.clone()));
-                if !profile.is_empty() && profile != "default" {
-                    loader = loader.profile_name(&profile);
-                }
-                let cfg = loader.load().await;
+                let cfg = crate::aws_loader::cli_config_loader(&region, Some(&profile))
+                    .load()
+                    .await;
                 let account_id = crate::aws_loader::print_identity(&cfg).await;
                 let collectors = if is_inventory {
                     inventory_collector_keys.clone()
@@ -505,14 +498,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 // collectors.  Calling an AWS API through a config "takes" the
                 // credential provider's internal state, leaving it broken when the
                 // collectors try to initialise credentials inside tokio::spawn.
-                let make_cfg = || {
-                    let mut l = aws_config::defaults(BehaviorVersion::latest())
-                        .region(Region::new(region.clone()));
-                    if !profile.is_empty() && profile != "default" {
-                        l = l.profile_name(&profile);
-                    }
-                    l
-                };
+                let make_cfg = || crate::aws_loader::cli_config_loader(&region, Some(&profile));
 
                 // ── Probe config (disposable) ────────────────────────────────────
                 // Used only for the canary STS check and region discovery.
@@ -617,15 +603,10 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                                 );
                             }
                             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
-                            let rcfg = aws_config::defaults(BehaviorVersion::latest())
-                                .region(Region::new(region_name.clone()))
-                                .profile_name(if profile.is_empty() || profile == "default" {
-                                    "default"
-                                } else {
-                                    &profile
-                                })
-                                .load()
-                                .await;
+                            let rcfg =
+                                crate::aws_loader::cli_config_loader(region_name, Some(&profile))
+                                    .load()
+                                    .await;
                             inventory_multi_region.push((
                                 region_name.clone(),
                                 Box::new(InventoryCollector::new(&rcfg, inventory_types.clone()))
@@ -695,15 +676,10 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                                 );
                             }
                             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
-                            let rcfg = aws_config::defaults(BehaviorVersion::latest())
-                                .region(Region::new(region_name.clone()))
-                                .profile_name(if profile.is_empty() || profile == "default" {
-                                    "default"
-                                } else {
-                                    &profile
-                                })
-                                .load()
-                                .await;
+                            let rcfg =
+                                crate::aws_loader::cli_config_loader(region_name, Some(&profile))
+                                    .load()
+                                    .await;
                             let rdir = out_base.join(region_name).join(date_path_suffix());
                             // Bound before the push: `rdir` is moved into the
                             // tuple below, so the SBOM output dir is cloned first.

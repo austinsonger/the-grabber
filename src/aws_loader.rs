@@ -5,20 +5,55 @@ use crate::audit_log;
 use crate::cli::Cli;
 use crate::providers::aws::cloudtrail_s3::{CloudTrailS3Collector, CloudTrailS3Config};
 
-pub async fn load_cli_config(region: &str, profile: Option<&str>) -> aws_config::SdkConfig {
+/// Build a config loader for `region`, pinned to `profile` when one is named.
+///
+/// Returns the loader rather than a loaded `SdkConfig` because callers that make
+/// an AWS call through a config must not reuse it for building collectors: the
+/// call consumes the credential provider's internal state.
+///
+/// Pinning matters. `.profile_name()` by itself only tells the DEFAULT credential
+/// chain which profile to read, and in that chain environment variables rank
+/// ahead of the profile. With AWS_ACCESS_KEY_ID / AWS_SESSION_TOKEN exported
+/// (as `assume` and similar tools do), every profile would resolve to whatever
+/// the shell already held — so a multi-account run reported one account's assets
+/// under all the other accounts' names. Attaching an explicit
+/// `ProfileFileCredentialsProvider` takes the environment out of the decision.
+pub fn cli_config_loader(region: &str, profile: Option<&str>) -> aws_config::ConfigLoader {
     let mut loader =
         aws_config::defaults(BehaviorVersion::latest()).region(Region::new(region.to_string()));
     if let Some(profile_name) = profile {
         if !profile_name.is_empty() && profile_name != "default" {
-            loader = loader.profile_name(profile_name);
+            loader = loader.profile_name(profile_name).credentials_provider(
+                aws_config::profile::ProfileFileCredentialsProvider::builder()
+                    .profile_name(profile_name)
+                    .build(),
+            );
         }
     }
-    loader.load().await
+    loader
+}
+
+pub async fn load_cli_config(region: &str, profile: Option<&str>) -> aws_config::SdkConfig {
+    cli_config_loader(region, profile).load().await
 }
 
 pub async fn load_cli_probe_and_work_configs(
     region: &str,
     profile: Option<&str>,
+) -> (aws_config::SdkConfig, aws_config::SdkConfig, bool) {
+    load_cli_probe_and_work_configs_opts(region, profile, true).await
+}
+
+/// As `load_cli_probe_and_work_configs`, but `allow_ambient_fallback` controls
+/// whether an unusable profile may fall back to the shell's own credentials.
+///
+/// Multi-account callers must pass `false`. Falling back there would attribute
+/// the shell account's assets to whichever profile happened to fail, producing
+/// evidence that names the wrong account — worse than collecting nothing.
+pub async fn load_cli_probe_and_work_configs_opts(
+    region: &str,
+    profile: Option<&str>,
+    allow_ambient_fallback: bool,
 ) -> (aws_config::SdkConfig, aws_config::SdkConfig, bool) {
     let probe = load_cli_config(region, profile).await;
     let probe_identity = audit_log::resolve_aws_identity(&probe).await;
@@ -28,7 +63,7 @@ pub async fn load_cli_probe_and_work_configs(
     }
 
     if let Some(profile_name) = profile {
-        if !profile_name.is_empty() && profile_name != "default" {
+        if allow_ambient_fallback && !profile_name.is_empty() && profile_name != "default" {
             eprintln!(
                 "WARNING: Could not resolve AWS identity with explicit profile '{}'; \
                  trying ambient AWS credentials from the current shell.",

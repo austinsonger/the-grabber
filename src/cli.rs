@@ -117,6 +117,29 @@ pub struct Cli {
     )]
     pub inventory_all_accounts: bool,
 
+    /// Run inventory against every AWS profile in ~/.aws/config (and
+    /// ~/.aws/credentials) matching these comma-separated patterns, merging the
+    /// results into a single unified CSV + XLSX. Patterns match profile names
+    /// case-insensitively and may use `*` as a wildcard anywhere, e.g.
+    /// --accounts 'fed:*' or --accounts 'prod-*,staging-*'.
+    /// Profiles whose AWS identity cannot be resolved (expired SSO, missing
+    /// credentials) are skipped with a WARN; the run continues against the rest.
+    /// Two profiles resolving to the same account ID are collected only once.
+    /// Requires --inventory. Cannot be combined with --profile, since profiles
+    /// come from the patterns.
+    #[arg(
+        long,
+        value_delimiter = ',',
+        conflicts_with_all = ["profile", "inventory_all_accounts"],
+        requires = "inventory"
+    )]
+    pub accounts: Option<Vec<String>>,
+
+    /// Print the profiles that --accounts matches and exit without calling AWS.
+    /// Use it to check a pattern before starting a long multi-account run.
+    #[arg(long, default_value_t = false, requires = "accounts")]
+    pub accounts_dry_run: bool,
+
     // ------- Signing options -------
     /// HMAC-SHA256-sign all output files after collection.
     /// Writes SIGNING-MANIFEST-<ts>.json and SIGNING-<ts>.key to the current directory.
@@ -557,5 +580,167 @@ pub fn resolve_inventory_types(cli: &Cli) -> Vec<String> {
         all_inventory_type_keys()
     } else {
         selected
+    }
+}
+
+/// Case-insensitive glob match supporting `*` (any run of characters, including
+/// none) anywhere in `pattern`. No other metacharacters are special.
+pub fn glob_match(pattern: &str, candidate: &str) -> bool {
+    let pat: Vec<char> = pattern.to_lowercase().chars().collect();
+    let cand: Vec<char> = candidate.to_lowercase().chars().collect();
+
+    // Greedy scan with backtracking to the last `*`; linear in practice and
+    // avoids the exponential blowup of a naive recursive matcher.
+    let (mut p, mut c) = (0usize, 0usize);
+    let (mut star, mut star_c) = (None, 0usize);
+
+    while c < cand.len() {
+        if p < pat.len() && pat[p] == '*' {
+            star = Some(p);
+            star_c = c;
+            p += 1;
+        } else if p < pat.len() && pat[p] == cand[c] {
+            p += 1;
+            c += 1;
+        } else if let Some(s) = star {
+            // Backtrack: let the last `*` swallow one more character.
+            p = s + 1;
+            star_c += 1;
+            c = star_c;
+        } else {
+            return false;
+        }
+    }
+
+    pat[p..].iter().all(|ch| *ch == '*')
+}
+
+/// Resolve `--accounts` patterns against the AWS profiles present on this
+/// machine, preserving the order profiles were discovered in and deduping
+/// profiles matched by more than one pattern.
+///
+/// Errors if a pattern matches nothing, listing the profiles that do exist —
+/// a typo silently yielding a short inventory would be a bad evidence artifact.
+pub fn resolve_account_profiles(patterns: &[String], available: &[String]) -> Result<Vec<String>> {
+    if available.is_empty() {
+        anyhow::bail!("--accounts: no AWS profiles found in ~/.aws/config or ~/.aws/credentials");
+    }
+
+    let mut selected: Vec<String> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    for pattern in patterns {
+        let pattern = pattern.trim();
+        if pattern.is_empty() {
+            continue;
+        }
+        let matched: Vec<&String> = available
+            .iter()
+            .filter(|name| glob_match(pattern, name))
+            .collect();
+
+        if matched.is_empty() {
+            anyhow::bail!(
+                "--accounts: pattern '{}' matched no AWS profiles.\nAvailable profiles:\n  {}",
+                pattern,
+                available.join("\n  ")
+            );
+        }
+
+        for name in matched {
+            if seen.insert(name.clone()) {
+                selected.push(name.clone());
+            }
+        }
+    }
+
+    if selected.is_empty() {
+        anyhow::bail!("--accounts: no patterns given");
+    }
+
+    Ok(selected)
+}
+
+#[cfg(test)]
+mod accounts_tests {
+    use super::*;
+
+    fn profiles() -> Vec<String> {
+        [
+            "fed:OpsAdmin-111111111111",
+            "fed:ProdAdmin-222222222222",
+            "fed:DevAdmin-333333333333",
+            "corp:DevAdmin-444444444444",
+            "corp:OpsAdmin-555555555555",
+            "default",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
+    }
+
+    #[test]
+    fn glob_matches_exact_name() {
+        assert!(glob_match("default", "default"));
+        assert!(!glob_match("default", "defaults"));
+    }
+
+    #[test]
+    fn glob_matches_prefix_suffix_and_middle_wildcards() {
+        assert!(glob_match("fed:*", "fed:OpsAdmin-111111111111"));
+        assert!(glob_match("*-111111111111", "fed:OpsAdmin-111111111111"));
+        assert!(glob_match("fed:*Admin*", "fed:OpsAdmin-111111111111"));
+        assert!(glob_match("*", "anything"));
+        assert!(!glob_match("corp:*", "fed:OpsAdmin-111111111111"));
+    }
+
+    #[test]
+    fn glob_is_case_insensitive() {
+        assert!(glob_match("FED:*", "fed:OpsAdmin-111111111111"));
+        assert!(glob_match("fed:opsadmin*", "fed:OpsAdmin-111111111111"));
+    }
+
+    #[test]
+    fn glob_handles_consecutive_stars_and_empty_match() {
+        assert!(glob_match("fed:**Admin*", "fed:OpsAdmin-1"));
+        assert!(glob_match("abc*", "abc"));
+    }
+
+    #[test]
+    fn resolves_a_pattern_to_matching_profiles_in_discovery_order() {
+        let selected = resolve_account_profiles(&["fed:*".to_string()], &profiles()).unwrap();
+        assert_eq!(
+            selected,
+            vec![
+                "fed:OpsAdmin-111111111111",
+                "fed:ProdAdmin-222222222222",
+                "fed:DevAdmin-333333333333",
+            ]
+        );
+    }
+
+    #[test]
+    fn unions_multiple_patterns_and_dedups_overlap() {
+        let selected =
+            resolve_account_profiles(&["fed:Ops*".to_string(), "*Ops*".to_string()], &profiles())
+                .unwrap();
+        assert_eq!(
+            selected,
+            vec!["fed:OpsAdmin-111111111111", "corp:OpsAdmin-555555555555"]
+        );
+    }
+
+    #[test]
+    fn errors_when_a_pattern_matches_nothing() {
+        let err = resolve_account_profiles(&["gov:*".to_string()], &profiles()).unwrap_err();
+        let msg = format!("{err:#}");
+        assert!(msg.contains("matched no AWS profiles"), "{msg}");
+        assert!(msg.contains("fed:OpsAdmin-111111111111"), "{msg}");
+    }
+
+    #[test]
+    fn errors_when_no_profiles_exist_at_all() {
+        let err = resolve_account_profiles(&["fed:*".to_string()], &[]).unwrap_err();
+        assert!(format!("{err:#}").contains("no AWS profiles found"));
     }
 }
