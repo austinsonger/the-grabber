@@ -1,0 +1,19 @@
+# CrowdStrike credentials — keep this file out of version control
+# Add to .gitignore: crowdstrike-config.toml
+#
+# Merged automatically into config.toml at startup when present.
+# Env vars override TOML values: CROWDSTRIKE_CLIENT_ID, CROWDSTRIKE_CLIENT_SECRET, CROWDSTRIKE_BASE_URL
+#
+# Create an OAuth2 API client at: Falcon console → Support and resources →
+# API clients and keys → Create API client. Grant at minimum read scopes for
+# Hosts, Alerts, Vulnerabilities (Spotlight), Prevention Policies, and
+# Sensor Update Policies.
+
+[[account]]
+name                      = "CrowdStrike"
+provider                  = "crowdstrike"
+description               = "CrowdStrike Falcon platform"
+output_dir                = "./evidence-output/crowdstrike"
+crowdstrike_client_id     = ""
+crowdstrike_client_secret = ""
+# crowdstrike_base_url    = ""   # omit for US-1; set for US-2/EU-1/US-GOV-1 (see field doc in src/app_config.rs)

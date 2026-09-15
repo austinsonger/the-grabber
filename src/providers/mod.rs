@@ -15,6 +15,9 @@ pub mod okta;
 #[cfg(feature = "jira")]
 pub mod jira;
 
+#[cfg(feature = "crowdstrike")]
+pub mod crowdstrike;
+
 #[cfg(feature = "elastic")]
 pub mod elastic;
 
@@ -48,6 +51,7 @@ pub enum CloudProvider {
     Tenable,
     Okta,
     Jira,
+    CrowdStrike,
     Elastic,
     Jamf,
     Github,
@@ -63,6 +67,7 @@ impl fmt::Display for CloudProvider {
             CloudProvider::Tenable => write!(f, "Tenable"),
             CloudProvider::Okta => write!(f, "Okta"),
             CloudProvider::Jira => write!(f, "Jira"),
+            CloudProvider::CrowdStrike => write!(f, "CrowdStrike"),
             CloudProvider::Elastic => write!(f, "Elastic"),
             CloudProvider::Jamf => write!(f, "Jamf"),
             CloudProvider::Github => write!(f, "GitHub"),
@@ -107,6 +112,8 @@ impl CloudProvider {
         v.push(CloudProvider::Okta);
         #[cfg(feature = "jira")]
         v.push(CloudProvider::Jira);
+        #[cfg(feature = "crowdstrike")]
+        v.push(CloudProvider::CrowdStrike);
         #[cfg(feature = "elastic")]
         v.push(CloudProvider::Elastic);
         #[cfg(feature = "jamf")]
@@ -129,6 +136,7 @@ impl CloudProvider {
             CloudProvider::Tenable => "Tenable",
             CloudProvider::Okta => "Okta",
             CloudProvider::Jira => "Jira",
+            CloudProvider::CrowdStrike => "CrowdStrike",
             CloudProvider::Elastic => "Elastic Security",
             CloudProvider::Jamf => "Jamf",
             CloudProvider::Github => "GitHub",
@@ -149,6 +157,9 @@ impl CloudProvider {
                 "Collect users, groups, apps, policies, MFA factors, and system log events"
             }
             CloudProvider::Jira => "Collect projects and issues from Jira Cloud or Jira Server",
+            CloudProvider::CrowdStrike => {
+                "Collect hosts, alerts, vulnerabilities, and policy configuration from Falcon"
+            }
             CloudProvider::Elastic => {
                 "Collect detection rules, exception items, alerts, and cases from Elastic SIEM"
             }
