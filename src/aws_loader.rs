@@ -76,43 +76,98 @@ fn account_id_in_config(text: &str, profile: &str) -> Option<String> {
     None
 }
 
-/// Decide whether `profile` or the shell's ambient credentials (e.g. exported by
-/// `assume`) should back a run. Ambient credentials are used only when the
-/// profile itself cannot authenticate AND the ambient identity is the account
-/// the profile targets, so evidence is never filed under the wrong account.
-/// Returns `(use_ambient, identity)`, or a human-readable reason on failure.
+/// Where an account's AWS credentials come from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CredSource {
+    /// The named profile, read straight from the AWS config/SSO cache.
+    Profile,
+    /// `granted credential-process --profile <name>`: Granted keeps its own SSO
+    /// token in the keychain, so it still works after `assume` when the AWS CLI's
+    /// SSO cache has expired.
+    Granted,
+    /// The shell's exported credentials (only used for the same account).
+    Ambient,
+}
+
+/// Config loader for `profile` using credentials from `source`.
+pub fn source_config_loader(
+    region: &str,
+    profile: &str,
+    source: CredSource,
+) -> aws_config::ConfigLoader {
+    match source {
+        CredSource::Profile => cli_config_loader(region, Some(profile)),
+        CredSource::Ambient => cli_config_loader(region, None),
+        CredSource::Granted => {
+            // Single-quote for `sh -c`; profile names never legitimately contain quotes.
+            let cmd = format!(
+                "granted credential-process --profile '{}'",
+                profile.replace('\'', "")
+            );
+            aws_config::defaults(BehaviorVersion::latest())
+                .region(Region::new(region.to_string()))
+                .credentials_provider(
+                    aws_config::credential_process::CredentialProcessProvider::new(cmd),
+                )
+        }
+    }
+}
+
+fn granted_installed() -> bool {
+    std::process::Command::new("granted")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// Pick working credentials for `profile`: the profile itself, then Granted's
+/// credential process, then the shell's credentials — the last only when they
+/// reach the account the profile targets, so evidence is never filed under the
+/// wrong account. Returns a human-readable reason when nothing works.
 pub async fn resolve_credential_source(
     region: &str,
     profile: &str,
-) -> std::result::Result<(bool, audit_log::AwsIdentity), String> {
-    let profile_err = match audit_log::resolve_aws_identity_detailed(
-        &load_cli_config(region, Some(profile)).await,
-    )
-    .await
-    {
-        Ok(id) => return Ok((false, id)),
+) -> std::result::Result<(CredSource, audit_log::AwsIdentity), String> {
+    let identity = |src| async move {
+        audit_log::resolve_aws_identity_detailed(
+            &source_config_loader(region, profile, src).load().await,
+        )
+        .await
+    };
+    let profile_err = match identity(CredSource::Profile).await {
+        Ok(id) => return Ok((CredSource::Profile, id)),
         Err(e) => e,
     };
-    let Ok(ambient) =
-        audit_log::resolve_aws_identity_detailed(&load_cli_config(region, None).await).await
-    else {
-        return Err(format!(
-            "profile failed ({profile_err}); no usable shell credentials either"
-        ));
-    };
-    match expected_account_id(profile) {
-        Some(want) if want == ambient.account_id => Ok((true, ambient)),
-        Some(want) => Err(format!(
-            "profile failed ({profile_err}); shell credentials are for account {} but this \
-             profile targets {want}, refusing to mix accounts",
-            ambient.account_id
-        )),
-        None => Err(format!(
-            "profile failed ({profile_err}); can't tell which account the profile targets, \
-             so shell credentials for {} were not used",
-            ambient.account_id
-        )),
+    let want = expected_account_id(profile);
+    let mut notes = vec![format!("profile: {profile_err}")];
+
+    if granted_installed() {
+        match identity(CredSource::Granted).await {
+            Ok(id) if want.as_deref().is_none_or(|w| w == id.account_id) => {
+                return Ok((CredSource::Granted, id))
+            }
+            Ok(id) => notes.push(format!(
+                "granted: reached account {} instead",
+                id.account_id
+            )),
+            Err(e) => notes.push(format!("granted: {e}")),
+        }
     }
+
+    match (identity(CredSource::Ambient).await, want) {
+        (Ok(id), Some(w)) if w == id.account_id => return Ok((CredSource::Ambient, id)),
+        (Ok(id), Some(w)) => notes.push(format!(
+            "shell credentials are for account {}, profile targets {w}",
+            id.account_id
+        )),
+        (Ok(id), None) => notes.push(format!(
+            "shell credentials ({}) unused: profile's target account unknown",
+            id.account_id
+        )),
+        (Err(_), _) => notes.push("no shell credentials".to_string()),
+    }
+    Err(notes.join("; "))
 }
 
 pub async fn load_cli_config(region: &str, profile: Option<&str>) -> aws_config::SdkConfig {
@@ -147,6 +202,22 @@ pub async fn load_cli_probe_and_work_configs_opts(
     }
 
     if let Some(profile_name) = profile {
+        if !profile_name.is_empty() && profile_name != "default" && granted_installed() {
+            let granted_probe = source_config_loader(region, profile_name, CredSource::Granted)
+                .load()
+                .await;
+            if let Some(id) = audit_log::resolve_aws_identity(&granted_probe).await {
+                if expected_account_id(profile_name).is_none_or(|w| w == id.account_id) {
+                    eprintln!(
+                        "NOTE: profile '{profile_name}' could not authenticate; using Granted credentials."
+                    );
+                    let work = source_config_loader(region, profile_name, CredSource::Granted)
+                        .load()
+                        .await;
+                    return (granted_probe, work, false);
+                }
+            }
+        }
         if !profile_name.is_empty() && profile_name != "default" {
             eprintln!(
                 "WARNING: Could not resolve AWS identity with explicit profile '{}'; \

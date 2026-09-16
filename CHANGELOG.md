@@ -9,14 +9,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- **Shell credentials from `assume` are now a fallback when an account's profile
-  can't authenticate.** If the profile fails (expired SSO token, never logged in),
-  the TUI and CLI try the credentials exported in the shell, and use them only
-  when they reach the account the profile targets. That target comes from
-  `sso_account_id`, `granted_sso_account_id` or `role_arn` in `~/.aws/config`,
-  or from a 12-digit account ID in the profile name. If the shell is signed into
-  a different account, the account is still skipped and the setup log gives both
-  account IDs, so evidence never gets filed under the wrong account.
+- **Accounts now authenticate through either `aws sso login` or Granted's
+  `assume`.** Grabber tries the account's profile first. If that fails (for
+  example, the AWS CLI's SSO token has expired even though `assume` still works,
+  because Granted keeps its own token in the keychain), it runs
+  `granted credential-process --profile <name>`. If that also fails, it uses the
+  credentials exported in the shell. Granted and shell credentials are used only
+  when they reach the account the profile targets. Grabber reads that account
+  from `sso_account_id`, `granted_sso_account_id` or `role_arn` in
+  `~/.aws/config`, or from a 12-digit ID in the profile name, so evidence is never
+  filed under the wrong account. The setup log shows which source was used, and
+  if every source fails it gives the reason for each.
 
 ### Fixed
 
