@@ -9,6 +9,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **New `--check-ecr-findings` flag.** For every ECR image digest in the
+  newest inventory CSV (`./inventory`), compares the live ACTIVE Inspector2
+  vulnerability IDs against the newest ECR image findings CSV (under
+  `--output`, default `.`). Prints a pass/fail summary, writes
+  `ECR-Findings-Check-<timestamp>.csv` next to the findings CSV, and exits
+  non-zero if any asset's findings CSV is missing or has extra vulnerability
+  IDs compared to live Inspector2 data, or has no live scan coverage.
+
 - **Accounts now authenticate through either `aws sso login` or Granted's
   `assume`.** Grabber tries the account's profile first. If that fails (for
   example, the AWS CLI's SSO token has expired even though `assume` still works,
