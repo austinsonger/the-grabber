@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Must be plural: "plugins"
+  "plugins": [
+    "superpowers@git+https://github.com/obra/superpowers.git"
+  ],
+
+  "default_agent": "build",
+  "shell": "/bin/zsh",
+  "snapshots": true
+}

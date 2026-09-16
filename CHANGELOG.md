@@ -9,6 +9,20 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Desktop: an imported AWS profile could never be used by the account that
+  needed it.** When a vault credential named the same AWS profile as a
+  `config.toml` account, the credential was discarded as "already referenced"
+  and the config account kept `credential_id: None`. Every screen requiring
+  credentials then rejected it — region discovery reported *"Selected account has
+  no vault credential; region discovery requires one."* — and importing the
+  profile could not help, because a more complete `config.toml` only made the
+  match more certain.
+
+  A matching credential is now stamped onto the config account instead of being
+  dropped. Config keeps owning region, output directory and collector overrides;
+  the vault supplies the credential. Credentials matching no config account are
+  still offered as standalone accounts.
+
 - **Named AWS profiles were ignored when the shell held its own credentials.**
   Configs were built with `aws_config::defaults().profile_name(…)`, which only
   tells the *default credential chain* which profile to read. Environment
@@ -26,7 +40,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `ProfileFileCredentialsProvider`, taking the environment out of the decision.
   A profile now always resolves to its own account.
 
-  This affected both the CLI and the TUI wizard.
+  This affected the CLI, the TUI wizard, and the desktop app's vault-stored
+  `AwsProfileReference` and `AwsSso` credentials.
 
 - **Unauthenticated accounts could be silently replaced by the shell's account.**
   When a profile failed to resolve, collection fell back to ambient shell

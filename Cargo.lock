@@ -3974,6 +3974,7 @@ dependencies = [
  "anyhow",
  "aws-sdk-ec2",
  "aws-sdk-sts",
+ "chrono",
  "serde",
  "serde_json",
  "tauri",

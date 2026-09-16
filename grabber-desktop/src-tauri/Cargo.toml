@@ -26,3 +26,7 @@ serde_json = "1"
 thiserror = "1"
 uuid = { version = "1", features = ["v4"] }
 the-grabber = { path = "../.." }
+
+[dev-dependencies]
+# Only for building CredentialMeta fixtures in tests; not linked into the app.
+chrono = { version = "0.4", features = ["serde"] }

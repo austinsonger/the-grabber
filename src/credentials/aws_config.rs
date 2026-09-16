@@ -18,13 +18,15 @@ pub async fn load_aws_sdk_config(
 ) -> Result<aws_config::SdkConfig> {
     let region = region.unwrap_or_else(|| "us-east-1".to_string());
     match &entry.kind {
-        CredentialKind::AwsProfileReference { profile_name } => {
-            Ok(aws_config::defaults(BehaviorVersion::latest())
-                .profile_name(profile_name)
-                .region(aws_config::Region::new(region))
+        // Pinned via cli_config_loader: `.profile_name()` alone leaves the
+        // default credential chain in place, where environment variables outrank
+        // the profile, so an exported AWS_ACCESS_KEY_ID / AWS_SESSION_TOKEN would
+        // silently resolve this credential to a different account.
+        CredentialKind::AwsProfileReference { profile_name } => Ok(
+            crate::aws_loader::cli_config_loader(&region, Some(profile_name))
                 .load()
-                .await)
-        }
+                .await,
+        ),
         CredentialKind::AwsSso {
             account_id,
             role_name,
@@ -41,11 +43,14 @@ pub async fn load_aws_sdk_config(
                 session_name,
             )
             .await?;
-            Ok(aws_config::defaults(BehaviorVersion::latest())
-                .profile_name(&entry.name)
-                .region(aws_config::Region::new(region))
-                .load()
-                .await)
+            // Same pinning rationale as AwsProfileReference above: the SSO
+            // profile was just written to ~/.aws/config, and it must win over
+            // whatever credentials the environment happens to carry.
+            Ok(
+                crate::aws_loader::cli_config_loader(&region, Some(&entry.name))
+                    .load()
+                    .await,
+            )
         }
         CredentialKind::AwsAccessKey { access_key_id } => {
             let (secret_key, session_token) = match secret {
