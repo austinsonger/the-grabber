@@ -71,6 +71,8 @@ pub enum Feature {
     Poam,
     /// Interactive Okta STIG compliance-failure remediation flow.
     StigRemediation,
+    /// Verify the ECR image findings CSV covers every inventory image digest.
+    EcrFindingsCheck,
 }
 
 /// Which panel has focus on the SelectCollectors screen.
@@ -130,6 +132,12 @@ pub enum Screen {
     StigRemediationApplying,
     /// STIG remediation: session summary (applied/failed/manual counts, log path).
     StigRemediationResults,
+    /// ECR findings check: pick the AWS account whose Inspector2 data to query.
+    EcrCheckAccount,
+    /// ECR findings check: running (async work; no key handling).
+    EcrCheckRunning,
+    /// ECR findings check: summary and report path.
+    EcrCheckResults,
 }
 
 /// User-selected Tenable endpoint. Overrides per-account `tenable_url`.

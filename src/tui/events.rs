@@ -15,6 +15,7 @@ enum Action {
     StigScan,
     StigApply,
     SbomDiscoverRepos,
+    EcrCheckRun,
 }
 
 pub(crate) fn event_loop(
@@ -41,6 +42,7 @@ pub(crate) fn event_loop(
                     Action::StigScan => return Ok(()),
                     Action::StigApply => return Ok(()),
                     Action::SbomDiscoverRepos => return Ok(()),
+                    Action::EcrCheckRun => return Ok(()),
                     Action::NewCollection => {
                         app.reset();
                     }
@@ -88,6 +90,9 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::StigRemediationScanning | Screen::StigRemediationApplying => {}
         Screen::StigRemediationList => return handle_stig_remediation_list(app, key),
         Screen::StigRemediationResults => return handle_stig_remediation_results(app, key),
+        Screen::EcrCheckAccount => return handle_ecr_check_account(app, key),
+        Screen::EcrCheckRunning => {}
+        Screen::EcrCheckResults => return handle_ecr_check_results(app, key),
     }
 
     let _ = modifiers;
@@ -107,10 +112,11 @@ fn handle_feature_selection(app: &mut App, key: KeyCode) {
     match key {
         KeyCode::Up | KeyCode::Left => {
             app.selected_feature = match app.selected_feature {
-                Feature::Collectors => Feature::StigRemediation,
+                Feature::Collectors => Feature::EcrFindingsCheck,
                 Feature::Inventory => Feature::Collectors,
                 Feature::Poam => Feature::Inventory,
                 Feature::StigRemediation => Feature::Poam,
+                Feature::EcrFindingsCheck => Feature::StigRemediation,
             };
         }
         KeyCode::Down | KeyCode::Right => {
@@ -118,7 +124,8 @@ fn handle_feature_selection(app: &mut App, key: KeyCode) {
                 Feature::Collectors => Feature::Inventory,
                 Feature::Inventory => Feature::Poam,
                 Feature::Poam => Feature::StigRemediation,
-                Feature::StigRemediation => Feature::Collectors,
+                Feature::StigRemediation => Feature::EcrFindingsCheck,
+                Feature::EcrFindingsCheck => Feature::Collectors,
             };
         }
         KeyCode::Enter | KeyCode::Char(' ') => {
@@ -710,6 +717,43 @@ fn handle_stig_remediation_account(app: &mut App, key: KeyCode) -> Action {
             app.prev_screen();
             Action::Continue
         }
+        _ => Action::Continue,
+    }
+}
+
+fn handle_ecr_check_account(app: &mut App, key: KeyCode) -> Action {
+    let len = app.ecr_check_account_list.len();
+    match key {
+        KeyCode::Up => {
+            app.ecr_check_account_cursor = app.ecr_check_account_cursor.saturating_sub(1);
+            Action::Continue
+        }
+        KeyCode::Down => {
+            if app.ecr_check_account_cursor + 1 < len {
+                app.ecr_check_account_cursor += 1;
+            }
+            Action::Continue
+        }
+        KeyCode::Enter => {
+            app.next_screen();
+            Action::EcrCheckRun
+        }
+        KeyCode::Esc => {
+            app.prev_screen();
+            Action::Continue
+        }
+        _ => Action::Continue,
+    }
+}
+
+fn handle_ecr_check_results(app: &mut App, key: KeyCode) -> Action {
+    match key {
+        KeyCode::Enter => Action::NewCollection,
+        KeyCode::Esc => {
+            app.prev_screen();
+            Action::Continue
+        }
+        KeyCode::Char('q') => Action::Quit,
         _ => Action::Continue,
     }
 }

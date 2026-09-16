@@ -27,6 +27,7 @@ impl App {
                     }
                 }
                 Feature::StigRemediation => Screen::StigRemediationAccount,
+                Feature::EcrFindingsCheck => Screen::EcrCheckAccount,
             },
             Screen::PoamAccount => Screen::PoamRegion,
             Screen::SelectAccount => Screen::SetDates,
@@ -40,6 +41,7 @@ impl App {
                 Feature::Inventory => Screen::Inventory,
                 Feature::Poam => Screen::PoamRegion,
                 Feature::StigRemediation => Screen::StigRemediationAccount,
+                Feature::EcrFindingsCheck => Screen::EcrCheckAccount,
             },
             Screen::Inventory => Screen::SetOptions,
             Screen::PoamRegion => Screen::PoamYear,
@@ -156,6 +158,16 @@ impl App {
             // been applied.
             Screen::StigRemediationApplying => Screen::StigRemediationList,
             Screen::StigRemediationResults => Screen::StigRemediationResults,
+            Screen::EcrCheckAccount => {
+                self.ecr_check_selected_account_idx = self
+                    .ecr_check_account_list
+                    .get(self.ecr_check_account_cursor)
+                    .copied();
+                Screen::EcrCheckRunning
+            }
+            // Driven by the async session loop (see runner/tui_session.rs).
+            Screen::EcrCheckRunning => Screen::EcrCheckRunning,
+            Screen::EcrCheckResults => Screen::EcrCheckResults,
         };
     }
 
@@ -225,6 +237,7 @@ impl App {
                 Feature::Inventory => Screen::Inventory,
                 Feature::Poam => Screen::PoamMonth,
                 Feature::StigRemediation => Screen::StigRemediationAccount,
+                Feature::EcrFindingsCheck => Screen::EcrCheckAccount,
             },
             Screen::Confirm => match self.selected_feature {
                 Feature::Poam => Screen::PoamMonth,
@@ -235,6 +248,7 @@ impl App {
             },
             Screen::StigRemediationAccount => Screen::FeatureSelection,
             Screen::StigRemediationList => Screen::StigRemediationAccount,
+            Screen::EcrCheckAccount | Screen::EcrCheckResults => Screen::FeatureSelection,
             _ => return,
         };
     }
@@ -403,6 +417,20 @@ impl App {
                         return false;
                     }
                 }
+                if self.selected_feature == Feature::EcrFindingsCheck {
+                    self.ecr_check_account_list = self
+                        .accounts
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, a)| a.provider == CloudProvider::Aws)
+                        .map(|(i, _)| i)
+                        .collect();
+                    self.ecr_check_account_cursor = 0;
+                    if self.ecr_check_account_list.is_empty() {
+                        self.error_msg = Some("No AWS accounts found in ~/.aws/config".into());
+                        return false;
+                    }
+                }
                 true
             }
             Screen::SbomRepoSelection => {
@@ -473,6 +501,11 @@ impl App {
         self.stig_outcomes.clear();
         self.stig_scan_error = None;
         self.stig_log_path = None;
+        self.ecr_check_account_list.clear();
+        self.ecr_check_account_cursor = 0;
+        self.ecr_check_selected_account_idx = None;
+        self.ecr_check_lines.clear();
+        self.ecr_check_failed = false;
         // Preserve options_selected_regions so the user's choices carry over.
     }
 

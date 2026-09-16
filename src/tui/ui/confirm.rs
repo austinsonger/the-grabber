@@ -211,6 +211,7 @@ pub(super) fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         }
         Feature::Poam => {}
         Feature::StigRemediation => {}
+        Feature::EcrFindingsCheck => {}
     }
     rows.push(Line::raw(""));
 
@@ -237,6 +238,7 @@ pub(super) fn draw_confirm(f: &mut Frame, area: Rect, app: &App) {
         Feature::Inventory => "▸▸  Start Inventory   ◂◂",
         Feature::Poam => "▸▸  Start POAM Run    ◂◂",
         Feature::StigRemediation => "▸▸  Start Remediation  ◂◂",
+        Feature::EcrFindingsCheck => "▸▸  Start Check  ◂◂",
     };
     f.render_widget(
         Paragraph::new(Span::styled(

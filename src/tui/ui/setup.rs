@@ -148,6 +148,11 @@ pub(super) fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
             "STIG Remediation",
             "Fix Okta DISA STIG compliance failures interactively, one confirmed change at a time",
         ),
+        (
+            Feature::EcrFindingsCheck,
+            "ECR Findings Check",
+            "Verify the ECR image findings CSV lists every ACTIVE vulnerability for every inventory image digest",
+        ),
     ];
 
     let items: Vec<(String, String)> = options

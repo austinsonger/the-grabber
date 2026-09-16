@@ -79,6 +79,7 @@ pub(super) const STEPS_INV_LEGACY: &[&str] = &[
 pub(super) const STEPS_POAM: &[&str] = &["Account", "Region", "Year", "Month", "Confirm", "Run"];
 pub(super) const STEPS_POAM_NO_ACCOUNTS: &[&str] = &["Region", "Year", "Month", "Confirm", "Run"];
 pub(super) const STEPS_STIG_REMEDIATION: &[&str] = &["Account", "Scan", "Remediate", "Summary"];
+pub(super) const STEPS_ECR_CHECK: &[&str] = &["Account", "Check", "Results"];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Step index mapping
@@ -185,6 +186,12 @@ pub(super) fn screen_to_step(
             Screen::StigRemediationList => Some(2),
             Screen::StigRemediationApplying => Some(2),
             Screen::StigRemediationResults => Some(3),
+            _ => None,
+        },
+        Feature::EcrFindingsCheck => match screen {
+            Screen::EcrCheckAccount => Some(0),
+            Screen::EcrCheckRunning => Some(1),
+            Screen::EcrCheckResults => Some(2),
             _ => None,
         },
     }
@@ -451,5 +458,8 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::StigRemediationResults => {
             vec![("n", "New Session"), ("q", "Quit"), ("Esc", "Exit")]
         }
+        Screen::EcrCheckAccount => vec![("↑↓", "Navigate"), ("⏎", "Run check"), ("Esc", "Back")],
+        Screen::EcrCheckRunning => vec![],
+        Screen::EcrCheckResults => vec![("⏎", "New session"), ("Esc", "Back"), ("q", "Quit")],
     }
 }

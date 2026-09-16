@@ -141,6 +141,18 @@ pub struct App {
     /// applied/failed/acknowledged remediation this session.
     pub stig_log_path: Option<String>,
 
+    // ── ECR findings check ──────────────────────────────────────────────────
+    /// Indices into `accounts` that are AWS accounts, computed when
+    /// FeatureSelection → EcrCheckAccount.
+    pub ecr_check_account_list: Vec<usize>,
+    pub ecr_check_account_cursor: usize,
+    /// Resolved once the user confirms an account on EcrCheckAccount.
+    pub ecr_check_selected_account_idx: Option<usize>,
+    /// Summary lines from the most recent check, or the error text if it failed.
+    pub ecr_check_lines: Vec<String>,
+    /// True if the check found failures or could not run.
+    pub ecr_check_failed: bool,
+
     // Options
     pub output_dir: TextInput,
     pub filter_input: TextInput,
@@ -415,6 +427,11 @@ impl App {
             stig_outcomes: Vec::new(),
             stig_scan_error: None,
             stig_log_path: None,
+            ecr_check_account_list: Vec::new(),
+            ecr_check_account_cursor: 0,
+            ecr_check_selected_account_idx: None,
+            ecr_check_lines: Vec::new(),
+            ecr_check_failed: false,
             output_dir: TextInput::new(config.defaults.output_dir.as_deref().unwrap_or(".")),
             filter_input: TextInput::default(),
             include_raw,

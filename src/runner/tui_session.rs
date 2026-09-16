@@ -190,6 +190,56 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
             continue;
         }
 
+        if app.screen == crate::tui::Screen::EcrCheckRunning {
+            let mut terminal = setup_terminal()?;
+            terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+            let account = app
+                .ecr_check_selected_account_idx
+                .and_then(|i| app.accounts.get(i))
+                .cloned();
+            match account {
+                None => {
+                    app.ecr_check_failed = true;
+                    app.ecr_check_lines = vec!["No AWS account selected".to_string()];
+                }
+                Some(acct) => {
+                    let region = acct.region.clone().unwrap_or_else(|| app.selected_region());
+                    let (_, config, _) = crate::aws_loader::load_cli_probe_and_work_configs_opts(
+                        &region,
+                        acct.profile.as_deref(),
+                        false,
+                    )
+                    .await;
+                    let evidence_dir = std::path::PathBuf::from(
+                        acct.output_dir
+                            .clone()
+                            .unwrap_or_else(|| app.output_dir.value.clone()),
+                    );
+                    match crate::ecr_findings_check::run(
+                        &config,
+                        &region,
+                        std::path::Path::new("inventory"),
+                        &evidence_dir,
+                    )
+                    .await
+                    {
+                        Ok(report) => {
+                            app.ecr_check_failed = report.failures() > 0;
+                            app.ecr_check_lines = report.summary_lines();
+                        }
+                        Err(e) => {
+                            app.ecr_check_failed = true;
+                            app.ecr_check_lines = vec![format!("Check failed: {e:#}")];
+                        }
+                    }
+                }
+            }
+            app.screen = crate::tui::Screen::EcrCheckResults;
+            restore_terminal(&mut terminal)?;
+            continue;
+        }
+
         #[cfg(feature = "okta")]
         if app.screen == crate::tui::Screen::StigRemediationScanning {
             let mut terminal = setup_terminal()?;

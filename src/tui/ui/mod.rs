@@ -8,6 +8,7 @@ use super::{App, CollectorFocus, CollectorState, Feature, Screen};
 mod account_screens;
 mod collectors;
 mod confirm;
+mod ecr_check;
 mod frame;
 mod jira_project_selection;
 mod options;
@@ -24,7 +25,7 @@ mod widgets;
 
 use self::frame::{
     draw_footer, draw_header, draw_separator, draw_step_indicator, get_hints, screen_to_step,
-    STEPS_INV_ACCOUNTS, STEPS_INV_LEGACY, STEPS_POAM, STEPS_POAM_NO_ACCOUNTS,
+    STEPS_ECR_CHECK, STEPS_INV_ACCOUNTS, STEPS_INV_LEGACY, STEPS_POAM, STEPS_POAM_NO_ACCOUNTS,
     STEPS_PROVIDER_ACCOUNTS, STEPS_PROVIDER_ACCOUNTS_SBOM, STEPS_PROVIDER_LEGACY,
     STEPS_PROVIDER_LEGACY_SBOM, STEPS_STIG_REMEDIATION, STEPS_TENABLE,
 };
@@ -58,6 +59,8 @@ pub fn draw(f: &mut Frame, app: &App) {
             | Screen::StigRemediationScanning
             | Screen::StigRemediationApplying
             | Screen::StigRemediationResults
+            | Screen::EcrCheckRunning
+            | Screen::EcrCheckResults
     );
     let step_height = if show_steps { 2 } else { 0 };
 
@@ -113,6 +116,7 @@ pub fn draw(f: &mut Frame, app: &App) {
             }
         }
         Feature::StigRemediation => STEPS_STIG_REMEDIATION,
+        Feature::EcrFindingsCheck => STEPS_ECR_CHECK,
     };
 
     draw_header(
@@ -177,6 +181,9 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::StigRemediationResults => {
             stig_remediation::draw_stig_remediation_results(f, content, app)
         }
+        Screen::EcrCheckAccount => ecr_check::draw_ecr_check_account(f, content, app),
+        Screen::EcrCheckRunning => ecr_check::draw_ecr_check_running(f, content, app),
+        Screen::EcrCheckResults => ecr_check::draw_ecr_check_results(f, content, app),
     }
 
     draw_separator(f, layout[6]);
