@@ -33,6 +33,88 @@ pub fn cli_config_loader(region: &str, profile: Option<&str>) -> aws_config::Con
     loader
 }
 
+/// The account ID `profile` is meant to reach: `sso_account_id`,
+/// `granted_sso_account_id`, or the account in `role_arn` from the AWS config
+/// file, else a 12-digit run in the profile name (`fed:Admin-123456789012`).
+pub fn expected_account_id(profile: &str) -> Option<String> {
+    let path = std::env::var_os("AWS_CONFIG_FILE")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| std::path::Path::new(&h).join(".aws/config")));
+    let from_file = path
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|text| account_id_in_config(&text, profile));
+    from_file.or_else(|| {
+        profile
+            .split(|c: char| !c.is_ascii_digit())
+            .find(|run| run.len() == 12)
+            .map(str::to_string)
+    })
+}
+
+fn account_id_in_config(text: &str, profile: &str) -> Option<String> {
+    let wanted = [format!("[profile {profile}]"), format!("[{profile}]")];
+    let mut in_section = false;
+    for line in text.lines().map(str::trim) {
+        if line.starts_with('[') {
+            in_section = wanted.iter().any(|w| w == line);
+            continue;
+        }
+        if !in_section {
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        let value = value.trim();
+        match key.trim() {
+            "sso_account_id" | "granted_sso_account_id" => return Some(value.to_string()),
+            // arn:aws:iam::123456789012:role/Name
+            "role_arn" => return value.split(':').nth(4).map(str::to_string),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Decide whether `profile` or the shell's ambient credentials (e.g. exported by
+/// `assume`) should back a run. Ambient credentials are used only when the
+/// profile itself cannot authenticate AND the ambient identity is the account
+/// the profile targets, so evidence is never filed under the wrong account.
+/// Returns `(use_ambient, identity)`, or a human-readable reason on failure.
+pub async fn resolve_credential_source(
+    region: &str,
+    profile: &str,
+) -> std::result::Result<(bool, audit_log::AwsIdentity), String> {
+    let profile_err = match audit_log::resolve_aws_identity_detailed(
+        &load_cli_config(region, Some(profile)).await,
+    )
+    .await
+    {
+        Ok(id) => return Ok((false, id)),
+        Err(e) => e,
+    };
+    let Ok(ambient) =
+        audit_log::resolve_aws_identity_detailed(&load_cli_config(region, None).await).await
+    else {
+        return Err(format!(
+            "profile failed ({profile_err}); no usable shell credentials either"
+        ));
+    };
+    match expected_account_id(profile) {
+        Some(want) if want == ambient.account_id => Ok((true, ambient)),
+        Some(want) => Err(format!(
+            "profile failed ({profile_err}); shell credentials are for account {} but this \
+             profile targets {want}, refusing to mix accounts",
+            ambient.account_id
+        )),
+        None => Err(format!(
+            "profile failed ({profile_err}); can't tell which account the profile targets, \
+             so shell credentials for {} were not used",
+            ambient.account_id
+        )),
+    }
+}
+
 pub async fn load_cli_config(region: &str, profile: Option<&str>) -> aws_config::SdkConfig {
     cli_config_loader(region, profile).load().await
 }
@@ -50,6 +132,8 @@ pub async fn load_cli_probe_and_work_configs(
 /// Multi-account callers must pass `false`. Falling back there would attribute
 /// the shell account's assets to whichever profile happened to fail, producing
 /// evidence that names the wrong account — worse than collecting nothing.
+/// Even with `false`, the fallback still happens when the shell credentials
+/// reach the exact account the profile targets (see `expected_account_id`).
 pub async fn load_cli_probe_and_work_configs_opts(
     region: &str,
     profile: Option<&str>,
@@ -63,7 +147,7 @@ pub async fn load_cli_probe_and_work_configs_opts(
     }
 
     if let Some(profile_name) = profile {
-        if allow_ambient_fallback && !profile_name.is_empty() && profile_name != "default" {
+        if !profile_name.is_empty() && profile_name != "default" {
             eprintln!(
                 "WARNING: Could not resolve AWS identity with explicit profile '{}'; \
                  trying ambient AWS credentials from the current shell.",
@@ -71,7 +155,11 @@ pub async fn load_cli_probe_and_work_configs_opts(
             );
             let ambient_probe = load_cli_config(region, None).await;
             let ambient_identity = audit_log::resolve_aws_identity(&ambient_probe).await;
-            if ambient_identity.is_some() {
+            let same_account = matches!(
+                (&ambient_identity, expected_account_id(profile_name)),
+                (Some(id), Some(want)) if id.account_id == want
+            );
+            if ambient_identity.is_some() && (allow_ambient_fallback || same_account) {
                 let ambient_work = load_cli_config(region, None).await;
                 return (ambient_probe, ambient_work, true);
             }
@@ -179,4 +267,23 @@ pub fn build_s3_collector_from_cli(
             regions,
         },
     )))
+}
+
+#[cfg(test)]
+mod expected_account_tests {
+    use super::account_id_in_config;
+
+    #[test]
+    fn reads_sso_and_role_arn_for_exact_profile() {
+        let cfg = "[profile a]\nsso_account_id = 111111111111\n\n[profile b]\nrole_arn = arn:aws:iam::222222222222:role/X\n[profile ab]\nsso_account_id = 333333333333\n";
+        assert_eq!(
+            account_id_in_config(cfg, "a").as_deref(),
+            Some("111111111111")
+        );
+        assert_eq!(
+            account_id_in_config(cfg, "b").as_deref(),
+            Some("222222222222")
+        );
+        assert_eq!(account_id_in_config(cfg, "c"), None);
+    }
 }

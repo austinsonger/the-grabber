@@ -330,6 +330,23 @@ pub fn write_chain_of_custody(out_dir: &Path, entry: &CustodyEntry) -> Result<Pa
 
 /// Resolve AWS caller identity via STS.  Returns `None` on error (e.g. no
 /// credentials in verify-only or offline modes).
+/// As `resolve_aws_identity`, but keeps the error text for display.
+pub async fn resolve_aws_identity_detailed(
+    config: &aws_config::SdkConfig,
+) -> Result<AwsIdentity, String> {
+    let sts = aws_sdk_sts::Client::new(config);
+    let resp = sts
+        .get_caller_identity()
+        .send()
+        .await
+        .map_err(|e| aws_sdk_sts::error::DisplayErrorContext(e).to_string())?;
+    Ok(AwsIdentity {
+        account_id: resp.account().unwrap_or("unknown").to_string(),
+        caller_arn: resp.arn().unwrap_or("unknown").to_string(),
+        user_id: resp.user_id().unwrap_or("unknown").to_string(),
+    })
+}
+
 pub async fn resolve_aws_identity(config: &aws_config::SdkConfig) -> Option<AwsIdentity> {
     let sts = aws_sdk_sts::Client::new(config);
     match sts.get_caller_identity().send().await {

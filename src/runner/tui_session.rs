@@ -498,38 +498,44 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 // collectors.  Calling an AWS API through a config "takes" the
                 // credential provider's internal state, leaving it broken when the
                 // collectors try to initialise credentials inside tokio::spawn.
-                let make_cfg = || crate::aws_loader::cli_config_loader(&region, Some(&profile));
-
-                // ── Probe config (disposable) ────────────────────────────────────
-                // Used only for the canary STS check and region discovery.
-                // Explicitly NOT used for building collectors.
-                let probe_config = make_cfg().load().await;
-
-                // Canary: verify credentials are valid.  If the canary fails
-                // we skip this account entirely — its profile is not configured
-                // (or SSO session is not logged in) and every collector would
-                // fail anyway.
-                let sts = aws_sdk_sts::Client::new(&probe_config);
-                let (canary_ok, aws_caller_arn, aws_user_id, resolved_account_id) =
-                    match sts.get_caller_identity().send().await {
-                        Ok(resp) => {
-                            let arn = resp.arn().unwrap_or("unknown").to_string();
-                            let uid = resp.user_id().unwrap_or("unknown").to_string();
-                            let resolved = resp.account().unwrap_or("unknown").to_string();
-                            app.prep_log
-                                .push(format!("  ✓ Credentials OK  account={}", resolved));
-                            (true, arn, uid, resolved)
+                // Canary: resolve working credentials. The profile wins; the
+                // shell's own credentials (e.g. from `assume`) are a fallback
+                // only when they reach the same account the profile targets.
+                let (canary_ok, use_ambient, aws_caller_arn, aws_user_id, resolved_account_id) =
+                    match crate::aws_loader::resolve_credential_source(&region, &profile).await {
+                        Ok((ambient, id)) => {
+                            app.prep_log.push(if ambient {
+                                format!(
+                                    "  ✓ Profile unusable — using shell credentials (same account={})",
+                                    id.account_id
+                                )
+                            } else {
+                                format!("  ✓ Credentials OK  account={}", id.account_id)
+                            });
+                            (true, ambient, id.caller_arn, id.user_id, id.account_id)
                         }
-                        Err(e) => {
+                        Err(reason) => {
                             app.prep_log.push(format!(
-                            "  ✗ Credentials FAILED — skipping. Run: aws sso login --profile {}",
-                            profile,
-                        ));
-                            app.prep_log.push(format!("    ({})", e));
-                            (false, String::new(), String::new(), String::new())
+                                "  ✗ Credentials FAILED — skipping. Run: aws sso login --profile {} (or `assume` that profile)",
+                                profile,
+                            ));
+                            app.prep_log.push(format!("    ({})", reason));
+                            (false, false, String::new(), String::new(), String::new())
                         }
                     };
                 terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
+
+                // Profile pinning for every config built below; `None` = shell chain.
+                let pinned_profile: Option<&str> = (!use_ambient).then_some(profile.as_str());
+                // Helper closure to build a fresh config loader for this account.
+                // CRITICAL: Never reuse a config that has already been used for an
+                // AWS API call (canary, region discovery, etc.) for building
+                // collectors.  Calling an AWS API through a config "takes" the
+                // credential provider's internal state, leaving it broken when the
+                // collectors try to initialise credentials inside tokio::spawn.
+                let make_cfg = || crate::aws_loader::cli_config_loader(&region, pinned_profile);
+                // Probe config (disposable): region discovery only, never collectors.
+                let probe_config = make_cfg().load().await;
 
                 if !canary_ok {
                     // Don't build any collectors for this account — it has no
@@ -604,7 +610,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                             }
                             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
                             let rcfg =
-                                crate::aws_loader::cli_config_loader(region_name, Some(&profile))
+                                crate::aws_loader::cli_config_loader(region_name, pinned_profile)
                                     .load()
                                     .await;
                             inventory_multi_region.push((
@@ -677,7 +683,7 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                             }
                             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
                             let rcfg =
-                                crate::aws_loader::cli_config_loader(region_name, Some(&profile))
+                                crate::aws_loader::cli_config_loader(region_name, pinned_profile)
                                     .load()
                                     .await;
                             let rdir = out_base.join(region_name).join(date_path_suffix());

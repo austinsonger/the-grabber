@@ -7,6 +7,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Shell credentials from `assume` are now a fallback when an account's profile
+  can't authenticate.** If the profile fails (expired SSO token, never logged in),
+  the TUI and CLI try the credentials exported in the shell, and use them only
+  when they reach the account the profile targets. That target comes from
+  `sso_account_id`, `granted_sso_account_id` or `role_arn` in `~/.aws/config`,
+  or from a 12-digit account ID in the profile name. If the shell is signed into
+  a different account, the account is still skipped and the setup log gives both
+  account IDs, so evidence never gets filed under the wrong account.
+
 ### Fixed
 
 - **Desktop: an imported AWS profile could never be used by the account that
