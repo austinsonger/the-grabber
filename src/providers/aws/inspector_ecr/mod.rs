@@ -1,7 +1,5 @@
 mod transforms;
-use transforms::{
-    dedup_ecr_image_rows, filter_latest_image_per_repo, rollup_ecr_by_cve, secs_to_rfc3339,
-};
+use transforms::{annotate_inventory_row, index_child_digests, rollup_ecr_by_cve, secs_to_rfc3339};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -479,19 +477,11 @@ impl CsvCollector for InspectorEcrImagesCollector {
             }
         }
 
-        let before = rows.len();
-        let rows = filter_latest_image_per_repo(rows);
-        let after_latest = rows.len();
-        let rows = dedup_ecr_image_rows(rows);
-        let after_dedup = rows.len();
-        let rows = rollup_ecr_by_cve(rows);
-        let after_rollup = rows.len();
-        if before > after_rollup {
-            eprintln!(
-                "  Inspector2 ECR Images: {before} → {after_latest} (latest image) → {after_dedup} (image dedup) → {after_rollup} (cross-repo CVE rollup)",
-            );
-        }
-
-        Ok(rows)
+        let rows: Vec<Vec<String>> = rows
+            .into_iter()
+            .map(|r| annotate_inventory_row(r, "", ""))
+            .collect();
+        let _ = index_child_digests;
+        Ok(rollup_ecr_by_cve(rows))
     }
 }

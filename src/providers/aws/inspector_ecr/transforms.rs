@@ -4,19 +4,71 @@ pub(super) fn secs_to_rfc3339(secs: i64) -> String {
         .unwrap_or_default()
 }
 
+// Wired into mod.rs's collect_rows in a later task; unused outside tests until then.
+#[allow(dead_code)]
+pub(super) const IDX_ASSET_ID: usize = 47;
+#[allow(dead_code)]
+pub(super) const IDX_INVENTORY_FILE: usize = 48;
+
+/// Appends the per-image annotation columns (42–48) to a 42-column finding row.
+pub(super) fn annotate_inventory_row(
+    mut row: Vec<String>,
+    asset_id: &str,
+    inventory_file: &str,
+) -> Vec<String> {
+    let pushed = row.get(29).cloned().unwrap_or_default();
+    row.push("1".to_string()); // 42 Affected Image Count
+    row.push(pushed.clone()); // 43 Oldest Push Date
+    row.push(pushed); // 44 Newest Push Date
+    row.push("NO".to_string()); // 45 Has Closed Findings (ACTIVE only)
+    row.push("NO".to_string()); // 46 Package Version Varies
+    row.push(asset_id.to_string()); // 47 Asset Identifier
+    row.push(inventory_file.to_string()); // 48 Inventory File
+    row
+}
+
+/// Per-platform digests inside an image index manifest; attestation manifests
+/// (`os: unknown`) are skipped.
+pub(super) fn index_child_digests(manifest_json: &str) -> Vec<String> {
+    #[derive(serde::Deserialize)]
+    struct Index {
+        #[serde(default)]
+        manifests: Vec<Child>,
+    }
+    #[derive(serde::Deserialize)]
+    struct Child {
+        digest: String,
+        platform: Option<Platform>,
+    }
+    #[derive(serde::Deserialize)]
+    struct Platform {
+        #[serde(default)]
+        os: String,
+    }
+    serde_json::from_str::<Index>(manifest_json)
+        .map(|i| {
+            i.manifests
+                .into_iter()
+                .filter(|c| c.platform.as_ref().is_none_or(|p| p.os != "unknown"))
+                .map(|c| c.digest)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 // Second-pass cross-repository rollup — FedRAMP requires one row per CVE with
 // all affected assets listed, not one row per (CVE + repository).
 //
-// Called after dedup_ecr_image_rows(). Groups by (CVE ID + Package Name) across
-// all repos. The highest Inspector Score row is kept as representative; all
-// other per-repo fields are merged into it.
+// Groups by (CVE ID + Package Name) across all repos. The highest Inspector
+// Score row is kept as representative; all other per-repo fields are merged
+// into it. Multi-value cells are newline-separated.
 //
 // Indices reference the post-annotation column layout:
 //   6  Inspector Score   8  CVE ID        15 Package Name    16 Package Version
 //  23  Repository Name  24  Image Tags    25  Image Hash     30 Currently In Use
 //  31  In Use Count     32  Resource ID   40  First Observed At  41 Days Open
 //  42  Affected Image Count  43 Oldest Push Date  44 Newest Push Date
-//  46  Package Version Varies
+//  46  Package Version Varies  47 Asset Identifier
 pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
     use std::collections::{HashMap, HashSet};
 
@@ -58,7 +110,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(23)
-                    .map(|s| s.split("; ").map(str::to_string).collect::<Vec<_>>())
+                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -71,7 +123,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(24)
-                    .map(|s| s.split("; ").map(str::to_string).collect::<Vec<_>>())
+                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -80,22 +132,24 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .collect();
         tags.sort();
 
-        let hashes: HashSet<String> = group_rows
+        let mut hashes: Vec<String> = group_rows
             .iter()
-            .filter_map(|r| r.get(25).map(|s| s.to_string()))
+            .flat_map(|r| {
+                r.get(25)
+                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
+                    .unwrap_or_default()
+            })
             .filter(|s| !s.is_empty())
+            .collect::<HashSet<_>>()
+            .into_iter()
             .collect();
-        let image_hash = if hashes.len() == 1 {
-            hashes.into_iter().next().unwrap()
-        } else {
-            "multiple".to_string()
-        };
+        hashes.sort();
 
         let mut res_ids: Vec<String> = group_rows
             .iter()
             .flat_map(|r| {
                 r.get(32)
-                    .map(|s| s.split("; ").map(str::to_string).collect::<Vec<_>>())
+                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -182,7 +236,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(47)
-                    .map(|s| s.split("; ").map(|p| p.to_string()).collect::<Vec<_>>())
+                    .map(|s| s.split('\n').map(|p| p.to_string()).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -199,167 +253,106 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
                 }
             };
         }
-        set!(23, repos.join("; "));
-        set!(24, tags.join("; "));
-        set!(25, image_hash);
+        set!(23, repos.join("\n"));
+        set!(24, tags.join("\n"));
+        set!(25, hashes.join("\n"));
         set!(30, currently_in_use.to_string());
         set!(31, in_use_total.to_string());
-        set!(32, res_ids.join("; "));
+        set!(32, res_ids.join("\n"));
         set!(40, earliest_observed);
         set!(41, days_open);
         set!(42, total_images.to_string());
         set!(43, oldest_push);
         set!(44, newest_push);
         set!(46, version_varies);
-        set!(47, asset_ids.join("; "));
+        set!(47, asset_ids.join("\n"));
 
         out.push(best);
     }
     out
 }
 
-// Pre-dedup filter: for each repo, keep only findings from the most recently
-// pushed image hash.  Inspector2 reports findings for every image digest ever
-// pushed to a repo, including old superseded versions.  For compliance reporting
-// only the current (latest) image matters — old versions inflate the count with
-// vulnerabilities that may already be resolved in newer pushes.
-//
-// Indices:  23 = Repository Name,  25 = Image Hash,  29 = Pushed At
-pub(super) fn filter_latest_image_per_repo(mut rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
-    use std::collections::HashMap;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // Step 1: for each repo, find the image hash with the latest Pushed At.
-    let mut latest_hash: HashMap<String, String> = HashMap::new();
-    let mut latest_push: HashMap<String, String> = HashMap::new();
-
-    for row in &rows {
-        let repo = row.get(23).map(|s| s.as_str()).unwrap_or("");
-        let hash = row.get(25).map(|s| s.as_str()).unwrap_or("");
-        let pushed = row.get(29).map(|s| s.as_str()).unwrap_or("");
-        if repo.is_empty() || hash.is_empty() {
-            continue;
-        }
-
-        let current_push = latest_push.get(repo).map(|s| s.as_str()).unwrap_or("");
-        if pushed > current_push {
-            latest_push.insert(repo.to_string(), pushed.to_string());
-            latest_hash.insert(repo.to_string(), hash.to_string());
-        }
+    fn base_row(
+        cve: &str,
+        pkg: &str,
+        repo: &str,
+        hash: &str,
+        res_id: &str,
+        score: &str,
+    ) -> Vec<String> {
+        let mut r = vec![String::new(); 42];
+        r[0] = format!("arn:finding:{repo}:{cve}");
+        r[6] = score.to_string();
+        r[8] = cve.to_string();
+        r[15] = pkg.to_string();
+        r[16] = "1.0".to_string();
+        r[23] = repo.to_string();
+        r[24] = "v1".to_string();
+        r[25] = hash.to_string();
+        r[29] = "2026-09-01T00:00:00+00:00".to_string();
+        r[30] = "NO".to_string();
+        r[31] = "0".to_string();
+        r[32] = res_id.to_string();
+        r[40] = "2026-08-01T00:00:00+00:00".to_string();
+        r
     }
 
-    // Step 2: discard rows from older image versions.
-    rows.retain(|row| {
-        let repo = row.get(23).map(|s| s.as_str()).unwrap_or("");
-        let hash = row.get(25).map(|s| s.as_str()).unwrap_or("");
-
-        if repo.is_empty() || hash.is_empty() {
-            return true; // keep rows without repo/hash info
-        }
-
-        match latest_hash.get(repo) {
-            Some(lh) => hash == lh,
-            None => true, // keep if repo not tracked
-        }
-    });
-
-    rows
-}
-
-// Dedup for InspectorEcrImagesCollector — same logic as dedup_ecr_rows but with
-// indices matched to the leaner image-specific column layout.
-//
-// Column index map (base columns only, before annotations are appended):
-//   0  Finding ARN       8  CVE ID        15 Package Name    16 Package Version
-//  23  Repository Name  29  Pushed At     38 Status
-pub(super) fn dedup_ecr_image_rows(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
-    use std::collections::HashMap;
-
-    let mut groups: HashMap<String, Vec<Vec<String>>> = HashMap::new();
-    for row in rows {
-        let cve_id = row.get(8).map(|s| s.as_str()).unwrap_or("");
-        let pkg_name = row.get(15).map(|s| s.as_str()).unwrap_or("");
-        let repo = row.get(23).map(|s| s.as_str()).unwrap_or("");
-        let arn = row.first().map(|s| s.as_str()).unwrap_or("");
-
-        let key = if !cve_id.is_empty() && !repo.is_empty() && !pkg_name.is_empty() {
-            format!("repo_pkg:{}|{}|{}", cve_id, repo, pkg_name)
-        } else if !cve_id.is_empty() && !pkg_name.is_empty() {
-            format!("pkg:{}|{}", cve_id, pkg_name)
-        } else if !cve_id.is_empty() {
-            format!("cve:{}", cve_id)
-        } else {
-            format!("arn:{}", arn)
-        };
-
-        groups.entry(key).or_default().push(row);
+    #[test]
+    fn annotate_appends_inventory_columns() {
+        let row = annotate_inventory_row(
+            base_row("CVE-1", "openssl", "app", "sha256:a", "arn:a", "7"),
+            "asset-app",
+            "AWS_Inventory-x.csv",
+        );
+        assert_eq!(row.len(), 49);
+        assert_eq!(row[42], "1");
+        assert_eq!(row[43], row[29]);
+        assert_eq!(row[IDX_ASSET_ID], "asset-app");
+        assert_eq!(row[IDX_INVENTORY_FILE], "AWS_Inventory-x.csv");
     }
 
-    let mut out = Vec::with_capacity(groups.len());
-    for (_key, mut group_rows) in groups {
-        group_rows.sort_by(|a, b| {
-            let pa = a.get(29).map(|s| s.as_str()).unwrap_or("");
-            let pb = b.get(29).map(|s| s.as_str()).unwrap_or("");
-            pb.cmp(pa)
-        });
-
-        let image_count = group_rows.len().to_string();
-
-        let pushed_dates: Vec<&str> = group_rows
-            .iter()
-            .map(|r| r.get(29).map(|s| s.as_str()).unwrap_or(""))
-            .filter(|s| !s.is_empty())
-            .collect();
-        let newest_push = pushed_dates.first().copied().unwrap_or("").to_string();
-        let oldest_push = pushed_dates.last().copied().unwrap_or("").to_string();
-
-        let has_closed = if group_rows
-            .iter()
-            .any(|r| r.get(38).map(|s| s.as_str()).unwrap_or("") == "CLOSED")
-        {
-            "YES"
-        } else {
-            "NO"
-        };
-
-        let pkg_versions: std::collections::HashSet<&str> = group_rows
-            .iter()
-            .map(|r| r.get(16).map(|s| s.as_str()).unwrap_or(""))
-            .filter(|s| !s.is_empty())
-            .collect();
-        let version_varies = if pkg_versions.len() > 1 { "YES" } else { "NO" };
-
-        // Build Asset Identifier before consuming group_rows.
-        // Format: registry/repo:tag per image (one entry per tag; hash prefix if no tag).
-        let mut asset_ids: Vec<String> = group_rows
-            .iter()
-            .flat_map(|r| {
-                let registry = r.get(26).map(|s| s.as_str()).unwrap_or("");
-                let repo = r.get(23).map(|s| s.as_str()).unwrap_or("");
-                let tags = r.get(24).map(|s| s.as_str()).unwrap_or("");
-                let hash = r.get(25).map(|s| s.as_str()).unwrap_or("");
-                if tags.is_empty() {
-                    let h = hash.get(..19).unwrap_or(hash);
-                    vec![format!("{}/{} ({})", registry, repo, h)]
-                } else {
-                    tags.split("; ")
-                        .map(|t| format!("{}/{}:{}", registry, repo, t))
-                        .collect()
-                }
-            })
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
-        asset_ids.sort();
-
-        let mut best_row = group_rows.into_iter().next().unwrap();
-        best_row.push(image_count);
-        best_row.push(oldest_push);
-        best_row.push(newest_push);
-        best_row.push(has_closed.to_string());
-        best_row.push(version_varies.to_string());
-        best_row.push(asset_ids.join("; ")); // Asset Identifier (index 47)
-
-        out.push(best_row);
+    #[test]
+    fn rollup_groups_same_cve_package_with_newlines_and_keeps_different_cves_apart() {
+        let rows = vec![
+            annotate_inventory_row(
+                base_row("CVE-1", "openssl", "web", "sha256:w", "arn:w", "5"),
+                "asset-web",
+                "inv.csv",
+            ),
+            annotate_inventory_row(
+                base_row("CVE-1", "openssl", "api", "sha256:p", "arn:p", "9"),
+                "asset-api",
+                "inv.csv",
+            ),
+            annotate_inventory_row(
+                base_row("CVE-2", "openssl", "api", "sha256:p", "arn:p", "4"),
+                "asset-api",
+                "inv.csv",
+            ),
+        ];
+        let mut out = rollup_ecr_by_cve(rows);
+        out.sort_by(|a, b| a[8].cmp(&b[8]));
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0][8], "CVE-1");
+        assert_eq!(out[0][IDX_ASSET_ID], "asset-api\nasset-web");
+        assert_eq!(out[0][23], "api\nweb");
+        assert_eq!(out[0][25], "sha256:p\nsha256:w");
+        assert_eq!(out[0][32], "arn:p\narn:w");
+        assert_eq!(out[0][42], "2");
+        assert_eq!(out[1][8], "CVE-2");
+        assert_eq!(out[1][IDX_ASSET_ID], "asset-api");
     }
-    out
+
+    #[test]
+    fn index_children_skip_attestations() {
+        let m = r#"{"manifests":[
+            {"digest":"sha256:amd","platform":{"os":"linux","architecture":"amd64"}},
+            {"digest":"sha256:att","platform":{"os":"unknown","architecture":"unknown"}}]}"#;
+        assert_eq!(index_child_digests(m), ["sha256:amd"]);
+        assert!(index_child_digests("not json").is_empty());
+    }
 }
