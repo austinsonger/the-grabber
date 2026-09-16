@@ -6,6 +6,7 @@ pub mod aws_loader;
 pub mod cli;
 pub mod cli_providers;
 pub mod credentials;
+pub mod ecr_inventory_check;
 pub mod engine;
 pub mod evidence;
 pub mod fedramp_coverage;
