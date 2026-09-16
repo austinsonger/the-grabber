@@ -11,6 +11,7 @@ pub mod evidence;
 pub mod fedramp_coverage;
 pub mod fedramp_map;
 pub mod inventory_core;
+pub mod inventory_digests;
 pub mod inventory_orchestrator;
 pub mod inventory_xlsx;
 pub mod okta_stig_map;
