@@ -1,24 +1,23 @@
 mod transforms;
 use transforms::{annotate_inventory_row, index_child_digests, rollup_ecr_by_cve, secs_to_rfc3339};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
-use aws_sdk_inspector2::primitives::DateTime as InspectorDateTime;
-use aws_sdk_inspector2::types::{
-    DateFilter, FilterCriteria, SortCriteria, SortField, SortOrder, StringComparison, StringFilter,
-};
+use aws_sdk_inspector2::types::{FilterCriteria, StringComparison, StringFilter};
 use aws_sdk_inspector2::Client as Inspector2Client;
 
 use crate::evidence::CsvCollector;
 
 pub struct InspectorEcrImagesCollector {
     client: Inspector2Client,
+    ecr: aws_sdk_ecr::Client,
 }
 
 impl InspectorEcrImagesCollector {
     pub fn new(config: &aws_config::SdkConfig) -> Self {
         Self {
             client: Inspector2Client::new(config),
+            ecr: aws_sdk_ecr::Client::new(config),
         }
     }
 }
@@ -97,14 +96,15 @@ impl CsvCollector for InspectorEcrImagesCollector {
             "Has Closed Findings",    // 45
             "Package Version Varies", // 46
             "Asset Identifier",       // 47
+            "Inventory File",         // 48
         ]
     }
 
     async fn collect_rows(
         &self,
         _account_id: &str,
-        _region: &str,
-        dates: Option<(i64, i64)>,
+        region: &str,
+        _dates: Option<(i64, i64)>,
     ) -> Result<Vec<Vec<String>>> {
         match tokio::time::timeout(
             std::time::Duration::from_secs(30),
@@ -123,117 +123,160 @@ impl CsvCollector for InspectorEcrImagesCollector {
             Ok(Ok(_)) => {}
         }
 
-        const MAX_ROWS_PER_SEVERITY: usize = 10_000;
-        const SEVERITY_LEVELS: [&str; 5] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"];
-
-        let mut rows = Vec::new();
-
-        for severity in SEVERITY_LEVELS {
-            let resource_filter = StringFilter::builder()
-                .comparison(StringComparison::Equals)
-                .value("AWS_ECR_CONTAINER_IMAGE")
-                .build()
-                .expect("StringFilter is always valid");
-            let severity_filter = StringFilter::builder()
-                .comparison(StringComparison::Equals)
-                .value(severity)
-                .build()
-                .expect("StringFilter is always valid");
-            let status_filter = StringFilter::builder()
-                .comparison(StringComparison::Equals)
-                .value("ACTIVE")
-                .build()
-                .expect("StringFilter is always valid");
-
-            let mut filter_builder = FilterCriteria::builder()
-                .resource_type(resource_filter)
-                .severity(severity_filter)
-                .finding_status(status_filter);
-
-            // !! DATE FILTER: MUST use first_observed_at — do NOT use last_observed_at or updated_at !!
-            // Inspector2 rescans continuously; last_observed_at/updated_at are stamped with today's
-            // date on every rescan and so return the full active set regardless of window.
-            // first_observed_at is set ONCE at finding creation and is the only reliable scoping field.
-            if let Some((start, end)) = dates {
-                filter_builder = filter_builder.first_observed_at(
-                    DateFilter::builder()
-                        .start_inclusive(InspectorDateTime::from_secs(start))
-                        .end_inclusive(InspectorDateTime::from_secs(end))
-                        .build(),
+        let inventory =
+            match crate::inventory_digests::load_latest(std::path::Path::new("inventory")) {
+                Ok(inv) => inv,
+                Err(e) => anyhow::bail!(
+                    "Inspector2 ECR Images needs an inventory: run inventory first ({e:#})"
+                ),
+            };
+        let inventory_file = inventory
+            .path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        if let Ok(modified) = std::fs::metadata(&inventory.path).and_then(|m| m.modified()) {
+            let age = std::time::SystemTime::now()
+                .duration_since(modified)
+                .unwrap_or_default();
+            if age > std::time::Duration::from_secs(24 * 3600) {
+                eprintln!(
+                    "  WARN: inventory {} is {} hours old",
+                    inventory.path.display(),
+                    age.as_secs() / 3600
                 );
             }
-            let filter = filter_builder.build();
+        }
+        eprintln!(
+            "  Inspector2 ECR Images: inventory {} ({} images, {} container rows without a digest)",
+            inventory.path.display(),
+            inventory.images.len(),
+            inventory.rows_without_digest
+        );
 
-            let mut next_token: Option<String> = None;
-            let mut severity_count: usize = 0;
-
-            loop {
-                if severity_count >= MAX_ROWS_PER_SEVERITY {
+        let mut rows = Vec::new();
+        for image in inventory.images.iter().filter(|i| i.region == region) {
+            let digests = match platform_digests(&self.ecr, &image.repository, &image.digest).await
+            {
+                Ok(d) => d,
+                Err(e) => {
                     eprintln!(
-                        "  WARN: Inspector2 ECR Images list_findings ({severity}): hit {MAX_ROWS_PER_SEVERITY}-row cap, truncating"
+                        "  WARN: {} ({}): {e:#}; querying the inventory digest only",
+                        image.asset_id, image.digest
                     );
-                    break;
+                    vec![image.digest.clone()]
                 }
-
-                let mut req = self
-                    .client
-                    .list_findings()
-                    .max_results(100)
-                    .filter_criteria(filter.clone())
-                    .sort_criteria(
-                        SortCriteria::builder()
-                            .field(SortField::InspectorScore)
-                            .sort_order(SortOrder::Desc)
-                            .build()
-                            .expect("SortCriteria is always valid"),
-                    );
-                if let Some(ref t) = next_token {
-                    req = req.next_token(t);
+            };
+            for digest in digests {
+                match active_findings_for_digest(&self.client, &image.repository, &digest).await {
+                    Ok(findings) => rows.extend(
+                        findings
+                            .iter()
+                            .filter_map(finding_row)
+                            .map(|r| annotate_inventory_row(r, &image.asset_id, &inventory_file)),
+                    ),
+                    Err(e) => eprintln!("  WARN: {} ({digest}): {e:#}", image.asset_id),
                 }
-                let resp = match req.send().await {
-                    Ok(r) => r,
-                    Err(e) => {
-                        let msg = format!("{e:#}");
-                        if msg.contains("AccessDeniedException")
-                            || msg.contains("ResourceNotFoundException")
-                            || msg.contains("ValidationException")
-                            || msg.contains("BadRequestException")
-                        {
-                            eprintln!("  WARN: Inspector2 ECR Images list_findings ({severity}, not enabled?): {msg}");
-                            return Ok(rows);
-                        }
-                        eprintln!(
-                            "  WARN: Inspector2 ECR Images list_findings ({severity}): {msg}"
-                        );
-                        break;
-                    }
-                };
-
-                for f in resp.findings() {
-                    if let Some(row) = finding_row(f) {
-                        rows.push(row);
-                        severity_count += 1;
-                    }
-                }
-
-                next_token = resp.next_token().map(|s| s.to_string());
-                if next_token.is_none() {
-                    break;
-                }
-            }
-
-            if severity_count > 0 {
-                eprintln!("  Inspector2 ECR Images ({severity}): {severity_count} findings");
             }
         }
 
-        let rows: Vec<Vec<String>> = rows
-            .into_iter()
-            .map(|r| annotate_inventory_row(r, "", ""))
-            .collect();
-        let _ = index_child_digests;
-        Ok(rollup_ecr_by_cve(rows))
+        let before = rows.len();
+        let rows = rollup_ecr_by_cve(rows);
+        eprintln!(
+            "  Inspector2 ECR Images: {before} ACTIVE findings on inventory digests → {} rows (one per CVE + package)",
+            rows.len()
+        );
+        Ok(rows)
     }
+}
+
+const INDEX_MEDIA_TYPES: [&str; 2] = [
+    "application/vnd.oci.image.index.v1+json",
+    "application/vnd.docker.distribution.manifest.list.v2+json",
+];
+
+/// The digest itself, or its per-platform digests when it is an image index.
+pub(crate) async fn platform_digests(
+    ecr: &aws_sdk_ecr::Client,
+    repository: &str,
+    digest: &str,
+) -> Result<Vec<String>> {
+    let resp = ecr
+        .batch_get_image()
+        .repository_name(repository)
+        .image_ids(
+            aws_sdk_ecr::types::ImageIdentifier::builder()
+                .image_digest(digest)
+                .build(),
+        )
+        .set_accepted_media_types(Some(
+            INDEX_MEDIA_TYPES
+                .iter()
+                .map(|s| s.to_string())
+                .chain([
+                    "application/vnd.oci.image.manifest.v1+json".to_string(),
+                    "application/vnd.docker.distribution.manifest.v2+json".to_string(),
+                ])
+                .collect(),
+        ))
+        .send()
+        .await
+        .with_context(|| format!("ecr:BatchGetImage {repository}@{digest}"))?;
+    let Some(image) = resp.images().first() else {
+        anyhow::bail!("ecr:BatchGetImage {repository}@{digest}: image not found");
+    };
+    let is_index = image
+        .image_manifest_media_type()
+        .is_some_and(|m| INDEX_MEDIA_TYPES.contains(&m));
+    let children = if is_index {
+        index_child_digests(image.image_manifest().unwrap_or(""))
+    } else {
+        vec![]
+    };
+    Ok(if children.is_empty() {
+        vec![digest.to_string()]
+    } else {
+        children
+    })
+}
+
+/// Every ACTIVE Inspector2 finding on one ECR image digest.
+pub(crate) async fn active_findings_for_digest(
+    client: &Inspector2Client,
+    repository: &str,
+    digest: &str,
+) -> Result<Vec<aws_sdk_inspector2::types::Finding>> {
+    let eq = |v: &str| {
+        StringFilter::builder()
+            .comparison(StringComparison::Equals)
+            .value(v)
+            .build()
+            .context("Inspector2 string filter")
+    };
+    let criteria = FilterCriteria::builder()
+        .resource_type(eq("AWS_ECR_CONTAINER_IMAGE")?)
+        .ecr_image_repository_name(eq(repository)?)
+        .ecr_image_hash(eq(digest)?)
+        .finding_status(eq("ACTIVE")?)
+        .build();
+    let mut out = Vec::new();
+    let mut token: Option<String> = None;
+    loop {
+        let resp = client
+            .list_findings()
+            .max_results(100)
+            .filter_criteria(criteria.clone())
+            .set_next_token(token.clone())
+            .send()
+            .await
+            .with_context(|| format!("inspector2:ListFindings {repository}@{digest}"))?;
+        out.extend(resp.findings().iter().cloned());
+        token = resp.next_token().map(str::to_string);
+        if token.is_none() {
+            break;
+        }
+    }
+    Ok(out)
 }
 
 const ECR_IMAGE_BASE_COLUMNS: usize = 42;
