@@ -4,12 +4,6 @@ pub(super) fn secs_to_rfc3339(secs: i64) -> String {
         .unwrap_or_default()
 }
 
-// Wired into mod.rs's collect_rows in a later task; unused outside tests until then.
-#[allow(dead_code)]
-pub(super) const IDX_ASSET_ID: usize = 47;
-#[allow(dead_code)]
-pub(super) const IDX_INVENTORY_FILE: usize = 48;
-
 /// Appends the per-image annotation columns (42–48) to a 42-column finding row.
 pub(super) fn annotate_inventory_row(
     mut row: Vec<String>,
@@ -275,6 +269,9 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const IDX_ASSET_ID: usize = 47;
+    const IDX_INVENTORY_FILE: usize = 48;
 
     fn base_row(
         cve: &str,

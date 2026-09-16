@@ -10,8 +10,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - **New `--check-ecr-findings` flag.** For every ECR image digest in the
-  newest inventory CSV under the region given by `--region` (default
-  `./inventory`), compares the live ACTIVE Inspector2 vulnerability IDs
+  newest inventory CSV under `./inventory` that is in the `--region` region,
+  compares the live ACTIVE Inspector2 vulnerability IDs
   against the newest ECR image findings CSV (under `--output`, default `.`).
   Prints a pass/fail summary — including how many inventory images were
   skipped because they're in a different region — and writes
