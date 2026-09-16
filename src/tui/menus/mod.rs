@@ -3,6 +3,7 @@
 //! Okta/Jira/Tenable flows.
 
 pub mod aws;
+pub mod crowdstrike;
 pub mod elastic;
 pub mod github;
 pub mod jamf;
@@ -41,6 +42,10 @@ pub const PROVIDER_MENUS: &[ProviderMenu] = &[
     ProviderMenu {
         provider: CloudProvider::Tenable,
         categories: tenable::TENABLE_CATEGORIES,
+    },
+    ProviderMenu {
+        provider: CloudProvider::CrowdStrike,
+        categories: crowdstrike::CROWDSTRIKE_CATEGORIES,
     },
     ProviderMenu {
         provider: CloudProvider::Elastic,
