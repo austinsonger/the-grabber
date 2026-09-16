@@ -2,7 +2,9 @@ use anyhow::{Context, Result};
 use clap::Parser;
 
 use the_grabber::cli::Cli;
-use the_grabber::runner::cli_runners::{run_inventory_cli, run_poam_cli, run_standard_cli};
+use the_grabber::runner::cli_runners::{
+    run_ecr_findings_check_cli, run_inventory_cli, run_poam_cli, run_standard_cli,
+};
 use the_grabber::runner::provider_cli::{provider_mode_selected, run_provider_cli};
 use the_grabber::runner::tui_session::run_tui_session;
 
@@ -36,6 +38,10 @@ async fn async_main() -> Result<()> {
 
     if provider_mode_selected(&cli) {
         return run_provider_cli(&cli).await;
+    }
+
+    if cli.check_ecr_findings {
+        return run_ecr_findings_check_cli(&cli).await;
     }
 
     if cli.inventory {

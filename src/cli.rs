@@ -157,6 +157,14 @@ pub struct Cli {
     #[arg(long)]
     pub verify_manifest: Option<String>,
 
+    /// Check that the newest ECR image findings CSV (under --output, default .)
+    /// lists every ACTIVE Inspector2 vulnerability for every ECR image digest in
+    /// the newest inventory CSV (under ./inventory). Uses --profile/--region for
+    /// live Inspector2 queries. Writes ECR-Findings-Check-<ts>.csv next to the
+    /// findings CSV; exits non-zero on any failure.
+    #[arg(long, default_value_t = false)]
+    pub check_ecr_findings: bool,
+
     // ------- Audit artifact opt-ins -------
     /// Opt in to writing the run-manifest JSON after collection (collectors mode only).
     /// Disabled by default; pass this flag to emit RUN-MANIFEST-<run_id>.json.

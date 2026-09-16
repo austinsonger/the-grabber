@@ -130,6 +130,31 @@ pub async fn run_inventory_cli(cli: &Cli) -> Result<()> {
     Ok(())
 }
 
+/// `--check-ecr-findings`: prints the summary; exits 1 when any asset fails.
+pub async fn run_ecr_findings_check_cli(cli: &Cli) -> Result<()> {
+    let (_, config, _) = crate::aws_loader::load_cli_probe_and_work_configs_opts(
+        &cli.region,
+        cli.profile.as_deref(),
+        false,
+    )
+    .await;
+    let evidence_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+    let report = crate::ecr_findings_check::run(
+        &config,
+        &cli.region,
+        std::path::Path::new("inventory"),
+        &evidence_dir,
+    )
+    .await?;
+    for line in report.summary_lines() {
+        println!("{line}");
+    }
+    if report.failures() > 0 {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
 pub async fn run_poam_cli(cli: &Cli) -> Result<()> {
     if let Some(uuid) = &cli.poam_remove_item {
         let found = crate::poam::remove_custom_poam_item(uuid)?;
