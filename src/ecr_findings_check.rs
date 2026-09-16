@@ -49,14 +49,21 @@ pub struct Report {
     pub findings_path: PathBuf,
     pub assets: Vec<AssetCheck>,
     pub report_path: PathBuf,
+    pub skipped_other_region: usize,
 }
 
 /// Coverage is (status code, reason) for the scanned digest; `None` = not covered.
+/// `index_expanded` is false when the image index couldn't be read into its
+/// per-platform digests, so the live findings can't be trusted either way.
 pub fn classify(
     live: &BTreeSet<String>,
     csv: &BTreeSet<String>,
     coverage: Option<(&str, &str)>,
+    index_expanded: bool,
 ) -> CheckResult {
+    if !index_expanded {
+        return CheckResult::NoScanData;
+    }
     match coverage {
         Some(("ACTIVE", _)) => {}
         _ => return CheckResult::NoScanData,
@@ -108,6 +115,30 @@ pub fn csv_ids_by_asset(path: &Path) -> Result<HashMap<String, BTreeSet<String>>
     Ok(out)
 }
 
+/// Non-empty `Inventory File` values in a findings CSV, or empty when the
+/// column doesn't exist (older findings files predate that annotation).
+pub fn inventory_files_in_csv(path: &Path) -> Result<BTreeSet<String>> {
+    let mut r = csv::ReaderBuilder::new()
+        .flexible(true)
+        .from_path(path)
+        .with_context(|| format!("cannot open {}", path.display()))?;
+    let h = r.headers()?.clone();
+    let Some(col) = h.iter().position(|x| x == "Inventory File") else {
+        return Ok(BTreeSet::new());
+    };
+    let mut out = BTreeSet::new();
+    for rec in r.records() {
+        let rec = rec?;
+        if let Some(v) = rec.get(col) {
+            let v = v.trim();
+            if !v.is_empty() {
+                out.insert(v.to_string());
+            }
+        }
+    }
+    Ok(out)
+}
+
 impl Report {
     pub fn failures(&self) -> usize {
         self.assets
@@ -129,6 +160,7 @@ impl Report {
                 self.assets.len(),
                 self.failures()
             ),
+            format!("Skipped (other regions): {}", self.skipped_other_region),
         ];
         lines.extend(
             counts
@@ -178,14 +210,68 @@ pub async fn run(
     let inventory = load_latest(inventory_dir)?;
     let findings_path = latest_file(evidence_dir, "_Inspector2_ECR_Image_Findings-")?;
     let csv_ids = csv_ids_by_asset(&findings_path)?;
+
+    let inventory_file = inventory
+        .path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let csv_inventory_files = inventory_files_in_csv(&findings_path)?;
+    if !csv_inventory_files.is_empty() && !csv_inventory_files.contains(&inventory_file) {
+        anyhow::bail!(
+            "findings were collected against {}, but the newest inventory is {}; re-run ECR findings collection",
+            csv_inventory_files.iter().cloned().collect::<Vec<_>>().join(", "),
+            inventory_file
+        );
+    }
+
     let insp = aws_sdk_inspector2::Client::new(config);
     let ecr = aws_sdk_ecr::Client::new(config);
 
     let mut assets = Vec::new();
-    for image in inventory.images.iter().filter(|i| i.region == region) {
-        let digests = platform_digests(&ecr, &image.account, &image.repository, &image.digest)
-            .await
-            .unwrap_or_else(|_| vec![image.digest.clone()]);
+    let mut skipped_other_region = 0usize;
+    for image in &inventory.images {
+        if image.region != region {
+            skipped_other_region += 1;
+            continue;
+        }
+        let (digests, index_expanded) =
+            match platform_digests(&ecr, &image.account, &image.repository, &image.digest).await {
+                Ok(d) => (d, true),
+                Err(e) => {
+                    // Still query findings on the un-expanded digest, for operator
+                    // evidence, but the index couldn't be read so the asset is
+                    // NoScanData regardless of what those findings or coverage say.
+                    let mut live = BTreeSet::new();
+                    for f in active_findings_for_digest(
+                        &insp,
+                        &image.account,
+                        &image.repository,
+                        &image.digest,
+                    )
+                    .await
+                    .unwrap_or_default()
+                    {
+                        let cve = f
+                            .package_vulnerability_details()
+                            .map(|v| v.vulnerability_id())
+                            .unwrap_or("");
+                        live.insert(vuln_id(cve, f.title().unwrap_or("")));
+                    }
+                    let csv = csv_ids.get(&image.asset_id).cloned().unwrap_or_default();
+                    let result = classify(&live, &csv, None, false);
+                    assets.push(AssetCheck {
+                        asset_id: image.asset_id.clone(),
+                        digests: vec![image.digest.clone()],
+                        scan_status: "INDEX_NOT_EXPANDED".to_string(),
+                        scan_reason: format!("{e:#}"),
+                        live,
+                        csv,
+                        result,
+                    });
+                    continue;
+                }
+            };
         let mut live = BTreeSet::new();
         let mut worst: Option<(String, String)> = None;
         let mut all_active = true;
@@ -218,7 +304,7 @@ pub async fn run(
         } else {
             Some((status.as_str(), reason.as_str()))
         };
-        let result = classify(&live, &csv, coverage);
+        let result = classify(&live, &csv, coverage, index_expanded);
         assets.push(AssetCheck {
             asset_id: image.asset_id.clone(),
             digests,
@@ -228,6 +314,10 @@ pub async fn run(
             csv,
             result,
         });
+    }
+
+    if assets.is_empty() {
+        anyhow::bail!("no inventory ECR images in region {region}; checked nothing");
     }
 
     let report_path = findings_path
@@ -271,6 +361,7 @@ pub async fn run(
         findings_path,
         assets,
         report_path,
+        skipped_other_region,
     })
 }
 
@@ -288,19 +379,21 @@ mod tests {
             classify(
                 &set(&["CVE-1"]),
                 &set(&["CVE-1"]),
-                Some(("ACTIVE", "SUCCESSFUL"))
+                Some(("ACTIVE", "SUCCESSFUL")),
+                true
             ),
             CheckResult::Ok
         );
         assert_eq!(
-            classify(&set(&[]), &set(&[]), Some(("ACTIVE", "SUCCESSFUL"))),
+            classify(&set(&[]), &set(&[]), Some(("ACTIVE", "SUCCESSFUL")), true),
             CheckResult::Ok
         );
         assert_eq!(
             classify(
                 &set(&["CVE-1", "CVE-2"]),
                 &set(&["CVE-1"]),
-                Some(("ACTIVE", "SUCCESSFUL"))
+                Some(("ACTIVE", "SUCCESSFUL")),
+                true
             ),
             CheckResult::MissingInCsv
         );
@@ -308,22 +401,70 @@ mod tests {
             classify(
                 &set(&["CVE-1"]),
                 &set(&["CVE-1", "CVE-9"]),
-                Some(("ACTIVE", "SUCCESSFUL"))
+                Some(("ACTIVE", "SUCCESSFUL")),
+                true
             ),
             CheckResult::ExtraInCsv
         );
         assert_eq!(
-            classify(&set(&[]), &set(&[]), None),
+            classify(&set(&[]), &set(&[]), None, true),
             CheckResult::NoScanData
         );
         assert_eq!(
             classify(
                 &set(&[]),
                 &set(&[]),
-                Some(("INACTIVE", "SCAN_ELIGIBILITY_EXPIRED"))
+                Some(("INACTIVE", "SCAN_ELIGIBILITY_EXPIRED")),
+                true
             ),
             CheckResult::NoScanData
         );
+        // Index not expanded overrides an otherwise-ACTIVE, equal-set result.
+        assert_eq!(
+            classify(
+                &set(&["CVE-1"]),
+                &set(&["CVE-1"]),
+                Some(("ACTIVE", "SUCCESSFUL")),
+                false
+            ),
+            CheckResult::NoScanData
+        );
+    }
+
+    #[test]
+    fn inventory_files_in_csv_reads_the_column_when_present() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = dir.path().join("f.csv");
+        let mut w = csv::Writer::from_path(&p).expect("writer");
+        w.write_record(["Finding ARN", "Asset Identifier", "Inventory File"])
+            .expect("hdr");
+        w.write_record(["arn:1", "asset-a", "AWS_Inventory-2026-09-16-000000.csv"])
+            .expect("row");
+        w.write_record(["arn:2", "asset-b", ""]).expect("row");
+        w.write_record(["arn:3", "asset-c", "AWS_Inventory-2026-09-15-000000.csv"])
+            .expect("row");
+        w.flush().expect("flush");
+        let files = inventory_files_in_csv(&p).expect("read");
+        assert_eq!(
+            files,
+            set(&[
+                "AWS_Inventory-2026-09-16-000000.csv",
+                "AWS_Inventory-2026-09-15-000000.csv"
+            ])
+        );
+    }
+
+    #[test]
+    fn inventory_files_in_csv_empty_when_column_missing() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let p = dir.path().join("f.csv");
+        let mut w = csv::Writer::from_path(&p).expect("writer");
+        w.write_record(["Finding ARN", "Asset Identifier"])
+            .expect("hdr");
+        w.write_record(["arn:1", "asset-a"]).expect("row");
+        w.flush().expect("flush");
+        let files = inventory_files_in_csv(&p).expect("read");
+        assert!(files.is_empty());
     }
 
     #[test]

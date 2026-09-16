@@ -10,12 +10,19 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 
 - **New `--check-ecr-findings` flag.** For every ECR image digest in the
-  newest inventory CSV (`./inventory`), compares the live ACTIVE Inspector2
-  vulnerability IDs against the newest ECR image findings CSV (under
-  `--output`, default `.`). Prints a pass/fail summary, writes
-  `ECR-Findings-Check-<timestamp>.csv` next to the findings CSV, and exits
-  non-zero if any asset's findings CSV is missing or has extra vulnerability
-  IDs compared to live Inspector2 data, or has no live scan coverage.
+  newest inventory CSV under the region given by `--region` (default
+  `./inventory`), compares the live ACTIVE Inspector2 vulnerability IDs
+  against the newest ECR image findings CSV (under `--output`, default `.`).
+  Prints a pass/fail summary — including how many inventory images were
+  skipped because they're in a different region — and writes
+  `ECR-Findings-Check-<timestamp>.csv` next to the findings CSV. Exits
+  non-zero when any asset's live findings and CSV findings don't match
+  exactly, when an asset has no ACTIVE Inspector2 scan coverage, or when its
+  image index couldn't be read into per-platform digests (reported as
+  `NO_SCAN_DATA` / `INDEX_NOT_EXPANDED`). Also fails fast, before checking any
+  asset, if the findings CSV's `Inventory File` column shows it was collected
+  against a different inventory than the newest one on disk, or if no
+  inventory image matches `--region` at all.
 
 - **Accounts now authenticate through either `aws sso login` or Granted's
   `assume`.** Grabber tries the account's profile first. If that fails (for
