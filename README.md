@@ -51,15 +51,15 @@ disable = [
 
 [[account]]
 name        = "Production"
-account_id  = "123456789012"
-profile     = "ProdAdmin-123456789012"   # must match a profile in ~/.aws/config
+account_id  = "111122223333"
+profile     = "Prod-111122223333"   # must match a profile in ~/.aws/config
 region      = "us-east-1"
 output_dir  = "./evidence-output/production"
 
 [[account]]
 name        = "Operations"
-account_id  = "098765432109"
-profile     = "OpsAdmin-098765432109"
+account_id  = "111122223333"
+profile     = "Ops-111122223333"
 region      = "us-east-1"
 output_dir  = "./evidence-output/operations"
 
@@ -67,7 +67,7 @@ output_dir  = "./evidence-output/operations"
 [[account]]
 name        = "Master"
 account_id  = "111122223333"
-profile     = "MasterAdmin-111122223333"
+profile     = "Master-111122223333"
 region      = "us-east-1"
 output_dir  = "./evidence-output/master"
 
