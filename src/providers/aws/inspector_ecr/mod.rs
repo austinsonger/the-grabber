@@ -155,29 +155,55 @@ impl CsvCollector for InspectorEcrImagesCollector {
         );
 
         let mut rows = Vec::new();
+        let mut failures: Vec<(String, String, anyhow::Error)> = Vec::new();
         for image in inventory.images.iter().filter(|i| i.region == region) {
-            let digests = match platform_digests(&self.ecr, &image.repository, &image.digest).await
+            let digests = match platform_digests(
+                &self.ecr,
+                &image.account,
+                &image.repository,
+                &image.digest,
+            )
+            .await
             {
                 Ok(d) => d,
                 Err(e) => {
                     eprintln!(
-                        "  WARN: {} ({}): {e:#}; querying the inventory digest only",
+                        "  WARN: {}: could not read image index {} ({e:#}); per-platform findings may be missing",
                         image.asset_id, image.digest
                     );
                     vec![image.digest.clone()]
                 }
             };
             for digest in digests {
-                match active_findings_for_digest(&self.client, &image.repository, &digest).await {
+                match active_findings_for_digest(
+                    &self.client,
+                    &image.account,
+                    &image.repository,
+                    &digest,
+                )
+                .await
+                {
                     Ok(findings) => rows.extend(
                         findings
                             .iter()
                             .filter_map(finding_row)
                             .map(|r| annotate_inventory_row(r, &image.asset_id, &inventory_file)),
                     ),
-                    Err(e) => eprintln!("  WARN: {} ({digest}): {e:#}", image.asset_id),
+                    Err(e) => failures.push((image.asset_id.clone(), digest.clone(), e)),
                 }
             }
+        }
+
+        if !failures.is_empty() {
+            let detail = failures
+                .iter()
+                .map(|(asset_id, digest, e)| format!("{asset_id} ({digest}): {e:#}"))
+                .collect::<Vec<_>>()
+                .join("; ");
+            anyhow::bail!(
+                "Inspector2 ECR Images: {} ListFindings lookup(s) failed: {detail}",
+                failures.len()
+            );
         }
 
         let before = rows.len();
@@ -198,11 +224,13 @@ const INDEX_MEDIA_TYPES: [&str; 2] = [
 /// The digest itself, or its per-platform digests when it is an image index.
 pub(crate) async fn platform_digests(
     ecr: &aws_sdk_ecr::Client,
+    registry_id: &str,
     repository: &str,
     digest: &str,
 ) -> Result<Vec<String>> {
     let resp = ecr
         .batch_get_image()
+        .registry_id(registry_id)
         .repository_name(repository)
         .image_ids(
             aws_sdk_ecr::types::ImageIdentifier::builder()
@@ -243,6 +271,7 @@ pub(crate) async fn platform_digests(
 /// Every ACTIVE Inspector2 finding on one ECR image digest.
 pub(crate) async fn active_findings_for_digest(
     client: &Inspector2Client,
+    account: &str,
     repository: &str,
     digest: &str,
 ) -> Result<Vec<aws_sdk_inspector2::types::Finding>> {
@@ -255,6 +284,7 @@ pub(crate) async fn active_findings_for_digest(
     };
     let criteria = FilterCriteria::builder()
         .resource_type(eq("AWS_ECR_CONTAINER_IMAGE")?)
+        .aws_account_id(eq(account)?)
         .ecr_image_repository_name(eq(repository)?)
         .ecr_image_hash(eq(digest)?)
         .finding_status(eq("ACTIVE")?)
