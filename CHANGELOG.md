@@ -23,8 +23,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   asset, if the findings CSV's `Inventory File` column shows it was collected
   against a different inventory than the newest one on disk, or if no
   inventory image matches `--region` at all. The same check is also available
-  in the TUI as its own "ECR Findings Check" feature (pick an AWS account,
-  it runs and shows the summary); it never runs as part of Inventory.
+  in the TUI as its own "ECR Findings Check" feature: select one or more AWS
+  accounts from the shared account picker (Space to toggle, `a` for all),
+  and it runs the check against each and shows a per-account summary; it
+  never runs as part of Inventory.
 
 - **Accounts now authenticate through either `aws sso login` or Granted's
   `assume`.** Grabber tries the account's profile first. If that fails (for

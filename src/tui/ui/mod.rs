@@ -181,7 +181,6 @@ pub fn draw(f: &mut Frame, app: &App) {
         Screen::StigRemediationResults => {
             stig_remediation::draw_stig_remediation_results(f, content, app)
         }
-        Screen::EcrCheckAccount => ecr_check::draw_ecr_check_account(f, content, app),
         Screen::EcrCheckRunning => ecr_check::draw_ecr_check_running(f, content, app),
         Screen::EcrCheckResults => ecr_check::draw_ecr_check_results(f, content, app),
     }

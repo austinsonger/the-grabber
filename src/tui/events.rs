@@ -65,7 +65,7 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
     match app.screen.clone() {
         Screen::Welcome => handle_welcome(app, key),
         Screen::FeatureSelection => handle_feature_selection(app, key),
-        Screen::SelectAccount => handle_select_account(app, key),
+        Screen::SelectAccount => return handle_select_account(app, key),
         Screen::SelectProfile => handle_select_profile(app, key),
         Screen::SelectRegion => handle_select_region(app, key),
         Screen::SetDates => handle_set_dates(app, key),
@@ -90,7 +90,6 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers) -> Action {
         Screen::StigRemediationScanning | Screen::StigRemediationApplying => {}
         Screen::StigRemediationList => return handle_stig_remediation_list(app, key),
         Screen::StigRemediationResults => return handle_stig_remediation_results(app, key),
-        Screen::EcrCheckAccount => return handle_ecr_check_account(app, key),
         Screen::EcrCheckRunning => {}
         Screen::EcrCheckResults => return handle_ecr_check_results(app, key),
     }
@@ -138,9 +137,13 @@ fn handle_feature_selection(app: &mut App, key: KeyCode) {
     }
 }
 
-fn handle_select_account(app: &mut App, key: KeyCode) {
+fn handle_select_account(app: &mut App, key: KeyCode) -> Action {
     let indices = app.provider_account_indices();
     let filtered_len = indices.len();
+    // The "Other" (legacy profile picker) row doesn't apply to ECR Findings
+    // Check, which is AWS-account-only; block it there instead of hiding the
+    // row, so the row layout/cursor math stays shared with Inventory.
+    let other_blocked = app.selected_feature == Feature::EcrFindingsCheck;
 
     match key {
         KeyCode::Up => {
@@ -161,6 +164,8 @@ fn handle_select_account(app: &mut App, key: KeyCode) {
                 } else {
                     app.selected_accounts.insert(real);
                 }
+            } else if other_blocked {
+                app.error_msg = Some("Only AWS accounts from config.toml can be used here".into());
             } else {
                 // "Other" — fall back to legacy profile picker
                 app.selected_accounts.clear();
@@ -177,20 +182,30 @@ fn handle_select_account(app: &mut App, key: KeyCode) {
         }
         KeyCode::Enter => {
             if app.account_cursor == filtered_len {
-                app.selected_accounts.clear();
-                app.screen = Screen::SelectProfile;
+                if other_blocked {
+                    app.error_msg =
+                        Some("Only AWS accounts from config.toml can be used here".into());
+                } else {
+                    app.selected_accounts.clear();
+                    app.screen = Screen::SelectProfile;
+                }
             } else {
                 if app.selected_accounts.is_empty() {
                     app.selected_accounts.insert(indices[app.account_cursor]);
                 }
                 if app.validate_current() {
+                    let feature = app.selected_feature.clone();
                     app.next_screen();
+                    if feature == Feature::EcrFindingsCheck {
+                        return Action::EcrCheckRun;
+                    }
                 }
             }
         }
         KeyCode::Esc => app.prev_screen(),
         _ => {}
     }
+    Action::Continue
 }
 
 fn handle_select_profile(app: &mut App, key: KeyCode) {
@@ -712,31 +727,6 @@ fn handle_stig_remediation_account(app: &mut App, key: KeyCode) -> Action {
         KeyCode::Enter => {
             app.next_screen();
             Action::StigScan
-        }
-        KeyCode::Esc => {
-            app.prev_screen();
-            Action::Continue
-        }
-        _ => Action::Continue,
-    }
-}
-
-fn handle_ecr_check_account(app: &mut App, key: KeyCode) -> Action {
-    let len = app.ecr_check_account_list.len();
-    match key {
-        KeyCode::Up => {
-            app.ecr_check_account_cursor = app.ecr_check_account_cursor.saturating_sub(1);
-            Action::Continue
-        }
-        KeyCode::Down => {
-            if app.ecr_check_account_cursor + 1 < len {
-                app.ecr_check_account_cursor += 1;
-            }
-            Action::Continue
-        }
-        KeyCode::Enter => {
-            app.next_screen();
-            Action::EcrCheckRun
         }
         KeyCode::Esc => {
             app.prev_screen();

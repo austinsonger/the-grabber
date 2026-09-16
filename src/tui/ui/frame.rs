@@ -189,7 +189,7 @@ pub(super) fn screen_to_step(
             _ => None,
         },
         Feature::EcrFindingsCheck => match screen {
-            Screen::EcrCheckAccount => Some(0),
+            Screen::SelectAccount => Some(0),
             Screen::EcrCheckRunning => Some(1),
             Screen::EcrCheckResults => Some(2),
             _ => None,
@@ -458,7 +458,6 @@ pub(super) fn get_hints(screen: &Screen) -> Vec<(&'static str, &'static str)> {
         Screen::StigRemediationResults => {
             vec![("n", "New Session"), ("q", "Quit"), ("Esc", "Exit")]
         }
-        Screen::EcrCheckAccount => vec![("↑↓", "Navigate"), ("⏎", "Run check"), ("Esc", "Back")],
         Screen::EcrCheckRunning => vec![],
         Screen::EcrCheckResults => vec![("⏎", "New session"), ("Esc", "Back"), ("q", "Quit")],
     }

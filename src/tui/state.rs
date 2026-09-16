@@ -132,8 +132,6 @@ pub enum Screen {
     StigRemediationApplying,
     /// STIG remediation: session summary (applied/failed/manual counts, log path).
     StigRemediationResults,
-    /// ECR findings check: pick the AWS account whose Inspector2 data to query.
-    EcrCheckAccount,
     /// ECR findings check: running (async work; no key handling).
     EcrCheckRunning,
     /// ECR findings check: summary and report path.
