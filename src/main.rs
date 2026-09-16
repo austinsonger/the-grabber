@@ -38,17 +38,6 @@ async fn async_main() -> Result<()> {
         return run_provider_cli(&cli).await;
     }
 
-    if cli.check_ecr_inventory {
-        let (Some(ev), Some(inv)) = (&cli.evidence_dir, &cli.inventory_dir) else {
-            anyhow::bail!("--check-ecr-inventory requires --evidence-dir and --inventory-dir");
-        };
-        let gaps = the_grabber::ecr_inventory_check::run(ev.as_ref(), inv.as_ref())?;
-        if gaps > 0 {
-            std::process::exit(1);
-        }
-        return Ok(());
-    }
-
     if cli.inventory {
         return run_inventory_cli(&cli).await;
     }

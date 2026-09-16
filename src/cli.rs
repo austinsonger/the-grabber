@@ -157,22 +157,6 @@ pub struct Cli {
     #[arg(long)]
     pub verify_manifest: Option<String>,
 
-    // ------- ECR findings vs inventory cross-check -------
-    /// Check that every image asset in the newest *_Inspector2_ECR_Image_Findings-*.csv
-    /// (under --evidence-dir) appears, by repo and image digest, in the newest
-    /// AWS_Inventory-*.csv (under --inventory-dir). Writes ECR-Inventory-Gaps-<ts>.csv
-    /// and exits non-zero when gaps are found.
-    #[arg(long, default_value_t = false, requires_all = ["evidence_dir", "inventory_dir"])]
-    pub check_ecr_inventory: bool,
-
-    /// Directory searched recursively for ECR findings CSVs (--check-ecr-inventory).
-    #[arg(long, requires = "check_ecr_inventory")]
-    pub evidence_dir: Option<String>,
-
-    /// Directory searched recursively for inventory CSVs (--check-ecr-inventory).
-    #[arg(long, requires = "check_ecr_inventory")]
-    pub inventory_dir: Option<String>,
-
     // ------- Audit artifact opt-ins -------
     /// Opt in to writing the run-manifest JSON after collection (collectors mode only).
     /// Disabled by default; pass this flag to emit RUN-MANIFEST-<run_id>.json.

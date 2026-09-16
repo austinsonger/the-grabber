@@ -9,22 +9,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- **`--check-ecr-inventory` confirms every ECR image with Inspector findings is
-  in the inventory.** Run it with `--evidence-dir <dir>` and `--inventory-dir <dir>`.
-  It finds the newest `*_Inspector2_ECR_Image_Findings-*.csv` and the newest
-  `AWS_Inventory-*.csv` (searching subfolders) and matches each finding's
-  `Resource ID` to an inventory `Container Image` row by repository and image
-  digest. FedRAMP's container scanning requirements expect every scanned image
-  to have an asset identifier in the Integrated Inventory Workbook. Each finding
-  that doesn't match is written to `ECR-Inventory-Gaps-<timestamp>.csv` with one
-  of three reasons. `MISSING_REPO` means the repository isn't inventoried.
-  `DIGEST_MISMATCH` means the repository is inventoried but lists a different
-  image, which usually means one of the two files is stale. The third,
-  `UNPARSEABLE_RESOURCE_ID`, is for a `Resource ID` the check can't read. The
-  command exits with status 1 when any gaps are found. The inventory records
-  only the newest image digest per repository, so a repository with several
-  images in production reports the older ones as `DIGEST_MISMATCH`.
-
 - **Accounts now authenticate through either `aws sso login` or Granted's
   `assume`.** Grabber tries the account's profile first. If that fails (for
   example, the AWS CLI's SSO token has expired even though `assume` still works,
@@ -38,6 +22,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   if every source fails it gives the reason for each.
 
 ### Fixed
+
+- **Container image counts could be cut short for large ECR repositories.**
+  The inventory read only the first page of images from ECR (100 by default).
+  For a repository with more images than that, `ImageCount` and `OldestPush`
+  covered only that first page. All pages are now read.
 
 - **Desktop: an imported AWS profile could never be used by the account that
   needed it.** When a vault credential named the same AWS profile as a

@@ -233,16 +233,26 @@ pub(super) async fn collect_containers(
                 .unwrap_or("")
                 .to_string();
 
-            // Fetch images for this repository
-            let mut images = match ecr
-                .describe_images()
-                .repository_name(&repo_name)
-                .send()
-                .await
-            {
-                Ok(r) => r.image_details().to_vec(),
-                Err(_) => vec![],
-            };
+            // Fetch every image for this repository (paginated, so ImageCount /
+            // OldestPush cover the whole repository)
+            let mut images = Vec::new();
+            let mut img_token: Option<String> = None;
+            loop {
+                let mut req = ecr.describe_images().repository_name(&repo_name);
+                if let Some(ref t) = img_token {
+                    req = req.next_token(t);
+                }
+                match req.send().await {
+                    Ok(r) => {
+                        images.extend(r.image_details().iter().cloned());
+                        img_token = r.next_token().map(str::to_string);
+                    }
+                    Err(_) => break,
+                }
+                if img_token.is_none() {
+                    break;
+                }
+            }
 
             let secs_to_rfc3339 = |secs: i64| -> String {
                 chrono::DateTime::<chrono::Utc>::from_timestamp(secs, 0)
