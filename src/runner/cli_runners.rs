@@ -139,6 +139,24 @@ pub async fn run_ecr_findings_check_cli(cli: &Cli) -> Result<()> {
     )
     .await;
     let evidence_dir = cli.output.clone().unwrap_or_else(|| PathBuf::from("."));
+    if cli.collect {
+        let account_name = cli.profile.as_deref().unwrap_or("Default");
+        let report = crate::ecr_findings_check::collect_and_check(
+            &config,
+            account_name,
+            &cli.region,
+            std::path::Path::new("inventory"),
+            &evidence_dir,
+        )
+        .await?;
+        for line in report.summary_lines() {
+            println!("{line}");
+        }
+        if report.check.failures() > 0 {
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     let report = crate::ecr_findings_check::run(
         &config,
         &cli.region,

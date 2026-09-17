@@ -165,6 +165,12 @@ pub struct Cli {
     #[arg(long, default_value_t = false)]
     pub check_ecr_findings: bool,
 
+    /// With --check-ecr-findings: first collect the ECR image findings CSV for
+    /// the newest inventory's image digests into --output (default .), then
+    /// verify that file.
+    #[arg(long, default_value_t = false, requires = "check_ecr_findings")]
+    pub collect: bool,
+
     // ------- Audit artifact opt-ins -------
     /// Opt in to writing the run-manifest JSON after collection (collectors mode only).
     /// Disabled by default; pass this flag to emit RUN-MANIFEST-<run_id>.json.

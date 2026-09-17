@@ -17,7 +17,7 @@ pub(super) fn draw_ecr_check_running(f: &mut Frame, area: Rect, app: &App) {
     let n = app.selected_account_indices().len();
     f.render_widget(
         Paragraph::new(Span::styled(
-            format!("Checking {n} account(s)… (live Inspector2 queries)"),
+            format!("Collecting ECR findings from the inventory and verifying… ({n} accounts)"),
             Style::default().fg(TEXT_NORMAL),
         ))
         .alignment(Alignment::Center),

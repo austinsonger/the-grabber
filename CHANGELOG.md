@@ -22,11 +22,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `NO_SCAN_DATA` / `INDEX_NOT_EXPANDED`). Also fails fast, before checking any
   asset, if the findings CSV's `Inventory File` column shows it was collected
   against a different inventory than the newest one on disk, or if no
-  inventory image matches `--region` at all. The same check is also available
-  in the TUI as its own "ECR Findings Check" feature: select one or more AWS
-  accounts from the shared account picker (Space to toggle, `a` for all),
-  and it runs the check against each and shows a per-account summary; it
-  never runs as part of Inventory.
+  inventory image matches `--region` at all. Add `--collect` to first pull the
+  ACTIVE Inspector2 findings for every inventory image digest, write the
+  findings CSV to `--output` (same name and format as a Collectors run), and
+  verify that file in the same run. The TUI's "ECR Findings Check" feature
+  always does this collect-then-verify step: select one or more AWS accounts
+  from the shared account picker (Space to toggle, `a` for all), and it writes
+  each account's findings CSV to that account's output folder, verifies it, and
+  shows a per-account summary; it never runs as part of Inventory. Inventory
+  images owned by another account (for example `123456789012`) that the
+  current account has no Inspector2 coverage for are counted as "Not visible
+  from this account" instead of failing; if no image is visible at all, that
+  account reports an error saying so.
 
 - **Accounts now authenticate through either `aws sso login` or Granted's
   `assume`.** Grabber tries the account's profile first. If that fails (for

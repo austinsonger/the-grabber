@@ -151,7 +151,7 @@ pub(super) fn draw_feature_selection(f: &mut Frame, area: Rect, app: &App) {
         (
             Feature::EcrFindingsCheck,
             "ECR Findings Check",
-            "Verify the ECR image findings CSV lists every ACTIVE vulnerability for every inventory image digest",
+            "Pull Inspector2 findings for every inventory image digest, write the ECR findings CSV, and verify it",
         ),
     ];
 

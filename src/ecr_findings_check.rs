@@ -11,7 +11,9 @@ use aws_sdk_inspector2::types::{
 };
 
 use crate::inventory_digests::{latest_file, load_latest};
-use crate::providers::aws::inspector_ecr::{active_findings_for_digest, platform_digests};
+use crate::providers::aws::inspector_ecr::{
+    active_findings_for_digest, platform_digests, InspectorEcrImagesCollector,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CheckResult {
@@ -50,6 +52,91 @@ pub struct Report {
     pub assets: Vec<AssetCheck>,
     pub report_path: PathBuf,
     pub skipped_other_region: usize,
+    pub not_visible: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Visibility {
+    Visible,
+    NotVisible,
+}
+
+/// An image with no Inspector2 coverage that belongs to another account is not
+/// visible from the caller; same-account images always count (NO_SCAN_DATA).
+pub fn visibility(coverage_found: bool, image_account: &str, caller_account: &str) -> Visibility {
+    if !coverage_found && image_account != caller_account {
+        Visibility::NotVisible
+    } else {
+        Visibility::Visible
+    }
+}
+
+#[derive(Debug)]
+pub struct CollectReport {
+    pub findings_path: PathBuf,
+    pub findings_rows: usize,
+    pub check: Report,
+}
+
+impl CollectReport {
+    pub fn summary_lines(&self) -> Vec<String> {
+        let mut lines = vec![format!(
+            "Findings written: {} ({} rows)",
+            self.findings_path.display(),
+            self.findings_rows
+        )];
+        lines.extend(self.check.summary_lines());
+        lines
+    }
+}
+
+/// Collect the ECR image findings CSV for the newest inventory into `out_dir`
+/// (same name and format as a Collectors run), then verify it.
+pub async fn collect_and_check(
+    config: &aws_config::SdkConfig,
+    account_name: &str,
+    region: &str,
+    inventory_dir: &Path,
+    out_dir: &Path,
+) -> Result<CollectReport> {
+    use crate::evidence::CsvCollector;
+    use crate::runner::output::{evidence_basename, write_csv_bytes_with_manifest_per_row};
+
+    let identity = crate::audit_log::resolve_aws_identity(config)
+        .await
+        .with_context(|| format!("cannot resolve AWS account ID for {account_name}"))?;
+    let collector = InspectorEcrImagesCollector::new(config);
+    let rows = collector
+        .collect_rows(&identity.account_id, region, None)
+        .await
+        .with_context(|| format!("collecting ECR findings for {account_name}"))?;
+    std::fs::create_dir_all(out_dir)
+        .with_context(|| format!("cannot create {}", out_dir.display()))?;
+    // Same writer and basename as run_tui_csv_collector (Collectors run).
+    let timestamp = chrono::Utc::now().format("%Y-%m-%d-%H%M%S").to_string();
+    let basename = evidence_basename(
+        &identity.account_id,
+        collector.filename_prefix(),
+        &timestamp,
+        "csv",
+    );
+    let bytes = write_csv_bytes_with_manifest_per_row(
+        collector.headers(),
+        &rows,
+        &collector.fedramp_mapping(),
+        &basename,
+        |row| collector.fedramp_mapping_for_row(row),
+        collector.emit_fedramp_control_ids_column(),
+    )?;
+    let findings_path = out_dir.join(&basename);
+    std::fs::write(&findings_path, bytes)
+        .with_context(|| format!("cannot write {}", findings_path.display()))?;
+    let check = run_with_findings(config, region, inventory_dir, &findings_path).await?;
+    Ok(CollectReport {
+        findings_path,
+        findings_rows: rows.len(),
+        check,
+    })
 }
 
 /// Coverage is (status code, reason) for the scanned digest; `None` = not covered.
@@ -161,6 +248,7 @@ impl Report {
                 self.failures()
             ),
             format!("Skipped (other regions): {}", self.skipped_other_region),
+            format!("Not visible from this account: {}", self.not_visible),
         ];
         lines.extend(
             counts
@@ -207,8 +295,22 @@ pub async fn run(
     inventory_dir: &Path,
     evidence_dir: &Path,
 ) -> Result<Report> {
-    let inventory = load_latest(inventory_dir)?;
     let findings_path = latest_file(evidence_dir, "_Inspector2_ECR_Image_Findings-")?;
+    run_with_findings(config, region, inventory_dir, &findings_path).await
+}
+
+pub async fn run_with_findings(
+    config: &aws_config::SdkConfig,
+    region: &str,
+    inventory_dir: &Path,
+    findings_path: &Path,
+) -> Result<Report> {
+    let findings_path = findings_path.to_path_buf();
+    let inventory = load_latest(inventory_dir)?;
+    let caller_account = crate::audit_log::resolve_aws_identity(config)
+        .await
+        .map(|i| i.account_id)
+        .context("cannot resolve the caller AWS account (STS GetCallerIdentity)")?;
     let csv_ids = csv_ids_by_asset(&findings_path)?;
 
     let inventory_file = inventory
@@ -230,6 +332,7 @@ pub async fn run(
 
     let mut assets = Vec::new();
     let mut skipped_other_region = 0usize;
+    let mut not_visible = 0usize;
     for image in &inventory.images {
         if image.region != region {
             skipped_other_region += 1;
@@ -239,6 +342,13 @@ pub async fn run(
             match platform_digests(&ecr, &image.account, &image.repository, &image.digest).await {
                 Ok(d) => (d, true),
                 Err(e) => {
+                    // An unreadable index in another account: no coverage can be
+                    // established from here.
+                    if visibility(false, &image.account, &caller_account) == Visibility::NotVisible
+                    {
+                        not_visible += 1;
+                        continue;
+                    }
                     // Still query findings on the un-expanded digest, for operator
                     // evidence, but the index couldn't be read so the asset is
                     // NoScanData regardless of what those findings or coverage say.
@@ -275,8 +385,10 @@ pub async fn run(
         let mut live = BTreeSet::new();
         let mut worst: Option<(String, String)> = None;
         let mut all_active = true;
+        let mut coverage_found = false;
         for d in &digests {
             let cov = coverage_for(&insp, &format!("{}/{d}", image.repository_arn)).await?;
+            coverage_found |= cov.is_some();
             match &cov {
                 Some((s, _)) if s == "ACTIVE" => {}
                 _ => {
@@ -292,6 +404,10 @@ pub async fn run(
                     .unwrap_or("");
                 live.insert(vuln_id(cve, f.title().unwrap_or("")));
             }
+        }
+        if visibility(coverage_found, &image.account, &caller_account) == Visibility::NotVisible {
+            not_visible += 1;
+            continue;
         }
         let (status, reason) = if all_active {
             ("ACTIVE".to_string(), String::new())
@@ -316,6 +432,9 @@ pub async fn run(
         });
     }
 
+    if assets.is_empty() && not_visible > 0 {
+        anyhow::bail!("no inventory ECR images visible from account {caller_account} in {region}");
+    }
     if assets.is_empty() {
         anyhow::bail!("no inventory ECR images in region {region}; checked nothing");
     }
@@ -362,6 +481,7 @@ pub async fn run(
         assets,
         report_path,
         skipped_other_region,
+        not_visible,
     })
 }
 
@@ -371,6 +491,14 @@ mod tests {
 
     fn set(ids: &[&str]) -> BTreeSet<String> {
         ids.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn visibility_rules() {
+        assert_eq!(visibility(false, "111", "222"), Visibility::NotVisible);
+        assert_eq!(visibility(false, "111", "111"), Visibility::Visible);
+        assert_eq!(visibility(true, "111", "222"), Visibility::Visible);
+        assert_eq!(visibility(true, "111", "111"), Visibility::Visible);
     }
 
     #[test]

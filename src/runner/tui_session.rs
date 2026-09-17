@@ -216,21 +216,24 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                     false,
                 )
                 .await;
-                let evidence_dir = std::path::PathBuf::from(
+                let out_dir = std::path::PathBuf::from(
                     acct.output_dir
                         .clone()
-                        .unwrap_or_else(|| app.output_dir.value.clone()),
+                        .filter(|d| !d.is_empty())
+                        .or_else(|| Some(app.output_dir.value.clone()).filter(|d| !d.is_empty()))
+                        .unwrap_or_else(|| ".".to_string()),
                 );
-                match crate::ecr_findings_check::run(
+                match crate::ecr_findings_check::collect_and_check(
                     &config,
+                    &acct.name,
                     &region,
                     std::path::Path::new("inventory"),
-                    &evidence_dir,
+                    &out_dir,
                 )
                 .await
                 {
                     Ok(report) => {
-                        if report.failures() > 0 {
+                        if report.check.failures() > 0 {
                             failure_count += 1;
                         }
                         lines.extend(report.summary_lines().iter().map(|l| format!("  {l}")));
