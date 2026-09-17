@@ -131,7 +131,17 @@ pub async fn collect_and_check(
     let findings_path = out_dir.join(&basename);
     std::fs::write(&findings_path, bytes)
         .with_context(|| format!("cannot write {}", findings_path.display()))?;
-    let check = run_with_findings(config, region, inventory_dir, &findings_path).await?;
+    let check = match run_with_findings(config, region, inventory_dir, &findings_path).await {
+        Ok(c) => c,
+        Err(e) => {
+            // Don't leave an empty CSV that newest-file lookups would pick up.
+            if rows.is_empty() && format!("{e:#}").contains("no inventory ECR images visible") {
+                std::fs::remove_file(&findings_path)
+                    .with_context(|| format!("cannot remove empty {}", findings_path.display()))?;
+            }
+            return Err(e);
+        }
+    };
     Ok(CollectReport {
         findings_path,
         findings_rows: rows.len(),
