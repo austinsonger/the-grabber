@@ -202,7 +202,7 @@ pub fn csv_ids_by_asset(path: &Path) -> Result<HashMap<String, BTreeSet<String>>
         for asset in rec
             .get(asset_i)
             .unwrap_or("")
-            .split('\n')
+            .split(|c| c == ';' || c == '\n')
             .map(str::trim)
             .filter(|a| !a.is_empty())
         {
@@ -474,13 +474,13 @@ pub async fn run_with_findings(
         let extra: Vec<&str> = a.csv.difference(&a.live).map(String::as_str).collect();
         w.write_record([
             a.asset_id.clone(),
-            a.digests.join("\n"),
+            a.digests.join("; "),
             a.scan_status.clone(),
             a.scan_reason.clone(),
             a.live.len().to_string(),
             a.csv.len().to_string(),
-            missing.join("\n"),
-            extra.join("\n"),
+            missing.join("; "),
+            extra.join("; "),
             a.result.as_str().to_string(),
         ])?;
     }
@@ -612,7 +612,7 @@ mod tests {
         let mut w = csv::Writer::from_path(&p).expect("writer");
         w.write_record(["Finding ARN", "Title", "CVE ID", "Asset Identifier"])
             .expect("hdr");
-        w.write_record(["arn:1", "t", "CVE-1", "asset-a\nasset-b"])
+        w.write_record(["arn:1", "t", "CVE-1", "asset-a; asset-b"])
             .expect("row");
         w.write_record(["arn:2", "Some non-CVE title", "", "asset-b"])
             .expect("row");

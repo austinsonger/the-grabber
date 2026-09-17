@@ -55,7 +55,7 @@ pub(super) fn index_child_digests(manifest_json: &str) -> Vec<String> {
 //
 // Groups by (CVE ID + Package Name) across all repos. The highest Inspector
 // Score row is kept as representative; all other per-repo fields are merged
-// into it. Multi-value cells are newline-separated.
+// into it. Multi-value cells are "; "-separated on one line so every finding stays one CSV row.
 //
 // Indices reference the post-annotation column layout:
 //   6  Inspector Score   8  CVE ID        15 Package Name    16 Package Version
@@ -104,7 +104,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(23)
-                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
+                    .map(|s| s.split("; ").map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -117,7 +117,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(24)
-                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
+                    .map(|s| s.split("; ").map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -130,7 +130,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(25)
-                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
+                    .map(|s| s.split("; ").map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -143,7 +143,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(32)
-                    .map(|s| s.split('\n').map(str::to_string).collect::<Vec<_>>())
+                    .map(|s| s.split("; ").map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -230,7 +230,7 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
             .iter()
             .flat_map(|r| {
                 r.get(47)
-                    .map(|s| s.split('\n').map(|p| p.to_string()).collect::<Vec<_>>())
+                    .map(|s| s.split("; ").map(|p| p.to_string()).collect::<Vec<_>>())
                     .unwrap_or_default()
             })
             .filter(|s| !s.is_empty())
@@ -247,19 +247,19 @@ pub(super) fn rollup_ecr_by_cve(rows: Vec<Vec<String>>) -> Vec<Vec<String>> {
                 }
             };
         }
-        set!(23, repos.join("\n"));
-        set!(24, tags.join("\n"));
-        set!(25, hashes.join("\n"));
+        set!(23, repos.join("; "));
+        set!(24, tags.join("; "));
+        set!(25, hashes.join("; "));
         set!(30, currently_in_use.to_string());
         set!(31, in_use_total.to_string());
-        set!(32, res_ids.join("\n"));
+        set!(32, res_ids.join("; "));
         set!(40, earliest_observed);
         set!(41, days_open);
         set!(42, total_images.to_string());
         set!(43, oldest_push);
         set!(44, newest_push);
         set!(46, version_varies);
-        set!(47, asset_ids.join("\n"));
+        set!(47, asset_ids.join("; "));
 
         out.push(best);
     }
@@ -313,7 +313,7 @@ mod tests {
     }
 
     #[test]
-    fn rollup_groups_same_cve_package_with_newlines_and_keeps_different_cves_apart() {
+    fn rollup_groups_same_cve_package_on_one_line_and_keeps_different_cves_apart() {
         let rows = vec![
             annotate_inventory_row(
                 base_row("CVE-1", "openssl", "web", "sha256:w", "arn:w", "5"),
@@ -335,10 +335,10 @@ mod tests {
         out.sort_by(|a, b| a[8].cmp(&b[8]));
         assert_eq!(out.len(), 2);
         assert_eq!(out[0][8], "CVE-1");
-        assert_eq!(out[0][IDX_ASSET_ID], "asset-api\nasset-web");
-        assert_eq!(out[0][23], "api\nweb");
-        assert_eq!(out[0][25], "sha256:p\nsha256:w");
-        assert_eq!(out[0][32], "arn:p\narn:w");
+        assert_eq!(out[0][IDX_ASSET_ID], "asset-api; asset-web");
+        assert_eq!(out[0][23], "api; web");
+        assert_eq!(out[0][25], "sha256:p; sha256:w");
+        assert_eq!(out[0][32], "arn:p; arn:w");
         assert_eq!(out[0][42], "2");
         assert_eq!(out[1][8], "CVE-2");
         assert_eq!(out[1][IDX_ASSET_ID], "asset-api");

@@ -55,9 +55,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   lists all ACTIVE Inspector2 findings for that digest, regardless of the run's
   date range. Findings are still one row per vulnerability (CVE and package);
   `Asset Identifier` now holds the inventory's `UNIQUE ASSET IDENTIFIER` for
-  every affected image, one per line, as the FedRAMP POA&M template requires,
-  and a new `Inventory File` column names the inventory used. `Repository
-  Name`, `Image Tags`, `Image Hash` and `Resource ID` list one value per line.
+  every affected image, and a new `Inventory File` column names the inventory
+  used. Multiple values in `Asset Identifier`, `Repository Name`, `Image Tags`,
+  `Image Hash` and `Resource ID` are separated by `; ` on one line, so every
+  finding stays a single CSV row.
   Collection now fails with "run inventory first" when no inventory exists.
   Collection also fails if any inventory image's findings lookup errors, rather
   than writing a partial CSV.
