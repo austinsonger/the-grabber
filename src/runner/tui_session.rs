@@ -191,6 +191,13 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
         }
 
         if app.screen == crate::tui::Screen::EcrCheckRunning {
+            // Progress eprintln!s from the loader/collector would paint over the TUI.
+            let log_dir = Some(app.output_dir.value.clone())
+                .filter(|d| !d.is_empty())
+                .map_or_else(|| PathBuf::from("."), PathBuf::from);
+            let _ = std::fs::create_dir_all(&log_dir);
+            let log_path = log_dir.join("evidence-collection.log");
+            let stderr_backup = crate::platform::redirect_stderr_to_file(&log_path);
             let mut terminal = setup_terminal()?;
             terminal.draw(|f| crate::tui::ui::draw(f, &app))?;
 
@@ -252,11 +259,13 @@ pub async fn run_tui_session(_cli: &Cli) -> Result<()> {
                 failure_count,
                 error_count,
             ));
+            lines.push(format!("Log: {}", log_path.display()));
 
             app.ecr_check_failed = failure_count > 0 || error_count > 0;
             app.ecr_check_lines = lines;
             app.screen = crate::tui::Screen::EcrCheckResults;
             restore_terminal(&mut terminal)?;
+            crate::platform::restore_stderr(stderr_backup);
             continue;
         }
 
